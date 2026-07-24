@@ -157,6 +157,7 @@ const SPRINGER: SiteAdapter = {
         { selector: ".c-article-title", position: "after" },
     ],
     referenceScope: ".c-article-references",
+    titlePillStyle: { top: "-15px" },
     referencePillStyle: { top: "0px" },
 };
 
@@ -242,6 +243,186 @@ const ANNUAL_REVIEWS: SiteAdapter = {
     referencePillStyle: { top: "0px" },
 };
 
+const BIORXIV: SiteAdapter = {
+    id: "bioarxiv",
+    hostnames: ["biorxiv.org"],
+    titlePill: [
+        { selector: ".highwire-cite-title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ".ref-list", position: "after" },
+    ],
+    referenceScope: "#references",
+    titlePillStyle: { top: "-10px" },
+    referencePillStyle: { top: "0px" },
+};
+
+const MEDRXIV: SiteAdapter = {
+    id: "medrxiv",
+    hostnames: ["medrxiv.org"],
+    titlePill: [
+        { selector: ".highwire-cite-title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ".ref-list", position: "after" },
+    ],
+    referenceScope: "#references",
+    titlePillStyle: { top: "-10px" },
+    referencePillStyle: { top: "0px" },
+};
+
+const REPEC: SiteAdapter = {
+    id: "repec",
+    hostnames: ["repec.org"],
+    titlePill: [
+        { selector: ".colored", position: "after" },
+    ],
+    referencePill: [
+        { selector: ".references", position: "after" },
+    ],
+    referenceScope: ".references",
+    titlePillStyle: { top: "0px" },
+    referencePillStyle: { top: "0px" },
+};
+
+const SSRN: SiteAdapter = {
+    id: "ssrn",
+    hostnames: ["ssrn.com"],
+    titlePill: [
+        // { selector: ".title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "append" },
+    ],
+    referenceScope: "#references-widget",
+    titlePillStyle: { top: "-5px" },
+    referencePillStyle: { top: "0px" },
+};
+
+const RESEARCHSQUARE: SiteAdapter = {
+    id: "researchsquare",
+    hostnames: ["researchsquare.com"],
+    titlePill: [
+        { selector: "h1", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    titlePillStyle: { top: "5px" },
+    referencePillStyle: { top: "-5px" },
+};
+
+const PREPRINTSORG: SiteAdapter = {
+    id: "preprints.org",
+    hostnames: ["preprints.org"],
+    titlePill: [
+        { selector: "section.heading-with-button-anchor > .pt-md", position: "after" },
+    ],
+    referencePill: [
+        // { selector: ":self", position: "after" },
+    ],
+    // referenceScope: ".references",
+    titlePillStyle: { top: "5px" },
+    referencePillStyle: { top: "0px" },
+};
+
+const SCIENCEDIRECT: SiteAdapter = {
+    id: "sciencedirect",
+    hostnames: ["sciencedirect.com"],
+    titlePill: [
+        { selector: ".content-title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    referenceScope: ".bibliography",
+    titlePillStyle: { top: "-5px" },
+    referencePillStyle: { top: "-5px", left: "45px" },
+};
+
+const TANDFONLINE: SiteAdapter = {
+    id: "tandfonline",
+    hostnames: ["tandfonline.com"],
+    titlePill: [
+        { selector: ".article-header__title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    referenceScope: "#references-Section1",
+    titlePillStyle: { top: "-5px" },
+    referencePillStyle: { top: "-20px", left: "20px" },
+};
+
+const HOGREFE: SiteAdapter = {
+    id: "hogrefe",
+    hostnames: ["hogrefe.com"],
+    titlePill: [
+        { selector: ".citation__title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "append" },
+    ],
+    referenceScope: ".article__references",
+    titlePillStyle: { top: "-5px" },
+    referencePillStyle: { top: "0px" },
+};
+
+const REPLICATIONRESEARCH: SiteAdapter = {
+    id: "replicationresearch",
+    hostnames: ["replicationresearch.org"],
+    titlePill: [
+        { selector: ".article-header h1", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    referenceScope: ".article-references",
+    titlePillStyle: { top: "-10px" },
+    referencePillStyle: { top: "-10px" },
+};
+
+const PEERCOMMUNITYIN: SiteAdapter = {
+    id: "peercommunityin",
+    hostnames: ["peercommunityin.org"],
+    titlePill: [
+        { selector: ".pci2-recomm-title h1", position: "after" },
+    ],
+    // referencePill: [
+    //     { selector: ":self", position: "after" },
+    // ],
+    // referenceScope: ".article-references",
+    titlePillStyle: { top: "5px", marginBottom: "10px" },
+    referencePillStyle: { top: "-10px" },
+};
+
+const METAROR: SiteAdapter = {
+    id: "metaror",
+    hostnames: ["metaror.org"],
+    titlePill: [
+        { selector: ".fusion-title", position: "append" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    referenceScope: ".article-references",
+    titlePillStyle: { top: "-10px" },
+    referencePillStyle: { top: "-10px" },
+};
+
+const F1000RESEARCH: SiteAdapter = {
+    id: "f1000research",
+    hostnames: ["f1000research.com"],
+    titlePill: [
+        { selector: ".js-article-title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ".citation ", position: "after" },
+    ],
+    referenceScope: ".ref-list",
+    titlePillStyle: { top: "0px" },
+    referencePillStyle: { top: "10px", left: "20px" },
+};
 
 export const SITE_ADAPTERS: SiteAdapter[] = [
     SCIENCE_ORG,
@@ -257,6 +438,19 @@ export const SITE_ADAPTERS: SiteAdapter[] = [
     WILEY_ONLINE_LIBRARY,
     NATURE_REVIEWS,
     ANNUAL_REVIEWS,
+    BIORXIV,
+    MEDRXIV,
+    REPEC,
+    SSRN,
+    RESEARCHSQUARE,
+    PREPRINTSORG,
+    SCIENCEDIRECT,
+    TANDFONLINE,
+    HOGREFE,
+    REPLICATIONRESEARCH,
+    PEERCOMMUNITYIN,
+    METAROR,
+    F1000RESEARCH,
 ];
 
 function normaliseHost(hostname: string): string {

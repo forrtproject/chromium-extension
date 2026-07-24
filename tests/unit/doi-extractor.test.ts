@@ -787,6 +787,55 @@ describe("findReferenceEntries", () => {
       expect(entry.element.className).toBe("bib");
     }
   });
+
+  it("falls back to an accordion panel when the heading has no direct siblings (researchsquare.com)", () => {
+    // researchsquare.com renders every section (abstract, methods,
+    // references, declarations, ...) as an accordion panel sharing the same
+    // generic utility classes, with the heading buried inside a toggle
+    // <button> several DOM levels above its own content panel — a cousin,
+    // not a sibling, of the heading. findReferenceContainers finds nothing
+    // (no class/id says "reference" anywhere) and the heading's own siblings
+    // are empty, so entries must come from the ancestor-cousin fallback.
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <div class="tw-border-b-2">
+          <div class="tw-flex tw-min-w-full">
+            <button type="button" class="tw-group">
+              <div class="tw-flex">
+                <div class="tw-py-2"><h2>Methods</h2></div>
+              </div>
+            </button>
+          </div>
+          <div class="tw-pb-1">
+            <div class="_fulltext-content"><p>Some methods text that is long enough.</p></div>
+          </div>
+        </div>
+        <div class="tw-border-b-2">
+          <div class="tw-flex tw-min-w-full">
+            <button type="button" class="tw-group">
+              <div class="tw-flex">
+                <div class="tw-py-2"><h2>References</h2></div>
+              </div>
+            </button>
+          </div>
+          <div class="tw-pb-1">
+            <div class="_fulltext-content">
+              <ol>
+                <li>Smith J. Title one. Journal. 2020.</li>
+                <li>Jones K. Title two. Journal. 2021.</li>
+                <li>Lee A. Title three. Journal. 2022.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+    expect(findReferenceContainers(doc)).toHaveLength(0);
+    const entries = findReferenceEntries(doc);
+    expect(entries).toHaveLength(3);
+    expect(entries.map((e) => e.element.tagName)).toEqual(["LI", "LI", "LI"]);
+    expect(entries[0].text).toContain("Smith J");
+  });
 });
 
 describe("extractDoiOccurrences — FLoRA's own injected UI", () => {
