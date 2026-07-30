@@ -424,6 +424,20 @@ const F1000RESEARCH: SiteAdapter = {
     referencePillStyle: { top: "10px", left: "20px" },
 };
 
+const PMC_NCBI: SiteAdapter = {
+    id: "pmc-ncbi",
+    hostnames: ["ncbi.nlm.nih.gov"],
+    titlePill: [
+        { selector: ".ameta.p.font-secondary.font-xs hgroup", position: "append" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    referenceScope: "#Bib1",
+    titlePillStyle: { top: "0px" },
+    referencePillStyle: { top: "0px" },
+};
+
 export const SITE_ADAPTERS: SiteAdapter[] = [
     SCIENCE_ORG,
     SAGEPUB,
@@ -451,6 +465,7 @@ export const SITE_ADAPTERS: SiteAdapter[] = [
     PEERCOMMUNITYIN,
     METAROR,
     F1000RESEARCH,
+    PMC_NCBI
 ];
 
 function normaliseHost(hostname: string): string {

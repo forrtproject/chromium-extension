@@ -370,6 +370,8 @@ export interface IndicatorPillOptions {
     color?: string;
     /** True when the DOI came from Crossref/OpenAlex augmentation rather than direct extraction. */
     isAugmented?: boolean;
+    /** Overrides the provenance line under the DOI (default: page vs. title match). */
+    provenanceLabel?: string;
     /** Open Access lookup — resolves the padlock segment/row when it lands. */
     oaStatus?: Promise<OpenAccessStatus | null>;
     /** Already-resolved retraction/concern notice for this DOI, if any. */
@@ -381,7 +383,13 @@ export interface IndicatorPillOptions {
 }
 
 /** The DOI row: link icon, the DOI itself, and open/copy actions. */
-function buildDoiRow(doi: string, color: string, isAugmented: boolean, compact = false): HTMLElement {
+function buildDoiRow(
+    doi: string,
+    color: string,
+    isAugmented: boolean,
+    compact = false,
+    provenanceLabel?: string
+): HTMLElement {
     const contentRow = document.createElement("div");
     contentRow.style.cssText = `display: flex; align-items: center; gap: ${compact ? "5px" : "8px"}; padding: ${compact ? "1px 3px" : "5px 4px"};`;
 
@@ -415,9 +423,8 @@ function buildDoiRow(doi: string, color: string, isAugmented: boolean, compact =
     const provenance = document.createElement("span");
     provenance.setAttribute("data-flora-doi-provenance", "");
     provenance.style.cssText = rowSubStyle(!isAugmented, compact) + (compact ? "font-size:9.5px;" : "");
-    provenance.textContent = isAugmented
-        ? "Matched by title"
-        : "Found on this page";
+    provenance.textContent = provenanceLabel
+        ?? (isAugmented ? "Matched by title" : "Found on this page");
 
     labelWrap.appendChild(doiText);
     labelWrap.appendChild(provenance);
@@ -524,6 +531,7 @@ interface IndicatorRowsOptions {
     doi: DoiString;
     color: string;
     isAugmented: boolean;
+    provenanceLabel?: string;
     oaStatus?: Promise<OpenAccessStatus | null>;
     retraction: RetractionResponse | null;
     replicationsCount: number | null;
@@ -545,7 +553,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     const rows = document.createElement("div");
     rows.style.cssText = `display:flex;flex-direction:column;gap:${compact ? "0" : "2px"};`;
 
-    rows.appendChild(buildDoiRow(opts.doi, opts.color, opts.isAugmented, compact));
+    rows.appendChild(buildDoiRow(opts.doi, opts.color, opts.isAugmented, compact, opts.provenanceLabel));
 
     const sectionDivider = document.createElement("div");
     sectionDivider.style.cssText = `height:1px;background:#eaeef2;margin:${compact ? "2px 0" : "0 0 2px"};`;
@@ -585,7 +593,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
  * to pin) the pill opens a popover with one interactive row per segment.
  */
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
-    const {doi, color = "#853953", isAugmented = false, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
+    const {doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
 
     const wrapper = document.createElement("span");
     wrapper.className = INDICATOR_PILL_CLASS;
@@ -683,7 +691,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
   `;
 
     popover.appendChild(buildIndicatorRows({
-        doi, color, isAugmented, oaStatus, retraction, replicationsCount, reproductionsCount,
+        doi, color, isAugmented, provenanceLabel, oaStatus, retraction, replicationsCount, reproductionsCount,
         // The pill mirrors each resolved row into its matching inline segment.
         onOa: (oa) => {
             const resolved = buildOaSegment(oa);
@@ -836,7 +844,7 @@ function ensurePanelStyle(): void {
  */
 export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement {
     const {
-        doi, color = "#853953", isAugmented = false, oaStatus,
+        doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus,
         retraction = null, replicationsCount = null, reproductionsCount = null,
     } = options;
 
@@ -863,7 +871,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
 
     ensurePanelStyle();
     wrapper.appendChild(buildIndicatorRows({
-        doi, color, isAugmented, oaStatus, retraction, replicationsCount, reproductionsCount,
+        doi, color, isAugmented, provenanceLabel, oaStatus, retraction, replicationsCount, reproductionsCount,
         compact: true,
     }));
     return wrapper;

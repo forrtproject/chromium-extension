@@ -17,6 +17,11 @@ vi.mock("../../src/shared/flora-api", () => ({
     lookupDOIs: (...args: unknown[]) => mockLookupDOIs(...args),
 }));
 
+const mockResolvePmcIds = vi.fn();
+vi.mock("../../src/shared/pmc-resolve", () => ({
+    resolvePmcIds: (...args: unknown[]) => mockResolvePmcIds(...args),
+}));
+
 // Mock settings
 vi.mock("../../src/shared/settings", () => ({
     isSetupComplete: vi.fn().mockResolvedValue(true),
@@ -66,6 +71,7 @@ describe("service-worker", () => {
         cacheSetCalls.length = 0;
         cacheSetError = null;
         mockLookupDOIs.mockReset();
+        mockResolvePmcIds.mockReset();
         (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
 
@@ -359,5 +365,41 @@ describe("service-worker", () => {
         ]);
         expect(response.results["10.1038/nature12373"]).toEqual(MOCK_RESULT);
         expect(response.results["10.1126/science.9999999"]).toEqual(otherResult);
+    });
+
+    describe("PMC id resolution", () => {
+        function sendPmcResolve(pmcids: string[]): Promise<{results: Record<string, string | null>}> {
+            return new Promise((resolve) => {
+                messageHandler(
+                    {type: "FLORA_PMC_RESOLVE", pmcids},
+                    {},
+                    resolve as (r: unknown) => void
+                );
+            });
+        }
+
+        it("answers with the converter's PMC id → DOI mapping", async () => {
+            mockResolvePmcIds.mockResolvedValue(
+                new Map([
+                    ["PMC12638941", doi("10.1038/s41531-025-01179-6")],
+                    ["PMC99999999", null],
+                ])
+            );
+
+            const response = await sendPmcResolve(["PMC12638941", "PMC99999999"]);
+
+            expect(mockResolvePmcIds).toHaveBeenCalledWith(["PMC12638941", "PMC99999999"]);
+            expect(response.results).toEqual({
+                PMC12638941: "10.1038/s41531-025-01179-6",
+                PMC99999999: null,
+            });
+        });
+
+        it("answers with an empty mapping when resolution throws", async () => {
+            mockResolvePmcIds.mockRejectedValue(new Error("offline"));
+
+            const response = await sendPmcResolve(["PMC12638941"]);
+            expect(response.results).toEqual({});
+        });
     });
 });

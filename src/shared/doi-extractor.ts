@@ -416,6 +416,8 @@ export interface ReferenceEntry {
   doi: DoiString | null;
   /** True when `doi` came from visible text rather than only a link href. */
   doiInText: boolean;
+  /** Canonical `PMC…` id, set only when the entry cites one and has no DOI. */
+  pmcid: string | null;
   text: string;
 }
 
@@ -455,6 +457,23 @@ function extractDoiFromEntry(
     if (doi && doi !== hostDoi) return { doi, inText: false };
   }
   return { doi: null, inText: false };
+}
+
+// Entries that cite a PubMed Central id and no DOI — either spelled out
+// ("PMCID: PMC12638941") or only as the href of a "PubMed Central" link.
+// Wikipedia's citation template and several publishers render the id as
+// "PMC 3741663", so the separator has to be optional.
+const PMCID_TEXT_REGEX = /\bPMC[:\s]{0,2}(\d{3,9})\b/i;
+const PMCID_HREF_REGEX = /ncbi\.nlm\.nih\.gov\/(?:pmc\/)?articles\/PMC(\d{3,9})/i;
+
+function extractPmcIdFromEntry(entry: HTMLElement, text: string): string | null {
+  const inText = PMCID_TEXT_REGEX.exec(text);
+  if (inText) return `PMC${inText[1]}`;
+  for (const link of entry.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+    const inHref = PMCID_HREF_REGEX.exec(link.href);
+    if (inHref) return `PMC${inHref[1]}`;
+  }
+  return null;
 }
 
 // Reference lists almost always render as a sibling group of one tag
@@ -576,11 +595,13 @@ export function findReferenceEntries(doc: Document): ReferenceEntry[] {
   const hostDoi = extractPrimaryDOI(doc);
   return elements.map((element) => {
     const { doi, inText } = extractDoiFromEntry(element, hostDoi);
+    const text = cleanReferenceText(element.innerText ?? element.textContent ?? "");
     return {
       element,
       doi,
       doiInText: inText,
-      text: cleanReferenceText(element.innerText ?? element.textContent ?? ""),
+      pmcid: doi === null ? extractPmcIdFromEntry(element, text) : null,
+      text,
     };
   });
 }
