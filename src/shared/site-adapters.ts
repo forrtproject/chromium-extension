@@ -330,7 +330,7 @@ const SCIENCEDIRECT: SiteAdapter = {
     id: "sciencedirect",
     hostnames: ["sciencedirect.com"],
     titlePill: [
-        { selector: ".content-title", position: "after" },
+        { selector: "#screen-reader-main-title", position: "after" },
     ],
     referencePill: [
         { selector: ":self", position: "after" },
