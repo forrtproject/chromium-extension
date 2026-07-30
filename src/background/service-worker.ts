@@ -2,9 +2,10 @@ import {LocalCache, MONTH_MS} from "@shared/cache";
 import {lookupDOIs} from "@shared/flora-api";
 import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
-import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest} from "@shared/messages";
+import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest} from "@shared/messages";
 import {augmentDOIs} from "@shared/doi-augment";
+import {resolvePmcIds} from "@shared/pmc-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
 
 const cache = new LocalCache<ReplicationResult>("flora");
@@ -185,6 +186,18 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (isPmcResolveRequest(message)) {
+            handlePmcResolve(message.pmcids)
+                .then(sendResponse)
+                .catch(() =>
+                    sendResponse({
+                        type: "FLORA_PMC_RESOLVE_RESULT",
+                        results: {},
+                    } satisfies PmcResolveResponse)
+                );
+            return true;
+        }
+
         return false;
     }
 );
@@ -268,6 +281,13 @@ async function handleAugment(
     const results: Record<string, string | null> = {};
     for (const [title, doi] of resultMap) results[title] = doi ?? null;
     return { type: "FLORA_AUGMENT_RESULT", results };
+}
+
+async function handlePmcResolve(pmcids: string[]): Promise<PmcResolveResponse> {
+    const resultMap = await resolvePmcIds(pmcids);
+    const results: Record<string, string | null> = {};
+    for (const [pmcid, doi] of resultMap) results[pmcid] = doi ?? null;
+    return {type: "FLORA_PMC_RESOLVE_RESULT", results};
 }
 
 async function handleSheetFetch(

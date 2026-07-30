@@ -60,6 +60,44 @@ export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
     );
 }
 
+/** Content script → service worker: resolve PubMed Central ids to DOIs */
+export interface PmcResolveRequest {
+    type: "FLORA_PMC_RESOLVE";
+    pmcids: string[];
+}
+
+/** Service worker → content script: PMC id → DOI (or null when NCBI has none) */
+export interface PmcResolveResponse {
+    type: "FLORA_PMC_RESOLVE_RESULT";
+    results: Record<string, string | null>;
+}
+
+export function isPmcResolveRequest(msg: unknown): msg is PmcResolveRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_PMC_RESOLVE"
+    );
+}
+
+/**
+ * Ask the service worker to run resolvePmcIds — NCBI's converter sends no CORS
+ * headers, so the fetch has to happen in the background context.
+ */
+export async function resolvePmcIdsViaWorker(
+    pmcids: string[]
+): Promise<Map<string, DoiString | null>> {
+    const response = await safeSendMessage<PmcResolveResponse>({
+        type: "FLORA_PMC_RESOLVE",
+        pmcids,
+    });
+    const result = new Map<string, DoiString | null>();
+    for (const [pmcid, doi] of Object.entries(response?.results ?? {})) {
+        result.set(pmcid, doi as DoiString | null);
+    }
+    return result;
+}
+
 /**
  * Ask the service worker to run augmentDOIs, routing all Crossref/OpenAlex
  * fetches through the extension background context (no CORS restrictions).

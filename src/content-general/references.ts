@@ -12,7 +12,7 @@
 // `showDoiPillsOnAllReferences`.
 
 import {findReferenceEntries, extractDoiFromHref, type ReferenceEntry} from "@shared/doi-extractor";
-import {augmentDOIsViaWorker} from "@shared/messages";
+import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
 import {validateDOIs} from "@shared/doi-validate";
 import type {RetractionResponse} from "@shared/doi-retraction";
 import {createIndicatorPill} from "@shared/indicator-pill";
@@ -74,7 +74,7 @@ function findCitationBody(entry: HTMLElement): HTMLElement | null {
 function placeReferencePill(
     entry: HTMLElement,
     doi: DoiString,
-    mode: "augment" | "hidden",
+    mode: ReferenceMode,
     pill: HTMLElement,
     adapter: SiteAdapter | null
 ): void {
@@ -123,14 +123,18 @@ const MIN_CITATION_LENGTH = 16;
 // hallucinate a DOI and surface a stray pill on the section header.
 const YEAR_RE = /\b(?:18|19|20)\d{2}\b/;
 
+/** Provenance of a resolved DOI; only "augment" (fuzzy title match) is unconfirmed. */
+export type ReferenceMode = "augment" | "hidden" | "pmc";
+
 type PendingEntry =
   | { entry: ReferenceEntry; mode: "augment"; doi: null }
+  | { entry: ReferenceEntry; mode: "pmc"; doi: null; pmcid: string }
   | { entry: ReferenceEntry; mode: "hidden"; doi: DoiString };
 
 export interface ResolvedReference {
     entry: ReferenceEntry;
     doi: DoiString;
-    mode: "augment" | "hidden";
+    mode: ReferenceMode;
 }
 
 /**
@@ -159,6 +163,11 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         if (!isInReferenceScope(entry.element, adapter)) continue;
 
         if (entry.doi === null) {
+            // Exact id mapping — skips the year gate and augmentation budget.
+            if (entry.pmcid) {
+                pending.push({entry, mode: "pmc", doi: null, pmcid: entry.pmcid});
+                continue;
+            }
             if (!YEAR_RE.test(entry.text)) continue;
             pending.push({entry, mode: "augment", doi: null});
         } else if (!entry.doiInText) {
@@ -175,27 +184,37 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const augmentTargets = pending
         .filter((p): p is Extract<PendingEntry, {mode: "augment"}> => p.mode === "augment")
         .slice(0, MAX_REFERENCE_AUGMENTATIONS);
+    const pmcTargets = pending.filter(
+        (p): p is Extract<PendingEntry, {mode: "pmc"}> => p.mode === "pmc"
+    );
     const augmentSet = new Set(augmentTargets.map((p) => p.entry));
-    const queued = pending.filter((p) => p.mode === "hidden" || augmentSet.has(p.entry));
+    const queued = pending.filter((p) => p.mode !== "augment" || augmentSet.has(p.entry));
 
     for (const p of queued) p.entry.element.setAttribute(PROCESSED_ATTR, "true");
 
-    const hiddenCount = queued.length - augmentTargets.length;
-    debugLog(`References: surfacing ${hiddenCount} hidden DOI(s), augmenting ${augmentTargets.length}`);
+    const hiddenCount = queued.length - augmentTargets.length - pmcTargets.length;
+    debugLog(
+        `References: surfacing ${hiddenCount} hidden DOI(s), resolving ${pmcTargets.length} PMC id(s),`
+        + ` augmenting ${augmentTargets.length}`
+    );
 
-    let augmented = new Map<string, DoiString | null>();
-    if (augmentTargets.length > 0) {
-        try {
-            augmented = await augmentDOIsViaWorker(augmentTargets.map((p) => p.entry.text));
-        } catch {
-            // continue with what we have — hidden DOIs still render
-        }
-    }
+    const empty = new Map<string, DoiString | null>();
+    const [augmented, byPmcId] = await Promise.all([
+        augmentTargets.length > 0
+            ? augmentDOIsViaWorker(augmentTargets.map((p) => p.entry.text)).catch(() => empty)
+            : empty,
+        pmcTargets.length > 0
+            ? resolvePmcIdsViaWorker(pmcTargets.map((p) => p.pmcid)).catch(() => empty)
+            : empty,
+    ]);
 
     const resolved: ResolvedReference[] = [];
     for (const p of queued) {
         if (p.mode === "hidden") {
             resolved.push({entry: p.entry, doi: p.doi, mode: "hidden"});
+        } else if (p.mode === "pmc") {
+            const doi = byPmcId.get(p.pmcid) ?? null;
+            if (doi) resolved.push({entry: p.entry, doi, mode: "pmc"});
         } else {
             const doi = augmented.get(p.entry.text) ?? null;
             if (doi) resolved.push({entry: p.entry, doi, mode: "augment"});
@@ -207,8 +226,9 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     }
 
     // Augmented DOIs are fuzzy title matches — validate them against doi.org.
-    // Hidden DOIs were read off the page; trust them and skip validation so
-    // doi.org doesn't rate-limit the whole batch.
+    // Hidden DOIs were read off the page and PMC-mapped ones came from NCBI's
+    // exact id record; trust both and skip validation so doi.org doesn't
+    // rate-limit the whole batch.
     const augmentResolved = resolved.filter((r) => r.mode === "augment");
     let validated = new Map<DoiString, boolean>();
     if (augmentResolved.length > 0) {
@@ -248,6 +268,7 @@ export function renderResolvedReferences(
             doi,
             color: PILL_COLOR,
             isAugmented,
+            provenanceLabel: mode === "pmc" ? "Matched by PMC ID" : undefined,
             oaStatus: fetchOpenAccess(doi),
             retraction: retractionByDoi.get(doi) ?? null,
             replicationsCount: stats?.n_replications_total ?? null,

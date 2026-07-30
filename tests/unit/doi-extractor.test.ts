@@ -836,6 +836,66 @@ describe("findReferenceEntries", () => {
     expect(entries.map((e) => e.element.tagName)).toEqual(["LI", "LI", "LI"]);
     expect(entries[0].text).toContain("Smith J");
   });
+
+  it("reads a PMC id from entry text when the entry has no DOI", () => {
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <ol class="references">
+          <li>Smith J. Title one. Journal. 2025. PMCID: PMC12638941.</li>
+          <li>Jones K. Title two. Journal. 2021. pmc1234567</li>
+          <li>Lee A. Title three. Journal. 2013. PMC 3741663.</li>
+        </ol>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+    const entries = findReferenceEntries(doc);
+    expect(entries.map((e) => e.pmcid)).toEqual(["PMC12638941", "PMC1234567", "PMC3741663"]);
+  });
+
+  it("reads a PMC id from a PubMed Central link href", () => {
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <ol class="references">
+          <li>
+            Smith J. Title one. Journal. 2025.
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12638941/">PubMed Central</a>
+          </li>
+          <li>
+            Jones K. Title two. Journal. 2021.
+            <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1234567/">Free full text</a>
+          </li>
+        </ol>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+    const entries = findReferenceEntries(doc);
+    expect(entries.map((e) => e.pmcid)).toEqual(["PMC12638941", "PMC1234567"]);
+  });
+
+  it("leaves pmcid null when the entry already has a DOI", () => {
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <ol class="references">
+          <li>Smith J. Title. Journal. 2025. doi:10.1234/has.doi. PMCID: PMC12638941.</li>
+          <li>Jones K. Title two. Journal. 2021. doi:10.5678/also.doi</li>
+        </ol>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+    const entries = findReferenceEntries(doc);
+    expect(entries.map((e) => e.doi)).toEqual(["10.1234/has.doi", "10.5678/also.doi"]);
+    expect(entries.map((e) => e.pmcid)).toEqual([null, null]);
+  });
+
+  it("ignores a trailing \"PubMed Central\" action label as a PMC id", () => {
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <ol class="references">
+          <li>Smith J. Title one. Journal. 2025. | PubMed Central</li>
+          <li>Jones K. Title two. Journal. 2021. | PubMed Central</li>
+        </ol>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+    const entries = findReferenceEntries(doc);
+    expect(entries.map((e) => e.pmcid)).toEqual([null, null]);
+  });
 });
 
 describe("extractDoiOccurrences — FLoRA's own injected UI", () => {
