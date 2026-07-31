@@ -6,6 +6,7 @@ import {afterEach, describe, expect, it, vi} from "vitest";
 const FULL_SETTINGS = {
   email: "test@example.com",
   showDoiPillsOnAllReferences: false,
+  citationStyle: "apa",
   cacheQuotaMb: 50,
 };
 

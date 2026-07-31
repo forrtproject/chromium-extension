@@ -1,5 +1,6 @@
 import { getSettings, saveSettings } from "../shared/settings";
 import { getBlockedDomains, saveBlockedDomains } from "../shared/domains";
+import { CITATION_FORMATS, citationFormat, fetchCitation } from "../shared/citation";
 import {
   getHiddenCommenters,
   isHiddenCommenter,
@@ -50,6 +51,45 @@ getSettings().then(({ showDoiPillsOnAllReferences }) => {
 
 allRefsToggle.addEventListener("change", () => {
   void saveSettings({ showDoiPillsOnAllReferences: allRefsToggle.checked });
+});
+
+// ── Citation style ──────────────────────────────────────────────────
+
+const citationStyleSelect = document.getElementById("citation-style-select") as HTMLSelectElement;
+const citationPreview = document.getElementById("citation-style-preview") as HTMLParagraphElement;
+
+// Ioannidis (2005) — a stable, widely-known record to render the sample from.
+const SAMPLE_DOI = "10.1371/journal.pmed.0020124";
+
+for (const format of CITATION_FORMATS) {
+  const option = document.createElement("option");
+  option.value = format.id;
+  option.textContent = format.label;
+  citationStyleSelect.appendChild(option);
+}
+
+let sampleToken = 0;
+
+async function showCitationSample(formatId: string): Promise<void> {
+  const token = ++sampleToken;
+  citationPreview.className = "citation-sample";
+  citationPreview.textContent = "Rendering a sample…";
+  citationPreview.hidden = false;
+  const sample = await fetchCitation(SAMPLE_DOI, formatId);
+  if (token !== sampleToken) return;
+  citationPreview.textContent = sample ?? "Sample unavailable — Crossref could not be reached.";
+  if (!sample) citationPreview.className = "citation-sample error";
+}
+
+getSettings().then(({ citationStyle }) => {
+  citationStyleSelect.value = citationFormat(citationStyle).id;
+  void showCitationSample(citationStyleSelect.value);
+});
+
+citationStyleSelect.addEventListener("change", async () => {
+  const citationStyle = citationFormat(citationStyleSelect.value).id;
+  await saveSettings({ citationStyle });
+  void showCitationSample(citationStyle);
 });
 
 // ── Cache storage quota ─────────────────────────────────────────────

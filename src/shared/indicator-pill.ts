@@ -16,6 +16,7 @@ import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation} from "@shared/doi-retraction";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
+import {fetchCitation, preferredCitationFormat, type CitationFormat} from "@shared/citation";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -42,6 +43,60 @@ const DOI_LINK_SVG =
     `.75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25Zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 ` +
     `.75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0Z">` +
     `</path></svg>`;
+
+// Reference-block glyph for the popover's citation row.
+const CITATION_SVG =
+    `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;">` +
+    `<rect x="2" y="2.25" width="8" height="1.5" rx="0.75"/>` +
+    `<rect x="2" y="5.75" width="12" height="1.5" rx="0.75"/>` +
+    `<rect x="2" y="9.25" width="12" height="1.5" rx="0.75"/>` +
+    `<rect x="2" y="12.75" width="6" height="1.5" rx="0.75"/></svg>`;
+
+const CLIPBOARD_SVG = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>`;
+const CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path></svg>`;
+
+const ICON_BTN_STYLE = `
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 0 !important;
+    max-width: 14px !important;
+    padding: 0 !important;
+    margin: 0;
+    border: none !important;
+    background: transparent !important;
+    cursor: pointer;
+    color: #656d76;
+    transition: color 0.15s ease;
+    line-height: 0;
+    font-size: 0;
+    text-decoration: none;
+    flex: 0 0 auto;
+  `;
+
+function writeClipboard(value: string): void {
+    const writePromise = navigator.clipboard?.writeText
+        ? navigator.clipboard.writeText(value)
+        : Promise.reject();
+    writePromise.catch(() => {
+        // Fallback for contexts where the async clipboard API is blocked
+        const ta = document.createElement("textarea");
+        ta.value = value;
+        ta.setAttribute("data-flora-ui", "");
+        ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand("copy");
+        } catch {
+            /* nothing more we can do */
+        }
+        ta.remove();
+    });
+}
 
 function makeDivider(): HTMLElement {
     const d = document.createElement("span");
@@ -429,35 +484,10 @@ function buildDoiRow(
     labelWrap.appendChild(doiText);
     labelWrap.appendChild(provenance);
 
-    const clipboardSvg = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>`;
-    const checkSvg = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path></svg>`;
-
-    const iconBtnStyle = `
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: content-box;
-    width: 14px !important;
-    height: 14px !important;
-    min-width: 0 !important;
-    max-width: 14px !important;
-    padding: 0 !important;
-    margin: 0;
-    border: none !important;
-    background: transparent !important;
-    cursor: pointer;
-    color: #656d76;
-    transition: color 0.15s ease;
-    line-height: 0;
-    font-size: 0;
-    text-decoration: none;
-    flex: 0 0 auto;
-  `;
-
     const copyBtn = document.createElement("button");
-    copyBtn.innerHTML = clipboardSvg;
+    copyBtn.innerHTML = CLIPBOARD_SVG;
     copyBtn.title = "Copy DOI";
-    copyBtn.style.cssText = iconBtnStyle;
+    copyBtn.style.cssText = ICON_BTN_STYLE;
     let copySuccess = false;
     copyBtn.addEventListener("mouseenter", () => {
         if (!copySuccess) copyBtn.style.color = color;
@@ -468,30 +498,13 @@ function buildDoiRow(
     copyBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         copySuccess = true;
-        copyBtn.innerHTML = checkSvg;
+        copyBtn.innerHTML = CHECK_SVG;
         copyBtn.style.color = color;
         copyBtn.title = "Copied";
-        const writePromise = navigator.clipboard?.writeText
-            ? navigator.clipboard.writeText(doi)
-            : Promise.reject();
-        writePromise.catch(() => {
-            // Fallback for contexts where the async clipboard API is blocked
-            const ta = document.createElement("textarea");
-            ta.value = doi;
-            ta.setAttribute("data-flora-ui", "");
-            ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
-            document.body.appendChild(ta);
-            ta.select();
-            try {
-                document.execCommand("copy");
-            } catch {
-                /* nothing more we can do */
-            }
-            ta.remove();
-        });
+        writeClipboard(doi);
         setTimeout(() => {
             copySuccess = false;
-            copyBtn.innerHTML = clipboardSvg;
+            copyBtn.innerHTML = CLIPBOARD_SVG;
             copyBtn.style.color = copyBtn.matches(":hover") ? color : "#656d76";
             copyBtn.title = "Copy DOI";
         }, 1500);
@@ -505,7 +518,7 @@ function buildDoiRow(
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
     openLink.title = "Open on doi.org";
-    openLink.style.cssText = iconBtnStyle;
+    openLink.style.cssText = ICON_BTN_STYLE;
     openLink.addEventListener("mouseenter", () => {
         openLink.style.color = color;
     });
@@ -527,6 +540,98 @@ function buildDoiRow(
     return contentRow;
 }
 
+/**
+ * The citation row: copies this reference in the style chosen in settings.
+ * Nothing is fetched until the row is clicked, so a page of references adds no
+ * requests unless a reader asks for one.
+ */
+function buildCitationRow(doi: string, color: string, compact = false): HTMLElement {
+    const row = document.createElement("div");
+    row.setAttribute("data-flora-citation-row", "");
+    row.style.cssText = `display:flex;align-items:center;gap:${compact ? "5px" : "8px"};padding:${compact ? "1px 3px" : "5px 4px"};border-radius:6px;cursor:pointer;`;
+    row.addEventListener("mouseenter", () => { row.style.background = "#f6f8fa"; });
+    row.addEventListener("mouseleave", () => { row.style.background = "transparent"; });
+
+    const icon = document.createElement("span");
+    icon.style.cssText = rowIconWrapStyle(color, true, compact);
+    icon.innerHTML = CITATION_SVG;
+
+    const labelWrap = document.createElement("span");
+    labelWrap.style.cssText = compact ? ROW_LABEL_WRAP_COMPACT : ROW_LABEL_WRAP;
+
+    const title = document.createElement("span");
+    title.style.cssText = compact ? ROW_TITLE_STYLE_COMPACT : ROW_TITLE_STYLE;
+    title.textContent = "Citation";
+
+    const status = document.createElement("span");
+    status.setAttribute("data-flora-row-sub", "");
+    status.style.cssText = rowSubStyle(true, compact);
+
+    labelWrap.appendChild(title);
+    labelWrap.appendChild(status);
+
+    const copyAction = document.createElement("span");
+    copyAction.setAttribute("data-flora-citation-copy", "");
+    copyAction.style.cssText = rowActionStyle(color, compact);
+    copyAction.textContent = "Copy";
+
+    row.appendChild(icon);
+    row.appendChild(labelWrap);
+    row.appendChild(copyAction);
+
+    let label = "";
+    let loadToken = 0;
+    let statusTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const setStatus = (text: string): void => {
+        if (statusTimer) {
+            clearTimeout(statusTimer);
+            statusTimer = null;
+        }
+        status.textContent = text;
+    };
+
+    const flashStatus = (text: string): void => {
+        setStatus(text);
+        statusTimer = setTimeout(() => {
+            status.textContent = label;
+        }, 1500);
+    };
+
+    const showStyle = (format: CitationFormat): void => {
+        label = format.label;
+        row.title = `Copy this reference in ${format.label} — change the style in FLoRA's settings`;
+        setStatus(format.label);
+    };
+
+    void preferredCitationFormat().then(showStyle);
+
+    // Re-read the preference on every copy: the reader may have changed it in
+    // settings while this page stayed open.
+    const copyCitation = async (): Promise<void> => {
+        const token = ++loadToken;
+        const format = await preferredCitationFormat();
+        if (token !== loadToken) return;
+        showStyle(format);
+        setStatus("Fetching…");
+        const citation = await fetchCitation(doi, format.id);
+        if (token !== loadToken) return;
+        if (!citation) {
+            setStatus("Citation unavailable");
+            return;
+        }
+        writeClipboard(citation);
+        flashStatus("Copied");
+    };
+
+    row.addEventListener("click", (e) => {
+        e.stopPropagation();
+        void copyCitation();
+    });
+
+    return row;
+}
+
 interface IndicatorRowsOptions {
     doi: DoiString;
     color: string;
@@ -545,8 +650,9 @@ interface IndicatorRowsOptions {
 
 /**
  * The row stack shared by the pill's popover and the standalone panel: DOI,
- * Open Access, PubPeer, replication/retraction. The OA and PubPeer rows start
- * unresolved and swap themselves in when their lookups land.
+ * citation, Open Access, PubPeer, replication/retraction. The OA and PubPeer
+ * rows start unresolved and swap themselves in when their lookups land; the
+ * citation row fetches nothing until a reader clicks it.
  */
 function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     const compact = opts.compact ?? false;
@@ -554,6 +660,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     rows.style.cssText = `display:flex;flex-direction:column;gap:${compact ? "0" : "2px"};`;
 
     rows.appendChild(buildDoiRow(opts.doi, opts.color, opts.isAugmented, compact, opts.provenanceLabel));
+    rows.appendChild(buildCitationRow(opts.doi, opts.color, compact));
 
     const sectionDivider = document.createElement("div");
     sectionDivider.style.cssText = `height:1px;background:#eaeef2;margin:${compact ? "2px 0" : "0 0 2px"};`;

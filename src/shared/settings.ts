@@ -9,6 +9,8 @@ export interface FloraSettings {
    * visible DOI of their own get a pill.
    */
   showDoiPillsOnAllReferences: boolean;
+  /** Citation format id used by the pill's Copy citation row (see citation.ts). */
+  citationStyle: string;
   /**
    * Soft cap on chrome.storage.local usage in MB. 0 = unlimited. With the
    * "unlimitedStorage" permission the browser lifts the ~10 MB hard cap, so
@@ -23,6 +25,7 @@ const STORAGE_KEY = "flora_settings";
 const DEFAULTS: FloraSettings = {
   email: "",
   showDoiPillsOnAllReferences: false,
+  citationStyle: "apa",
   cacheQuotaMb: 50,
 };
 
@@ -66,6 +69,11 @@ export async function saveSettings(
   const current = await getSettings();
   cachedSettings = { ...current, ...partial };
   await chrome.storage.sync.set({ [STORAGE_KEY]: cachedSettings });
+}
+
+/** Test-only: drop the cached settings so the next read hits storage again. */
+export function _resetSettingsCacheForTesting(): void {
+  cachedSettings = null;
 }
 
 /** Returns true if the user has completed initial setup (email provided). */
