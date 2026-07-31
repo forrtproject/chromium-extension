@@ -168,6 +168,33 @@
             </label>
           </div>
 
+          <!-- ═══ CITATION STYLE ═══ -->
+          <div class="detail-card" style="margin-top: 1.25rem">
+            <div class="dh">
+              <div class="dh-label">Copy Citation</div>
+              <h2 class="dh-title">Citation Style</h2>
+              <div class="dh-authors">
+                Every DOI pill has a <strong>Citation</strong> row that copies
+                the reference in one click. Pick the style it uses here &mdash;
+                that style, and only that style, is what the pill copies.
+                Citations are rendered by
+                <a href="https://api.crossref.org" target="_blank" rel="noopener"
+                  >Crossref</a
+                >
+                and fetched only when you ask for one.
+              </div>
+            </div>
+
+            <div class="action-bar" style="align-items: flex-end;">
+              <div class="ab-group">
+                <label class="ab-label" for="citation-style-select">Style</label>
+                <select id="citation-style-select" class="ab-input" style="width: 220px;"></select>
+              </div>
+            </div>
+
+            <p id="citation-style-preview" class="citation-sample" hidden></p>
+          </div>
+
           <!-- ═══ CACHE STORAGE ═══ -->
           <div class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
