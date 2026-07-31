@@ -1,0 +1,123 @@
+# Publishes the dev channel: a signed CRX plus the update manifest Chrome polls,
+# attached to a rolling `dev-latest` prerelease. Testers who installed the dev
+# channel policy once get every push to main applied automatically — no zip to
+# unpack, no Reload button.
+#
+# Requires one repository secret, CRX_PRIVATE_KEY (the extension's signing key).
+# Without it this workflow no-ops, so main stays green until it's added.
+# See docs/dev-channel.md.
+
+name: Dev channel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One publish at a time: two runs racing would fight over the same assets.
+concurrency:
+  group: dev-channel
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for a signing key
+        id: gate
+        env:
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+        run: |
+          if [ -z "$CRX_PRIVATE_KEY" ]; then
+            echo "CRX_PRIVATE_KEY is not set — skipping the dev channel publish." >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v6
+        if: steps.gate.outputs.ready == 'true'
+      - uses: actions/setup-node@v6
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+        if: steps.gate.outputs.ready == 'true'
+      # Testers should never receive a build that fails its own suite.
+      - run: npm run test
+        if: steps.gate.outputs.ready == 'true'
+      - run: npm run build
+        if: steps.gate.outputs.ready == 'true'
+
+      - name: Derive the dev version
+        id: version
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          # Dev builds hang off the manifest version as a 4th component, so they
+          # always sort below the next real release (0.1.0.83 < 0.1.1).
+          base=$(node -p "require('./manifest.json').version.split('.').slice(0,3).join('.')")
+          echo "value=${base}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Pack the signed CRX and update manifest
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+          BASE_URL: https://github.com/${{ github.repository }}/releases/download/dev-latest
+        run: |
+          set -euo pipefail
+          npx tsx scripts/pack-crx.ts \
+            --version="${{ steps.version.outputs.value }}" \
+            --crx-url="$BASE_URL/flora-dev.crx" \
+            --updates-url="$BASE_URL/updates.xml"
+
+      - name: Zip the unpacked build
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p flora-extension
+          cp manifest.json flora-extension/
+          cp -r dist flora-extension/
+          zip -qr build/flora-extension.zip flora-extension
+
+      - name: Publish to the dev-latest prerelease
+        if: steps.gate.outputs.ready == 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: dev-latest
+          name: Dev channel (latest)
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          target_commitish: ${{ github.sha }}
+          body: |
+            Rolling test build — **version ${{ steps.version.outputs.value }}**, from
+            ${{ github.sha }}.
+
+            Already on the dev channel? You have this already, or will within a few
+            hours. Nothing to download.
+
+            First time? Install the channel once and every future build arrives on
+            its own:
+
+            | Your OS | Download | Then |
+            | --- | --- | --- |
+            | Windows | `flora-dev-channel-windows.reg` | Double-click it, accept the prompt, restart Chrome |
+            | macOS | `flora-dev-channel-macos.mobileconfig` | Double-click it, approve in System Settings → Privacy & Security → Profiles, restart Chrome |
+
+            Setup notes and troubleshooting: `docs/dev-channel.md`.
+
+            `flora-extension.zip` is the plain unpacked build, for anyone who would
+            rather keep loading it by hand.
+          files: |
+            build/flora-dev.crx
+            build/updates.xml
+            build/flora-dev-channel-windows.reg
+            build/flora-dev-channel-macos.mobileconfig
+            build/flora-extension.zip

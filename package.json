@@ -10,7 +10,9 @@
     "test:watch": "vitest",
     "test:visual": "tsx tests/visual/run.ts",
     "test:visual:update": "tsx tests/visual/run.ts --update",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pack:crx": "tsx scripts/pack-crx.ts",
+    "crx:id": "tsx scripts/pack-crx.ts --id"
   },
   "dependencies": {
     "zod": "^3.23.0"

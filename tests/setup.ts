@@ -45,6 +45,10 @@ Object.defineProperty(globalThis, "chrome", {
       onStartup: {
         addListener: vi.fn(),
       },
+      onUpdateAvailable: {
+        addListener: vi.fn(),
+      },
+      reload: vi.fn(),
       openOptionsPage: vi.fn(),
     },
     tabs: {

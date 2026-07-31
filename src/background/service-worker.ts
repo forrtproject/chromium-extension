@@ -86,6 +86,13 @@ chrome.runtime.onStartup.addListener(() => {
     syncRetractionsInfo().then().catch();
 });
 
+// Chrome otherwise holds a downloaded update until the browser restarts, which
+// on a test build can be days. Applying it now costs the injected UI on tabs
+// that are already open (they re-inject on their next navigation).
+chrome.runtime.onUpdateAvailable.addListener(() => {
+    chrome.runtime.reload();
+});
+
 
 /** In-flight dedup: prevents duplicate API calls for the same DOI */
 const inflight = new Map<DoiString, Promise<ReplicationResult | null>>();

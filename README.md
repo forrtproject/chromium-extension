@@ -26,6 +26,12 @@ Since this extension is not yet on the Chrome Web Store, you'll need to load it 
 5. Click **Load unpacked** and select the unzipped folder
 6. **You're done!** Navigate to any academic article page or Google Scholar to see FLoRA in action.
 
+### Testing builds without reinstalling
+
+Repeating those steps for every build gets old. The **dev channel** replaces it:
+one setup file, then Chrome installs each new build from `main` on its own. See
+[docs/dev-channel.md](docs/dev-channel.md).
+
 ### Building from source
 
 If you want to develop or modify the extension:
@@ -153,6 +159,8 @@ fixture when you add a site.
 * Opened pull request are tested against the [test workflow](.github/workflows/test.yml)
 * Pushing to `main` creates a new draft release from latest sources.
 * Pushing a tag to `main` will create a new release
+* Pushing to `main` also publishes the [dev channel](docs/dev-channel.md), which
+  auto-updates testers who subscribed to it
 
 ### Commands
 
@@ -163,6 +171,8 @@ fixture when you add a site.
 | `npm test`           | Run all unit tests             |
 | `npm run test:watch` | Run tests in watch mode        |
 | `npm run typecheck`  | TypeScript type checking       |
+| `npm run crx:id`     | Print the signing key's extension id |
+| `npm run pack:crx`   | Pack a signed CRX + update manifest |
 
 ### Tech stack
 
