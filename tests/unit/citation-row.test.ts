@@ -27,15 +27,15 @@ function acceptHeader(call: unknown[]): string {
   return ((call[1] as RequestInit).headers as Record<string, string>).Accept;
 }
 
-function row(host: HTMLElement): HTMLElement {
-  return host.querySelector<HTMLElement>("[data-flora-citation-row]")!;
+function citeBtn(host: HTMLElement): HTMLElement {
+  return host.querySelector<HTMLElement>("[data-flora-citation-copy]")!;
 }
 
 function storedSettings(stored: Record<string, unknown>): void {
   (chrome.storage.sync.get as ReturnType<typeof vi.fn>).mockResolvedValue({flora_settings: stored});
 }
 
-describe("citation row", () => {
+describe("cite action", () => {
   beforeEach(() => {
     _resetCitationCacheForTesting();
     stubFetch();
@@ -51,8 +51,17 @@ describe("citation row", () => {
   });
 
   it("is offered on both the pill's popover and the Scholar panel", () => {
-    expect(row(createIndicatorPill({doi: DOI}))).not.toBeNull();
-    expect(row(createIndicatorPanel({doi: DOI}))).not.toBeNull();
+    expect(citeBtn(createIndicatorPill({doi: DOI}))).not.toBeNull();
+    expect(citeBtn(createIndicatorPanel({doi: DOI}))).not.toBeNull();
+  });
+
+  it("sits in the DOI row, not a row of its own", () => {
+    const pill = createIndicatorPill({doi: DOI});
+    // The action is an icon beside the DOI; a separate labelled row would
+    // repeat what the quote glyph already says.
+    expect(pill.querySelector("[data-flora-citation-row]")).toBeNull();
+    expect(citeBtn(pill).textContent).toBe("");
+    expect(citeBtn(pill).querySelector("svg")).not.toBeNull();
   });
 
   it("fetches nothing until the reader asks", async () => {
@@ -60,7 +69,7 @@ describe("citation row", () => {
     // reference on page load would be dozens of requests nobody asked for.
     const pill = createIndicatorPill({doi: DOI});
     document.body.appendChild(pill);
-    await vi.waitFor(() => expect(row(pill).textContent).toContain("APA"));
+    await vi.waitFor(() => expect(citeBtn(pill).title).toContain("APA"));
     expect(citationCalls()).toHaveLength(0);
   });
 
@@ -68,27 +77,26 @@ describe("citation row", () => {
     const pill = createIndicatorPill({doi: DOI});
     document.body.appendChild(pill);
 
-    row(pill).click();
+    citeBtn(pill).click();
 
     await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith(CITATION));
     expect(citationCalls()).toHaveLength(1);
-    expect(row(pill).querySelector("[data-flora-row-sub]")!.textContent).toBe("Copied");
+    expect(citeBtn(pill).title).toBe("Copied");
   });
 
   it("offers copying and nothing else — the style is a settings decision", () => {
     const pill = createIndicatorPill({doi: DOI});
-    expect(row(pill).querySelector("select")).toBeNull();
-    expect(row(pill).querySelector("[data-flora-citation-text]")).toBeNull();
-    expect(row(pill).querySelector("[data-flora-citation-copy]")!.textContent).toBe("Copy");
+    expect(pill.querySelector("select")).toBeNull();
+    expect(pill.querySelector("[data-flora-citation-text]")).toBeNull();
   });
 
   it("copies in the style the reader chose in settings", async () => {
     storedSettings({email: "a@b.co", citationStyle: "ieee"});
     const pill = createIndicatorPill({doi: DOI});
     document.body.appendChild(pill);
-    await vi.waitFor(() => expect(row(pill).textContent).toContain("IEEE"));
+    await vi.waitFor(() => expect(citeBtn(pill).title).toContain("IEEE"));
 
-    row(pill).click();
+    citeBtn(pill).click();
 
     await vi.waitFor(() => expect(citationCalls()).toHaveLength(1));
     expect(acceptHeader(citationCalls()[0])).toContain("style=ieee");
@@ -97,18 +105,17 @@ describe("citation row", () => {
   it("picks up a style changed in settings while the page stayed open", async () => {
     const pill = createIndicatorPill({doi: DOI});
     document.body.appendChild(pill);
-    await vi.waitFor(() => expect(row(pill).textContent).toContain("APA"));
+    await vi.waitFor(() => expect(citeBtn(pill).title).toContain("APA"));
 
     // saveSettings from the options page invalidates the cached settings via the
-    // storage.onChanged listener; the row must re-read rather than reuse APA.
+    // storage.onChanged listener; the button must re-read rather than reuse APA.
     storedSettings({email: "a@b.co", citationStyle: "nature"});
     (await import("../../src/shared/settings"))._resetSettingsCacheForTesting();
 
-    row(pill).click();
+    citeBtn(pill).click();
 
     await vi.waitFor(() => expect(citationCalls()).toHaveLength(1));
     expect(acceptHeader(citationCalls()[0])).toContain("style=nature");
-    expect(row(pill).title).toContain("Nature");
   });
 
   it("says so when the citation can't be rendered", async () => {
@@ -120,12 +127,9 @@ describe("citation row", () => {
     const pill = createIndicatorPill({doi: DOI});
     document.body.appendChild(pill);
 
-    row(pill).click();
+    citeBtn(pill).click();
 
-    await vi.waitFor(() =>
-      expect(row(pill).querySelector("[data-flora-row-sub]")!.textContent)
-        .toBe("Citation unavailable")
-    );
+    await vi.waitFor(() => expect(citeBtn(pill).title).toBe("Citation unavailable"));
     expect(writeText).not.toHaveBeenCalled();
   });
 });

@@ -59,10 +59,29 @@ describe("indicator pill provenance", () => {
     ]);
   });
 
-  it("spells provenance out in the popover too, not just the compact segment", () => {
-    const provenance = (isAugmented: boolean) =>
-      build(isAugmented).querySelector("[data-flora-doi-provenance]")!.textContent;
-    expect(provenance(false)).toBe("Found on this page");
-    expect(provenance(true)).toBe("Matched by title");
+  it("marks provenance on the popover's DOI by underline, not in words", () => {
+    // The DOI row is one line; a provenance sentence beside it is the line the
+    // DOI itself needs. The reason stays reachable on hover.
+    const doiText = (isAugmented: boolean) =>
+      build(isAugmented).querySelector<HTMLElement>("[data-flora-doi-text]")!;
+
+    expect(doiText(false).style.textDecoration).not.toContain("underline");
+    expect(doiText(false).title).toBe("Found on this page");
+    expect(doiText(true).style.textDecoration).toContain("underline dotted");
+    expect(doiText(true).title).toBe("Matched by title");
+
+    expect(build(false).textContent).not.toContain("Found on this page");
+    expect(build(true).textContent).not.toContain("Matched by title");
+  });
+
+  it("carries a caller's own provenance label on the DOI's tooltip", () => {
+    // References resolved from a cited PMC id say so — the underline alone
+    // can't distinguish which lookup produced the DOI.
+    const pill = createIndicatorPill({
+      doi: "10.1234/x" as DoiString,
+      provenanceLabel: "Matched by PMC ID",
+    });
+    expect(pill.querySelector<HTMLElement>("[data-flora-doi-text]")!.title)
+      .toBe("Matched by PMC ID");
   });
 });
