@@ -4,7 +4,7 @@ The **FORRT Open Scholarship Extension** is a browser extension for Chrome and E
 
 When you visit an article page (PubMed, journal websites, preprint servers, etc.) or search on Google Scholar, the extension scans for DOIs, looks them up, and shows what it found in an inline pill next to each paper and each reference.
 
-📖 **[User documentation](https://forrtproject.github.io/flora-chromium/)** — what the extension shows, where it works, how to install it, and the [privacy policy](https://forrtproject.github.io/flora-chromium/privacy.html). Source for that site lives in [`docs/`](docs/).
+📖 **[User documentation](https://forrt.org/chromium-extension/)** — what the extension shows, where it works, how to install it, and the [privacy policy](https://forrt.org/chromium-extension/privacy.html). Source for that site lives in [`docs/`](docs/).
 
 ## What it does
 
@@ -21,7 +21,7 @@ Since this extension is not yet on the Chrome Web Store, you'll need to load it 
 
 ### Quick install
 
-1. **[Download flora-extension.zip](https://github.com/forrtproject/flora_chromium/releases)** (built automatically from the latest code)
+1. **[Download flora-extension.zip](https://github.com/forrtproject/chromium-extension/releases)** (built automatically from the latest code)
 2. **Unzip** it to a folder on your computer
 3. Open `chrome://extensions` (or `edge://extensions`)
 4. Enable **Developer mode** (toggle in the top-right corner)
@@ -37,8 +37,8 @@ If you want to develop or modify the extension:
 2. Clone and build:
 
    ```bash
-   git clone https://github.com/forrtproject/flora-chromium.git
-   cd flora-chromium
+   git clone https://github.com/forrtproject/chromium-extension.git
+   cd chromium-extension
    npm install
    npm run build
    ```
@@ -52,7 +52,7 @@ After making changes, run `npm run build` and click the **reload** icon on the e
 ### Project structure
 
 ```
-flora-chromium/
+chromium-extension/
   manifest.json          # Chrome MV3 manifest
   esbuild.config.ts      # Build configuration
   src/
