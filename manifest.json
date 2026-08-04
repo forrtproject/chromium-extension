@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "FLoRA — Replication Tracker",
+  "name": "FORRT Open Scholarship Extension",
+  "short_name": "FORRT Open Scholarship",
   "version": "0.1.0",
-  "description": "Surfaces replication and reproduction data from the FLoRA database on academic article pages and Google Scholar.",
+  "description": "Shows replication evidence, retractions, PubPeer comments and open-access copies for the papers on any page you read.",
   "minimum_chrome_version": "116",
   "permissions": [
     "storage",
@@ -63,7 +64,9 @@
         "*://pubpeer.com/*",
         "*://*.pubpeer.com/*"
       ],
-      "js": [ "dist/content-pubpeer.js" ],
+      "js": [
+        "dist/content-pubpeer.js"
+      ],
       "all_frames": true,
       "run_at": "document_start"
     },
@@ -71,7 +74,9 @@
       "matches": [
         "*://forrt.org/*"
       ],
-      "js": [ "dist/content-forrt.js" ],
+      "js": [
+        "dist/content-forrt.js"
+      ],
       "run_at": "document_idle"
     },
     {

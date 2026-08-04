@@ -376,7 +376,7 @@ async function scanWholePage(): Promise<void> {
             updateIndicatorPillBadges(document, pageState, redacts);
         }
     } catch {
-        renderErrorBanner("Failed to contact FLoRA service");
+        renderErrorBanner("Failed to contact the FORRT service");
     } finally {
         endWorkIndicator();
     }
