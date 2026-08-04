@@ -956,7 +956,6 @@ body {
   text-decoration: underline;
 }
 
-/* Inline badge — matches real flora-badge styles exactly */
 /* Merged indicator pill — mirrors createIndicatorPill in indicator-pill.ts */
 .mock-indicator-pill {
   all: initial;

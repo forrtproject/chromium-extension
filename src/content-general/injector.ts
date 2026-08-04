@@ -1,15 +1,12 @@
 import type { DoiString, LookupState, ReplicationResult, ReplicationEntry, OriginalEntry, DoiContext } from "../shared/types";
 import type { PubPeerFeedback } from "../shared/pubpeer-api";
-import { extractDoiOccurrences, type DoiOccurrence } from "../shared/doi-extractor";
 import { debugLog } from "../shared/debug";
 import { getSettings } from "../shared/settings";
 import { safeSendMessage } from "../shared/messages";
-import styles from "./styles.css";
 import {RetractionResponse, noticePresentation} from "@shared/doi-retraction";
 import {INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 
 const BANNER_HOST_ID = "flora-banner-host";
-const BADGE_CLASS = "flora-inline-badge";
 
 // ──────────────────────────────────────────────
 // Banner – inline styles (no shadow DOM)
@@ -302,142 +299,6 @@ function adjustPageForBanner(): void {
     }
 }
 
-// ──────────────────────────────────────────────
-// Inline badges (still use shadow DOM for isolation)
-// ──────────────────────────────────────────────
-
-// Among occurrences of the same DOI, prefer the one with the most accurate
-// position for badge placement. Lower number = better.
-const OCCURRENCE_RANK: Record<DoiOccurrence["kind"], number> = {
-    "link-text": 0,
-    "link-doi-org": 1,
-    "text": 2,
-    "link-embedded": 3,
-};
-
-export function renderInlineBadges(
-    pageState: Map<DoiString, LookupState>,
-    occurrences?: DoiOccurrence[]
-): void {
-    // Use occurrences captured at extraction time when the caller passes them
-    // in (no regex re-scan); otherwise compute them now from the live DOM.
-    const occs = occurrences ?? extractDoiOccurrences(document);
-
-    // Pick the best occurrence per DOI for placement. Skip anchors detached
-    // from the live DOM (captured before a SPA re-render) so a stale node can't
-    // win the ranking and leave the DOI silently un-badged.
-    const bestByDoi = new Map<DoiString, DoiOccurrence>();
-    for (const occ of occs) {
-        if (!occ.anchor.isConnected) continue;
-        const cur = bestByDoi.get(occ.doi);
-        if (!cur || OCCURRENCE_RANK[occ.kind] < OCCURRENCE_RANK[cur.kind]) {
-            bestByDoi.set(occ.doi, occ);
-        }
-    }
-
-    debugLog("renderInlineBadges:", bestByDoi.size, "DOI(s) located;",
-        "pageState has", pageState.size, "DOI(s):",
-        [...pageState.entries()].map(([d, s]) => `${d}(${s.status})`));
-
-    // DOIs that already carry a merged indicator pill (title/reference) show
-    // their replication count in that pill's badge segment — skip the
-    // standalone FLoRA badge for those so the same count isn't shown twice.
-    const mergedPilledDois = new Set<DoiString>();
-    for (const el of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-        const d = el.getAttribute("data-flora-doi");
-        if (d) mergedPilledDois.add(d as DoiString);
-    }
-
-    for (const occ of bestByDoi.values()) {
-        if (mergedPilledDois.has(occ.doi)) continue;
-        const state = pageState.get(occ.doi);
-        if (!state || state.status !== "matched") {
-            const status = state?.status ?? "not found";
-            // "no-match" is expected — it means FORRT simply has no replication
-            // record for this DOI, not that extraction or lookup failed.
-            debugLog(
-                `renderInlineBadges: no badge for ${occ.doi} —`,
-                status === "no-match"
-                    ? "FORRT has no replication record for this DOI (expected)"
-                    : `status: ${status}`
-            );
-            continue;
-        }
-
-        const r = state.result;
-        const stats = r.record.stats;
-        const hasData = stats.n_replications_total > 0 || stats.n_reproductions_total > 0;
-        if (!hasData) continue;
-
-        if (!isVisible(occ.anchor)) continue;
-        if (anchorAlreadyBadged(occ.anchor, occ.doi)) continue;
-
-        const replLabel = stats.n_replications_total === 1 ? "replication" : "replications";
-        const reproLabel = stats.n_reproductions_total === 1 ? "reproduction" : "reproductions";
-
-        const badgeHost = document.createElement("span");
-        badgeHost.className = BADGE_CLASS;
-        badgeHost.setAttribute("data-flora-doi", occ.doi);
-        const shadow = badgeHost.attachShadow({mode: "open"});
-
-        const styleEl = document.createElement("style");
-        styleEl.textContent = styles;
-        shadow.appendChild(styleEl);
-
-        const badge = document.createElement("a");
-        badge.className = "flora-badge badge--success";
-        badge.href = `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(r.doi)}`;
-        badge.target = "_blank";
-        badge.rel = "noopener";
-        badge.innerHTML = `
-      <span class="badge-label">FLoRA</span>
-      ${stats.n_replications_total > 0 ? `<span class="badge-count">${stats.n_replications_total} ${replLabel}</span>` : ""}
-      ${stats.n_reproductions_total > 0 ? `<span class="badge-count">${stats.n_reproductions_total} ${reproLabel}</span>` : ""}
-    `;
-        shadow.appendChild(badge);
-
-        placeBadge(occ.anchor, badgeHost);
-        debugLog("renderInlineBadges: badged", occ.doi, "as", occ.kind);
-    }
-}
-
-function placeBadge(anchor: HTMLElement, badge: HTMLElement): void {
-    if (anchor.tagName === "A") {
-        let last: Element = anchor;
-        while (last.nextElementSibling?.classList.contains(BADGE_CLASS)) {
-            last = last.nextElementSibling;
-        }
-        last.insertAdjacentElement("afterend", badge);
-    } else {
-        anchor.appendChild(badge);
-    }
-}
-
-function anchorAlreadyBadged(anchor: HTMLElement, doi: DoiString): boolean {
-    if (anchor.tagName === "A") {
-        let sib = anchor.nextElementSibling;
-        while (sib?.classList.contains(BADGE_CLASS)) {
-            if (sib.getAttribute("data-flora-doi") === doi) return true;
-            sib = sib.nextElementSibling;
-        }
-        return false;
-    }
-    for (const child of anchor.children) {
-        if (
-            child.classList.contains(BADGE_CLASS) &&
-            child.getAttribute("data-flora-doi") === doi
-        ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function isVisible(el: HTMLElement): boolean {
-    const style = window.getComputedStyle(el);
-    return style.display !== "none" && style.visibility !== "hidden";
-}
-
 function escapeHtml(s: string): string {
     return s.replace(/[&<>"']/g, (c) => {
         const entities: Record<string, string> = {
@@ -683,11 +544,7 @@ export function hideAllFloraUI(): void {
     const modal = document.getElementById(SHEETS_MODAL_ID);
     if (modal) modal.style.display = "none";
 
-    for (const el of document.querySelectorAll<HTMLElement>(`.${BADGE_CLASS}`)) {
-        el.style.display = "none";
-    }
-
-    for (const el of document.querySelectorAll<HTMLElement>(".flora-doi-label")) {
+    for (const el of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
         el.style.display = "none";
     }
 
@@ -706,11 +563,7 @@ export function showAllFloraUI(): void {
     const modal = document.getElementById(SHEETS_MODAL_ID);
     if (modal) modal.style.display = "";
 
-    for (const el of document.querySelectorAll<HTMLElement>(`.${BADGE_CLASS}`)) {
-        el.style.display = "";
-    }
-
-    for (const el of document.querySelectorAll<HTMLElement>(".flora-doi-label")) {
+    for (const el of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
         el.style.display = "";
     }
 

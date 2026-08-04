@@ -17,6 +17,7 @@ import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation} from "@shared/doi-retraction";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
 import {fetchCitation, preferredCitationFormat, type CitationFormat} from "@shared/citation";
+import {showToast} from "@shared/toast";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -74,11 +75,16 @@ const ICON_BTN_STYLE = `
     flex: 0 0 auto;
   `;
 
-function writeClipboard(value: string): void {
+/**
+ * Copy `value`, falling back to a hidden textarea where the async clipboard
+ * API is blocked. Resolves to whether the copy actually landed, so the toast
+ * reports a genuine failure rather than confirming a copy that never happened.
+ */
+function writeClipboard(value: string): Promise<boolean> {
     const writePromise = navigator.clipboard?.writeText
         ? navigator.clipboard.writeText(value)
         : Promise.reject();
-    writePromise.catch(() => {
+    return writePromise.then(() => true).catch(() => {
         // Fallback for contexts where the async clipboard API is blocked
         const ta = document.createElement("textarea");
         ta.value = value;
@@ -86,12 +92,14 @@ function writeClipboard(value: string): void {
         ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
         document.body.appendChild(ta);
         ta.select();
+        let copied = false;
         try {
-            document.execCommand("copy");
+            copied = document.execCommand("copy");
         } catch {
             /* nothing more we can do */
         }
         ta.remove();
+        return copied;
     });
 }
 
@@ -337,47 +345,71 @@ function buildOaRow(oa: OpenAccessStatus | null, compact = false): HTMLElement {
     }
 
     // Several free copies — publisher, preprint server, institutional
-    // repository — differ in version and licence, so the reader picks rather
-    // than being sent to whichever one Unpaywall ranked first.
+    // repository — differ in version and licence. The row still opens the
+    // best-ranked one on a plain click, which is what a reader wants nearly
+    // every time; the chevron beside it folds out the rest, for when that copy
+    // turns out to be dead, gated, or the wrong version.
     const wrapper = document.createElement("div");
     wrapper.setAttribute("data-flora-oa-row", "");
     wrapper.style.cssText = "display:flex;flex-direction:column;";
 
-    const header = buildRow({
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex;align-items:center;";
+
+    const primary = buildRow({
         iconHtml: OA_UNLOCK_SVG,
         accent: "#853953",
         available: true,
         title: "Open Access",
         subtitle: `${locations.length} free copies`,
         subtitleShort: `${locations.length} free`,
-        attr: "data-flora-oa-choices",
+        href: locations[0].url,
+        actionLabel: "View PDF",
+        attr: "data-flora-oa-primary",
         compact,
     });
-    header.style.cursor = "pointer";
+    primary.style.flex = "1";
+    primary.style.minWidth = "0";
+    header.appendChild(primary);
 
-    // The popover has the room to list every copy outright; the panel rides on
-    // each Scholar result, so there it stays folded until asked for.
-    let open = !compact;
+    // The toggle is a sibling of the link, not a child: a control nested inside
+    // an <a> would navigate and expand on the same click.
+    let open = false;
 
     const toggle = document.createElement("span");
-    toggle.style.cssText = rowActionStyle("#853953", compact);
-    const setToggle = () => {
-        toggle.textContent = compact ? (open ? "▴" : "▾") : `Choose ${open ? "▴" : "▾"}`;
-    };
-    setToggle();
-    header.appendChild(toggle);
+    toggle.setAttribute("data-flora-oa-choices", "");
+    toggle.setAttribute("role", "button");
+    toggle.tabIndex = 0;
+    toggle.title = `Choose from ${locations.length} free copies`;
+    toggle.style.cssText =
+        rowActionStyle("#853953", compact)
+        + `cursor:pointer;user-select:none;border-radius:5px;padding:${compact ? "1px 4px" : "3px 5px"};`;
 
     const list = document.createElement("div");
-    list.style.cssText = `display:${open ? "flex" : "none"};flex-direction:column;padding:0 0 ${compact ? "2px" : "4px"} ${compact ? "19px" : "24px"};`;
+    list.style.cssText = `display:none;flex-direction:column;padding:0 0 ${compact ? "2px" : "4px"} ${compact ? "19px" : "24px"};`;
     for (const loc of locations) list.appendChild(buildOaChoice(loc, compact));
 
-    header.addEventListener("click", (e) => {
+    const setToggle = () => {
+        toggle.textContent = open ? "▴" : "▾";
+        toggle.setAttribute("aria-expanded", String(open));
+    };
+    setToggle();
+
+    const flip = (e: Event) => {
+        e.preventDefault();
         e.stopPropagation();
         open = !open;
         list.style.display = open ? "flex" : "none";
         setToggle();
+    };
+    toggle.addEventListener("click", flip);
+    toggle.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") flip(e);
     });
+    toggle.addEventListener("mouseenter", () => { toggle.style.background = "#f6f8fa"; });
+    toggle.addEventListener("mouseleave", () => { toggle.style.background = "transparent"; });
 
+    header.appendChild(toggle);
     wrapper.appendChild(header);
     wrapper.appendChild(list);
     return wrapper;
@@ -501,13 +533,23 @@ function buildDoiRow(
         copyBtn.innerHTML = CHECK_SVG;
         copyBtn.style.color = color;
         copyBtn.title = "Copied";
-        writeClipboard(doi);
-        setTimeout(() => {
+        const restoreIcon = (): void => {
             copySuccess = false;
             copyBtn.innerHTML = CLIPBOARD_SVG;
             copyBtn.style.color = copyBtn.matches(":hover") ? color : "#656d76";
             copyBtn.title = "Copy DOI";
-        }, 1500);
+        };
+        void writeClipboard(doi).then((ok) => {
+            if (ok) {
+                showToast(`DOI copied — ${doi}`);
+                setTimeout(restoreIcon, 1500);
+            } else {
+                // The optimistic check would otherwise confirm a copy that
+                // never reached the clipboard.
+                showToast("Couldn't copy the DOI", {tone: "error"});
+                restoreIcon();
+            }
+        });
     });
 
     const externalLinkSvg = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg>`;
@@ -543,9 +585,10 @@ function buildDoiRow(
 /**
  * The cite action in the DOI row: copies this reference in the style chosen in
  * settings. Nothing is fetched until it is clicked, so a page of references
- * adds no requests unless a reader asks for one. The style, and every
- * transient state, is reported through the button's tooltip — the row has no
- * space for a status line.
+ * adds no requests unless a reader asks for one. The style is reported through
+ * the button's tooltip — the row has no space for a status line — while the
+ * fetch/copy outcome goes to a toast, which reaches a reader who has already
+ * moved the pointer off the button.
  */
 function buildCiteButton(doi: string, color: string): HTMLElement {
     const btn = document.createElement("button");
@@ -603,19 +646,36 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
         if (token !== loadToken) return;
         showStyle(format);
         setTitle("Fetching…");
+        // The fetch is a network round trip — say so, rather than leaving the
+        // reader wondering whether the click registered.
+        showToast(`Fetching ${format.label} citation…`, {tone: "pending", duration: 0});
         const citation = await fetchCitation(doi, format.id);
         if (token !== loadToken) return;
         if (!citation) {
             flash(QUOTE_SVG, "Citation unavailable");
+            showToast(`No ${format.label} citation available for this DOI`, {tone: "error"});
             return;
         }
-        writeClipboard(citation);
+        const copied = await writeClipboard(citation);
+        if (token !== loadToken) return;
+        if (!copied) {
+            flash(QUOTE_SVG, "Copy failed");
+            showToast("Couldn't copy the citation", {tone: "error"});
+            return;
+        }
         flash(CHECK_SVG, "Copied");
+        showToast(`${format.label} citation copied`);
     };
 
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        void copyCitation();
+        // The "fetching" toast stays up until it is replaced, so a rejection
+        // anywhere in the chain (storage, settings) must still land on a
+        // terminal toast rather than leave the spinner running forever.
+        void copyCitation().catch(() => {
+            flash(QUOTE_SVG, "Citation unavailable");
+            showToast("Couldn't fetch the citation", {tone: "error"});
+        });
     });
 
     return btn;
@@ -906,7 +966,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 /**
  * Refresh the retraction/replication badge segment and popover row on every
  * merged pill under `root` once fresher `pageState`/`redacts` data lands.
- * Idempotent — safe to call repeatedly (e.g. alongside renderInlineBadges'
+ * Idempotent — safe to call repeatedly (e.g. alongside the title pill's
  * re-placement passes).
  */
 const PANEL_STYLE_ID = "flora-indicator-panel-style";

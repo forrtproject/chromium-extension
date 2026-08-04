@@ -32,8 +32,10 @@ describe("indicator pill provenance", () => {
     expect(seg.querySelector("svg")).not.toBeNull();
   });
 
-  it("lists every free copy outright in the popover", async () => {
-    // The popover has room the Scholar panel does not, so nothing is folded.
+  it("opens the best-ranked free copy on a click, with the rest a chevron away", async () => {
+    // Picking from a list is a tax on the common case: the first copy is the
+    // one the reader wants nearly every time. The others stay one click away
+    // for when it turns out to be dead or the wrong version.
     const pill = createIndicatorPill({
       doi: "10.1234/x" as DoiString,
       oaStatus: Promise.resolve({
@@ -48,15 +50,44 @@ describe("indicator pill provenance", () => {
     });
 
     await vi.waitFor(() =>
-      expect(pill.querySelector("[data-flora-oa-choices]")).not.toBeNull()
+      expect(pill.querySelector("a[data-flora-oa-primary]")).not.toBeNull()
     );
+    const primary = pill.querySelector<HTMLAnchorElement>("a[data-flora-oa-primary]")!;
+    expect(primary.href).toBe("https://publisher.example/a.pdf");
+    expect(primary.target).toBe("_blank");
+
     const list = pill.querySelector<HTMLElement>("[data-flora-oa-row] > div:last-child")!;
+    expect(list.style.display).toBe("none");
+
+    pill.querySelector<HTMLElement>("[data-flora-oa-choices]")!.click();
+
     expect(list.style.display).toBe("flex");
     expect([...list.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
       "https://publisher.example/a.pdf",
       "https://osf.example/a",
       "https://repo.example/a.pdf",
     ]);
+  });
+
+  it("keeps the chevron from navigating the row it sits in", async () => {
+    // The toggle is a sibling of the <a>, not a child — nested, one click would
+    // both open the tab and expand the list.
+    const pill = createIndicatorPill({
+      doi: "10.1234/x" as DoiString,
+      oaStatus: Promise.resolve({
+        isOa: true,
+        url: "https://publisher.example/a.pdf",
+        locations: [
+          { url: "https://publisher.example/a.pdf", label: "Publisher", version: "published", isPdf: true },
+          { url: "https://osf.example/a", label: "OSF", version: "submitted", isPdf: false },
+        ],
+      }),
+    });
+
+    await vi.waitFor(() =>
+      expect(pill.querySelector("[data-flora-oa-choices]")).not.toBeNull()
+    );
+    expect(pill.querySelector("[data-flora-oa-choices]")!.closest("a")).toBeNull();
   });
 
   it("marks provenance on the popover's DOI by underline, not in words", () => {

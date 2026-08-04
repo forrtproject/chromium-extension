@@ -109,7 +109,7 @@ insurance against a stray install-time sync.
 - Fixtures use an explicit system font stack and load no external
   fonts/images/scripts; `document.fonts.ready` is awaited before capture.
 - After navigation the harness polls the injected FLoRA selectors
-  (`.flora-inline-badge, .flora-doi-label, .flora-notice-pill, #flora-pubpeer-panel`)
+  (`.flora-indicator-pill, .flora-notice-pill, #flora-pubpeer-panel`)
   until their count is stable for 700 ms, then waits a short settle before
   capturing.
 

@@ -125,10 +125,10 @@ describe("startDomListener", () => {
 
     it("ignores FLoRA's own injected nodes", async () => {
         listen();
-        const badge = document.createElement("span");
-        badge.className = "flora-inline-badge";
-        badge.textContent = "10.1038/nature12373";
-        document.querySelector("main")!.appendChild(badge);
+        const pill = document.createElement("span");
+        pill.className = "flora-indicator-pill";
+        pill.textContent = "10.1038/nature12373";
+        document.querySelector("main")!.appendChild(pill);
 
         await Promise.resolve();
         vi.advanceTimersByTime(DEBOUNCE_MS);

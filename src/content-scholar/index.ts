@@ -38,24 +38,14 @@ function reportActiveState(active: boolean): void {
 
 let floraHidden = false;
 
+// hideAllFloraUI/showAllFloraUI already sweep the merged indicator pills, which
+// is the only per-result UI Scholar rows carry.
 function hideScholarUI(): void {
   hideAllFloraUI();
-  for (const el of document.querySelectorAll<HTMLElement>(".flora-scholar-badge-host")) {
-    el.style.display = "none";
-  }
-  for (const el of document.querySelectorAll<HTMLElement>(".flora-doi-label")) {
-    el.style.display = "none";
-  }
 }
 
 function showScholarUI(): void {
   showAllFloraUI();
-  for (const el of document.querySelectorAll<HTMLElement>(".flora-scholar-badge-host")) {
-    el.style.display = "";
-  }
-  for (const el of document.querySelectorAll<HTMLElement>(".flora-doi-label")) {
-    el.style.display = "";
-  }
 }
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
