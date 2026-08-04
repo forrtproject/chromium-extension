@@ -1,0 +1,150 @@
+// Transient confirmation toast for pill actions (copy DOI, copy citation).
+//
+// The pill's own buttons flash an icon and change their tooltip, but a tooltip
+// only reports to a reader already hovering the button they just clicked. The
+// toast confirms the action landed — and, more importantly, reports when it
+// did not, which the optimistic icon flash cannot.
+//
+// One toast element is reused: a second action replaces the first rather than
+// stacking, so rapid clicks down a reference list never pile up.
+
+const TOAST_ID = "flora-action-toast";
+const WORKING_TOAST_ID = "flora-working-toast";
+
+export type ToastTone = "success" | "error" | "pending";
+
+const TONE_BACKGROUND: Record<ToastTone, string> = {
+    success: "linear-gradient(135deg,#853953,#612D53)",
+    error: "linear-gradient(135deg,#b3261e,#8c1d18)",
+    pending: "linear-gradient(135deg,#853953,#612D53)",
+};
+
+const CHECK_SVG =
+    `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" style="display:block;flex-shrink:0;">` +
+    `<path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 ` +
+    `1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path></svg>`;
+
+const ALERT_SVG =
+    `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" style="display:block;flex-shrink:0;">` +
+    `<path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 ` +
+    `1.75 0 0 1-1.543-2.575Zm-.061 8.201a.75.75 0 0 1 .75-.75h1.708a.75.75 0 0 1 0 1.5H7.146a.75.75 0 0 1 ` +
+    `-.75-.75Zm.75-5.248a.75.75 0 0 1 1.5 0v3a.75.75 0 0 1-1.5 0Z"></path>` +
+    `<circle cx="8" cy="12" r="1"></circle></svg>`;
+
+const SPIN_KEYFRAMES = "@keyframes flora-toast-spin{to{transform:rotate(360deg)}}";
+
+let dismissTimer: ReturnType<typeof setTimeout> | null = null;
+let removeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearTimers(): void {
+    if (dismissTimer) {
+        clearTimeout(dismissTimer);
+        dismissTimer = null;
+    }
+    if (removeTimer) {
+        clearTimeout(removeTimer);
+        removeTimer = null;
+    }
+}
+
+/**
+ * Sit above the "scanning" toast when it is on screen — both anchor to the
+ * bottom-right corner, and a citation fetch can easily overlap a page scan.
+ */
+function bottomOffset(): string {
+    return document.getElementById(WORKING_TOAST_ID) ? "60px" : "18px";
+}
+
+function ensureToast(): HTMLElement {
+    const existing = document.getElementById(TOAST_ID);
+    if (existing) return existing;
+
+    const host = document.createElement("div");
+    host.id = TOAST_ID;
+    // Marks the toast as FLoRA's own so the DOI extractor doesn't rescan its
+    // text and the DOM listener doesn't treat it as a page change.
+    host.setAttribute("data-flora-ui", "");
+    host.setAttribute("role", "status");
+    host.setAttribute("aria-live", "polite");
+
+    const style = document.createElement("style");
+    style.textContent = SPIN_KEYFRAMES;
+    host.appendChild(style);
+
+    document.body.appendChild(host);
+    return host;
+}
+
+function iconFor(tone: ToastTone): HTMLElement {
+    const icon = document.createElement("span");
+    if (tone === "pending") {
+        icon.style.cssText =
+            "width:12px;height:12px;border-radius:50%;flex-shrink:0;box-sizing:border-box;" +
+            "border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;" +
+            "animation:flora-toast-spin 0.7s linear infinite;";
+        return icon;
+    }
+    icon.style.cssText = "display:flex;align-items:center;line-height:0;flex-shrink:0;";
+    icon.innerHTML = tone === "success" ? CHECK_SVG : ALERT_SVG;
+    return icon;
+}
+
+export interface ToastOptions {
+    tone?: ToastTone;
+    /** Milliseconds before the toast fades. 0 keeps it up until it is replaced. */
+    duration?: number;
+}
+
+/**
+ * Show a toast in the bottom-right corner. Returns the toast element so a
+ * caller can keep a reference, though replacing it via another `showToast`
+ * call is the normal way to update it.
+ */
+export function showToast(message: string, options: ToastOptions = {}): HTMLElement {
+    const tone = options.tone ?? "success";
+    const duration = options.duration ?? (tone === "error" ? 2600 : 2000);
+
+    clearTimers();
+    const host = ensureToast();
+
+    // Keep the <style> child (the spinner keyframes) and rebuild the content.
+    for (const child of [...host.children]) {
+        if (child.tagName !== "STYLE") child.remove();
+    }
+
+    host.style.cssText =
+        `position:fixed;bottom:${bottomOffset()};right:18px;z-index:2147483647;` +
+        "display:flex;align-items:center;gap:8px;pointer-events:none;" +
+        `background:${TONE_BACKGROUND[tone]};color:#fff;` +
+        "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
+        "font-size:12px;font-weight:500;line-height:1.4;padding:8px 12px;border-radius:8px;" +
+        "max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.18);" +
+        "opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;";
+
+    host.appendChild(iconFor(tone));
+
+    const label = document.createElement("span");
+    label.textContent = message;
+    host.appendChild(label);
+
+    requestAnimationFrame(() => {
+        host.style.opacity = "1";
+        host.style.transform = "translateY(0)";
+    });
+
+    if (duration > 0) {
+        dismissTimer = setTimeout(() => {
+            host.style.opacity = "0";
+            host.style.transform = "translateY(6px)";
+            removeTimer = setTimeout(() => host.remove(), 200);
+        }, duration);
+    }
+
+    return host;
+}
+
+/** Remove the toast immediately — used by tests and teardown. */
+export function dismissToast(): void {
+    clearTimers();
+    document.getElementById(TOAST_ID)?.remove();
+}

@@ -97,7 +97,7 @@ const FIXTURES: Fixture[] = [
 
 // FLoRA-injected elements we wait to settle before capturing.
 const FLORA_SELECTOR =
-  ".flora-inline-badge, .flora-doi-label, .flora-notice-pill, #flora-pubpeer-panel";
+  ".flora-indicator-pill, .flora-notice-pill, #flora-pubpeer-panel";
 
 const UPDATE = process.argv.includes("--update");
 
@@ -250,7 +250,7 @@ async function captureFixture(
         textLen: document.body ? document.body.innerText.length : 0,
         scrollH: document.body ? document.body.scrollHeight : 0,
         flora: document.querySelectorAll(
-          ".flora-inline-badge, .flora-doi-label, .flora-notice-pill, #flora-pubpeer-panel",
+          ".flora-indicator-pill, .flora-notice-pill, #flora-pubpeer-panel",
         ).length,
         vis: document.visibilityState,
       }));

@@ -24,7 +24,6 @@ import {
     removeSidePanel,
     removeSheetsModal,
     renderErrorBanner,
-    renderInlineBadges,
     renderSidePanel,
     renderSetupPrompt,
     renderSheetsModal,
@@ -286,14 +285,11 @@ async function scanWholePage(): Promise<void> {
 
     if (newDois.length === 0) {
         debugLog("No new DOIs (all already processed)");
-        // Merged pills first so renderInlineBadges can see them in the DOM and
-        // skip standalone badges for DOIs they already cover.
+        // Re-place the title pill against the live DOM — hydrating SPAs (e.g.
+        // Sage) re-render and wipe a previously placed pill, and this pass
+        // (triggered by that mutation) would otherwise return without restoring it.
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
-        // Re-place inline badges against the live DOM — hydrating SPAs (e.g.
-        // Sage) re-render and wipe a previously placed badge, and this pass
-        // (triggered by that mutation) would otherwise return without restoring it.
-        if (!isSheets) renderInlineBadges(pageState, pageOccurrences);
         if (!isSheets) void checkPubPeer();
         return;
     }
@@ -374,13 +370,10 @@ async function scanWholePage(): Promise<void> {
             }
         }
 
-        // Inline badges (skip on Google Sheets — modal only). Merged pills first
-        // so renderInlineBadges can see them in the DOM and skip standalone
-        // badges for DOIs they already cover.
+        // Merged indicator pills (skip on Google Sheets — modal only).
         if (!isSheets) {
             placeTitleIndicatorPill();
             updateIndicatorPillBadges(document, pageState, redacts);
-            renderInlineBadges(pageState, pageOccurrences);
         }
     } catch {
         renderErrorBanner("Failed to contact FLoRA service");
