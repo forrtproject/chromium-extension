@@ -52,35 +52,27 @@ describe("createIndicatorPanel", () => {
     } as MutationRecord)).toBe(false);
   });
 
-  it("states provenance in words for both cases", () => {
-    // A dotted underline alone is a marked/unmarked distinction: a reader who
-    // only ever sees confirmed DOIs has nothing to compare against.
-    const provenance = (isAugmented: boolean) =>
+  it("states provenance by underline, with the reason on hover", () => {
+    // The panel inherits Scholar's ~160px link column; a provenance sentence
+    // costs it a line it doesn't have.
+    const doiText = (isAugmented: boolean) =>
       createIndicatorPanel({ doi: DOI, isAugmented })
-        .querySelector("[data-flora-doi-provenance]")!.textContent;
+        .querySelector<HTMLElement>("[data-flora-doi-text]")!;
 
-    expect(provenance(false)).toBe("Found on this page");
-    expect(provenance(true)).toBe("Matched by title");
+    expect(doiText(false).style.textDecoration).not.toContain("underline");
+    expect(doiText(false).title).toBe("Found on this page");
+    expect(doiText(true).style.textDecoration).toContain("underline");
+    expect(doiText(true).title).toBe("Matched by title");
+    expect(createIndicatorPanel({ doi: DOI }).textContent).not.toContain("Found on this page");
   });
 
-  it("keeps the underline as a secondary cue", () => {
-    const text = (p: HTMLElement) =>
-      [...p.querySelectorAll<HTMLElement>("span")].find((s) => s.textContent === DOI)!;
-    expect(text(createIndicatorPanel({ doi: DOI, isAugmented: true })).style.textDecoration)
-      .toContain("underline");
-    expect(text(createIndicatorPanel({ doi: DOI, isAugmented: false })).style.textDecoration)
-      .not.toContain("underline");
-  });
-
-  it("lets the provenance sentence wrap, including on rows swapped in later", () => {
-    // The panel inherits its container's width (Scholar's link column is
-    // ~160px). A rule keyed on the panel keeps applying after the OA, PubPeer
-    // and badge rows replace themselves when their lookups land.
+  it("keeps row status text on one line, including on rows swapped in later", () => {
+    // A rule keyed on the panel keeps applying after the OA, PubPeer and badge
+    // rows replace themselves when their lookups land.
     document.body.appendChild(createIndicatorPanel({ doi: DOI }));
     const sheet = document.getElementById("flora-indicator-panel-style");
     expect(sheet).not.toBeNull();
-    expect(sheet!.textContent).toContain("[data-flora-panel] [data-flora-doi-provenance]");
-    expect(sheet!.textContent).toContain("white-space:normal !important");
+    expect(sheet!.textContent).toContain("[data-flora-panel] [data-flora-row-sub]");
   });
 
   it("keeps every row to a single line", () => {
@@ -98,10 +90,10 @@ describe("createIndicatorPanel", () => {
     expect(document.querySelectorAll("#flora-indicator-panel-style")).toHaveLength(1);
   });
 
-  it("still shows the DOI itself, not just its provenance", () => {
-    // The row is what you copy from — the value must stay on the title line.
+  it("still prints the DOI itself, underline or not", () => {
+    // The row is what you copy from — the value must stay visible.
     const panel = createIndicatorPanel({ doi: DOI, isAugmented: true });
-    expect([...panel.querySelectorAll("span")].some((s) => s.textContent === DOI)).toBe(true);
+    expect(panel.querySelector("[data-flora-doi-text]")!.textContent).toBe(DOI);
   });
 
   it("lets the reader pick between free copies, collapsed by default", async () => {

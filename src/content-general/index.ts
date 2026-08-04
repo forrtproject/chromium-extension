@@ -35,6 +35,7 @@ import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared
 import {debugLog} from "@shared/debug";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked} from "@shared/domains";
+import {isBotCheckPage} from "@shared/bot-check";
 import {injectRetractionInfo, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
@@ -719,6 +720,16 @@ async function fetchSheetDois(): Promise<void> {
 
 (async () => {
     if (window !== window.top) return;
+
+    // A Cloudflare challenge is served at the article's own URL, so the DOI in
+    // that URL resolves and FLoRA would pill an interstitial. Render nothing
+    // and stop — clearing the challenge loads the real document, and the
+    // content script starts over there.
+    if (isBotCheckPage()) {
+        debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
+        reportActiveState(false);
+        return;
+    }
 
     if (await isDomainBlocked(location.hostname)) {
         debugLog("Domain is blocked:", location.hostname);

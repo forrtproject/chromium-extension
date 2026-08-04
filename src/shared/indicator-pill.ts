@@ -44,13 +44,10 @@ const DOI_LINK_SVG =
     `.75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0Z">` +
     `</path></svg>`;
 
-// Reference-block glyph for the popover's citation row.
-const CITATION_SVG =
-    `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;">` +
-    `<rect x="2" y="2.25" width="8" height="1.5" rx="0.75"/>` +
-    `<rect x="2" y="5.75" width="12" height="1.5" rx="0.75"/>` +
-    `<rect x="2" y="9.25" width="12" height="1.5" rx="0.75"/>` +
-    `<rect x="2" y="12.75" width="6" height="1.5" rx="0.75"/></svg>`;
+// Quotation-mark glyph for the DOI row's "copy this reference" action.
+const QUOTE_SVG =
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;">` +
+    `<path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>`;
 
 const CLIPBOARD_SVG = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>`;
 const CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path></svg>`;
@@ -437,7 +434,7 @@ export interface IndicatorPillOptions {
     reproductionsCount?: number | null;
 }
 
-/** The DOI row: link icon, the DOI itself, and open/copy actions. */
+/** The DOI row: the DOI itself and the copy/cite/open actions. */
 function buildDoiRow(
     doi: string,
     color: string,
@@ -445,26 +442,38 @@ function buildDoiRow(
     compact = false,
     provenanceLabel?: string
 ): HTMLElement {
+    // The rows below start their headings past a 16px icon column, so the
+    // popover's DOI is indented to that same edge — left flush against the
+    // panel border it reads as floating free of the rows under it.
+    const doiIndent = 4 + 16 + 8;
     const contentRow = document.createElement("div");
-    contentRow.style.cssText = `display: flex; align-items: center; gap: ${compact ? "5px" : "8px"}; padding: ${compact ? "1px 3px" : "5px 4px"};`;
+    contentRow.style.cssText = `display: flex; align-items: center; gap: ${compact ? "5px" : "8px"}; padding: ${compact ? "1px 3px" : `5px 4px 5px ${doiIndent}px`};`;
 
-    const doiIcon = document.createElement("span");
-    doiIcon.style.cssText = rowIconWrapStyle(color, true, compact);
-    doiIcon.innerHTML = DOI_LINK_SVG;
+    // The panel rides on a Scholar result rather than opening on hover, so it
+    // keeps the link glyph that labels the row; the popover's DOI stands on
+    // its own line.
+    if (compact) {
+        const doiIcon = document.createElement("span");
+        doiIcon.style.cssText = rowIconWrapStyle(color, true, compact);
+        doiIcon.innerHTML = DOI_LINK_SVG;
+        contentRow.appendChild(doiIcon);
+    }
 
-    // Matches the other rows: value on top, state spelled out underneath. The
-    // underline is kept as a secondary cue, but provenance is stated in words —
-    // an unmarked DOI otherwise gives the reader nothing to compare against.
-    const labelWrap = document.createElement("span");
-    labelWrap.style.cssText = ROW_LABEL_WRAP;
-
+    // A DOI read straight off the page is printed plain; one we matched by
+    // title (or resolved from a PMC id) is dotted-underlined, with the reason
+    // on hover. The distinction is the underline alone — spelling it out in
+    // words cost the row the line the DOI itself needs.
     const doiText = document.createElement("span");
+    doiText.setAttribute("data-flora-doi-text", "");
     doiText.textContent = doi;
+    doiText.title = provenanceLabel ?? (isAugmented ? "Matched by title" : "Found on this page");
     doiText.style.cssText = `
+    flex: 1;
     min-width: 0;
     color: #1f2328;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     font-size: ${compact ? "11px" : "11.5px"};
+    ${compact ? "" : "font-weight: 600;"}
     letter-spacing: 0.01em;
     white-space: nowrap;
     overflow: hidden;
@@ -474,15 +483,6 @@ function buildDoiRow(
         doiText.style.textDecoration = "underline dotted";
         doiText.style.textUnderlineOffset = "2px";
     }
-
-    const provenance = document.createElement("span");
-    provenance.setAttribute("data-flora-doi-provenance", "");
-    provenance.style.cssText = rowSubStyle(!isAugmented, compact) + (compact ? "font-size:9.5px;" : "");
-    provenance.textContent = provenanceLabel
-        ?? (isAugmented ? "Matched by title" : "Found on this page");
-
-    labelWrap.appendChild(doiText);
-    labelWrap.appendChild(provenance);
 
     const copyBtn = document.createElement("button");
     copyBtn.innerHTML = CLIPBOARD_SVG;
@@ -531,80 +531,69 @@ function buildDoiRow(
 
     const actions = document.createElement("div");
     actions.style.cssText = `display: inline-flex; align-items: center; gap: ${compact ? "8px" : "10px"}; flex-shrink: 0;`;
-    actions.appendChild(openLink);
     actions.appendChild(copyBtn);
+    actions.appendChild(buildCiteButton(doi, color));
+    actions.appendChild(openLink);
 
-    contentRow.appendChild(doiIcon);
-    contentRow.appendChild(labelWrap);
+    contentRow.appendChild(doiText);
     contentRow.appendChild(actions);
     return contentRow;
 }
 
 /**
- * The citation row: copies this reference in the style chosen in settings.
- * Nothing is fetched until the row is clicked, so a page of references adds no
- * requests unless a reader asks for one.
+ * The cite action in the DOI row: copies this reference in the style chosen in
+ * settings. Nothing is fetched until it is clicked, so a page of references
+ * adds no requests unless a reader asks for one. The style, and every
+ * transient state, is reported through the button's tooltip — the row has no
+ * space for a status line.
  */
-function buildCitationRow(doi: string, color: string, compact = false): HTMLElement {
-    const row = document.createElement("div");
-    row.setAttribute("data-flora-citation-row", "");
-    row.style.cssText = `display:flex;align-items:center;gap:${compact ? "5px" : "8px"};padding:${compact ? "1px 3px" : "5px 4px"};border-radius:6px;cursor:pointer;`;
-    row.addEventListener("mouseenter", () => { row.style.background = "#f6f8fa"; });
-    row.addEventListener("mouseleave", () => { row.style.background = "transparent"; });
+function buildCiteButton(doi: string, color: string): HTMLElement {
+    const btn = document.createElement("button");
+    btn.setAttribute("data-flora-citation-copy", "");
+    btn.innerHTML = QUOTE_SVG;
+    btn.style.cssText = ICON_BTN_STYLE;
 
-    const icon = document.createElement("span");
-    icon.style.cssText = rowIconWrapStyle(color, true, compact);
-    icon.innerHTML = CITATION_SVG;
-
-    const labelWrap = document.createElement("span");
-    labelWrap.style.cssText = compact ? ROW_LABEL_WRAP_COMPACT : ROW_LABEL_WRAP;
-
-    const title = document.createElement("span");
-    title.style.cssText = compact ? ROW_TITLE_STYLE_COMPACT : ROW_TITLE_STYLE;
-    title.textContent = "Citation";
-
-    const status = document.createElement("span");
-    status.setAttribute("data-flora-row-sub", "");
-    status.style.cssText = rowSubStyle(true, compact);
-
-    labelWrap.appendChild(title);
-    labelWrap.appendChild(status);
-
-    const copyAction = document.createElement("span");
-    copyAction.setAttribute("data-flora-citation-copy", "");
-    copyAction.style.cssText = rowActionStyle(color, compact);
-    copyAction.textContent = "Copy";
-
-    row.appendChild(icon);
-    row.appendChild(labelWrap);
-    row.appendChild(copyAction);
-
-    let label = "";
+    let idleTitle = "Copy citation";
+    let flashing = false;
     let loadToken = 0;
-    let statusTimer: ReturnType<typeof setTimeout> | null = null;
+    let titleTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const setStatus = (text: string): void => {
-        if (statusTimer) {
-            clearTimeout(statusTimer);
-            statusTimer = null;
-        }
-        status.textContent = text;
+    const restore = (): void => {
+        flashing = false;
+        btn.innerHTML = QUOTE_SVG;
+        btn.style.color = btn.matches(":hover") ? color : "#656d76";
+        btn.title = idleTitle;
     };
 
-    const flashStatus = (text: string): void => {
-        setStatus(text);
-        statusTimer = setTimeout(() => {
-            status.textContent = label;
-        }, 1500);
+    const setTitle = (text: string): void => {
+        if (titleTimer) {
+            clearTimeout(titleTimer);
+            titleTimer = null;
+        }
+        btn.title = text;
+    };
+
+    const flash = (iconHtml: string, text: string): void => {
+        flashing = true;
+        btn.innerHTML = iconHtml;
+        btn.style.color = color;
+        setTitle(text);
+        titleTimer = setTimeout(restore, 1500);
     };
 
     const showStyle = (format: CitationFormat): void => {
-        label = format.label;
-        row.title = `Copy this reference in ${format.label} — change the style in FLoRA's settings`;
-        setStatus(format.label);
+        idleTitle = `Copy this reference in ${format.label} — change the style in FLoRA's settings`;
+        if (!flashing) btn.title = idleTitle;
     };
 
     void preferredCitationFormat().then(showStyle);
+
+    btn.addEventListener("mouseenter", () => {
+        if (!flashing) btn.style.color = color;
+    });
+    btn.addEventListener("mouseleave", () => {
+        if (!flashing) btn.style.color = "#656d76";
+    });
 
     // Re-read the preference on every copy: the reader may have changed it in
     // settings while this page stayed open.
@@ -613,23 +602,23 @@ function buildCitationRow(doi: string, color: string, compact = false): HTMLElem
         const format = await preferredCitationFormat();
         if (token !== loadToken) return;
         showStyle(format);
-        setStatus("Fetching…");
+        setTitle("Fetching…");
         const citation = await fetchCitation(doi, format.id);
         if (token !== loadToken) return;
         if (!citation) {
-            setStatus("Citation unavailable");
+            flash(QUOTE_SVG, "Citation unavailable");
             return;
         }
         writeClipboard(citation);
-        flashStatus("Copied");
+        flash(CHECK_SVG, "Copied");
     };
 
-    row.addEventListener("click", (e) => {
+    btn.addEventListener("click", (e) => {
         e.stopPropagation();
         void copyCitation();
     });
 
-    return row;
+    return btn;
 }
 
 interface IndicatorRowsOptions {
@@ -650,9 +639,9 @@ interface IndicatorRowsOptions {
 
 /**
  * The row stack shared by the pill's popover and the standalone panel: DOI,
- * citation, Open Access, PubPeer, replication/retraction. The OA and PubPeer
- * rows start unresolved and swap themselves in when their lookups land; the
- * citation row fetches nothing until a reader clicks it.
+ * Open Access, PubPeer, replication/retraction. The OA and PubPeer rows start
+ * unresolved and swap themselves in when their lookups land; the DOI row's
+ * cite action fetches nothing until a reader clicks it.
  */
 function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     const compact = opts.compact ?? false;
@@ -660,7 +649,6 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     rows.style.cssText = `display:flex;flex-direction:column;gap:${compact ? "0" : "2px"};`;
 
     rows.appendChild(buildDoiRow(opts.doi, opts.color, opts.isAugmented, compact, opts.provenanceLabel));
-    rows.appendChild(buildCitationRow(opts.doi, opts.color, compact));
 
     const sectionDivider = document.createElement("div");
     sectionDivider.style.cssText = `height:1px;background:#eaeef2;margin:${compact ? "2px 0" : "0 0 2px"};`;
@@ -925,8 +913,7 @@ const PANEL_STYLE_ID = "flora-indicator-panel-style";
 
 /**
  * The panel's status text sits beside its heading, so it stays on one line and
- * ellipsises; only the DOI's provenance is a full sentence, and that has to
- * wrap or it truncates mid-sentence in Scholar's ~160px link column.
+ * ellipsises rather than pushing the row taller.
  *
  * This is a stylesheet rather than inline styles because the OA, PubPeer and
  * badge rows replace themselves when their lookups land; a rule keyed on the
@@ -936,10 +923,7 @@ function ensurePanelStyle(): void {
     if (document.getElementById(PANEL_STYLE_ID)) return;
     const style = document.createElement("style");
     style.id = PANEL_STYLE_ID;
-    style.textContent =
-        `[data-flora-panel] [data-flora-doi-provenance]{` +
-        `white-space:normal !important;overflow:visible !important;}` +
-        `[data-flora-panel] [data-flora-row-sub]{flex-shrink:0;}`;
+    style.textContent = `[data-flora-panel] [data-flora-row-sub]{flex-shrink:0;}`;
     (document.head ?? document.documentElement).appendChild(style);
 }
 
