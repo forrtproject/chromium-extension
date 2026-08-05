@@ -121,9 +121,9 @@ hideBtn.addEventListener("click", async () => {
     await chrome.tabs.sendMessage(activeTabId, { type: messageType });
     hidden = !hidden;
     updateHideUI();
-    showStatus(hidden ? "Hidden until page refresh" : "FLoRA restored", "success");
+    showStatus(hidden ? "Hidden until page refresh" : "ORE restored", "success");
   } catch {
-    showStatus("No FLoRA content on this page", "error");
+    showStatus("Nothing from ORE on this page", "error");
   }
 });
 
@@ -132,7 +132,7 @@ reportBtn.addEventListener("click", () => {
   if (!currentDomain) return;
   const title = encodeURIComponent(`Issue on domain: ${currentDomain}`);
   const body = encodeURIComponent(`**Domain:** ${currentDomain}\n\n**Description:**\n`);
-  const url = `https://github.com/forrtproject/flora_chromium/issues/new?title=${title}&body=${body}&labels=domain-issue`;
+  const url = `https://github.com/forrtproject/chromium-extension/issues/new?title=${title}&body=${body}&labels=domain-issue`;
   chrome.tabs.create({ url });
   window.close();
 });

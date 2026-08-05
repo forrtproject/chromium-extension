@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy — FORRT ORE</title>
+    <meta
+      name="description"
+      content="How FORRT ORE — the Open Research Extension — handles data."
+    />
+    <link rel="icon" href="img/forrt-logo.svg" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Domine:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav class="topbar">
+      <a class="brand" href="./">
+        <img src="img/forrt-logo.svg" alt="" />
+        <span class="brand-name">
+          <strong>FORRT ORE</strong>
+          <span>Open Research Extension</span>
+        </span>
+      </a>
+      <div class="topnav">
+        <a href="./">Documentation</a>
+        <a href="https://github.com/forrtproject/chromium-extension">GitHub</a>
+      </div>
+    </nav>
+
+    <main class="prose">
+      <h1>Privacy Policy</h1>
+      <p class="updated">
+        FORRT ORE — Open Research Extension · Last updated 4 August 2026
+      </p>
+
+      <p>
+        This policy explains how FORRT ORE — the Open Research Extension
+        (“the Extension”) — handles data. The Extension is developed and
+        maintained by FORRT — the Framework for Open and Reproducible Research
+        Training — as part of the UKRI-funded project “Making Replications
+        Count”.
+      </p>
+
+      <div class="callout">
+        <p>
+          <strong>The short version.</strong> No account, no analytics, no
+          tracking, no advertising. What leaves your browser is paper
+          identifiers (DOIs) and article titles, plus the contact email you
+          enter in settings, which is passed to Crossref, OpenAlex and Unpaywall
+          because those services ask for one. Retraction checks happen entirely
+          on your own device.
+        </p>
+      </div>
+
+      <h2>1. Data controller</h2>
+      <p>
+        For the purposes of the UK and EU General Data Protection Regulation,
+        the data controller is FORRT — Framework for Open and Reproducible
+        Research Training, contactable at
+        <a href="mailto:info@forrt.org">info@forrt.org</a>.
+      </p>
+
+      <h2>2. What the Extension does</h2>
+      <p>
+        The Extension reads the page you are viewing to find academic paper
+        identifiers (DOIs) and, where no DOI is present, article titles. It then
+        looks up what is known about those papers — replication and reproduction
+        studies, retractions and expressions of concern, post-publication
+        comments, and open-access copies — and displays the result inline on the
+        page.
+      </p>
+      <p>
+        The Extension's content script runs on all websites, because papers are
+        cited everywhere: journals, preprint servers, blogs, reading lists,
+        library catalogues. It reads page content only to find identifiers and
+        titles; it does not transmit page content itself. You can switch it off
+        for any domain from the toolbar popup, and disabled domains are never
+        scanned.
+      </p>
+
+      <h2>3. What data is processed</h2>
+      <ul>
+        <li>
+          <strong>DOIs</strong> found in page metadata, links, tables and
+          visible text. Sent to the services listed in section 5 to retrieve
+          information about those papers.
+        </li>
+        <li>
+          <strong>Article titles</strong> (and, where available, author and year
+          hints) for papers that carry no DOI on the page. Sent to Crossref and
+          OpenAlex to resolve the correct identifier.
+        </li>
+        <li>
+          <strong>Your contact email address</strong>, if you enter one in
+          settings. It is used solely as the <code>mailto</code> /
+          <code>email</code> parameter that Crossref, OpenAlex and Unpaywall ask
+          API users to supply so that requests can be placed in their faster
+          “polite” pool. It is stored in your browser, is sent to those three
+          services only, and is never sent to FORRT's own servers.
+        </li>
+        <li>
+          <strong>The URL and hostname of the current page</strong>, used within
+          your browser to scope scanning and to apply your per-domain settings.
+          URLs are not transmitted to FORRT or to any third party.
+        </li>
+        <li>
+          <strong>Google Sheets content</strong>, when you have a Google Sheet
+          open: the Extension requests that sheet's own export endpoint using
+          your existing Google session in order to read paper identifiers from
+          rows outside the visible area. That request goes to Google only —
+          nobody else receives the sheet or its contents. Identifiers found in
+          it are then looked up like any other.
+        </li>
+      </ul>
+      <p>The Extension does not collect:</p>
+      <ul>
+        <li>Names, accounts or sign-in details — there is no account to create</li>
+        <li>Browsing history, or any record of the pages you visit</li>
+        <li>Analytics, telemetry, crash reports or usage statistics</li>
+        <li>Cookies for tracking or advertising</li>
+      </ul>
+
+      <h2>4. Storage on your device</h2>
+      <ul>
+        <li>
+          <strong>Settings</strong> (<code>chrome.storage.sync</code>): your
+          contact email, citation style, DOI-pill display preference, cache
+          limit, disabled domains and muted PubPeer commenters. Because this
+          uses Chrome's sync storage, these settings are synchronised across
+          browsers you are signed into — that synchronisation is performed by
+          Chrome under your Google account, not by FORRT.
+        </li>
+        <li>
+          <strong>Cache</strong> (<code>chrome.storage.local</code>): results of
+          the lookups described above, together with the retraction list, kept
+          so that revisiting a paper does not repeat every request. Entries
+          expire, and the cache is held to a size limit you can change in
+          settings (50 MB by default), with the oldest entries removed first. It
+          stays on your device and is never transmitted. Uninstalling the
+          Extension, or clearing its storage from your browser, removes it.
+        </li>
+      </ul>
+
+      <h2>5. Services the Extension contacts</h2>
+      <p>
+        To do its job the Extension makes requests to the following services.
+        Each receives only what is listed.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Receives</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>FORRT replication API (<code>rep-api.forrt.org</code>)</td>
+            <td>DOIs, in batches</td>
+            <td>Replication and reproduction records</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.crossref.org/">Crossref</a></td>
+            <td>Titles, DOIs, your contact email</td>
+            <td>Resolving titles to DOIs; formatted citations</td>
+          </tr>
+          <tr>
+            <td><a href="https://openalex.org/">OpenAlex</a></td>
+            <td>Titles, your contact email</td>
+            <td>Resolving titles to DOIs when Crossref finds no match</td>
+          </tr>
+          <tr>
+            <td><a href="https://unpaywall.org/">Unpaywall</a></td>
+            <td>DOIs, your contact email</td>
+            <td>Whether a free full text exists</td>
+          </tr>
+          <tr>
+            <td><a href="https://pubpeer.com/">PubPeer</a></td>
+            <td>DOIs</td>
+            <td>Post-publication comment counts and threads</td>
+          </tr>
+          <tr>
+            <td><code>doi.org</code> and <code>data.crosscite.org</code></td>
+            <td>DOIs</td>
+            <td>Confirming identifiers and rendering citations</td>
+          </tr>
+          <tr>
+            <td>PubMed Central ID converter (NCBI)</td>
+            <td>DOIs or PMC identifiers</td>
+            <td>Locating PMC-hosted full text</td>
+          </tr>
+          <tr>
+            <td>GitHub (<code>raw.githubusercontent.com</code>)</td>
+            <td>Nothing about you — a plain file download</td>
+            <td>
+              The weekly refresh of the retraction list, which is derived from
+              Retraction Watch data released with Crossref
+            </td>
+          </tr>
+          <tr>
+            <td>Google Sheets export endpoint</td>
+            <td>The identifier of the sheet you already have open</td>
+            <td>Reading paper identifiers from the whole sheet</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        <strong>Retraction status is determined locally.</strong> The Extension
+        downloads the retraction list about once a week and checks papers
+        against it on your own device, so no DOI is ever sent anywhere in order
+        to ask whether a paper has been retracted.
+      </p>
+      <p>
+        No data is sold, rented or shared with data brokers, advertisers or
+        analytics companies, and none of it is used for advertising.
+      </p>
+
+      <h2>6. Legal basis (GDPR)</h2>
+      <p>
+        Where GDPR applies, the legal basis for this processing is legitimate
+        interest (Art. 6(1)(f)): providing the inline functionality you
+        installed the Extension to perform. The data involved is, in the
+        ordinary case, publicly available scholarly identifiers rather than
+        personal data about you. The one exception is the contact email you
+        choose to enter; you supply it voluntarily, it is used only as described
+        in section 3, and you can remove it at any time in settings — the
+        Extension then stops making the requests that require it.
+      </p>
+      <p>
+        Local storage is used strictly for the Extension's own function and not
+        for tracking or advertising.
+      </p>
+
+      <h2>7. Retention</h2>
+      <ul>
+        <li>
+          <strong>Lookups sent to the FORRT API</strong> are used to answer the
+          request and are not logged. No record is kept of which DOIs were
+          looked up, or of who looked them up.
+        </li>
+        <li>
+          <strong>Third-party services</strong> (Crossref, OpenAlex, Unpaywall,
+          PubPeer, NCBI, Google) apply their own retention policies to requests
+          they receive.
+        </li>
+        <li>
+          <strong>Local cache and settings</strong> remain on your device until
+          they expire, are evicted, or you clear the Extension's storage or
+          uninstall it.
+        </li>
+      </ul>
+
+      <h2>8. International transfers</h2>
+      <p>
+        The FORRT replication API is hosted on Amazon Web Services in the eu-central-1
+        (Frankfurt, Germany) region. The third-party services in section 5 are
+        operated in other jurisdictions, including the United States; they are
+        named there so that you can see exactly which services are involved, and
+        the per-domain switch lets you stop the Extension running on any site.
+      </p>
+
+      <h2>9. Your rights</h2>
+      <p>
+        Under GDPR you have the right to access, correct, delete, restrict or
+        object to processing of your personal data, to data portability where
+        applicable, and to complain to your data protection supervisory
+        authority.
+      </p>
+      <p>
+        In practice, FORRT holds nothing that identifies you: there is no
+        account, the Extension's data lives in your own browser, and the only
+        personal datum involved — your contact email — is stored on your device
+        and sent onward only to Crossref, OpenAlex and Unpaywall. You can
+        exercise the practical equivalent of these rights yourself at any time
+        by editing or clearing your email in settings, clearing the Extension's
+        storage, or uninstalling it. If you would like FORRT to look into
+        anything on your behalf, write to
+        <a href="mailto:info@forrt.org">info@forrt.org</a> and we will respond.
+      </p>
+      <p>
+        Under California's CCPA/CPRA and similar US state laws: the categories
+        of data processed and the third parties involved are disclosed in
+        sections 3 and 5; you may delete the Extension's data at any time as
+        described above; and no data is sold or shared as those laws define the
+        terms.
+      </p>
+
+      <h2>10. Children's privacy</h2>
+      <p>
+        The Extension is intended for researchers, students and other academic
+        users, generally aged 16 and over. It is not directed at children and
+        does not knowingly collect data from them.
+      </p>
+
+      <h2>11. Security</h2>
+      <p>
+        All requests are made over HTTPS. Data stored locally is subject to your
+        browser's own security model. The Extension requests only the browser
+        permissions it needs — storage, extended storage for its cache, and
+        access to the tab you are actively viewing — and its full source code is
+        <a href="https://github.com/forrtproject/chromium-extension">public</a>.
+      </p>
+
+      <h2>12. Contact</h2>
+      <p>
+        Questions about this policy:
+        <a href="mailto:info@forrt.org">info@forrt.org</a>.
+      </p>
+
+      <h2>13. Changes to this policy</h2>
+      <p>
+        This policy will be updated as the Extension changes. The “last updated”
+        date above reflects the most recent revision, and significant changes
+        will be noted on this page.
+      </p>
+      <p class="muted">
+        This policy covers FORRT ORE only. Other FORRT
+        services, such as the FLoRA Replication Atlas, may have their own
+        policies.
+      </p>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div>
+          Made by <a href="https://forrt.org/">FORRT</a> — the Framework for Open
+          and Reproducible Research Training.
+        </div>
+        <div>
+          <a href="./">Documentation</a> ·
+          <a href="https://github.com/forrtproject/chromium-extension">Source</a> ·
+          <a href="mailto:info@forrt.org">Contact</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

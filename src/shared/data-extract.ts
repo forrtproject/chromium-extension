@@ -7,7 +7,7 @@ export const RET_MAP_KEY = "RetractionLookupLocal"
  * it pulls this committed JSON and caches it in `chrome.storage`.
  */
 const PREBUILT_JSON_URL =
-    'https://raw.githubusercontent.com/forrtproject/flora-chromium/main/src/retractions.json'
+    'https://raw.githubusercontent.com/forrtproject/chromium-extension/main/src/retractions.json'
 
 /**
  * Maps from an original paper's DOI to the DOI of the notice about it.

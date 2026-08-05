@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FORRT ORE — Open Research Extension</title>
+    <meta
+      name="description"
+      content="A Chrome and Edge extension from FORRT that shows replication evidence, retractions, PubPeer comments and open-access copies for the papers you read."
+    />
+    <link rel="icon" href="img/forrt-logo.svg" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Domine:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav class="topbar">
+      <a class="brand" href="./">
+        <img src="img/forrt-logo.svg" alt="" />
+        <span class="brand-name">
+          <strong>FORRT ORE</strong>
+          <span>Open Research Extension</span>
+        </span>
+      </a>
+      <div class="topnav">
+        <a href="#what-you-see">What you see</a>
+        <a href="#where">Where it works</a>
+        <a href="#install">Install</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/forrtproject/chromium-extension">GitHub</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">A FORRT project · free and open source</div>
+          <h1>What's known about the paper you're reading.</h1>
+          <p class="lede">
+            FORRT ORE — the Open Research Extension — spots the papers on the
+            page you are looking at and tells you what is known about them — replications and reproductions,
+            retractions and expressions of concern, PubPeer discussion, and free
+            full text.
+          </p>
+          <div class="btn-row">
+            <a
+              class="btn"
+              href="https://github.com/forrtproject/chromium-extension/releases"
+              >Download the extension</a
+            >
+            <a class="btn btn-ghost" href="#install">Installation guide</a>
+          </div>
+        </div>
+        <figure class="shot">
+          <img
+            src="img/replication-badges.png"
+            alt="A journal article page with an ORE pill next to the DOI and the ORE tab at the edge of the page"
+          />
+        </figure>
+      </div>
+    </header>
+
+    <main>
+      <section id="what-you-see">
+        <div class="wrap">
+          <h2>What you see</h2>
+          <p class="muted">
+            One small pill appears next to each paper ORE recognises. The
+            pill keeps its shape while lookups are still running, so nothing jumps
+            around as results arrive.
+          </p>
+
+          <h3>One pill, four signals</h3>
+          <p>
+            Left to right: whether the DOI was confirmed or matched by title,
+            whether a free full text exists, whether the paper is discussed on
+            PubPeer, and how many replications or reproductions are on record. A
+            dimmed segment means nothing was found for that signal — it never
+            disappears. A red or amber dot replaces the count when the paper has
+            been retracted or flagged with an expression of concern.
+          </p>
+          <figure class="shot plain wide">
+            <img
+              src="img/pill-icons.png"
+              alt="Legend explaining each segment of the indicator pill: DOI confirmed, DOI matched by title, open access, PubPeer, replication count, retraction or concern, and nothing on record"
+            />
+          </figure>
+
+          <div class="feature flip">
+            <div>
+              <h3>On the article, and on every reference</h3>
+              <p>
+                On journal and preprint pages, a pill sits next to the article's
+                own DOI and next to the references below it, so you can see at a
+                glance which of the works a paper builds on have been replicated
+                — or retracted.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="img/open-access-retractions.png"
+                alt="An article page with ORE pills next to the title and each reference, one showing a retraction flag"
+              />
+            </figure>
+          </div>
+
+          <div class="feature">
+            <div>
+              <h3>The Meta Report panel</h3>
+              <p>
+                A draggable ORE tab sits at the edge of the page. Open it for
+                the full picture: every known replication and reproduction
+                colour-coded by outcome, retraction and concern notices, and
+                which of the paper's references have their own entry in the
+                FLoRA Replication Atlas or a PubPeer thread. If the paper you
+                are reading is itself a replication, the panel shows the
+                original study instead.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="img/meta-report-panel.png"
+                alt="The ORE Meta Report side panel listing replications with outcome badges"
+              />
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section id="where">
+        <div class="wrap">
+          <h2>Where it works</h2>
+          <p class="muted">
+            ORE runs on any page that mentions papers. Three places get
+            purpose-built treatment.
+          </p>
+
+          <div class="feature">
+            <div>
+              <h3>Google Scholar</h3>
+              <p>
+                Each result gets a panel with its DOI, a one-click citation in
+                the style you chose, open-access status, PubPeer comment count
+                and replication count. When the DOI comes from a
+                <code>doi.org</code> link or the doi.org resolver, the panel
+                reads “Found on this page”.
+              </p>
+              <p>
+                When a result carries no DOI at all, ORE resolves it through
+                Crossref and OpenAlex title search and labels it “Matched by
+                title”, with the DOI underlined — a match to check rather than
+                trust.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="img/scholar-unconfirmed-doi.png"
+                alt="A Google Scholar result with an ORE panel showing a DOI matched by title"
+              />
+              <figcaption>
+                A title-matched result. Confirmed DOIs are shown with a tick
+                instead.
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="feature flip">
+            <div>
+              <h3>Google Sheets</h3>
+              <p>
+                Open a spreadsheet of papers — a screening sheet, a reading list, a
+                reference export — and the whole sheet is scanned, including
+                rows below the fold, with a summary of what was found.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="img/spreadsheet-detection.png"
+                alt="A Google Sheet of papers with an ORE card reporting replication data for three DOIs"
+              />
+            </figure>
+          </div>
+
+          <div class="feature">
+            <div>
+              <h3>PubMed, publishers, preprint servers, anywhere else</h3>
+              <p>
+                The general content script reads DOIs from meta tags, JSON-LD,
+                links, tables and visible text, and follows single-page
+                navigations so the pills stay in step as you click through a
+                site. Publisher-specific placement rules keep pills where they
+                belong on the sites researchers use most.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="img/replication-badges.png"
+                alt="A journal article page showing the ORE pill next to the DOI and the ORE tab"
+              />
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section id="controls">
+        <div class="wrap">
+          <h2>Your controls</h2>
+          <p class="muted">
+            ORE is meant to sit quietly in the background. When it does
+            not, you can turn it down.
+          </p>
+
+          <div class="feature">
+            <div>
+              <h3>Per-site switches</h3>
+              <p>
+                The toolbar popup hides ORE on the current page, disables it
+                for the whole domain, or reports a placement problem on that
+                site. Disabled domains are remembered in your settings.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="img/popup.png"
+                alt="The ORE toolbar popup with options to disable on a domain, hide on the page, report an issue, or open settings"
+              />
+            </figure>
+          </div>
+
+          <div class="feature flip">
+            <div>
+              <h3>Settings</h3>
+              <p>
+                Set the contact email that Crossref, OpenAlex and Unpaywall ask
+                for, choose your citation style, decide whether every reference
+                gets a DOI pill or only the ones without a visible DOI, cap how
+                much cache is kept, manage the domain blocklist, and mute
+                PubPeer commenters you would rather not see.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="img/settings.png"
+                alt="The settings page showing the email setup card and DOI pill display options"
+              />
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section id="install">
+        <div class="wrap">
+          <h2>Install</h2>
+          <p>
+            ORE is not on the Chrome Web Store yet, so it is installed as an
+            unpacked extension. It works in Chrome and Edge (version 116 or
+            later).
+          </p>
+          <ol class="steps">
+            <li>
+              <a
+                href="https://github.com/forrtproject/chromium-extension/releases"
+                >Download <code>flora-extension.zip</code></a
+              >
+              from the releases page — it is built automatically from the latest
+              code.
+            </li>
+            <li>Unzip it to a folder you will keep (deleting it uninstalls the extension).</li>
+            <li>Open <code>chrome://extensions</code> or <code>edge://extensions</code>.</li>
+            <li>Turn on <strong>Developer mode</strong>, top right.</li>
+            <li>Click <strong>Load unpacked</strong> and select the unzipped folder.</li>
+            <li>
+              Enter your email address on the settings page that opens. Crossref,
+              OpenAlex and Unpaywall ask for a contact address so they can put
+              your lookups in their faster “polite” pool; titles cannot be resolved
+              to DOIs without it.
+            </li>
+          </ol>
+          <div class="callout">
+            <p>
+              Building from source instead? See the
+              <a
+                href="https://github.com/forrtproject/chromium-extension#building-from-source"
+                >README</a
+              >
+              — <code>npm install &amp;&amp; npm run build</code>, then load the
+              repository root as an unpacked extension.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="privacy">
+        <div class="wrap">
+          <h2>Privacy, briefly</h2>
+          <p>
+            ORE has no accounts, no analytics and no tracking. What leaves
+            your browser is paper identifiers — DOIs — and the contact email you
+            entered in settings, which goes to Crossref, OpenAlex and Unpaywall
+            as the address they ask for. Retractions are checked entirely on
+            your own machine against a list downloaded once a week, so no
+            DOI is ever sent anywhere to ask “was this retracted?”.
+          </p>
+          <div class="btn-row" style="margin-top: 1.5rem">
+            <a class="btn btn-ghost" href="privacy.html">Read the full privacy policy</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="data">
+        <div class="wrap">
+          <h2>Data sources</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>What</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Replications and reproductions</td>
+                <td>
+                  <a href="https://forrt.org/replication-database/"
+                    >FORRT Replication Database</a
+                  >, surfaced through the
+                  <a href="https://forrt.org/flora-replication-atlas/"
+                    >FLoRA Replication Atlas</a
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>Retractions and expressions of concern</td>
+                <td>
+                  <a href="https://retractionwatch.com/">Retraction Watch</a> /
+                  The Center for Scientific Integrity, released with
+                  <a href="https://gitlab.com/crossref/retraction-watch-data"
+                    >Crossref</a
+                  >
+                  under
+                  <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>
+                </td>
+              </tr>
+              <tr>
+                <td>Title → DOI resolution and citations</td>
+                <td>
+                  <a href="https://www.crossref.org/">Crossref</a> and
+                  <a href="https://openalex.org/">OpenAlex</a>
+                </td>
+              </tr>
+              <tr>
+                <td>Open-access full text</td>
+                <td>
+                  <a href="https://unpaywall.org/">Unpaywall</a>, plus PubMed
+                  Central for PMC-hosted articles
+                </td>
+              </tr>
+              <tr>
+                <td>Post-publication comments</td>
+                <td><a href="https://pubpeer.com/">PubPeer</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="help">
+        <div class="wrap">
+          <h2>Something looks wrong?</h2>
+          <div class="cards">
+            <div class="card">
+              <h3>A pill is in the wrong place</h3>
+              <p>
+                Use “Report an issue on this domain” in the toolbar popup, or
+                <a
+                  href="https://github.com/forrtproject/chromium-extension/issues/new"
+                  >open an issue</a
+                >
+                with the URL. Publisher layouts change often and each site is
+                fixed individually.
+              </p>
+            </div>
+            <div class="card">
+              <h3>A DOI matched the wrong paper</h3>
+              <p>
+                Title matches are marked with an underline and no tick precisely
+                because they can be wrong. Please report the case — it helps
+                tune the matching threshold.
+              </p>
+            </div>
+            <div class="card">
+              <h3>A replication is missing</h3>
+              <p>
+                The evidence comes from the FORRT Replication Database, which is
+                community-curated. You can
+                <a href="https://forrt.org/replication-database/"
+                  >contribute an entry</a
+                >.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Nothing appears at all</h3>
+              <p>
+                Check that an email is set in Settings, that the domain is not
+                on your blocklist, and that the page actually names a DOI or a
+                paper title.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div>
+          Made by <a href="https://forrt.org/">FORRT</a> — the Framework for Open
+          and Reproducible Research Training.
+        </div>
+        <div>
+          <a href="privacy.html">Privacy</a> ·
+          <a href="https://github.com/forrtproject/chromium-extension">Source</a> ·
+          <a href="mailto:info@forrt.org">Contact</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

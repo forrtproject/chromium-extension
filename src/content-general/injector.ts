@@ -97,7 +97,7 @@ export async function renderSetupPrompt(): Promise<void> {
       overflow:hidden;animation:floraFadeIn 0.3s ease-out;
     ">
       <div style="background:linear-gradient(135deg,#853953,#612D53);padding:10px 14px;display:flex;align-items:center;gap:8px;">
-        <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FLoRA</span>
+        <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
         <span style="color:#fff;font-size:12px;font-weight:500;flex:1;">Setup Required</span>
         <span class="flora-setup-close" role="button" tabindex="0" aria-label="Close" style="
           cursor:pointer;color:rgba(255,255,255,0.7);font-size:18px;line-height:1;
@@ -159,7 +159,7 @@ export function renderLoadingBanner(): void {
     const host = ensureBannerHost();
     host.innerHTML = `
     <div style="${BANNER_BASE_STYLE}${BG.loading}">
-      <span style="${LOGO_STYLE}">FLoRA</span>
+      <span style="${LOGO_STYLE}">FORRT ORE</span>
       <span style="${TEXT_STYLE}">Checking replication data\u2026</span>
     </div>`;
     requestAnimationFrame(() => adjustPageForBanner());
@@ -169,7 +169,7 @@ export function renderErrorBanner(message: string): void {
     const host = ensureBannerHost();
     host.innerHTML = `
     <div style="${BANNER_BASE_STYLE}${BG.error}">
-      <span style="${LOGO_STYLE}">FLoRA</span>
+      <span style="${LOGO_STYLE}">FORRT ORE</span>
       <span style="${TEXT_STYLE}">Error: ${escapeHtml(message)}</span>
       <button style="${CLOSE_STYLE}" aria-label="Close">\u00d7</button>
     </div>`;
@@ -216,7 +216,7 @@ export function renderMatchedBanner(
 
     host.innerHTML = `
     <div style="${BANNER_BASE_STYLE}${BG.success}">
-      <span style="${LOGO_STYLE}">FLoRA</span>
+      <span style="${LOGO_STYLE}">FORRT ORE</span>
       <span style="${TEXT_STYLE}">${summary}</span>
       <a style="${LINK_STYLE}" href="https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doisParam)}" target="_blank" rel="noopener">View details</a>
       <button style="${CLOSE_STYLE}" aria-label="Close">\u00d7</button>
@@ -343,7 +343,7 @@ function ensureWorkingToast(): HTMLElement {
         "border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;" +
         "animation:flora-working-spin 0.7s linear infinite;";
     const label = document.createElement("span");
-    label.textContent = "FLoRA is scanning this page…";
+    label.textContent = "ORE is looking up the papers on this page…";
     host.appendChild(style);
     host.appendChild(spinner);
     host.appendChild(label);
@@ -448,7 +448,7 @@ export function renderSheetsModal(
         <span style="
           background:rgba(255,255,255,0.2);color:#fff;font-weight:700;font-size:13px;
           padding:4px 10px;border-radius:6px;letter-spacing:0.3px;
-        ">FLoRA</span>
+        ">FORRT ORE</span>
         <span id="flora-modal-title" style="color:#fff;font-size:13px;font-weight:500;flex:1;">
           Replication Data Found
         </span>
@@ -898,7 +898,7 @@ export function renderSidePanel(
 
   // Tab trigger — always visible on right edge
   const tab = document.createElement("button");
-  tab.setAttribute("aria-label", "Open FLoRA panel");
+  tab.setAttribute("aria-label", "Open the FORRT ORE panel");
   // all:unset resets animation, so animation is declared explicitly after it.
   // 'right' is animated by flora-tab-enter; openPanel/closePanel clear the animation
   // before touching 'right' so the JS value isn't suppressed by the fill mode.
@@ -932,7 +932,7 @@ export function renderSidePanel(
     "writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);" +
     "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
     "pointer-events:none;";
-  tabLabel.textContent = "FLoRA";
+  tabLabel.textContent = "FORRT ORE";
 
   const arrow = document.createElement("span");
   arrow.style.cssText =
@@ -961,7 +961,7 @@ export function renderSidePanel(
     "background:linear-gradient(135deg,#853953,#612D53);padding:14px 16px;" +
     "display:flex;align-items:center;gap:10px;flex-shrink:0;";
   header.innerHTML = `
-    <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FLoRA</span>
+    <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
     <span style="color:#fff;font-size:14px;font-weight:500;flex:1;">Meta Report</span>`;
 
   const closeBtn = document.createElement("button");
@@ -1605,7 +1605,7 @@ export function renderSidePanel(
     panel.style.transform = "translateX(100%)";
     tab.style.right = "0";
     arrow.style.transform = "rotate(0deg)";
-    tab.setAttribute("aria-label", "Open FLoRA panel");
+    tab.setAttribute("aria-label", "Open the FORRT ORE panel");
     const style = document.createElement("style");
     style.textContent = "#scite-popup,#unpaywall{z-index:2147483647 !important;}";
     (document.head ?? document.documentElement).appendChild(style);
@@ -1712,7 +1712,7 @@ export function renderRetractedBanner(
         <span style="
           background:rgba(255,255,255,0.2);color:#fff;font-weight:700;font-size:13px;
           padding:4px 10px;border-radius:6px;letter-spacing:0.3px;
-        ">FLoRA</span>
+        ">FORRT ORE</span>
         <span id="flora-modal-title" style="color:#fff;font-size:13px;font-weight:500;flex:1;">
           Caution &mdash; Retraction Alert
         </span>

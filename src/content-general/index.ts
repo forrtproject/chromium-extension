@@ -31,7 +31,7 @@ import {
     showAllFloraUI
 } from "./injector";
 import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
-import {debugLog} from "@shared/debug";
+import {debugError, debugLog} from "@shared/debug";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
@@ -308,7 +308,18 @@ async function scanWholePage(): Promise<void> {
 
     beginWorkIndicator();
     try {
-        const response = await safeSendMessage<LookupResponse>(request);
+        // Only the lookup itself gets the error banner. Everything after it is
+        // our own rendering, and a throw there is a bug on this page's markup —
+        // reporting that as a failed lookup sends the reader chasing an outage
+        // that isn't happening.
+        let response: LookupResponse | undefined;
+        try {
+            response = await safeSendMessage<LookupResponse>(request);
+        } catch (err) {
+            debugError("Replication lookup failed:", err);
+            renderErrorBanner("Couldn't load replication data for this page");
+            return;
+        }
         if (!response) {
             // Extension context invalidated (reload/update) — stale script, stop quietly.
             return;
@@ -333,50 +344,54 @@ async function scanWholePage(): Promise<void> {
         }
         pageStateVersion++; // signal that replication data is now available
 
-        // Collect matched DOIs for display
-        // On Sheets, skip the "still in DOM" re-check — the canvas DOM is unreliable
-        const currentDois = isSheets ? null : new Set(extractDOIs(document));
-        const matched = [...pageState.entries()]
-            .filter(([doi, s]) => {
-                if (s.status !== "matched") return false;
-                if (!isSheets && !currentDois!.has(doi)) return false;
-                // Only include DOIs that actually have replication or reproduction data
-                const stats = s.result.record.stats;
-                return stats.n_replications_total > 0 || stats.n_reproductions_total > 0;
-            })
-            .map(([doi, s]) => ({
-                doi,
-                result: (s as {
-                    status: "matched";
-                    result: import("../shared/types").ReplicationResult;
-                    source: "extracted"
-                }).result,
-            }));
+        try {
+            // Collect matched DOIs for display
+            // On Sheets, skip the "still in DOM" re-check — the canvas DOM is unreliable
+            const currentDois = isSheets ? null : new Set(extractDOIs(document));
+            const matched = [...pageState.entries()]
+                .filter(([doi, s]) => {
+                    if (s.status !== "matched") return false;
+                    if (!isSheets && !currentDois!.has(doi)) return false;
+                    // Only include DOIs that actually have replication or reproduction data
+                    const stats = s.result.record.stats;
+                    return stats.n_replications_total > 0 || stats.n_reproductions_total > 0;
+                })
+                .map(([doi, s]) => ({
+                    doi,
+                    result: (s as {
+                        status: "matched";
+                        result: import("../shared/types").ReplicationResult;
+                        source: "extracted"
+                    }).result,
+                }));
 
-        debugLog("Matched DOIs with replication data:", matched.length, matched.map(m => m.doi));
-        if (matched.length > 0) {
-            if (isSheets) {
-                if (!isSheetsModalSuppressed()) {
-                    renderSheetsModal(matched, sheetsModalCallbacks);
+            debugLog("Matched DOIs with replication data:", matched.length, matched.map(m => m.doi));
+            if (matched.length > 0) {
+                if (isSheets) {
+                    if (!isSheetsModalSuppressed()) {
+                        renderSheetsModal(matched, sheetsModalCallbacks);
+                    }
+                } else {
+                    void checkPubPeer();
                 }
             } else {
-                void checkPubPeer();
+                if (isSheets) {
+                    removeSheetsModal();
+                } else {
+                    void checkPubPeer();
+                }
             }
-        } else {
-            if (isSheets) {
-                removeSheetsModal();
-            } else {
-                void checkPubPeer();
-            }
-        }
 
-        // Merged indicator pills (skip on Google Sheets — modal only).
-        if (!isSheets) {
-            placeTitleIndicatorPill();
-            updateIndicatorPillBadges(document, pageState, redacts);
+            // Merged indicator pills (skip on Google Sheets — modal only).
+            if (!isSheets) {
+                placeTitleIndicatorPill();
+                updateIndicatorPillBadges(document, pageState, redacts);
+            }
+        } catch (err) {
+            // Rendering failed after a successful lookup: log it for a bug
+            // report rather than blaming the service the reader can't fix.
+            debugError("Rendering replication results failed:", err);
         }
-    } catch {
-        renderErrorBanner("Failed to contact FLoRA service");
     } finally {
         endWorkIndicator();
     }

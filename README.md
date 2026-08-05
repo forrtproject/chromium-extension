@@ -1,15 +1,17 @@
-# FLoRA — Replication Tracker
+# FORRT ORE — Open Research Extension
 
-**FLoRA** (Framework for Open and Reproducible Research Assessment) is a browser extension for Chrome and Edge that automatically detects academic papers on the web and checks whether they have replication or reproduction data in the [FORRT Replication Database](https://forrt.org/replication-database/).
+**FORRT ORE** (Open Research Extension) is a browser extension for Chrome and Edge that detects academic papers on the web and surfaces what is known about them: replication and reproduction evidence from the [FORRT Replication Database](https://forrt.org/replication-database/), retractions and expressions of concern, PubPeer discussion, and open-access full text.
 
-When you visit an article page (PubMed, journal websites, preprint servers, etc.) or search on Google Scholar, FLoRA scans for DOIs, looks them up against the FORRT database, and shows you at a glance whether that research has been replicated or reproduced.
+When you visit an article page (PubMed, journal websites, preprint servers, etc.) or search on Google Scholar, ORE scans for DOIs, looks them up, and shows what it found in an inline pill next to each paper and each reference.
+
+📖 **[User documentation](https://forrt.org/chromium-extension/)** — what ORE shows, where it works, how to install it, and the [privacy policy](https://forrt.org/chromium-extension/privacy.html). Source for that site lives in [`docs/`](docs/).
 
 ## What it does
 
 - **Article pages**: Displays a banner at the top of the page summarizing replication/reproduction data for all DOIs found on the page. Inline badges also appear next to individual DOI links. Handles SPAs by detecting URL changes and re-scanning automatically.
 - **Google Scholar**: Adds DOI pills and replication badges to the right-hand side of each search result (alongside the PDF link area). When a result lacks a native `.gs_ggs` container, one is created to match Scholar's own layout.
 - **DOI extraction**: Extracts DOIs from meta tags, JSON-LD, link hrefs, visible text, and HTML tables. Handles word-break characters (zero-width spaces, soft hyphens) and validates DOI suffixes to avoid partial matches from split HTML.
-- **DOI augmentation**: When a page or Scholar result doesn't have a DOI in its HTML, FLoRA queries [Crossref](https://www.crossref.org/) and [OpenAlex](https://openalex.org/) to resolve the article title to a DOI via fuzzy matching (token-set-ratio > 88%).
+- **DOI augmentation**: When a page or Scholar result doesn't have a DOI in its HTML, ORE queries [Crossref](https://www.crossref.org/) and [OpenAlex](https://openalex.org/) to resolve the article title to a DOI via fuzzy matching (token-set-ratio > 88%).
 - **DOI popover**: Each DOI pill has a hover popover showing the full DOI string with a copy-to-clipboard button.
 - **Clicking badges/links**: Opens the [FORRT replication landing page](https://forrt.org/flora-replication-atlas/) for the relevant DOI(s).
 
@@ -19,12 +21,12 @@ Since this extension is not yet on the Chrome Web Store, you'll need to load it 
 
 ### Quick install
 
-1. **[Download flora-extension.zip](https://github.com/forrtproject/flora_chromium/releases)** (built automatically from the latest code)
+1. **[Download flora-extension.zip](https://github.com/forrtproject/chromium-extension/releases)** (built automatically from the latest code)
 2. **Unzip** it to a folder on your computer
 3. Open `chrome://extensions` (or `edge://extensions`)
 4. Enable **Developer mode** (toggle in the top-right corner)
 5. Click **Load unpacked** and select the unzipped folder
-6. **You're done!** Navigate to any academic article page or Google Scholar to see FLoRA in action.
+6. **You're done!** Navigate to any academic article page or Google Scholar to see it in action.
 
 ### Building from source
 
@@ -35,22 +37,22 @@ If you want to develop or modify the extension:
 2. Clone and build:
 
    ```bash
-   git clone https://github.com/forrtproject/flora-chromium.git
-   cd flora-chromium
+   git clone https://github.com/forrtproject/chromium-extension.git
+   cd chromium-extension
    npm install
    npm run build
    ```
 
 3. Load the project root folder as an unpacked extension (as above).
 
-After making changes, run `npm run build` and click the **reload** icon on the FLoRA extension card in `chrome://extensions`.
+After making changes, run `npm run build` and click the **reload** icon on the extension's card in `chrome://extensions`.
 
 ## Development
 
 ### Project structure
 
 ```
-flora-chromium/
+chromium-extension/
   manifest.json          # Chrome MV3 manifest
   esbuild.config.ts      # Build configuration
   src/
@@ -87,7 +89,7 @@ flora-chromium/
 
 ### Per-site pill placement
 
-By default FLoRA infers where to put a pill from the shape of the page — the
+By default ORE infers where to put a pill from the shape of the page — the
 longest text container in a reference entry, the last link in the entry, and so
 on. That works across the long tail of publishers, but on sites we know it can
 land badly. On Atypon platforms (science.org, Sage) the only DOI in a reference

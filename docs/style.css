@@ -1,0 +1,461 @@
+/* FLoRA documentation site — shared styles. */
+
+:root {
+  --maroon: #7b2e46;
+  --maroon-dark: #5e2235;
+  --maroon-tint: #fbf1f4;
+  --ink: #22201f;
+  --ink-soft: #55504e;
+  --ink-faint: #857e7b;
+  --rule: #e6e0dd;
+  --bg: #ffffff;
+  --bg-soft: #f7f4f2;
+  --max: 1080px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: Domine, Georgia, "Times New Roman", serif;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--maroon);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--maroon-dark);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--bg-soft);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: #262322;
+  color: #fff;
+}
+
+.topbar a {
+  color: #e9e4e2;
+  text-decoration: none;
+}
+
+.topbar a:hover {
+  color: #fff;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand img {
+  width: 26px;
+  height: 26px;
+}
+
+.brand-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-name strong {
+  font-family: Domine, Georgia, serif;
+  font-size: 1.05rem;
+}
+
+.brand-name span {
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #b7afac;
+}
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 0.95rem;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────── */
+
+.wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.hero {
+  padding: 4rem 0 2.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 5vw, 3.1rem);
+  margin: 0 0 0.75rem;
+}
+
+.hero .lede {
+  font-size: 1.25rem;
+  color: var(--ink-soft);
+  max-width: 46ch;
+  margin: 0 0 1.75rem;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--maroon);
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--maroon);
+  background: var(--maroon);
+  color: #fff;
+}
+
+.btn:hover {
+  background: var(--maroon-dark);
+  border-color: var(--maroon-dark);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--maroon);
+}
+
+.btn-ghost:hover {
+  background: var(--maroon-tint);
+  color: var(--maroon-dark);
+  border-color: var(--maroon);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 3rem;
+  align-items: center;
+}
+
+.shot.wide {
+  max-width: 780px;
+  margin: 1.75rem auto 0;
+}
+
+.shot.wide img {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+section {
+  padding: 3.25rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+section:last-of-type {
+  border-bottom: 0;
+}
+
+section h2 {
+  font-size: 1.8rem;
+  margin: 0 0 0.5rem;
+}
+
+section h3 {
+  font-size: 1.15rem;
+  margin: 2rem 0 0.4rem;
+}
+
+section p {
+  max-width: 68ch;
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+/* ── Feature rows ────────────────────────────────────────────────────── */
+
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 2.5rem;
+  align-items: center;
+  margin-top: 2.5rem;
+}
+
+.feature:first-of-type {
+  margin-top: 2rem;
+}
+
+.feature.flip > .shot {
+  order: -1;
+}
+
+.feature h3 {
+  margin-top: 0;
+}
+
+.feature p {
+  margin-bottom: 0;
+}
+
+.shot img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(34, 32, 31, 0.09);
+}
+
+.shot.plain img {
+  border: 0;
+  box-shadow: none;
+}
+
+.shot figcaption {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  margin-top: 0.6rem;
+}
+
+figure {
+  margin: 0;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+.card {
+  background: var(--bg-soft);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem;
+}
+
+.card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.02rem;
+}
+
+.card p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.callout {
+  background: var(--maroon-tint);
+  border-left: 4px solid var(--maroon);
+  border-radius: 0 8px 8px 0;
+  padding: 1rem 1.25rem;
+  margin: 1.75rem 0 0;
+}
+
+.callout p {
+  margin: 0;
+}
+
+/* ── Steps ───────────────────────────────────────────────────────────── */
+
+ol.steps {
+  counter-reset: step;
+  list-style: none;
+  padding: 0;
+  max-width: 68ch;
+}
+
+ol.steps li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 2.6rem;
+  margin-bottom: 0.85rem;
+}
+
+ol.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.1rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--maroon);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────── */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0 0;
+  font-size: 0.97rem;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+th {
+  font-size: 0.78rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ── Prose pages (privacy) ───────────────────────────────────────────── */
+
+.prose {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+.prose h1 {
+  font-size: 2.2rem;
+  margin: 0 0 0.4rem;
+}
+
+.prose h2 {
+  font-size: 1.3rem;
+  margin: 2.5rem 0 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.prose h2:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.prose ul {
+  padding-left: 1.2rem;
+}
+
+.prose li {
+  margin-bottom: 0.4rem;
+}
+
+.updated {
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  margin: 0 0 2rem;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+
+footer {
+  background: #262322;
+  color: #b7afac;
+  padding: 2rem 0;
+  font-size: 0.92rem;
+}
+
+footer .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+footer a {
+  color: #e9e4e2;
+}
+
+@media (max-width: 760px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .feature {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .feature.flip > .shot {
+    order: 0;
+  }
+
+  .topnav {
+    gap: 0.9rem;
+    font-size: 0.88rem;
+  }
+}

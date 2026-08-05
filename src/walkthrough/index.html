@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FLoRA — How it Works</title>
+    <title>FORRT ORE — How it Works</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Domine:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -23,8 +23,8 @@
             />
           </div>
           <div class="topbar-name">
-            <strong>FLoRA</strong>
-            <span>Replication Hub</span>
+            <strong>FORRT ORE</strong>
+            <span>Open Research Extension</span>
           </div>
         </a>
       </div>
@@ -68,7 +68,7 @@
                 </div>
                 <h2 class="wt-title">Confirmed DOI</h2>
                 <p class="wt-desc">
-                  FLoRA scans each Google Scholar result for DOIs. When it finds
+                  ORE scans each Google Scholar result for DOIs. When it finds
                   one in a <code>doi.org</code> URL — or confirms it through the
                   doi.org resolver — the result gets a panel reading
                   <strong>“Found on this page”</strong>.
@@ -105,10 +105,9 @@
                       </div>
                       <div class="wt-callout-text">
                         Open Access, PubPeer discussion and replication counts
-                        each get their own row, listed outright rather than
-                        hidden behind a hover. The replication row links to the
-                        FORRT Replication Atlas, and the citation row copies a
-                        formatted reference in the style you picked in Settings.
+                        each get their own row. The replication row opens the
+                        FLoRA Replication Atlas, and the citation row copies a
+                        formatted reference in the style set in Settings.
                       </div>
                     </div>
                   </div>
@@ -246,10 +245,10 @@
                 </div>
                 <h2 class="wt-title">Unconfirmed DOI</h2>
                 <p class="wt-desc">
-                  When no <code>doi.org</code> URL is present, FLoRA resolves
+                  When no <code>doi.org</code> URL is present, ORE resolves
                   the paper's DOI via Crossref and OpenAlex title search. The
-                  panel says so outright —
-                  <strong>“Matched by title”</strong> — and underlines the DOI.
+                  panel labels it <strong>“Matched by title”</strong> and
+                  underlines the DOI.
                 </p>
                 <div class="wt-callouts">
                   <div class="wt-callout callout-unconfirmed">
@@ -272,9 +271,9 @@
                         “Matched by title”
                       </div>
                       <div class="wt-callout-text">
-                        The DOI row says where the identifier came from, and
-                        underlines it, when FLoRA resolved it by title rather
-                        than reading it off the page.
+                        The DOI row names where the identifier came from, and
+                        underlines it when it was resolved by title rather than
+                        read off the page.
                       </div>
                     </div>
                   </div>
@@ -292,11 +291,11 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Still used for lookups</div>
+                      <div class="wt-callout-title">Worth a glance</div>
                       <div class="wt-callout-text">
-                        Unconfirmed DOIs are still queried against the FLoRA
-                        database, and their panel looks the same. Provenance is
-                        stated in words rather than signalled by colour.
+                        A title match can be wrong. Everything else works the same
+                        way, so check the DOI against the result before relying
+                        on it.
                       </div>
                     </div>
                   </div>
@@ -433,7 +432,7 @@
                 </div>
                 <h2 class="wt-title">Spreadsheet Detection</h2>
                 <p class="wt-desc">
-                  When you open a Google Sheet, FLoRA scans the
+                  When you open a Google Sheet, ORE scans the
                   <strong>entire spreadsheet</strong> — including rows outside
                   the visible area — and surfaces a summary card if any detected
                   papers have replication data.
@@ -458,8 +457,8 @@
                     <div class="wt-callout-body">
                       <div class="wt-callout-title">Replication Data modal</div>
                       <div class="wt-callout-text">
-                        Shows total replication and reproduction count for all
-                        recognized papers. Dismiss or snooze per tab.
+                        Shows the total replication and reproduction count for
+                        every paper recognised in the sheet.
                       </div>
                     </div>
                   </div>
@@ -480,8 +479,9 @@
                     <div class="wt-callout-body">
                       <div class="wt-callout-title">Tab-aware</div>
                       <div class="wt-callout-text">
-                        Switching sheet tabs triggers a fresh scan. Each tab
-                        tracks its own dismissal state independently.
+                        Switching sheet tabs triggers a fresh scan, and each
+                        tab keeps its own dismissal state — snooze one without
+                        affecting the others.
                       </div>
                     </div>
                   </div>
@@ -584,7 +584,7 @@
                             border-radius: 6px;
                             letter-spacing: 0.3px;
                           "
-                          >FLoRA</span
+                          >FORRT ORE</span
                         >
                         <span
                           style="
@@ -751,7 +751,7 @@
           <!-- /step-2 -->
 
           <!-- ─────────────────────────────────
-               STEP 3 — Replication Badges
+               STEP 3 — Pills and the side tab
                ───────────────────────────────── -->
           <div class="wt-step" id="step-3">
             <div class="wt-step-inner wider">
@@ -777,12 +777,12 @@
                   </span>
                   <span class="wt-step-num">4 of 7</span>
                 </div>
-                <h2 class="wt-title">Replication Badges</h2>
+                <h2 class="wt-title">Pills and the Side Tab</h2>
                 <p class="wt-desc">
-                  On journal pages, FLoRA injects an
-                  <strong>indicator pill</strong> next to every DOI, and adds a
-                  draggable <strong>FLoRA tab</strong> to the right edge of the
-                  page. Click it to open the full Meta Report panel.
+                  On journal pages an <strong>indicator pill</strong> appears
+                  beside the article's own DOI and beside its references, and a
+                  draggable <strong>ORE tab</strong> appears at the right edge
+                  of the page. Click the tab for the full Meta Report panel.
                 </p>
                 <div class="wt-callouts">
                   <div class="wt-callout callout-confirmed">
@@ -790,10 +790,10 @@
                     <div class="wt-callout-body">
                       <div class="wt-callout-title">Indicator pill</div>
                       <div class="wt-callout-text">
-                        One pill per DOI carries every signal at once — DOI,
-                        Open Access, PubPeer, replications. Hover it for the
-                        detail, click to pin it open, and copy a formatted
-                        citation from the row under the DOI.
+                        One pill per paper carries every signal at once — DOI,
+                        Open Access, PubPeer, replications. References show a
+                        pill only where their DOI isn't already visible, unless
+                        you ask for one on every reference in Settings.
                       </div>
                     </div>
                   </div>
@@ -812,7 +812,7 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">FLoRA tab</div>
+                      <div class="wt-callout-title">ORE tab</div>
                       <div class="wt-callout-text">
                         A draggable tab appears on the right edge. Click to open
                         the Meta Report panel with full replication details.
@@ -893,7 +893,7 @@
                         <span></span><span></span><span></span> <span></span
                         ><span></span><span></span>
                       </div>
-                      <span class="mock-flora-tab-label">FLoRA</span>
+                      <span class="mock-flora-tab-label">FORRT ORE</span>
                       <span class="mock-flora-tab-arrow">&#8249;</span>
                     </div>
                   </div>
@@ -929,9 +929,9 @@
                 <h2 class="wt-title">What Each Icon Means</h2>
                 <p class="wt-desc">
                   The pill packs four signals into one strip, left to right. A
-                  segment that stays <strong>dimmed</strong> means FLoRA found
-                  nothing for it — it never disappears, so the pill keeps the
-                  same shape while lookups are still running.
+                  <strong>dimmed</strong> segment means nothing was found for
+                  that signal. Every segment is always present, so the pill is
+                  the same size on every paper.
                 </p>
                 <div class="wt-callouts">
                   <div class="wt-callout callout-confirmed">
@@ -1026,7 +1026,7 @@
                           >Replications / reproductions</span
                         >
                         <span class="mock-legend-text"
-                          >How many studies FLoRA has on record. Opens the
+                          >How many studies are on record. Opens the
                           FORRT Replication Atlas.</span
                         >
                       </span>
@@ -1054,7 +1054,7 @@
                       <span class="mock-legend-body">
                         <span class="mock-legend-title">Nothing on record</span>
                         <span class="mock-legend-text"
-                          >Dimmed and empty — FLoRA has no replication data for
+                          >Dimmed and empty — no replication data is on record for
                           this paper.</span
                         >
                       </span>
@@ -1096,10 +1096,10 @@
                 </div>
                 <h2 class="wt-title">Meta Report Panel</h2>
                 <p class="wt-desc">
-                  Click the FLoRA tab to open the Meta Report panel. It lists
-                  every known replication and reproduction study color-coded by
+                  Click the ORE tab to open the Meta Report panel. It lists
+                  every known replication and reproduction study colour-coded by
                   outcome, flags retractions and expressions of concern, and
-                  shows which references have their own entry in the Atlas or
+                  shows which references have their own entry in the FLoRA Atlas or
                   are discussed on PubPeer. If the paper is itself a
                   replication, it shows the <strong>original study</strong>
                   instead.
@@ -1122,7 +1122,7 @@
                       <div class="wt-callout-title">Outcome badges</div>
                       <div class="wt-callout-text">
                         Each replication entry shows "success", "failed", or
-                        "mixed" — color-coded for quick scanning.
+                        "mixed" — colour-coded for quick scanning.
                       </div>
                     </div>
                   </div>
@@ -1173,7 +1173,7 @@
                       <div class="wt-callout-title">"View in Atlas" tag</div>
                       <div class="wt-callout-text">
                         Shown next to a reference that has its own entry in
-                        the FORRT Replication Atlas. Click it to open that
+                        the FLoRA Replication Atlas. Click it to open that
                         reference's report.
                       </div>
                     </div>
@@ -1278,7 +1278,7 @@
                           <span></span><span></span><span></span> <span></span
                           ><span></span><span></span>
                         </div>
-                        <span class="mock-flora-tab-label">FLoRA</span>
+                        <span class="mock-flora-tab-label">FORRT ORE</span>
                         <span class="mock-flora-tab-arrow">&#8249;</span>
                       </div>
                       <!-- Open panel content -->
@@ -1307,7 +1307,7 @@
                               padding: 2px 7px;
                               border-radius: 4px;
                             "
-                            >FLoRA</span
+                            >FORRT ORE</span
                           >
                           <span
                             style="
@@ -1774,9 +1774,9 @@
                 </div>
                 <h2 class="wt-title">Open Access &amp; Retractions</h2>
                 <p class="wt-desc">
-                  As FLoRA scans a page it flags retracted papers and surfaces
-                  free full text. A small toast shows while it works, and it only
-                  runs on the tab you're actually viewing.
+                  While scanning a page ORE flags retracted papers
+                  and surfaces free full text, and it stays out of the way: a
+                  small toast is the only sign it is working.
                 </p>
                 <div class="wt-callouts">
                   <div class="wt-callout callout-confirmed">
@@ -1846,8 +1846,8 @@
                     <div class="wt-callout-body">
                       <div class="wt-callout-title">Scanning indicator</div>
                       <div class="wt-callout-text">
-                        A small toast in the corner appears while FLoRA is
-                        scanning the page, then disappears when it's done.
+                        A small toast in the corner appears while the page is
+                        being scanned, then disappears when it's done.
                       </div>
                     </div>
                   </div>
@@ -1870,7 +1870,7 @@
                     <div class="wt-callout-body">
                       <div class="wt-callout-title">Active tab only</div>
                       <div class="wt-callout-text">
-                        FLoRA only works on the tab you're viewing — background
+                        Only the tab you are viewing is scanned — background
                         tabs stay idle until you switch to them.
                       </div>
                     </div>
@@ -2150,7 +2150,7 @@
                         border-top-color: #fff;
                       "
                     ></span>
-                    FLoRA is scanning this page…
+                    ORE is looking up the papers on this page…
                   </div>
                 </div>
               </div>
