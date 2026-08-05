@@ -10,14 +10,14 @@
 // the OA full text, open the PubPeer thread, open the retraction notice or
 // FLoRA Atlas entry) happens from inside that popover.
 
-import type {DoiString, LookupState, RetractionResponse} from "@shared/types";
-import type {OpenAccessLocation, OpenAccessStatus} from "@shared/openaccess";
-import type {PubPeerFeedback} from "@shared/pubpeer-api";
-import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
-import {noticePresentation} from "@shared/doi-retraction";
-import {OA_UNLOCK_SVG} from "@shared/doi-label";
-import {fetchCitation, preferredCitationFormat, type CitationFormat} from "@shared/citation";
-import {showToast} from "@shared/toast";
+import type { DoiString, LookupState, RetractionResponse } from "@shared/types";
+import type { OpenAccessLocation, OpenAccessStatus } from "@shared/openaccess";
+import type { PubPeerFeedback } from "@shared/pubpeer-api";
+import { lookupPubPeerForDoi } from "@shared/pubpeer-api";
+import { noticePresentation } from "@shared/doi-retraction";
+import { OA_UNLOCK_SVG } from "@shared/doi-label";
+import { fetchCitation, preferredCitationFormat, type CitationFormat } from "@shared/citation";
+import { showToast } from "@shared/toast";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -177,7 +177,7 @@ function resolveBadgeSignal(
             background: "rgba(255,255,255,0.25)",
             accent: "#0369a1",
             rowTitle: "Replications",
-            rowSubtitle: `${replicationsCount} replication${replicationsCount === 1 ? "" : "s"} recorded`,
+            rowSubtitle: `${replicationsCount} replication${replicationsCount === 1 ? "" : "s"} found`,
             rowSubtitleShort: `${replicationsCount}`,
             actionLabel: "View in Atlas",
         };
@@ -190,7 +190,7 @@ function resolveBadgeSignal(
             background: "rgba(255,255,255,0.25)",
             accent: "#6d28d9",
             rowTitle: "Reproductions",
-            rowSubtitle: `${reproductionsCount} reproduction${reproductionsCount === 1 ? "" : "s"} recorded`,
+            rowSubtitle: `${reproductionsCount} reproduction${reproductionsCount === 1 ? "" : "s"} found`,
             rowSubtitleShort: `${reproductionsCount}`,
             actionLabel: "View in Atlas",
         };
@@ -200,8 +200,8 @@ function resolveBadgeSignal(
         glyph: "",
         background: "rgba(255,255,255,0.15)",
         accent: "#8b949e",
-        rowTitle: "Replication / Reproduction data",
-        rowSubtitle: "No replication or reproduction data found",
+        rowTitle: "Replication / Reproduction",
+        rowSubtitle: "No replication or reproduction entries found",
         rowSubtitleShort: "None",
     };
 }
@@ -298,7 +298,7 @@ const DOT_ICON = (color: string) => `<span style="display:inline-block;width:8px
 function oaLocations(oa: OpenAccessStatus | null): OpenAccessLocation[] {
     if (!oa?.isOa) return [];
     if (oa.locations?.length) return oa.locations;
-    return oa.url ? [{url: oa.url, label: "Free copy", version: null, isPdf: false}] : [];
+    return oa.url ? [{ url: oa.url, label: "Free copy", version: null, isPdf: false }] : [];
 }
 
 /** One free copy, as a line in the chooser under the Open Access row. */
@@ -344,11 +344,7 @@ function buildOaRow(oa: OpenAccessStatus | null, compact = false): HTMLElement {
         });
     }
 
-    // Several free copies — publisher, preprint server, institutional
-    // repository — differ in version and licence. The row still opens the
-    // best-ranked one on a plain click, which is what a reader wants nearly
-    // every time; the chevron beside it folds out the rest, for when that copy
-    // turns out to be dead, gated, or the wrong version.
+    // OpenAccess - Multiple Links - Dropdown with Alternate Links Available
     const wrapper = document.createElement("div");
     wrapper.setAttribute("data-flora-oa-row", "");
     wrapper.style.cssText = "display:flex;flex-direction:column;";
@@ -361,7 +357,7 @@ function buildOaRow(oa: OpenAccessStatus | null, compact = false): HTMLElement {
         accent: "#853953",
         available: true,
         title: "Open Access",
-        subtitle: `${locations.length} free copies`,
+        subtitle: `${locations.length} free versions`,
         subtitleShort: `${locations.length} free`,
         href: locations[0].url,
         actionLabel: "View PDF",
@@ -372,8 +368,6 @@ function buildOaRow(oa: OpenAccessStatus | null, compact = false): HTMLElement {
     primary.style.minWidth = "0";
     header.appendChild(primary);
 
-    // The toggle is a sibling of the link, not a child: a control nested inside
-    // an <a> would navigate and expand on the same click.
     let open = false;
 
     const toggle = document.createElement("span");
@@ -474,16 +468,10 @@ function buildDoiRow(
     compact = false,
     provenanceLabel?: string
 ): HTMLElement {
-    // The rows below start their headings past a 16px icon column, so the
-    // popover's DOI is indented to that same edge — left flush against the
-    // panel border it reads as floating free of the rows under it.
     const doiIndent = 4 + 16 + 8;
     const contentRow = document.createElement("div");
-    contentRow.style.cssText = `display: flex; align-items: center; gap: ${compact ? "5px" : "8px"}; padding: ${compact ? "1px 3px" : `5px 4px 5px ${doiIndent}px`};`;
+    contentRow.style.cssText = `display: flex; align-items: center; gap: ${compact ? "5px" : "15px"}; padding: ${compact ? "1px 3px" : `5px 4px 5px ${doiIndent}px`};`;
 
-    // The panel rides on a Scholar result rather than opening on hover, so it
-    // keeps the link glyph that labels the row; the popover's DOI stands on
-    // its own line.
     if (compact) {
         const doiIcon = document.createElement("span");
         doiIcon.style.cssText = rowIconWrapStyle(color, true, compact);
@@ -491,10 +479,7 @@ function buildDoiRow(
         contentRow.appendChild(doiIcon);
     }
 
-    // A DOI read straight off the page is printed plain; one we matched by
-    // title (or resolved from a PMC id) is dotted-underlined, with the reason
-    // on hover. The distinction is the underline alone — spelling it out in
-    // words cost the row the line the DOI itself needs.
+    // DOI has two cases, matched by title (w/o Underline) and augmented by title (w/ underline).
     const doiText = document.createElement("span");
     doiText.setAttribute("data-flora-doi-text", "");
     doiText.textContent = doi;
@@ -544,9 +529,7 @@ function buildDoiRow(
                 showToast(`DOI copied — ${doi}`);
                 setTimeout(restoreIcon, 1500);
             } else {
-                // The optimistic check would otherwise confirm a copy that
-                // never reached the clipboard.
-                showToast("Couldn't copy the DOI", {tone: "error"});
+                showToast("Couldn't copy the DOI", { tone: "error" });
                 restoreIcon();
             }
         });
@@ -625,7 +608,7 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
     };
 
     const showStyle = (format: CitationFormat): void => {
-        idleTitle = `Copy this reference in ${format.label} — change the style in FLoRA's settings`;
+        idleTitle = `Copy this reference in ${format.label} format — change the format in the plugin settings`;
         if (!flashing) btn.title = idleTitle;
     };
 
@@ -648,19 +631,19 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
         setTitle("Fetching…");
         // The fetch is a network round trip — say so, rather than leaving the
         // reader wondering whether the click registered.
-        showToast(`Fetching ${format.label} citation…`, {tone: "pending", duration: 0});
+        showToast(`Fetching ${format.label} citation…`, { tone: "pending", duration: 0 });
         const citation = await fetchCitation(doi, format.id);
         if (token !== loadToken) return;
         if (!citation) {
             flash(QUOTE_SVG, "Citation unavailable");
-            showToast(`No ${format.label} citation available for this DOI`, {tone: "error"});
+            showToast(`No ${format.label} citation available for this DOI`, { tone: "error" });
             return;
         }
         const copied = await writeClipboard(citation);
         if (token !== loadToken) return;
         if (!copied) {
             flash(QUOTE_SVG, "Copy failed");
-            showToast("Couldn't copy the citation", {tone: "error"});
+            showToast("Couldn't copy the citation", { tone: "error" });
             return;
         }
         flash(CHECK_SVG, "Copied");
@@ -674,7 +657,7 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
         // terminal toast rather than leave the spinner running forever.
         void copyCitation().catch(() => {
             flash(QUOTE_SVG, "Citation unavailable");
-            showToast("Couldn't fetch the citation", {tone: "error"});
+            showToast("Couldn't fetch the citation", { tone: "error" });
         });
     });
 
@@ -722,7 +705,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
             oaRow.replaceWith(resolved);
             oaRow = resolved;
             opts.onOa?.(oa);
-        }).catch(() => {});
+        }).catch(() => { });
     }
 
     let pubpeerRow = buildPubPeerRow(null, compact);
@@ -732,7 +715,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
         pubpeerRow.replaceWith(resolved);
         pubpeerRow = resolved;
         opts.onPubPeer?.(feedback);
-    }).catch(() => {});
+    }).catch(() => { });
 
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
         opts.doi, opts.retraction, opts.replicationsCount, opts.reproductionsCount
@@ -748,17 +731,12 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
  * to pin) the pill opens a popover with one interactive row per segment.
  */
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
-    const {doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
+    const { doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null } = options;
 
     const wrapper = document.createElement("span");
     wrapper.className = INDICATOR_PILL_CLASS;
     wrapper.setAttribute("data-flora-doi", doi);
-    // The popover prints the DOI and links it to doi.org; without this marker
-    // the extractor rescans that as a page occurrence and pills it again.
     wrapper.setAttribute("data-flora-ui", "");
-    // Nudge up 1px with relative `top`, NOT `transform` — a transform would make
-    // this wrapper the containing block for the position:fixed popover below,
-    // throwing its viewport-based coordinates far off from the pill.
     wrapper.style.cssText = "position: relative; display: inline-block; vertical-align: baseline; top: 5px;";
 
     const pill = document.createElement("span");
@@ -823,9 +801,6 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     // ── Popover — one interactive row per segment, plus DOI copy/open ──
     const popover = document.createElement("div");
-    // position:fixed (not absolute) so the popover is positioned against the
-    // viewport — an ancestor with overflow:hidden (common on article content
-    // columns) would otherwise clip it. Coordinates are set in show().
     popover.style.cssText = `
     display: none;
     position: fixed;
@@ -926,7 +901,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         pill.style.outline = "";
         pill.style.outlineOffset = "";
         if (docClickHandler) {
-            document.removeEventListener("click", docClickHandler, {capture: true});
+            document.removeEventListener("click", docClickHandler, { capture: true });
             docClickHandler = null;
         }
         hide();
@@ -942,14 +917,11 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         pill.style.outline = `2px solid ${color}60`;
         pill.style.outlineOffset = "1px";
         show();
-        // Defer so this same click doesn't immediately trigger the doc handler.
         setTimeout(() => {
             docClickHandler = (ev: MouseEvent) => {
-                // isConnected: a hydrating SPA can wipe a pinned pill, stranding
-                // this listener on `document` with nothing left to unpin it.
                 if (!wrapper.isConnected || !wrapper.contains(ev.target as Node)) unpin();
             };
-            document.addEventListener("click", docClickHandler, {capture: true});
+            document.addEventListener("click", docClickHandler, { capture: true });
         }, 0);
     });
 

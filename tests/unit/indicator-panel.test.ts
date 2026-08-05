@@ -19,7 +19,7 @@ function matchedState(replications: number): Map<DoiString, LookupState> {
 
 describe("createIndicatorPanel", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => { })));
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -143,7 +143,7 @@ describe("createIndicatorPanel", () => {
     // Compact rows carry the count beside the heading rather than a sentence.
     // With nothing found the heading names both things that were looked for.
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent)
-      .toContain("Replication / Reproduction data");
+      .toContain("Replication / Reproduction");
     expect(panel.querySelector("[data-flora-badge-row] [data-flora-row-sub]")!.textContent)
       .toBe("None");
 
