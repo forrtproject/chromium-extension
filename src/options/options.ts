@@ -28,7 +28,7 @@ form.addEventListener("submit", async (e) => {
   try {
     await saveSettings({ email });
     statusMsg.textContent =
-      "Saved! The extension is now active — reload any open tabs to start tracking.";
+      "Saved! ORE is now active — reload any open tabs to start tracking.";
     statusMsg.className = "status success";
     statusMsg.hidden = false;
     saveBtn.textContent = "Save";
@@ -139,7 +139,7 @@ function renderBlockedList(): void {
   if (blocked.length === 0) {
     const empty = document.createElement("div");
     empty.className = "domain-empty";
-    empty.textContent = "No domains blocked — the extension is active on all sites.";
+    empty.textContent = "No domains blocked — ORE is active on all sites.";
     domainList.appendChild(empty);
     return;
   }

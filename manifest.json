@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "FORRT Open Scholarship Extension",
-  "short_name": "FORRT Open Scholarship",
+  "name": "FORRT ORE — Open Research Extension",
+  "short_name": "FORRT ORE",
   "version": "0.1.0",
   "description": "Shows replication evidence, retractions, PubPeer comments and open-access copies for the papers on any page you read.",
   "minimum_chrome_version": "116",

@@ -625,7 +625,7 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
     };
 
     const showStyle = (format: CitationFormat): void => {
-        idleTitle = `Copy this reference in ${format.label} — change the style in the extension's settings`;
+        idleTitle = `Copy this reference in ${format.label} — change the style in ORE's settings`;
         if (!flashing) btn.title = idleTitle;
     };
 

@@ -59,8 +59,8 @@ function setActionIcon(active: boolean, tabId?: number): void {
     chrome.action.setIcon(details).catch(() => {});
 
     const title = active
-        ? "FORRT Open Scholarship — active on this page"
-        : "FORRT Open Scholarship — inactive on this page";
+        ? "FORRT ORE — active on this page"
+        : "FORRT ORE — inactive on this page";
     chrome.action.setTitle(tabId != null ? { tabId, title } : { title }).catch(() => {});
 }
 

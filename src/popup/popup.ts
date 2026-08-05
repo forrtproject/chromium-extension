@@ -121,9 +121,9 @@ hideBtn.addEventListener("click", async () => {
     await chrome.tabs.sendMessage(activeTabId, { type: messageType });
     hidden = !hidden;
     updateHideUI();
-    showStatus(hidden ? "Hidden until page refresh" : "Extension UI restored", "success");
+    showStatus(hidden ? "Hidden until page refresh" : "ORE restored", "success");
   } catch {
-    showStatus("Nothing from this extension on this page", "error");
+    showStatus("Nothing from ORE on this page", "error");
   }
 });
 
