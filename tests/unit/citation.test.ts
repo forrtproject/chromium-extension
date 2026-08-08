@@ -4,6 +4,7 @@ import {
   citationFormat,
   fetchCitation,
   tidyCitation,
+  tidyCitationHtml,
   _resetCitationCacheForTesting,
 } from "../../src/shared/citation";
 
@@ -63,6 +64,38 @@ describe("tidyCitation", () => {
   });
 });
 
+describe("tidyCitationHtml", () => {
+  const apa = citationFormat("apa");
+
+  it("keeps the emphasis a style depends on and drops everything else", () => {
+    expect(tidyCitationHtml(
+      `<div class="csl-entry">Ray, O. <i>American Psychologist</i>, <b>59</b>.</div>`, apa
+    )).toBe("Ray, O. <i>American Psychologist</i>, <b>59</b>.");
+  });
+
+  it("strips attributes rather than passing them to the clipboard", () => {
+    expect(tidyCitationHtml(`Ray, O. <i style="color:red" onclick="x()">Title</i>.`, apa))
+      .toBe("Ray, O. <i>Title</i>.");
+    expect(tidyCitationHtml(`Ray, O. <span style="font-variant:small-caps">Title</span>.`, apa))
+      .toBe("Ray, O. Title.");
+  });
+
+  it("leaves entities encoded, since the clipboard flavour is HTML", () => {
+    expect(tidyCitationHtml("Pelletier, A. <i>pathseq</i> &amp; friends.", apa))
+      .toBe("Pelletier, A. <i>pathseq</i> &amp; friends.");
+  });
+
+  it("drops the bibliography number, wrapper and all", () => {
+    expect(tidyCitationHtml(`<div class="csl-entry">[1]O. Ray, "Title," 2004.</div>`, citationFormat("ieee")))
+      .toBe(`O. Ray, "Title," 2004.`);
+  });
+
+  it("has no rich flavour to offer for BibTeX or RIS", () => {
+    expect(tidyCitationHtml("@article{ray2004}", citationFormat("bibtex"))).toBeNull();
+    expect(tidyCitationHtml("TY  - JOUR", citationFormat("ris"))).toBeNull();
+  });
+});
+
 describe("fetchCitation", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -80,7 +113,7 @@ describe("fetchCitation", () => {
     fetchMock.mockResolvedValue(okText("Ray, O. (2004). Title. American Psychologist."));
 
     await expect(fetchCitation(DOI, "chicago-author-date"))
-      .resolves.toBe("Ray, O. (2004). Title. American Psychologist.");
+      .resolves.toMatchObject({text: "Ray, O. (2004). Title. American Psychologist."});
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toContain("api.crossref.org/works/");
@@ -113,7 +146,7 @@ describe("fetchCitation", () => {
       .mockResolvedValueOnce(okText("Pelletier, A. (2023). pathseq. Zenodo."));
 
     await expect(fetchCitation("10.5281/zenodo.7942546", "apa"))
-      .resolves.toBe("Pelletier, A. (2023). pathseq. Zenodo.");
+      .resolves.toMatchObject({text: "Pelletier, A. (2023). pathseq. Zenodo."});
     expect(fetchMock.mock.calls[1][0]).toBe("https://doi.org/10.5281/zenodo.7942546");
   });
 
@@ -123,7 +156,23 @@ describe("fetchCitation", () => {
 
     fetchMock.mockReset();
     fetchMock.mockResolvedValue(okText("Ray, O. (2004). Title."));
-    await expect(fetchCitation(DOI, "apa")).resolves.toBe("Ray, O. (2004). Title.");
+    await expect(fetchCitation(DOI, "apa")).resolves.toMatchObject({text: "Ray, O. (2004). Title."});
+  });
+
+  it("carries both flavours of the entry, so a paste keeps its italics", async () => {
+    fetchMock.mockResolvedValue(okText(
+      `<div class="csl-entry">Ray, O. (2004). Title. <i>American Psychologist</i>, 59(1).</div>`
+    ));
+
+    await expect(fetchCitation(DOI, "apa")).resolves.toEqual({
+      text: "Ray, O. (2004). Title. American Psychologist, 59(1).",
+      html: "Ray, O. (2004). Title. <i>American Psychologist</i>, 59(1).",
+    });
+  });
+
+  it("offers no rich flavour for reference-manager exports", async () => {
+    fetchMock.mockResolvedValue(okText("TY  - JOUR\nTI  - Title\nER  - "));
+    await expect(fetchCitation(DOI, "ris")).resolves.toMatchObject({html: null});
   });
 
   it("offers the styles Google Scholar does, plus BibTeX and RIS", () => {

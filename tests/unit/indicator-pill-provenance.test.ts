@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createIndicatorPill } from "../../src/shared/indicator-pill";
+import {
+  createIndicatorPill,
+  PAGE_PROVENANCE,
+  SEARCH_PROVENANCE,
+} from "../../src/shared/indicator-pill";
 import type { DoiString } from "../../src/shared/types";
 
 // Provenance is signalled inside the pill, not by its colour.
@@ -97,12 +101,18 @@ describe("indicator pill provenance", () => {
       build(isAugmented).querySelector<HTMLElement>("[data-flora-doi-text]")!;
 
     expect(doiText(false).style.textDecoration).not.toContain("underline");
-    expect(doiText(false).title).toBe("Found on this page");
+    expect(doiText(false).title).toBe(PAGE_PROVENANCE);
     expect(doiText(true).style.textDecoration).toContain("underline dotted");
-    expect(doiText(true).title).toBe("Matched by title");
+    expect(doiText(true).title).toBe(SEARCH_PROVENANCE);
 
-    expect(build(false).textContent).not.toContain("Found on this page");
-    expect(build(true).textContent).not.toContain("Matched by title");
+    expect(build(false).textContent).not.toContain(PAGE_PROVENANCE);
+    expect(build(true).textContent).not.toContain(SEARCH_PROVENANCE);
+  });
+
+  it("names the search, not just the title, on an unconfirmed DOI", () => {
+    expect(SEARCH_PROVENANCE).toContain("Matched by search");
+    expect(SEARCH_PROVENANCE).toContain("first author");
+    expect(SEARCH_PROVENANCE).toContain("year");
   });
 
   it("carries a caller's own provenance label on the DOI's tooltip", () => {

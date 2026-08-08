@@ -118,6 +118,46 @@ describe("cite action", () => {
     expect(acceptHeader(citationCalls()[0])).toContain("style=nature");
   });
 
+  it("puts the formatted and plain reference on the clipboard together", async () => {
+    fetchMock.mockImplementation((url: string) =>
+      /crossref|doi\.org/.test(url)
+        ? Promise.resolve({
+            ok: true,
+            status: 200,
+            text: () => Promise.resolve("Ray, O. (2004). Title. <i>American Psychologist</i>."),
+          } as unknown as Response)
+        : new Promise<Response>(() => {})
+    );
+    const write = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {value: {write, writeText}, configurable: true});
+    vi.stubGlobal("ClipboardItem", class {
+      constructor(public readonly items: Record<string, Blob>) {}
+    });
+    vi.stubGlobal("Blob", class {
+      constructor(public readonly parts: string[], public readonly options: {type: string}) {}
+    });
+
+    const pill = createIndicatorPill({doi: DOI});
+    document.body.appendChild(pill);
+    citeBtn(pill).click();
+
+    await vi.waitFor(() => expect(write).toHaveBeenCalled());
+    const {items} = write.mock.calls[0][0][0];
+    expect(items["text/html"].parts[0]).toBe("Ray, O. (2004). Title. <i>American Psychologist</i>.");
+    expect(items["text/plain"].parts[0]).toBe("Ray, O. (2004). Title. American Psychologist.");
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("falls back to plain text where the rich write is unavailable", async () => {
+    // Non-secure contexts have no navigator.clipboard.write at all.
+    const pill = createIndicatorPill({doi: DOI});
+    document.body.appendChild(pill);
+
+    citeBtn(pill).click();
+
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith(CITATION));
+  });
+
   it("says so when the citation can't be rendered", async () => {
     fetchMock.mockImplementation((url: string) =>
       /crossref|doi\.org/.test(url)

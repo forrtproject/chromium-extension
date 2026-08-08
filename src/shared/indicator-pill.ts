@@ -17,11 +17,16 @@ import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation} from "@shared/doi-retraction";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
 import {fetchCitation, preferredCitationFormat, type CitationFormat} from "@shared/citation";
+import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
-const PUBPEER_HUB_SVG =
+export const PAGE_PROVENANCE = "Found on this page";
+export const SEARCH_PROVENANCE =
+    "Matched by search — looked up by title, first author and year. Check it is the right paper.";
+
+export const PUBPEER_HUB_SVG =
     `<svg width="11" height="15" viewBox="0 0 98.5 146.5" fill="none" stroke="currentColor" ` +
     `stroke-width="9" stroke-linecap="round" style="display:block;">` +
     `<circle cx="13.667" cy="34.833" r="10.167"/>` +
@@ -38,7 +43,7 @@ const DIVIDER_STYLE = "width:1px;height:11px;background:rgba(255,255,255,0.4);fl
 
 // Link/chain glyph for the popover's DOI row — same Octicons family as the
 // copy/open/check icons used elsewhere in the popover.
-const DOI_LINK_SVG =
+export const DOI_LINK_SVG =
     `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:block;">` +
     `<path d="M7.775 3.275a.75.75 0 0 0 1.06 1.06l1.25-1.25a2 2 0 1 1 2.83 2.83l-2.5 2.5a2 2 0 0 1-2.83 0 ` +
     `.75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25Zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 ` +
@@ -74,34 +79,6 @@ const ICON_BTN_STYLE = `
     text-decoration: none;
     flex: 0 0 auto;
   `;
-
-/**
- * Copy `value`, falling back to a hidden textarea where the async clipboard
- * API is blocked. Resolves to whether the copy actually landed, so the toast
- * reports a genuine failure rather than confirming a copy that never happened.
- */
-function writeClipboard(value: string): Promise<boolean> {
-    const writePromise = navigator.clipboard?.writeText
-        ? navigator.clipboard.writeText(value)
-        : Promise.reject();
-    return writePromise.then(() => true).catch(() => {
-        // Fallback for contexts where the async clipboard API is blocked
-        const ta = document.createElement("textarea");
-        ta.value = value;
-        ta.setAttribute("data-flora-ui", "");
-        ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
-        document.body.appendChild(ta);
-        ta.select();
-        let copied = false;
-        try {
-            copied = document.execCommand("copy");
-        } catch {
-            /* nothing more we can do */
-        }
-        ta.remove();
-        return copied;
-    });
-}
 
 function makeDivider(): HTMLElement {
     const d = document.createElement("span");
@@ -491,14 +468,10 @@ function buildDoiRow(
         contentRow.appendChild(doiIcon);
     }
 
-    // A DOI read straight off the page is printed plain; one we matched by
-    // title (or resolved from a PMC id) is dotted-underlined, with the reason
-    // on hover. The distinction is the underline alone — spelling it out in
-    // words cost the row the line the DOI itself needs.
     const doiText = document.createElement("span");
     doiText.setAttribute("data-flora-doi-text", "");
     doiText.textContent = doi;
-    doiText.title = provenanceLabel ?? (isAugmented ? "Matched by title" : "Found on this page");
+    doiText.title = provenanceLabel ?? (isAugmented ? SEARCH_PROVENANCE : PAGE_PROVENANCE);
     doiText.style.cssText = `
     flex: 1;
     min-width: 0;
@@ -625,7 +598,9 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
     };
 
     const showStyle = (format: CitationFormat): void => {
-        idleTitle = `Copy this reference in ${format.label} — change the style in ORE's settings`;
+        idleTitle = format.verbatim
+            ? `Copy this reference as ${format.label} — change the style in ORE's settings`
+            : `Copy this reference in ${format.label}, formatting included — change the style in ORE's settings`;
         if (!flashing) btn.title = idleTitle;
     };
 
@@ -656,7 +631,9 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
             showToast(`No ${format.label} citation available for this DOI`, {tone: "error"});
             return;
         }
-        const copied = await writeClipboard(citation);
+        const copied = citation.html
+            ? await writeRichClipboard(citation.html, citation.text)
+            : await writeClipboard(citation.text);
         if (token !== loadToken) return;
         if (!copied) {
             flash(QUOTE_SVG, "Copy failed");
@@ -823,6 +800,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     // ── Popover — one interactive row per segment, plus DOI copy/open ──
     const popover = document.createElement("div");
+    popover.setAttribute("data-flora-popover", "");
     // position:fixed (not absolute) so the popover is positioned against the
     // viewport — an ancestor with overflow:hidden (common on article content
     // columns) would otherwise clip it. Coordinates are set in show().

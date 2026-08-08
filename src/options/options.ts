@@ -86,8 +86,14 @@ async function showCitationSample(formatId: string): Promise<void> {
   citationPreview.hidden = false;
   const sample = await fetchCitation(SAMPLE_DOI, formatId);
   if (token !== sampleToken) return;
-  citationPreview.textContent = sample ?? "Sample unavailable — Crossref could not be reached.";
-  if (!sample) citationPreview.className = "citation-sample error";
+  if (!sample) {
+    citationPreview.textContent = "Sample unavailable — Crossref could not be reached.";
+    citationPreview.className = "citation-sample error";
+    return;
+  }
+  // tidyCitationHtml allows only bare <i>/<em>/<b>/<strong>/<sub>/<sup>.
+  if (sample.html) citationPreview.innerHTML = sample.html;
+  else citationPreview.textContent = sample.text;
 }
 
 getSettings().then(({ citationStyle }) => {

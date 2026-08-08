@@ -366,20 +366,11 @@ async function scanWholePage(): Promise<void> {
                 }));
 
             debugLog("Matched DOIs with replication data:", matched.length, matched.map(m => m.doi));
-            if (matched.length > 0) {
-                if (isSheets) {
-                    if (!isSheetsModalSuppressed()) {
-                        renderSheetsModal(matched, sheetsModalCallbacks);
-                    }
-                } else {
-                    void checkPubPeer();
-                }
+            if (isSheets) {
+                if (isSheetsModalSuppressed()) removeSheetsModal();
+                else renderSheetsModal(matched, redacts, sheetsModalCallbacks);
             } else {
-                if (isSheets) {
-                    removeSheetsModal();
-                } else {
-                    void checkPubPeer();
-                }
+                void checkPubPeer();
             }
 
             // Merged indicator pills (skip on Google Sheets — modal only).

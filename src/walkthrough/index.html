@@ -11,16 +11,11 @@
     <link rel="stylesheet" href="walkthrough.css" />
   </head>
   <body>
-    <!-- ═══ TOPBAR ═══ -->
     <nav class="topbar">
       <div class="topbar-left">
         <a class="topbar-brand" href="#">
           <div class="topbar-icon">
-            <img
-              src="forrt-logo.svg"
-              alt="F"
-              style="width: 20px; height: 20px"
-            />
+            <img src="forrt-logo.svg" alt="" style="width: 20px; height: 20px" />
           </div>
           <div class="topbar-name">
             <strong>FORRT ORE</strong>
@@ -33,184 +28,195 @@
       </div>
     </nav>
 
-    <!-- ═══ PROGRESS BAR ═══ -->
     <div class="wt-progress">
       <div class="wt-progress-fill" id="progress-fill"></div>
     </div>
 
-    <!-- ═══ MAIN ═══ -->
     <main class="wt-main">
       <div class="wt-container">
-        <!-- ═══ CARD ═══ -->
         <div class="wt-card">
-          <!-- ─────────────────────────────────
-               STEP 0 — Scholar: Confirmed DOI
-               ───────────────────────────────── -->
+          <!-- ─────────────────────────────────────────────
+               STEP 0 — Welcome: where ORE works
+               ───────────────────────────────────────────── -->
           <div class="wt-step is-active" id="step-0">
+            <div class="wt-step-inner is-welcome">
+              <div class="wt-welcome">
+                <span class="wt-step-num">1 of 9</span>
+                <h1 class="wt-title wt-title-lead">
+                  ORE tells you what is known about the papers in front of you
+                </h1>
+                <p class="wt-desc wt-desc-lead">
+                  Whenever you are reading, ORE looks up the papers on the page
+                  and reports what the research record says about them: whether
+                  anyone has tried to replicate them, whether they have been
+                  retracted or questioned, whether researchers are discussing
+                  them on PubPeer, and whether a free copy exists.
+                </p>
+                <p class="wt-desc wt-desc-lead">
+                  It works in three places. The next screens show you each one.
+                </p>
+
+                <div class="wt-places">
+                  <div class="wt-place">
+                    <div class="wt-place-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                    </div>
+                    <div class="wt-place-body">
+                      <h3>Google Scholar</h3>
+                      <p>
+                        Every result in a search gets its own panel, so you can
+                        judge a paper before you open it.
+                      </p>
+                      <span class="wt-place-steps">Screens 2–3</span>
+                    </div>
+                  </div>
+
+                  <div class="wt-place is-primary">
+                    <div class="wt-place-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                      </svg>
+                    </div>
+                    <div class="wt-place-body">
+                      <h3>Journal &amp; publisher pages</h3>
+                      <p>
+                        The article you are reading and the references it cites
+                        are both checked, and collected into a Meta Report.
+                      </p>
+                      <span class="wt-place-steps">Screens 4–7</span>
+                    </div>
+                  </div>
+
+                  <div class="wt-place">
+                    <div class="wt-place-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <line x1="3" y1="9" x2="21" y2="9" />
+                        <line x1="9" y1="21" x2="9" y2="9" />
+                      </svg>
+                    </div>
+                    <div class="wt-place-body">
+                      <h3>Google Sheets</h3>
+                      <p>
+                        A column of DOIs — a screening sheet, a reading list —
+                        is checked in full, including rows off screen.
+                      </p>
+                      <span class="wt-place-steps">Screen 8</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="wt-footnote">
+                  Everything ORE shows is a starting point for your own
+                  judgement, not a verdict on a paper.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────
+               STEP 1 — Scholar: the result panel
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-1">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
                   <span class="wt-context-tag tag-scholar">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <circle cx="11" cy="11" r="8" />
                       <path d="m21 21-4.35-4.35" />
                     </svg>
                     Google Scholar
                   </span>
-                  <span class="wt-step-num">1 of 7</span>
+                  <span class="wt-step-num">2 of 9</span>
                 </div>
-                <h2 class="wt-title">Confirmed DOI</h2>
+                <h2 class="wt-title">Judge a result before you open it</h2>
                 <p class="wt-desc">
-                  ORE scans each Google Scholar result for DOIs. When it finds
-                  one in a <code>doi.org</code> URL — or confirms it through the
-                  doi.org resolver — the result gets a panel reading
-                  <strong>“Found on this page”</strong>.
+                  ORE adds a panel beside every Google Scholar result. A search
+                  returns twenty papers and tells you almost nothing about any
+                  of them; the panel puts the evidence next to each one, so you
+                  can decide which are worth your time without opening a single
+                  tab.
+                </p>
+                <p class="wt-desc">
+                  Each row is an action, not just a label — open the DOI, copy
+                  the reference, jump to a free copy, read the PubPeer thread,
+                  or open the paper's entry in the FLoRA Replication Atlas.
                 </p>
                 <div class="wt-callouts">
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-confirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 16 16"
-                        fill="white"
-                      >
-                        <path
-                          d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"
-                        />
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">
-                        “Found on this page”
-                      </div>
+                      <div class="wt-callout-title">The citation is ready to paste</div>
                       <div class="wt-callout-text">
-                        The DOI row shows the identifier itself, where it came
-                        from, and buttons to open it on doi.org or copy it.
+                        The quote icon copies the reference in the style you
+                        picked in Settings, with its italics intact — so it
+                        arrives in Word or Google Docs correctly formatted,
+                        and anywhere else as plain text.
                       </div>
                     </div>
                   </div>
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-flora">F</div>
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </svg>
+                    </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">
-                        Everything in one panel
-                      </div>
+                      <div class="wt-callout-title">A dash means "nothing found"</div>
                       <div class="wt-callout-text">
-                        Open Access, PubPeer discussion and replication counts
-                        each get their own row. The replication row opens the
-                        FLoRA Replication Atlas, and the citation row copies a
-                        formatted reference in the style set in Settings.
+                        Rows stay in place when a lookup comes back empty
+                        rather than disappearing, so the panel is the same
+                        shape on every result and you can tell "no free copy"
+                        apart from "not checked yet".
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Demo: Scholar result with pills on the RIGHT -->
-              <div class="step-demo" id="demo-0">
-                <button class="replay-btn">
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
-                  </svg>
-                  Replay
-                </button>
+              <div class="step-demo">
                 <div class="mock-browser">
                   <div class="mock-browser-bar">
-                    <div class="mock-browser-dots">
-                      <span></span><span></span><span></span>
-                    </div>
-                    <div class="mock-url">
-                      scholar.google.com/scholar?q=power+posing
-                    </div>
+                    <div class="mock-browser-dots"><span></span><span></span><span></span></div>
+                    <div class="mock-url">scholar.google.com/scholar?q=power+posing</div>
                   </div>
                   <div class="mock-scholar-body">
                     <div class="mock-scholar-result">
-                      <!-- Content on the LEFT (gs_ri) -->
                       <div class="mock-gs-ri">
                         <div class="mock-paper-title">
                           Power Posing: Brief Nonverbal Displays Affect
-                          Neuroendocrine Levels
+                          Neuroendocrine Levels and Risk Tolerance
                         </div>
                         <div class="mock-paper-authors">
-                          AJD Cuddy, SC Schulman, N Yap &mdash; 2010 &mdash;
-                          science.org
+                          DR Carney, AJC Cuddy, AJ Yap &mdash; 2010 &mdash;
+                          journals.sagepub.com
                         </div>
                         <div class="mock-paper-snippet">
                           We examined whether brief, expansive postures could
                           change a person's testosterone and cortisol levels as
-                          well as their risk tolerance...
+                          well as their risk tolerance&hellip;
                         </div>
                         <div class="mock-paper-meta">
-                          <a>Cited by 2,415</a> &middot;
-                          <a>Related articles</a> &middot;
-                          <a>All 14 versions</a>
+                          <span>Cited by 2,415</span> &middot;
+                          <span>Related articles</span> &middot;
+                          <span>All 14 versions</span>
                         </div>
                       </div>
-                      <!-- Pills on the RIGHT (gs_ggs area) -->
                       <div class="mock-gs-ggs">
-                        <div class="mock-scholar-panel anim-pill">
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon">&#128279;</span>
-                            <span class="mock-panel-label stacked">
-                              <span class="mock-panel-doi"
-                                >10.1126/science.1185714</span
-                              >
-                              <span class="mock-panel-sub provenance"
-                                >Found on this page</span
-                              >
-                            </span>
-                            <span class="mock-panel-actions">&#8599; &#10697;</span>
-                          </div>
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon">&#9776;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">Citation</span>
-                              <span class="mock-panel-sub">APA</span>
-                            </span>
-                            <span class="mock-panel-action">Copy</span>
-                          </div>
-                          <div class="mock-panel-divider"></div>
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon">&#128275;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">Open Access</span>
-                              <span class="mock-panel-sub">3 free</span>
-                            </span>
-                            <span class="mock-panel-action">&#9662;</span>
-                          </div>
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon">&#9784;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">PubPeer</span>
-                              <span class="mock-panel-sub">2</span>
-                            </span>
-                            <span class="mock-panel-action">&#8599;</span>
-                          </div>
-                          <div class="mock-panel-row anim-badge">
-                            <span class="mock-panel-icon">&#9679;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">Replications</span>
-                              <span class="mock-panel-sub">3</span>
-                            </span>
-                            <span class="mock-panel-action">&#8599;</span>
-                          </div>
-                        </div>
+                        <div data-demo="scholar-panel"></div>
                       </div>
                     </div>
                   </div>
@@ -218,117 +224,66 @@
               </div>
             </div>
           </div>
-          <!-- /step-0 -->
 
-          <!-- ─────────────────────────────────
-               STEP 1 — Scholar: Unconfirmed DOI
-               ───────────────────────────────── -->
-          <div class="wt-step" id="step-1">
+          <!-- ─────────────────────────────────────────────
+               STEP 2 — Scholar: DOI found by search
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-2">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
                   <span class="wt-context-tag tag-scholar">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <circle cx="11" cy="11" r="8" />
                       <path d="m21 21-4.35-4.35" />
                     </svg>
                     Google Scholar
                   </span>
-                  <span class="wt-step-num">2 of 7</span>
+                  <span class="wt-step-num">3 of 9</span>
                 </div>
-                <h2 class="wt-title">Unconfirmed DOI</h2>
+                <h2 class="wt-title">When the DOI has to be searched for</h2>
                 <p class="wt-desc">
-                  When no <code>doi.org</code> URL is present, ORE resolves
-                  the paper's DOI via Crossref and OpenAlex title search. The
-                  panel labels it <strong>“Matched by title”</strong> and
-                  underlines the DOI.
+                  Google Scholar does not always print a DOI. When none is on the page,
+                  ORE searches Crossref and OpenAlex for the paper's title, then
+                  narrows the candidates by first author and year. That usually
+                  finds the right record — but it is a best match, not a fact
+                  read off the page, and the panel says so.
+                </p>
+                <p class="wt-desc">
+                  A searched-for DOI is <strong>underlined with dots</strong>.
+                  Hover it and ORE tells you it was matched by search. Everything
+                  below that row behaves exactly as before.
                 </p>
                 <div class="wt-callouts">
-                  <div class="wt-callout callout-unconfirmed">
-                    <div class="wt-callout-icon icon-unconfirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <div class="wt-callout callout-warning">
+                    <div class="wt-callout-icon icon-warning">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linejoin="round">
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">
-                        “Matched by title”
-                      </div>
+                      <div class="wt-callout-title">Check a dotted DOI before you cite it</div>
                       <div class="wt-callout-text">
-                        The DOI row names where the identifier came from, and
-                        underlines it when it was resolved by title rather than
-                        read off the page.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout callout-neutral">
-                    <div class="wt-callout-icon icon-neutral">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Worth a glance</div>
-                      <div class="wt-callout-text">
-                        A title match can be wrong. Everything else works the same
-                        way, so check the DOI against the result before relying
-                        on it.
+                        Papers with near-identical titles do exist, and a wrong
+                        match means the replication counts and retraction status
+                        below belong to a different paper. Open the DOI once and
+                        confirm it is the paper you meant.
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="step-demo" id="demo-1">
-                <button class="replay-btn">
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
-                  </svg>
-                  Replay
-                </button>
+              <div class="step-demo">
                 <div class="mock-browser">
                   <div class="mock-browser-bar">
-                    <div class="mock-browser-dots">
-                      <span></span><span></span><span></span>
-                    </div>
-                    <div class="mock-url">
-                      scholar.google.com/scholar?q=ego+depletion
-                    </div>
+                    <div class="mock-browser-dots"><span></span><span></span><span></span></div>
+                    <div class="mock-url">scholar.google.com/scholar?q=ego+depletion</div>
                   </div>
                   <div class="mock-scholar-body">
                     <div class="mock-scholar-result">
-                      <!-- Content on the LEFT -->
                       <div class="mock-gs-ri">
                         <div class="mock-paper-title">
                           Ego Depletion: Is the Active Self a Limited Resource?
@@ -340,1890 +295,632 @@
                         <div class="mock-paper-snippet">
                           A resource model of the self's executive function was
                           tested in four studies measuring controlled,
-                          volitional behavior after prior exertion of
-                          self-control...
+                          volitional behavior after prior exertion&hellip;
                         </div>
                         <div class="mock-paper-meta">
-                          <a>Cited by 8,312</a> &middot;
-                          <a>Related articles</a> &middot; <a>All 9 versions</a>
+                          <span>Cited by 8,312</span> &middot;
+                          <span>Related articles</span> &middot;
+                          <span>All 9 versions</span>
                         </div>
                       </div>
-                      <!-- Pills on the RIGHT -->
                       <div class="mock-gs-ggs">
-                        <div class="mock-scholar-panel anim-pill">
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon">&#128279;</span>
-                            <span class="mock-panel-label stacked">
-                              <span class="mock-panel-doi dotted"
-                                >10.1037/0022-3514.74.5.1252</span
-                              >
-                              <span class="mock-panel-sub provenance unconfirmed"
-                                >Matched by title</span
-                              >
-                            </span>
-                            <span class="mock-panel-actions">&#8599; &#10697;</span>
-                          </div>
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon">&#9776;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">Citation</span>
-                              <span class="mock-panel-sub">APA</span>
-                            </span>
-                            <span class="mock-panel-action">Copy</span>
-                          </div>
-                          <div class="mock-panel-divider"></div>
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon dim">&#128275;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">Open Access</span>
-                              <span class="mock-panel-sub dim">&mdash;</span>
-                            </span>
-                          </div>
-                          <div class="mock-panel-row">
-                            <span class="mock-panel-icon">&#9784;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">PubPeer</span>
-                              <span class="mock-panel-sub">14</span>
-                            </span>
-                            <span class="mock-panel-action">&#8599;</span>
-                          </div>
-                          <div class="mock-panel-row anim-badge">
-                            <span class="mock-panel-icon">&#9679;</span>
-                            <span class="mock-panel-label">
-                              <span class="mock-panel-title">Replications</span>
-                              <span class="mock-panel-sub">7</span>
-                            </span>
-                            <span class="mock-panel-action">&#8599;</span>
-                          </div>
-                        </div>
+                        <div data-demo="scholar-panel-searched"></div>
                       </div>
                     </div>
                   </div>
                 </div>
+                <p class="demo-note">
+                  The dotted underline under the DOI is the only difference —
+                  hover it for the reason.
+                </p>
               </div>
             </div>
           </div>
-          <!-- /step-1 -->
 
-          <!-- ─────────────────────────────────
-               STEP 2 — Google Sheets
-               ───────────────────────────────── -->
-          <div class="wt-step" id="step-2">
+          <!-- ─────────────────────────────────────────────
+               STEP 3 — Journal pages: pill and side tab
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-3">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
-                  <span class="wt-context-tag tag-sheets">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <rect x="3" y="3" width="7" height="7" />
-                      <rect x="14" y="3" width="7" height="7" />
-                      <rect x="14" y="14" width="7" height="7" />
-                      <rect x="3" y="14" width="7" height="7" />
-                    </svg>
-                    Google Sheets
-                  </span>
-                  <span class="wt-step-num">3 of 7</span>
-                </div>
-                <h2 class="wt-title">Spreadsheet Detection</h2>
-                <p class="wt-desc">
-                  When you open a Google Sheet, ORE scans the
-                  <strong>entire spreadsheet</strong> — including rows outside
-                  the visible area — and surfaces a summary card if any detected
-                  papers have replication data.
-                </p>
-                <div class="wt-callouts">
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-sheets">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <path
-                          d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                        />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Replication Data modal</div>
-                      <div class="wt-callout-text">
-                        Shows the total replication and reproduction count for
-                        every paper recognised in the sheet.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout callout-neutral">
-                    <div class="wt-callout-icon icon-neutral">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <polyline points="23 4 23 10 17 10" />
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Tab-aware</div>
-                      <div class="wt-callout-text">
-                        Switching sheet tabs triggers a fresh scan, and each
-                        tab keeps its own dismissal state — snooze one without
-                        affecting the others.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="step-demo" id="demo-2">
-                <button class="replay-btn">
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
-                  </svg>
-                  Replay
-                </button>
-                <div class="mock-browser">
-                  <div class="mock-browser-bar">
-                    <div class="mock-browser-dots">
-                      <span></span><span></span><span></span>
-                    </div>
-                    <div class="mock-url">docs.google.com/spreadsheets/d/…</div>
-                  </div>
-                  <div class="mock-sheets-toolbar">
-                    <span>File</span><span>Edit</span><span>View</span
-                    ><span>Insert</span><span>Format</span>
-                  </div>
-                  <div class="mock-sheets-body">
-                    <table class="mock-sheets-grid">
-                      <thead>
-                        <tr>
-                          <th class="mock-row-num"></th>
-                          <th>Paper Title</th>
-                          <th>DOI</th>
-                          <th>Year</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td class="mock-row-num">1</td>
-                          <td>Power Posing (Cuddy et al.)</td>
-                          <td class="doi-cell">10.1126/science.1185714</td>
-                          <td>2010</td>
-                        </tr>
-                        <tr>
-                          <td class="mock-row-num">2</td>
-                          <td>Ego Depletion (Baumeister et al.)</td>
-                          <td class="doi-cell">10.1037/0022-3514.74.5.1252</td>
-                          <td>1998</td>
-                        </tr>
-                        <tr>
-                          <td class="mock-row-num">3</td>
-                          <td>Implicit Bias (Greenwald et al.)</td>
-                          <td class="doi-cell">10.1037/0022-3514.74.6.1464</td>
-                          <td>1998</td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    <!-- FLoRA Sheets modal — styled to match real injector.ts output -->
-                    <div
-                      class="anim-modal"
-                      style="
-                        position: absolute;
-                        top: 10px;
-                        right: 10px;
-                        width: 280px;
-                        background: #fff;
-                        border-radius: 12px;
-                        box-shadow:
-                          0 8px 28px rgba(0, 0, 0, 0.18),
-                          0 2px 8px rgba(0, 0, 0, 0.08);
-                        font-family:
-                          -apple-system, BlinkMacSystemFont,
-                          &quot;Segoe UI&quot;, sans-serif;
-                        overflow: hidden;
-                      "
-                    >
-                      <div
-                        style="
-                          background: linear-gradient(135deg, #853953, #612d53);
-                          padding: 14px 16px;
-                          display: flex;
-                          align-items: center;
-                          gap: 10px;
-                        "
-                      >
-                        <span
-                          style="
-                            background: rgba(255, 255, 255, 0.2);
-                            color: #fff;
-                            font-weight: 700;
-                            font-size: 13px;
-                            padding: 4px 10px;
-                            border-radius: 6px;
-                            letter-spacing: 0.3px;
-                          "
-                          >FORRT ORE</span
-                        >
-                        <span
-                          style="
-                            color: #fff;
-                            font-size: 13px;
-                            font-weight: 500;
-                            flex: 1;
-                          "
-                          >Replication Data Found</span
-                        >
-                        <span
-                          style="
-                            cursor: pointer;
-                            color: rgba(255, 255, 255, 0.7);
-                            font-size: 20px;
-                            line-height: 1;
-                          "
-                          >×</span
-                        >
-                      </div>
-                      <div style="padding: 14px 16px 4px">
-                        <div
-                          style="
-                            font-size: 13px;
-                            color: #3c4043;
-                            margin-bottom: 12px;
-                            line-height: 1.5;
-                          "
-                        >
-                          Found data for
-                          <strong style="color: #202124">3 DOIs</strong> in this
-                          spreadsheet.
-                        </div>
-                        <div
-                          style="display: flex; gap: 10px; margin-bottom: 4px"
-                        >
-                          <div
-                            style="
-                              flex: 1;
-                              background: #f9f0f4;
-                              border: 1px solid #d4a5b8;
-                              border-radius: 8px;
-                              padding: 10px;
-                              text-align: center;
-                            "
-                          >
-                            <div
-                              style="
-                                font-size: 22px;
-                                font-weight: 600;
-                                color: #853953;
-                                line-height: 1;
-                              "
-                            >
-                              7
-                            </div>
-                            <div
-                              style="
-                                font-size: 11px;
-                                color: #612d53;
-                                margin-top: 4px;
-                                font-weight: 500;
-                              "
-                            >
-                              Replications
-                            </div>
-                          </div>
-                          <div
-                            style="
-                              flex: 1;
-                              background: #f9f0f4;
-                              border: 1px solid #d4a5b8;
-                              border-radius: 8px;
-                              padding: 10px;
-                              text-align: center;
-                            "
-                          >
-                            <div
-                              style="
-                                font-size: 22px;
-                                font-weight: 600;
-                                color: #853953;
-                                line-height: 1;
-                              "
-                            >
-                              3
-                            </div>
-                            <div
-                              style="
-                                font-size: 11px;
-                                color: #612d53;
-                                margin-top: 4px;
-                                font-weight: 500;
-                              "
-                            >
-                              Reproductions
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        style="
-                          padding: 8px 16px 12px;
-                          display: flex;
-                          align-items: center;
-                          gap: 8px;
-                        "
-                      >
-                        <span
-                          style="
-                            cursor: pointer;
-                            padding: 6px 8px;
-                            color: #5f6368;
-                            display: flex;
-                            align-items: center;
-                            margin-right: auto;
-                          "
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                          >
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
-                        </span>
-                        <span
-                          style="
-                            cursor: pointer;
-                            padding: 6px 14px;
-                            font-size: 13px;
-                            font-weight: 500;
-                            color: #5f6368;
-                          "
-                          >Dismiss</span
-                        >
-                        <span
-                          style="
-                            cursor: pointer;
-                            padding: 6px 14px;
-                            font-size: 13px;
-                            font-weight: 500;
-                            color: #fff;
-                            background: linear-gradient(
-                              135deg,
-                              #853953,
-                              #612d53
-                            );
-                            border-radius: 6px;
-                          "
-                          >View details</span
-                        >
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- /step-2 -->
-
-          <!-- ─────────────────────────────────
-               STEP 3 — Pills and the side tab
-               ───────────────────────────────── -->
-          <div class="wt-step" id="step-3">
-            <div class="wt-step-inner wider">
-              <div class="wt-info">
-                <div class="wt-context">
                   <span class="wt-context-tag tag-pages">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                      />
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                       <polyline points="14 2 14 8 20 8" />
                       <line x1="16" y1="13" x2="8" y2="13" />
                       <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
-                    Journal &amp; Article Pages
+                    Journal &amp; publisher pages
                   </span>
-                  <span class="wt-step-num">4 of 7</span>
+                  <span class="wt-step-num">4 of 9</span>
                 </div>
-                <h2 class="wt-title">Pills and the Side Tab</h2>
+                <h2 class="wt-title">On an article page, two things appear</h2>
                 <p class="wt-desc">
-                  On journal pages an <strong>indicator pill</strong> appears
-                  beside the article's own DOI and beside its references, and a
-                  draggable <strong>ORE tab</strong> appears at the right edge
-                  of the page. Click the tab for the full Meta Report panel.
+                  A <strong>pill</strong> is placed next to the article's own
+                  DOI, and next to the references it cites. It is deliberately
+                  small: it marks a paper without getting between you and what
+                  you are reading, and it carries every signal at once so a page
+                  of forty references does not become forty badges.
+                </p>
+                <p class="wt-desc">
+                  A <strong>tab</strong> appears on the right edge of the window.
+                  It opens the Meta Report — everything ORE found about this
+                  article and its references, in one place. Drag it up or down
+                  if it sits over something you need.
                 </p>
                 <div class="wt-callouts">
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-flora">F</div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Indicator pill</div>
-                      <div class="wt-callout-text">
-                        One pill per paper carries every signal at once — DOI,
-                        Open Access, PubPeer, replications. References show a
-                        pill only where their DOI isn't already visible, unless
-                        you ask for one on every reference in Settings.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-confirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <path d="M9 9h6M9 12h6M9 15h4" />
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" />
+                        <line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" />
+                        <line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">ORE tab</div>
+                      <div class="wt-callout-title">References are not all pilled</div>
                       <div class="wt-callout-text">
-                        A draggable tab appears on the right edge. Click to open
-                        the Meta Report panel with full replication details.
+                        By default a reference gets a pill only where its DOI is
+                        not already printed on the page, to keep a bibliography
+                        readable. Settings has a switch for a pill on every
+                        reference.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                    </div>
+                    <div class="wt-callout-body">
+                      <div class="wt-callout-title">Sites you can switch off</div>
+                      <div class="wt-callout-text">
+                        If ORE gets in the way on a particular site, block that
+                        domain in Settings and it will stay out of it entirely.
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Demo: article full-width + FLoRA tab floating on right edge with drag animation -->
-              <div class="step-demo" id="demo-3">
-                <button class="replay-btn">
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
-                  </svg>
-                  Replay
-                </button>
+              <div class="step-demo">
                 <div class="mock-browser">
                   <div class="mock-browser-bar">
-                    <div class="mock-browser-dots">
-                      <span></span><span></span><span></span>
-                    </div>
-                    <div class="mock-url">
-                      journals.sagepub.com/doi/10.1177/0956797612441216
-                    </div>
+                    <div class="mock-browser-dots"><span></span><span></span><span></span></div>
+                    <div class="mock-url">journals.sagepub.com/doi/10.1177/0956797610383437</div>
                   </div>
-                  <!-- Article content takes full width -->
-                  <div class="mock-pages-single">
-                    <div class="mock-article-body">
-                      <div class="mock-journal-name">Psychological Science</div>
-                      <h3 class="mock-article-title">
-                        Preparatory Power Posing Affects Nonverbal Presence and
-                        Job Interview Performance
-                      </h3>
-                      <div class="mock-article-authors">
-                        Amy J. D. Cuddy, Caroline A. Wilmuth, Dana R. Carney
-                      </div>
-                      <div class="mock-article-meta">
-                        <span>Published October 2012</span>
-                        <span>&middot;</span>
-                        <span>
-                          DOI:
-                          <a class="mock-doi-link">10.1177/0956797612441216</a>
-                          <a class="mock-indicator-pill anim-badge">
-                            <span class="mip-doi">DOI <svg width="12" height="12" viewBox="0 0 16 16" fill="white" style="display:inline-block;vertical-align:middle;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg></span>
-                            <span class="mip-divider"></span>
-                            <span class="mip-seg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></span>
-                            <span class="mip-divider"></span>
-                            <span class="mip-seg"><svg width="11" height="15" viewBox="0 0 98.5 146.5" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" style="display:block;"><circle cx="13.667" cy="34.833" r="10.167"/><circle cx="86.302" cy="80.344" r="10.167"/><circle cx="86.302" cy="12.741" r="10.167"/><circle cx="13.04" cy="133.811" r="10.166"/><line x1="13.04" y1="45" x2="13.04" y2="123.645"/><line x1="23.44" y1="32.04" x2="76.554" y2="15.626"/><line x1="86.303" y1="22.907" x2="86.303" y2="70.177"/><line x1="18.027" y1="124.955" x2="80.772" y2="21.267"/><line x1="76.136" y1="80.344" x2="45.023" y2="80.344"/></svg></span>
-                            <span class="mip-divider"></span>
-                            <span class="mip-badge">3 Reps</span>
-                          </a>
-                        </span>
-                      </div>
-                      <div class="mock-article-abstract">
-                        <span class="mock-abstract-label">Abstract</span>
-                        Before high-stakes social evaluations, people often
-                        engage in preparatory activities. We proposed that a
-                        person's nonverbal behavior immediately before such an
-                        evaluation affects performance outcomes in key
-                        domains...
-                      </div>
+                  <div class="mock-article">
+                    <div class="mock-article-journal">Psychological Science</div>
+                    <h3 class="mock-article-title">
+                      Power Posing: Brief Nonverbal Displays Affect
+                      Neuroendocrine Levels and Risk Tolerance
+                    </h3>
+                    <div class="mock-article-doi">
+                      <span>https://doi.org/10.1177/0956797610383437</span>
+                      <span data-demo="article-pill"></span>
                     </div>
-                  </div>
-                  <!-- FLoRA tab — fixed to right edge, NOT in the flex layout.
-                       Animates: bounce entry → pulse glow × 3 → drag up → drag down → settle -->
-                  <div class="mock-flora-tab-floating">
-                    <div class="mock-flora-tab">
-                      <div class="mock-flora-tab-grip">
-                        <span></span><span></span><span></span> <span></span
-                        ><span></span><span></span>
-                      </div>
-                      <span class="mock-flora-tab-label">FORRT ORE</span>
-                      <span class="mock-flora-tab-arrow">&#8249;</span>
+                    <p class="mock-article-body">
+                      Humans and other animals express power through open,
+                      expansive postures, and they express powerlessness through
+                      closed, contractive postures&hellip;
+                    </p>
+                    <p class="mock-article-body">
+                      In this study we tested whether high-power poses produce
+                      power, measured by hormonal change, risk tolerance and
+                      felt power.
+                    </p>
+                    <div class="mock-tab" aria-hidden="true">
+                      <span class="mock-tab-grip">
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                      </span>
+                      <span class="mock-tab-label">FORRT ORE</span>
+                      <span class="mock-tab-arrow">&lsaquo;</span>
                     </div>
                   </div>
                 </div>
+                <p class="demo-note">
+                  The pill beside the DOI is the real component; the article
+                  around it is a stand-in for a publisher page.
+                </p>
               </div>
             </div>
           </div>
-          <!-- /step-3 -->
-          <!-- ─────────────────────────────────
+
+          <!-- ─────────────────────────────────────────────
                STEP 4 — Reading the pill
-               ───────────────────────────────── -->
+               ───────────────────────────────────────────── -->
           <div class="wt-step" id="step-4">
-            <div class="wt-step-inner wider">
+            <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
                   <span class="wt-context-tag tag-pages">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <circle cx="12" cy="12" r="10" />
                       <line x1="12" y1="16" x2="12" y2="12" />
                       <line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
-                    Reading the Pill
+                    Reading the pill
                   </span>
-                  <span class="wt-step-num">5 of 7</span>
+                  <span class="wt-step-num">5 of 9</span>
                 </div>
-                <h2 class="wt-title">What Each Icon Means</h2>
+                <h2 class="wt-title">The pill is a summary; the panel is the detail</h2>
                 <p class="wt-desc">
-                  The pill packs four signals into one strip, left to right. A
-                  <strong>dimmed</strong> segment means nothing was found for
-                  that signal. Every segment is always present, so the pill is
-                  the same size on every paper.
+                  When closed, the pill answers one question per icon: is there a
+                  DOI, a free copy, a discussion, a replication. A
+                  <strong>dimmed</strong> icon means nothing was found. The icons
+                  never move, so the pill is the same width on every paper.
+                </p>
+                <p class="wt-desc">
+                  <strong>Point at it and the full panel opens</strong>, turning
+                  each icon into a row you can act on. Click to keep it open.
                 </p>
                 <div class="wt-callouts">
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-flora">F</div>
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral" data-demo="icon-doi"></div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Hover for the detail</div>
+                      <div class="wt-callout-title">Chain link &mdash; which paper this is</div>
                       <div class="wt-callout-text">
-                        Each icon has a matching row explaining it in words,
-                        with a link where one exists. Click the pill to pin
-                        that panel open.
+                        Every other signal depends on it. A dotted underline
+                        means ORE found the DOI by searching, so check it. The
+                        row copies the DOI or the reference, or opens doi.org.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral" data-demo="icon-oa"></div>
+                    <div class="wt-callout-body">
+                      <div class="wt-callout-title">Padlock &mdash; a free copy exists</div>
+                      <div class="wt-callout-text">
+                        Lit when Unpaywall knows of a legal one. The row opens
+                        the best copy; the chevron lists the rest, for when it is
+                        the wrong version or a dead link.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral" data-demo="icon-pubpeer"></div>
+                    <div class="wt-callout-body">
+                      <div class="wt-callout-title">PubPeer mark &mdash; the discussion after publication</div>
+                      <div class="wt-callout-text">
+                        Where researchers raise failed reanalyses, duplicated
+                        images, statistics that do not add up. The row shows the
+                        comment count and opens the thread.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral" data-demo="icon-badge"></div>
+                    <div class="wt-callout-body">
+                      <div class="wt-callout-title">Dot &mdash; replications, or a warning</div>
+                      <div class="wt-callout-text">
+                        A count of replications and reproductions, opening the
+                        paper's Atlas entry. A red or amber <strong>!</strong>
+                        replaces it for a retraction or concern &mdash; next screen.
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="step-demo" id="demo-4">
-                <div class="mock-legend">
-                  <div class="mock-legend-pill">
-                    <a class="mock-indicator-pill">
-                      <span class="mip-doi">DOI <svg width="12" height="12" viewBox="0 0 16 16" fill="white" style="display:inline-block;vertical-align:middle;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg></span>
-                      <span class="mip-divider"></span>
-                      <span class="mip-seg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></span>
-                      <span class="mip-divider"></span>
-                      <span class="mip-seg"><svg width="11" height="15" viewBox="0 0 98.5 146.5" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" style="display:block;"><circle cx="13.667" cy="34.833" r="10.167"/><circle cx="86.302" cy="80.344" r="10.167"/><circle cx="86.302" cy="12.741" r="10.167"/><circle cx="13.04" cy="133.811" r="10.166"/><line x1="13.04" y1="45" x2="13.04" y2="123.645"/><line x1="23.44" y1="32.04" x2="76.554" y2="15.626"/><line x1="86.303" y1="22.907" x2="86.303" y2="70.177"/><line x1="18.027" y1="124.955" x2="80.772" y2="21.267"/><line x1="76.136" y1="80.344" x2="45.023" y2="80.344"/></svg></span>
-                      <span class="mip-divider"></span>
-                      <span class="mip-badge">3 Reps</span>
-                    </a>
+              <div class="step-demo demo-plain">
+                <div class="demo-board">
+                  <div class="demo-board-row">
+                    <div class="demo-board-label">
+                      <strong>Closed</strong>
+                      <span>Everything found for this paper, in four icons</span>
+                    </div>
+                    <div class="demo-board-art" data-demo="article-pill"></div>
                   </div>
-
-                  <div class="mock-legend-list">
-                    <div class="mock-legend-item">
-                      <span class="mock-legend-key"
-                        ><span class="mip-doi">DOI <svg width="12" height="12" viewBox="0 0 16 16" fill="white" style="display:inline-block;vertical-align:middle;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg></span></span
-                      >
-                      <span class="mock-legend-body">
-                        <span class="mock-legend-title">DOI, confirmed</span>
-                        <span class="mock-legend-text"
-                          >Read straight off the page or confirmed by the
-                          doi.org resolver.</span
-                        >
-                      </span>
+                  <div class="demo-board-row">
+                    <div class="demo-board-label">
+                      <strong>Nothing found</strong>
+                      <span>Same shape, all four dimmed — ORE looked and came back empty</span>
                     </div>
-
-                    <div class="mock-legend-item">
-                      <span class="mock-legend-key"
-                        ><span class="mip-doi unconfirmed">DOI</span></span
-                      >
-                      <span class="mock-legend-body">
-                        <span class="mock-legend-title"
-                          >DOI, matched by title</span
-                        >
-                        <span class="mock-legend-text"
-                          >Underlined, no tick — resolved via Crossref or
-                          OpenAlex, so treat it with more caution.</span
-                        >
-                      </span>
+                    <div class="demo-board-art" data-demo="pill-no-signals"></div>
+                  </div>
+                  <div class="demo-board-row is-tall">
+                    <div class="demo-board-label">
+                      <strong>Open</strong>
+                      <span>One row per icon, each one a link or an action</span>
                     </div>
+                    <div class="demo-board-art" data-demo="pill-pinned"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                    <div class="mock-legend-item">
-                      <span class="mock-legend-key"
-                        ><span class="mip-seg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></span></span
-                      >
-                      <span class="mock-legend-body">
-                        <span class="mock-legend-title">Open Access</span>
-                        <span class="mock-legend-text"
-                          >Lit when a free full text exists. Dimmed means none
-                          was found.</span
-                        >
-                      </span>
+          <!-- ─────────────────────────────────────────────
+               STEP 5 — Retractions and concerns
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-5">
+            <div class="wt-step-inner">
+              <div class="wt-info">
+                <div class="wt-context">
+                  <span class="wt-context-tag tag-warning">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    Withdrawn &amp; questioned work
+                  </span>
+                  <span class="wt-step-num">6 of 9</span>
+                </div>
+                <h2 class="wt-title">Retractions and concerns are not the same thing</h2>
+                <p class="wt-desc">
+                  Both come from the Retraction Watch database, and ORE keeps
+                  them visibly apart because they mean different things. A
+                  <strong>retraction</strong> is a settled matter: the paper has
+                  been withdrawn from the record. An
+                  <strong>expression of concern</strong> is unsettled: the
+                  journal has flagged a problem that has not yet been resolved,
+                  and the paper still stands.
+                </p>
+                <p class="wt-desc">
+                  Either one replaces the replication count in the pill and is
+                  called out in the Meta Report, on the article itself and on
+                  any reference it cites. Both link to the notice, so you can
+                  read what was actually said.
+                </p>
+                <div class="wt-callouts">
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
                     </div>
-
-                    <div class="mock-legend-item">
-                      <span class="mock-legend-key"
-                        ><span class="mip-seg"><svg width="11" height="15" viewBox="0 0 98.5 146.5" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" style="display:block;"><circle cx="13.667" cy="34.833" r="10.167"/><circle cx="86.302" cy="80.344" r="10.167"/><circle cx="86.302" cy="12.741" r="10.167"/><circle cx="13.04" cy="133.811" r="10.166"/><line x1="13.04" y1="45" x2="13.04" y2="123.645"/><line x1="23.44" y1="32.04" x2="76.554" y2="15.626"/><line x1="86.303" y1="22.907" x2="86.303" y2="70.177"/><line x1="18.027" y1="124.955" x2="80.772" y2="21.267"/><line x1="76.136" y1="80.344" x2="45.023" y2="80.344"/></svg></span></span
-                      >
-                      <span class="mock-legend-body">
-                        <span class="mock-legend-title">PubPeer</span>
-                        <span class="mock-legend-text"
-                          >Lit when the paper has post-publication comments.
-                          Opens the thread.</span
-                        >
-                      </span>
+                    <div class="wt-callout-body">
+                      <div class="wt-callout-title">Checked offline, refreshed weekly</div>
+                      <div class="wt-callout-text">
+                        The retraction list ships with the extension and updates
+                        in the background, so a DOI is checked without asking
+                        any server what you are reading.
+                      </div>
                     </div>
+                  </div>
+                </div>
+              </div>
 
-                    <div class="mock-legend-item">
-                      <span class="mock-legend-key"
-                        ><span class="mip-badge">3 Reps</span></span
-                      >
-                      <span class="mock-legend-body">
-                        <span class="mock-legend-title"
-                          >Replications / reproductions</span
-                        >
-                        <span class="mock-legend-text"
-                          >How many studies are on record. Opens the
-                          FORRT Replication Atlas.</span
-                        >
-                      </span>
+              <div class="step-demo demo-plain">
+                <div class="demo-board">
+                  <div class="demo-board-row is-split">
+                    <div class="demo-board-label">
+                      <strong>Retracted</strong>
+                      <span>Withdrawn from the record. The pill's last icon turns red.</span>
                     </div>
-
-                    <div class="mock-legend-item">
-                      <span class="mock-legend-key"
-                        ><span class="mip-badge alert">!</span></span
-                      >
-                      <span class="mock-legend-body">
-                        <span class="mock-legend-title"
-                          >Retraction or concern</span
-                        >
-                        <span class="mock-legend-text"
-                          >Replaces the count when the paper has been retracted
-                          or flagged. Opens the notice.</span
-                        >
-                      </span>
+                    <div class="demo-board-art demo-stack">
+                      <div data-demo="notice-pill-retraction"></div>
+                      <div data-demo="pill-retracted"></div>
                     </div>
-
-                    <div class="mock-legend-item">
-                      <span class="mock-legend-key"
-                        ><span class="mip-badge empty"></span></span
-                      >
-                      <span class="mock-legend-body">
-                        <span class="mock-legend-title">Nothing on record</span>
-                        <span class="mock-legend-text"
-                          >Dimmed and empty — no replication data is on record for
-                          this paper.</span
-                        >
-                      </span>
+                  </div>
+                  <div class="demo-board-row is-split">
+                    <div class="demo-board-label">
+                      <strong>Expression of concern</strong>
+                      <span>Flagged but unresolved. An amber warning triangle, not a red stop.</span>
+                    </div>
+                    <div class="demo-board-art demo-stack">
+                      <div data-demo="notice-pill-concern"></div>
+                      <div data-demo="pill-concern"></div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <!-- /step-4 -->
 
-
-          <!-- ─────────────────────────────────
-               STEP 4 — Meta Report Panel
-               ───────────────────────────────── -->
-          <div class="wt-step" id="step-5">
-            <div class="wt-step-inner wider">
+          <!-- ─────────────────────────────────────────────
+               STEP 6 — The Meta Report
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-6">
+            <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
                   <span class="wt-context-tag tag-pages">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                      />
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                       <polyline points="14 2 14 8 20 8" />
                       <line x1="16" y1="13" x2="8" y2="13" />
                       <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
-                    Journal &amp; Article Pages
+                    Journal &amp; publisher pages
                   </span>
-                  <span class="wt-step-num">6 of 7</span>
+                  <span class="wt-step-num">7 of 9</span>
                 </div>
-                <h2 class="wt-title">Meta Report Panel</h2>
+                <h2 class="wt-title">The Meta Report: the whole picture, one panel</h2>
                 <p class="wt-desc">
-                  Click the ORE tab to open the Meta Report panel. It lists
-                  every known replication and reproduction study colour-coded by
-                  outcome, flags retractions and expressions of concern, and
-                  shows which references have their own entry in the FLoRA Atlas or
-                  are discussed on PubPeer. If the paper is itself a
-                  replication, it shows the <strong>original study</strong>
+                  Open the side tab and ORE collects everything it found into a
+                  single report: every replication and reproduction on record
+                  with its outcome, any retraction or expression of concern,
+                  which of the paper's references have their own entry in the
+                  <a
+                    class="wt-link"
+                    href="https://forrt.org/flora-replication-atlas/"
+                    target="_blank"
+                    rel="noopener"
+                    >FLoRA Replication Atlas</a
+                  >
+                  or a PubPeer thread, and the PubPeer discussion of the article
+                  itself. If the paper you are reading is itself a replication,
+                  the report shows the original study it set out to replicate
                   instead.
                 </p>
                 <div class="wt-callouts">
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-confirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 16 16"
-                        fill="white"
-                      >
-                        <path
-                          d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"
-                        />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Outcome badges</div>
-                      <div class="wt-callout-text">
-                        Each replication entry shows "success", "failed", or
-                        "mixed" — colour-coded for quick scanning.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout callout-unconfirmed">
-                    <div class="wt-callout-icon icon-unconfirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <path
-                          d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                        />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
                       <div class="wt-callout-title">
-                        Retraction &amp; concern flags
+                        What the
+                        <a
+                          class="wt-link"
+                          href="https://forrt.org/flora-replication-atlas/"
+                          target="_blank"
+                          rel="noopener"
+                          >FLoRA Replication Atlas</a
+                        >
+                        is
                       </div>
                       <div class="wt-callout-text">
-                        A red "Retracted" tag or an amber "Concern" tag
-                        appears beside the title and any affected reference.
-                        Click to read the notice.
+                        FORRT's open database of replication attempts in the
+                        social and behavioural sciences. Volunteers read the
+                        published literature and record, for each original
+                        finding, which studies tried to replicate it and what
+                        they found — with a quote from the replication itself
+                        saying so. It is the source of every replication count
+                        ORE shows, and clicking one opens that paper's entry, so
+                        you can read the evidence rather than take the number on
+                        trust.
                       </div>
                     </div>
                   </div>
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-confirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">"View in Atlas" tag</div>
-                      <div class="wt-callout-text">
-                        Shown next to a reference that has its own entry in
-                        the FLoRA Replication Atlas. Click it to open that
-                        reference's report.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout callout-neutral">
+                  <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <path
-                          d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                        />
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">PubPeer comments</div>
+                      <div class="wt-callout-title">Save it</div>
                       <div class="wt-callout-text">
-                        References discussed on PubPeer show a teal comment pill
-                        with the count. The article's thread loads inline — if it
-                        can't be embedded, a link to open it on PubPeer is shown.
+                        The download button opens the report as a clean printable
+                        page — print to PDF to keep it with your notes, or hand
+                        it to a co-author.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="wt-callout">
+                    <div class="wt-callout-icon icon-neutral">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                    </div>
+                    <div class="wt-callout-body">
+                      <div class="wt-callout-title">Share it</div>
+                      <div class="wt-callout-text">
+                        The share button copies a link that opens the report as
+                        a web page, for colleagues who do not have ORE. The
+                        report travels inside the link itself — nothing is
+                        uploaded, and no server ever sees what you were reading.
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Demo: article header + full open panel -->
-              <div class="step-demo" id="demo-5">
-                <button class="replay-btn">
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
-                  </svg>
-                  Replay
-                </button>
-                <div class="mock-browser">
+              <div class="step-demo">
+                <div class="mock-browser is-tall">
                   <div class="mock-browser-bar">
-                    <div class="mock-browser-dots">
-                      <span></span><span></span><span></span>
-                    </div>
-                    <div class="mock-url">
-                      journals.sagepub.com/doi/10.1177/0956797612441216
-                    </div>
+                    <div class="mock-browser-dots"><span></span><span></span><span></span></div>
+                    <div class="mock-url">journals.sagepub.com/doi/10.1177/0956797610383437</div>
                   </div>
-                  <div class="mock-pages-body">
-                    <!-- Article content (compact) -->
-                    <div
-                      class="mock-article-body"
-                      style="border-right: 0px !important"
-                    >
-                      <div class="mock-journal-name">Psychological Science</div>
-                      <h3 class="mock-article-title">
-                        Preparatory Power Posing Affects Nonverbal Presence and
-                        Job Interview Performance
-                      </h3>
-                      <div class="mock-article-authors">
-                        Amy J. D. Cuddy, Caroline A. Wilmuth, Dana R. Carney
-                      </div>
-                      <div class="mock-article-meta">
-                        <span>Published October 2012</span>
-                        <span>&middot;</span>
-                        <span>
-                          DOI:
-                          <a class="mock-doi-link">10.1177/0956797612441216</a>
-                          <a class="mock-indicator-pill">
-                            <span class="mip-doi">DOI <svg width="12" height="12" viewBox="0 0 16 16" fill="white" style="display:inline-block;vertical-align:middle;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg></span>
-                            <span class="mip-divider"></span>
-                            <span class="mip-seg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></span>
-                            <span class="mip-divider"></span>
-                            <span class="mip-seg"><svg width="11" height="15" viewBox="0 0 98.5 146.5" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" style="display:block;"><circle cx="13.667" cy="34.833" r="10.167"/><circle cx="86.302" cy="80.344" r="10.167"/><circle cx="86.302" cy="12.741" r="10.167"/><circle cx="13.04" cy="133.811" r="10.166"/><line x1="13.04" y1="45" x2="13.04" y2="123.645"/><line x1="23.44" y1="32.04" x2="76.554" y2="15.626"/><line x1="86.303" y1="22.907" x2="86.303" y2="70.177"/><line x1="18.027" y1="124.955" x2="80.772" y2="21.267"/><line x1="76.136" y1="80.344" x2="45.023" y2="80.344"/></svg></span>
-                            <span class="mip-divider"></span>
-                            <span class="mip-badge">3 Reps</span>
-                          </a>
-                        </span>
-                      </div>
-                      <div class="mock-article-abstract">
-                        <span class="mock-abstract-label">Abstract</span>
-                        Before high-stakes social evaluations, people often
-                        engage in preparatory activities. We proposed that a
-                        person's nonverbal behavior immediately before such an
-                        evaluation affects performance outcomes...
-                      </div>
-                    </div>
-
-                    <!-- FLoRA panel OPEN — slides in from right -->
-                    <div class="mock-panel-container anim-tab">
-                      <!-- Tab button — arrow pointing left = panel is open -->
-                      <div class="mock-flora-tab">
-                        <div class="mock-flora-tab-grip">
-                          <span></span><span></span><span></span> <span></span
-                          ><span></span><span></span>
-                        </div>
-                        <span class="mock-flora-tab-label">FORRT ORE</span>
-                        <span class="mock-flora-tab-arrow">&#8249;</span>
-                      </div>
-                      <!-- Open panel content -->
-                      <div class="mock-flora-panel">
-                        <!-- Header matching real panel code -->
-                        <div
-                          style="
-                            background: linear-gradient(
-                              135deg,
-                              #853953,
-                              #612d53
-                            );
-                            padding: 12px 14px;
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            flex-shrink: 0;
-                          "
-                        >
-                          <span
-                            style="
-                              color: #fff;
-                              font-weight: 700;
-                              font-size: 12px;
-                              background: rgba(255, 255, 255, 0.2);
-                              padding: 2px 7px;
-                              border-radius: 4px;
-                            "
-                            >FORRT ORE</span
-                          >
-                          <span
-                            style="
-                              color: #fff;
-                              font-size: 13px;
-                              font-weight: 500;
-                              flex: 1;
-                            "
-                            >Meta Report</span
-                          >
-                          <span
-                            style="
-                              color: rgba(255, 255, 255, 0.8);
-                              font-size: 18px;
-                              line-height: 1;
-                              cursor: pointer;
-                            "
-                            >×</span
-                          >
-                        </div>
-                        <!-- Article title -->
-                        <div
-                          style="
-                            border-bottom: 1px solid #e8e8e8;
-                            background: #f5f8fa;
-                            padding: 10px 14px;
-                          "
-                        >
-                          <a
-                            style="
-                              color: #853953;
-                              font-weight: 600;
-                              font-size: 13px;
-                              text-decoration: none;
-                              line-height: 1.4;
-                              display: block;
-                            "
-                            >Preparatory Power Posing Affects Nonverbal
-                            Presence...</a
-                          >
-                        </div>
-                        <!-- Replications section -->
-                        <div
-                          style="
-                            font-size: 11px;
-                            font-weight: 600;
-                            color: #5f6368;
-                            text-transform: uppercase;
-                            padding: 8px 14px;
-                            letter-spacing: 0.5px;
-                            border-bottom: 1px solid #e8e8e8;
-                          "
-                        >
-                          Replications
-                        </div>
-                        <!-- Entry 1 -->
-                        <div
-                          style="
-                            padding: 8px 14px;
-                            border-bottom: 1px solid #f0f0f0;
-                          "
-                        >
-                          <div
-                            style="
-                              display: flex;
-                              align-items: flex-start;
-                              justify-content: space-between;
-                              gap: 4px;
-                              margin-bottom: 2px;
-                            "
-                          >
-                            <span
-                              style="
-                                font-size: 11.5px;
-                                font-weight: 600;
-                                color: #202124;
-                                line-height: 1.3;
-                                flex: 1;
-                              "
-                              >Ranehill et al. (2015)</span
-                            >
-                            <span
-                              style="
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 2px 6px;
-                                border-radius: 10px;
-                                white-space: nowrap;
-                                flex-shrink: 0;
-                                background: #fff3e0;
-                                color: #e65100;
-                              "
-                              >mixed</span
-                            >
-                          </div>
-                          <div style="font-size: 10.5px; color: #5f6368">
-                            Psychological Science &middot; 2015
-                          </div>
-                        </div>
-                        <!-- Entry 2 -->
-                        <div
-                          style="
-                            padding: 8px 14px;
-                            border-bottom: 1px solid #f0f0f0;
-                          "
-                        >
-                          <div
-                            style="
-                              display: flex;
-                              align-items: flex-start;
-                              justify-content: space-between;
-                              gap: 4px;
-                              margin-bottom: 2px;
-                            "
-                          >
-                            <span
-                              style="
-                                font-size: 11.5px;
-                                font-weight: 600;
-                                color: #202124;
-                                line-height: 1.3;
-                                flex: 1;
-                              "
-                              >Garrison et al. (2016)</span
-                            >
-                            <span
-                              style="
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 2px 6px;
-                                border-radius: 10px;
-                                white-space: nowrap;
-                                flex-shrink: 0;
-                                background: #fce8e6;
-                                color: #c5221f;
-                              "
-                              >failed</span
-                            >
-                          </div>
-                          <div style="font-size: 10.5px; color: #5f6368">
-                            Social Psych &amp; Personality Sci &middot; 2016
-                          </div>
-                        </div>
-                        <!-- Entry 3 -->
-                        <div
-                          style="
-                            padding: 8px 14px;
-                            border-bottom: 1px solid #e8e8e8;
-                          "
-                        >
-                          <div
-                            style="
-                              display: flex;
-                              align-items: flex-start;
-                              justify-content: space-between;
-                              gap: 4px;
-                              margin-bottom: 2px;
-                            "
-                          >
-                            <span
-                              style="
-                                font-size: 11.5px;
-                                font-weight: 600;
-                                color: #202124;
-                                line-height: 1.3;
-                                flex: 1;
-                              "
-                              >Ronay et al. (2016)</span
-                            >
-                            <span
-                              style="
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 2px 6px;
-                                border-radius: 10px;
-                                white-space: nowrap;
-                                flex-shrink: 0;
-                                background: #fce8e6;
-                                color: #c5221f;
-                              "
-                              >failed</span
-                            >
-                          </div>
-                          <div style="font-size: 10.5px; color: #5f6368">
-                            Comp. Results in Social Psych &middot; 2016
-                          </div>
-                        </div>
-                        <!-- References section -->
-                        <div
-                          style="
-                            font-size: 11px;
-                            font-weight: 600;
-                            color: #5f6368;
-                            text-transform: uppercase;
-                            padding: 8px 14px;
-                            letter-spacing: 0.5px;
-                            border-bottom: 1px solid #e8e8e8;
-                          "
-                        >
-                          References
-                        </div>
-                        <div
-                          style="
-                            padding: 8px 14px;
-                            border-bottom: 1px solid #f0f0f0;
-                          "
-                        >
-                          <div
-                            style="
-                              font-size: 11.5px;
-                              color: #202124;
-                              margin-bottom: 4px;
-                              line-height: 1.3;
-                            "
-                          >
-                            Nonverbal behavior and the vertical dimension of
-                            social relations
-                          </div>
-                          <div
-                            style="
-                              display: flex;
-                              align-items: center;
-                              flex-wrap: wrap;
-                              gap: 4px;
-                            "
-                          >
-                            <span
-                              style="
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 2px 6px;
-                                border-radius: 10px;
-                                background: #fef9c3;
-                                color: #854d0e;
-                                border: 1px solid #fde047;
-                              "
-                              >View in Atlas</span
-                            >
-                            <span
-                              style="
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 4px;
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 1px 7px;
-                                border-radius: 10px;
-                                background: #e9f3f1;
-                                color: #446058;
-                                border: 1px solid #7accc8;
-                              "
-                            >
-                              <svg
-                                width="9"
-                                height="13"
-                                viewBox="0 0 98.5 146.5"
-                                fill="none"
-                                stroke="#446058"
-                                stroke-width="7"
-                                stroke-linecap="round"
-                              >
-                                <circle cx="13.667" cy="34.833" r="10.167" />
-                                <circle cx="86.302" cy="80.344" r="10.167" />
-                                <circle cx="86.302" cy="12.741" r="10.167" />
-                                <circle cx="13.04" cy="133.811" r="10.166" />
-                                <line x1="13.04" y1="45" x2="13.04" y2="123.645" />
-                                <line x1="23.44" y1="32.04" x2="76.554" y2="15.626" />
-                                <line x1="86.303" y1="22.907" x2="86.303" y2="70.177" />
-                                <line x1="18.027" y1="124.955" x2="80.772" y2="21.267" />
-                                <line x1="76.136" y1="80.344" x2="45.023" y2="80.344" />
-                              </svg>
-                              1 comment
-                            </span>
-                          </div>
-                        </div>
-                        <div
-                          style="
-                            padding: 8px 14px;
-                            border-bottom: 1px solid #f0f0f0;
-                          "
-                        >
-                          <div
-                            style="
-                              font-size: 11.5px;
-                              color: #202124;
-                              margin-bottom: 4px;
-                              line-height: 1.3;
-                            "
-                          >
-                            Inhibiting the facial feedback hypothesis
-                          </div>
-                          <div
-                            style="
-                              display: flex;
-                              align-items: center;
-                              flex-wrap: wrap;
-                              gap: 4px;
-                            "
-                          >
-                            <span
-                              style="
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 2px 6px;
-                                border-radius: 10px;
-                                background: #ff1744;
-                                color: #fff;
-                                border: 1px solid #ff1744;
-                              "
-                              >Retracted</span
-                            >
-                            <span
-                              style="
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 4px;
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 1px 7px;
-                                border-radius: 10px;
-                                background: #e9f3f1;
-                                color: #446058;
-                                border: 1px solid #7accc8;
-                              "
-                            >
-                              <svg
-                                width="9"
-                                height="13"
-                                viewBox="0 0 98.5 146.5"
-                                fill="none"
-                                stroke="#446058"
-                                stroke-width="7"
-                                stroke-linecap="round"
-                              >
-                                <circle cx="13.667" cy="34.833" r="10.167" />
-                                <circle cx="86.302" cy="80.344" r="10.167" />
-                                <circle cx="86.302" cy="12.741" r="10.167" />
-                                <circle cx="13.04" cy="133.811" r="10.166" />
-                                <line x1="13.04" y1="45" x2="13.04" y2="123.645" />
-                                <line x1="23.44" y1="32.04" x2="76.554" y2="15.626" />
-                                <line x1="86.303" y1="22.907" x2="86.303" y2="70.177" />
-                                <line x1="18.027" y1="124.955" x2="80.772" y2="21.267" />
-                                <line x1="76.136" y1="80.344" x2="45.023" y2="80.344" />
-                              </svg>
-                              2 comments
-                            </span>
-                          </div>
-                        </div>
-                        <!-- Entry 3 — expression of concern -->
-                        <div
-                          style="
-                            padding: 8px 14px;
-                            border-bottom: 1px solid #e8e8e8;
-                          "
-                        >
-                          <div
-                            style="
-                              font-size: 11.5px;
-                              color: #202124;
-                              margin-bottom: 4px;
-                              line-height: 1.3;
-                            "
-                          >
-                            Social priming effects on unethical behavior
-                          </div>
-                          <div
-                            style="
-                              display: flex;
-                              align-items: center;
-                              flex-wrap: wrap;
-                              gap: 4px;
-                            "
-                          >
-                            <span
-                              style="
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 3px;
-                                font-size: 10px;
-                                font-weight: 600;
-                                padding: 2px 7px;
-                                border-radius: 10px;
-                                background: #fff7ed;
-                                color: #9a3412;
-                                border: 1px solid #ea580c;
-                              "
-                            >
-                              <svg
-                                width="9"
-                                height="9"
-                                viewBox="0 0 640 640"
-                                fill="#ea580c"
-                              >
-                                <path
-                                  d="M320 64C334.7 64 348.2 72.1 355.2 85L571.2 485C577.9 497.4 577.6 512.4 570.4 524.5C563.2 536.6 550.1 544 536 544L104 544C89.9 544 76.8 536.6 69.6 524.5C62.4 512.4 62.1 497.4 68.8 485L284.8 85C291.8 72.1 305.3 64 320 64zM320 416C302.3 416 288 430.3 288 448C288 465.7 302.3 480 320 480C337.7 480 352 465.7 352 448C352 430.3 337.7 416 320 416zM320 224C301.8 224 287.3 239.5 288.6 257.7L296 361.7C296.9 374.2 307.4 384 319.9 384C332.5 384 342.9 374.3 343.8 361.7L351.2 257.7C352.5 239.5 338.1 224 319.8 224z"
-                                />
-                              </svg>
-                              Concern
-                            </span>
-                          </div>
-                        </div>
-                        <!-- Open in FLoRA Atlas button -->
-                        <div
-                          style="
-                            padding: 10px 14px;
-                            background: #f5f8fa;
-                            border-top: 1px solid #e8e8e8;
-                            text-align: right;
-                            margin-top: auto;
-                          "
-                        >
-                          <span
-                            style="
-                              font-size: 11.5px;
-                              font-weight: 600;
-                              color: #fff;
-                              background: linear-gradient(
-                                135deg,
-                                #853953,
-                                #612d53
-                              );
-                              padding: 6px 10px;
-                              border-radius: 6px;
-                              cursor: pointer;
-                            "
-                            >Open in FLoRA Atlas</span
-                          >
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <div class="mock-panel-stage" data-demo="meta-report"></div>
                 </div>
               </div>
             </div>
           </div>
-          <!-- /step-5 -->
 
-          <!-- ─────────────────────────────────
-               STEP 5 — Open Access & Retractions
-               ───────────────────────────────── -->
-          <div class="wt-step" id="step-6">
-            <div class="wt-step-inner wider">
+          <!-- ─────────────────────────────────────────────
+               STEP 7 — Spreadsheets
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-7">
+            <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
-                  <span class="wt-context-tag tag-pages">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                      />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
+                  <span class="wt-context-tag tag-sheets">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <line x1="3" y1="9" x2="21" y2="9" />
+                      <line x1="9" y1="21" x2="9" y2="9" />
                     </svg>
-                    Journal &amp; Article Pages
+                    Google Sheets
                   </span>
-                  <span class="wt-step-num">7 of 7</span>
+                  <span class="wt-step-num">8 of 9</span>
                 </div>
-                <h2 class="wt-title">Open Access &amp; Retractions</h2>
+                <h2 class="wt-title">Screen a whole spreadsheet of DOIs</h2>
                 <p class="wt-desc">
-                  While scanning a page ORE flags retracted papers
-                  and surfaces free full text, and it stays out of the way: a
-                  small toast is the only sign it is working.
+                  A screening sheet, a reading list, a set of candidate studies
+                  for a meta-analysis — open it in Google Sheets and ORE reads
+                  every DOI in it, including the rows you have not scrolled to,
+                  and reports back in a popup.
+                </p>
+                <p class="wt-desc">
+                  <strong>Retracted papers come first.</strong> Finding a
+                  retraction in a list you were about to analyse is the single
+                  most useful thing ORE can tell you here, so the popup opens
+                  for a retraction or an expression of concern even when nothing
+                  in the sheet has replication data at all — each one named,
+                  with a link to the notice.
                 </p>
                 <div class="wt-callouts">
-                  <div class="wt-callout callout-confirmed">
-                    <div class="wt-callout-icon icon-confirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Open Access padlock</div>
-                      <div class="wt-callout-text">
-                        The padlock segment lights up when a free full text
-                        exists (via Unpaywall) and stays dimmed when none was
-                        found. Open the pill to follow the link.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout callout-unconfirmed">
-                    <div class="wt-callout-icon icon-unconfirmed">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <path
-                          d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                        />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Retraction flags</div>
-                      <div class="wt-callout-text">
-                        The pill's last segment turns into a red
-                        <strong>!</strong> for a retraction, or an amber one for
-                        an expression of concern, replacing the replication
-                        count. Open the pill to read the notice.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout callout-neutral">
+                  <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
                         <polyline points="23 4 23 10 17 10" />
                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Scanning indicator</div>
+                      <div class="wt-callout-title">One tab at a time</div>
                       <div class="wt-callout-text">
-                        A small toast in the corner appears while the page is
-                        being scanned, then disappears when it's done.
+                        Switching sheet tabs starts a fresh scan, and each tab
+                        remembers whether you dismissed its popup — so silencing
+                        one does not silence the rest.
                       </div>
                     </div>
                   </div>
-                  <div class="wt-callout callout-neutral">
+                  <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        stroke-width="2.5"
-                      >
-                        <path
-                          d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"
-                        />
-                        <circle cx="12" cy="12" r="3" />
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Active tab only</div>
+                      <div class="wt-callout-title">Dismiss or snooze</div>
                       <div class="wt-callout-text">
-                        Only the tab you are viewing is scanned — background
-                        tabs stay idle until you switch to them.
+                        Dismiss closes the popup for this tab; the clock snoozes
+                        it for ten minutes, for when you are mid-edit and will
+                        want it back shortly.
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Demo: article with retraction flag + reference OA "Free" + scanning toast -->
-              <div class="step-demo" id="demo-6">
-                <button class="replay-btn">
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
-                  </svg>
-                  Replay
-                </button>
-                <div class="mock-browser">
+              <div class="step-demo">
+                <div class="mock-browser is-tall">
                   <div class="mock-browser-bar">
-                    <div class="mock-browser-dots">
-                      <span></span><span></span><span></span>
-                    </div>
-                    <div class="mock-url">
-                      journals.example.org/doi/10.1037/0033-2909.131.6.803
-                    </div>
+                    <div class="mock-browser-dots"><span></span><span></span><span></span></div>
+                    <div class="mock-url">docs.google.com/spreadsheets/d/&hellip;</div>
                   </div>
-                  <div class="mock-pages-single">
-                    <div class="mock-article-body">
-                      <div class="mock-journal-name">Psychological Bulletin</div>
-                      <h3 class="mock-article-title">
-                        Mood and the Endowment Effect: A Reassessment
-                        <span class="mock-indicator-pill anim-badge"
-                          ><span class="mip-doi"
-                            >DOI
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 16 16"
-                              fill="white"
-                              style="display: inline-block; vertical-align: middle"
-                            >
-                              <path
-                                d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"
-                              /></svg
-                          ></span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-seg">
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2.2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              style="display: block"
-                            >
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                            </svg>
-                          </span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-seg">
-                            <svg
-                              width="11"
-                              height="15"
-                              viewBox="0 0 98.5 146.5"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="9"
-                              stroke-linecap="round"
-                              style="display: block"
-                            >
-                              <circle cx="13.667" cy="34.833" r="10.167" />
-                              <circle cx="86.302" cy="80.344" r="10.167" />
-                              <circle cx="86.302" cy="12.741" r="10.167" />
-                              <circle cx="13.04" cy="133.811" r="10.166" />
-                              <line x1="13.04" y1="45" x2="13.04" y2="123.645" />
-                              <line x1="23.44" y1="32.04" x2="76.554" y2="15.626" />
-                              <line x1="86.303" y1="22.907" x2="86.303" y2="70.177" />
-                              <line x1="18.027" y1="124.955" x2="80.772" y2="21.267" />
-                              <line x1="76.136" y1="80.344" x2="45.023" y2="80.344" />
-                            </svg>
-                          </span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-badge alert">!</span>
-                        </span>
-                      </h3>
-                      <div class="mock-article-authors">
-                        J. Researcher, A. Coauthor &mdash; 2005
-                      </div>
-                      <div
-                        style="
-                          margin-top: 16px;
-                          font-size: 11px;
-                          font-weight: 600;
-                          color: #5f6368;
-                          text-transform: uppercase;
-                          letter-spacing: 0.5px;
-                        "
-                      >
-                        References
-                      </div>
-                      <div
-                        style="
-                          font-size: 12.5px;
-                          color: #3c4043;
-                          line-height: 1.6;
-                          padding: 8px 0;
-                          border-bottom: 1px solid #eee;
-                        "
-                      >
-                        Kahneman, D., Knetsch, J. L., &amp; Thaler, R. (1990).
-                        Experimental tests of the endowment effect.
-                        <em>Journal of Political Economy</em>.
-                        <span class="mock-indicator-pill anim-badge"
-                          ><span class="mip-doi"
-                            >DOI
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 16 16"
-                              fill="white"
-                              style="display: inline-block; vertical-align: middle"
-                            >
-                              <path
-                                d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"
-                              /></svg
-                          ></span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-seg">
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2.2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              style="display: block"
-                            >
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                            </svg>
-                          </span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-seg dim">
-                            <svg
-                              width="11"
-                              height="15"
-                              viewBox="0 0 98.5 146.5"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="9"
-                              stroke-linecap="round"
-                              style="display: block"
-                            >
-                              <circle cx="13.667" cy="34.833" r="10.167" />
-                              <circle cx="86.302" cy="80.344" r="10.167" />
-                              <circle cx="86.302" cy="12.741" r="10.167" />
-                              <circle cx="13.04" cy="133.811" r="10.166" />
-                              <line x1="13.04" y1="45" x2="13.04" y2="123.645" />
-                              <line x1="23.44" y1="32.04" x2="76.554" y2="15.626" />
-                              <line x1="86.303" y1="22.907" x2="86.303" y2="70.177" />
-                              <line x1="18.027" y1="124.955" x2="80.772" y2="21.267" />
-                              <line x1="76.136" y1="80.344" x2="45.023" y2="80.344" />
-                            </svg>
-                          </span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-badge empty"></span>
-                        </span>
-                      </div>
-                      <div
-                        style="
-                          font-size: 12.5px;
-                          color: #3c4043;
-                          line-height: 1.6;
-                          padding: 8px 0;
-                        "
-                      >
-                        Levine, M., Smith, A., &amp; Park, J. (2011). Priming
-                        effects on decision-making under loss aversion.
-                        <em>Journal of Behavioral Economics</em>.
-                        <span class="mock-indicator-pill anim-badge"
-                          ><span class="mip-doi"
-                            >DOI
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 16 16"
-                              fill="white"
-                              style="display: inline-block; vertical-align: middle"
-                            >
-                              <path
-                                d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"
-                              /></svg
-                          ></span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-seg dim">
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2.2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              style="display: block"
-                            >
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                            </svg>
-                          </span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-seg">
-                            <svg
-                              width="11"
-                              height="15"
-                              viewBox="0 0 98.5 146.5"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="9"
-                              stroke-linecap="round"
-                              style="display: block"
-                            >
-                              <circle cx="13.667" cy="34.833" r="10.167" />
-                              <circle cx="86.302" cy="80.344" r="10.167" />
-                              <circle cx="86.302" cy="12.741" r="10.167" />
-                              <circle cx="13.04" cy="133.811" r="10.166" />
-                              <line x1="13.04" y1="45" x2="13.04" y2="123.645" />
-                              <line x1="23.44" y1="32.04" x2="76.554" y2="15.626" />
-                              <line x1="86.303" y1="22.907" x2="86.303" y2="70.177" />
-                              <line x1="18.027" y1="124.955" x2="80.772" y2="21.267" />
-                              <line x1="76.136" y1="80.344" x2="45.023" y2="80.344" />
-                            </svg>
-                          </span>
-                          <span class="mip-divider"></span>
-                          <span class="mip-badge concern">!</span>
-                        </span>
-                      </div>
-                    </div>
+                  <div class="mock-sheets-toolbar">
+                    <span>File</span><span>Edit</span><span>View</span
+                    ><span>Insert</span><span>Format</span><span>Data</span>
                   </div>
-                  <!-- Scanning toast — bottom-right, matches injector.ts output -->
-                  <div
-                    class="anim-badge"
-                    style="
-                      position: absolute;
-                      bottom: 14px;
-                      right: 14px;
-                      display: flex;
-                      align-items: center;
-                      gap: 8px;
-                      background: linear-gradient(135deg, #853953, #612d53);
-                      color: #fff;
-                      font-size: 12px;
-                      font-weight: 500;
-                      padding: 8px 12px;
-                      border-radius: 8px;
-                      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-                    "
-                  >
-                    <span
-                      style="
-                        width: 12px;
-                        height: 12px;
-                        border-radius: 50%;
-                        border: 2px solid rgba(255, 255, 255, 0.35);
-                        border-top-color: #fff;
-                      "
-                    ></span>
-                    ORE is looking up the papers on this page…
+                  <div class="mock-panel-stage mock-sheets-stage" data-demo="sheets-popup">
+                    <table class="mock-sheets-grid">
+                      <thead>
+                        <tr><th></th><th>A</th><th>B</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>1</td><td>DOI</td><td>Screened</td></tr>
+                        <tr><td>2</td><td>10.1177/0956797610383437</td><td>yes</td></tr>
+                        <tr><td>3</td><td>10.1016/S0140-6736(20)31180-6</td><td>yes</td></tr>
+                        <tr><td>4</td><td>10.1073/pnas.1521072112</td><td>yes</td></tr>
+                        <tr><td>5</td><td>10.1037/0022-3514.74.5.1252</td><td>no</td></tr>
+                        <tr><td>6</td><td>10.1126/science.aac4716</td><td>no</td></tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <!-- /step-6 -->
 
-          <!-- ═══ NAVIGATION ═══ -->
-          <div class="wt-nav">
-            <button class="wt-nav-btn" id="prev-btn" disabled>
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Back
-            </button>
+          <!-- ─────────────────────────────────────────────
+               STEP 8 — You're set
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-8">
+            <div class="wt-step-inner is-welcome">
+              <div class="wt-welcome">
+                <span class="wt-step-num">9 of 9</span>
+                <h1 class="wt-title wt-title-lead">That's all of it</h1>
+                <p class="wt-desc wt-desc-lead">
+                  ORE runs only on the tab you are actually looking at, and only
+                  looks up the papers on it. While it works, a small note sits in
+                  the bottom corner of the page and then disappears — that is the
+                  whole of its footprint until it has something to tell you.
+                </p>
 
-            <div class="wt-nav-center">
-              <div class="wt-dots-row">
-                <button class="wt-dot active" data-step="0"></button>
-                <div class="wt-dot-line"></div>
-                <button class="wt-dot" data-step="1"></button>
-                <div class="wt-dot-line"></div>
-                <button class="wt-dot" data-step="2"></button>
-                <div class="wt-dot-line"></div>
-                <button class="wt-dot" data-step="3"></button>
-                <div class="wt-dot-line"></div>
-                <button class="wt-dot" data-step="4"></button>
-                <div class="wt-dot-line"></div>
-                <button class="wt-dot" data-step="5"></button>
-                <div class="wt-dot-line"></div>
-                <button class="wt-dot" data-step="6"></button>
+                <div class="wt-closing" data-demo="scan-indicator"></div>
+
+                <div class="wt-places wt-places-closing">
+                  <div class="wt-place">
+                    <div class="wt-place-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                      </svg>
+                    </div>
+                    <div class="wt-place-body">
+                      <h3>Set your citation style</h3>
+                      <p>
+                        Pick the style the copy button uses — APA, Vancouver,
+                        BibTeX and eight more.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="wt-place">
+                    <div class="wt-place-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" y1="22" x2="4" y2="15" />
+                      </svg>
+                    </div>
+                    <div class="wt-place-body">
+                      <h3>Add your email</h3>
+                      <p>
+                        Unpaywall asks for a contact address before it will
+                        report free copies. Nothing else uses it.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="wt-place">
+                    <div class="wt-place-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                      </svg>
+                    </div>
+                    <div class="wt-place-body">
+                      <h3>Block a site</h3>
+                      <p>
+                        Any domain where you would rather not see ORE at all can
+                        be switched off.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="wt-footnote">
+                  You can reopen this tour any time from Settings.
+                </p>
               </div>
             </div>
-
-            <button class="wt-nav-btn primary" id="next-btn">Next →</button>
           </div>
         </div>
-        <!-- /wt-card -->
-      </div>
-      <!-- /wt-container -->
-    </main>
 
-    <!-- ═══ FOOTER ═══ -->
-    <div class="footer-bar">
-      <span
-        >FORRT &middot; Framework for Open and Reproducible Research
-        Training</span
-      >
-      <div>
-        <a href="https://forrt.org/about/us/" target="_blank" rel="noopener"
-          >About</a
-        >
-        <a
-          href="https://forrt.org/apps/fred_explorer.html"
-          target="_blank"
-          rel="noopener"
-          >FReD Explorer</a
-        >
-        <a
-          href="https://forrt.org/about/community/"
-          target="_blank"
-          rel="noopener"
-          >Contact</a
-        >
+        <div class="wt-nav">
+          <button class="wt-nav-btn" id="prev-btn" disabled>
+            &larr; Back
+          </button>
+          <div class="wt-dots">
+            <button class="wt-dot active" data-step="0" aria-label="Welcome"></button>
+            <button class="wt-dot" data-step="1" aria-label="Google Scholar results"></button>
+            <button class="wt-dot" data-step="2" aria-label="DOIs found by search"></button>
+            <button class="wt-dot" data-step="3" aria-label="The pill and the side tab"></button>
+            <button class="wt-dot" data-step="4" aria-label="Reading the pill"></button>
+            <button class="wt-dot" data-step="5" aria-label="Retractions and concerns"></button>
+            <button class="wt-dot" data-step="6" aria-label="The Meta Report"></button>
+            <button class="wt-dot" data-step="7" aria-label="Spreadsheets"></button>
+            <button class="wt-dot" data-step="8" aria-label="Settings"></button>
+          </div>
+          <button class="wt-nav-btn primary" id="next-btn">Next &rarr;</button>
+        </div>
       </div>
-    </div>
+    </main>
 
     <script src="walkthrough.js"></script>
   </body>
