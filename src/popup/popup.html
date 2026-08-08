@@ -37,13 +37,34 @@
         <span id="hide-btn-label">Hide on this page</span>
       </button>
 
+      <div class="popup-divider"></div>
+
+      <label class="popup-toggle" for="debug-toggle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 2h8" />
+          <path d="M9 6V4h6v2" />
+          <rect x="7" y="6" width="10" height="14" rx="5" />
+          <path d="M3 11h4M17 11h4M3 16h4M17 16h4" />
+        </svg>
+        <span class="popup-toggle-label">Debug mode</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="debug-toggle" />
+          <span class="toggle-track"></span>
+        </span>
+      </label>
+
+      <p id="debug-hint" class="popup-hint">
+        Turn this on, reload the page and reproduce the problem — then report
+        the issue and the log comes with it.
+      </p>
+
       <button id="report-btn" class="popup-btn popup-btn--report" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           <line x1="12" y1="9" x2="12" y2="13" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
-        Report an issue on this domain
+        <span id="report-btn-label">Report an issue on this domain</span>
       </button>
 
       <div class="popup-divider"></div>

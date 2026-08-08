@@ -1,4 +1,6 @@
 import { getBlockedDomains, saveBlockedDomains, isDomainBlocked } from "../shared/domains";
+import { isDebugEnabledAsync, setDebug } from "../shared/debug";
+import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 
 const domainEl = document.getElementById("current-domain")!;
 const blockBtn = document.getElementById("block-btn")!;
@@ -8,11 +10,15 @@ const hideLabel = document.getElementById("hide-btn-label")!;
 const tourBtn = document.getElementById("tour-btn")!;
 const optionsBtn = document.getElementById("options-btn")!;
 const reportBtn = document.getElementById("report-btn")!;
+const reportLabel = document.getElementById("report-btn-label")!;
+const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
+const debugHint = document.getElementById("debug-hint")!;
 const statusEl = document.getElementById("popup-status")!;
 
 let currentDomain = "";
 let blocked = false;
 let hidden = false;
+let debugOn = false;
 let activeTabId: number | undefined;
 
 reportBtn.style.display = "none";
@@ -46,7 +52,20 @@ function updateHideUI(): void {
   }
 }
 
+function updateDebugUI(): void {
+  debugToggle.checked = debugOn;
+  debugHint.textContent = debugOn
+    ? "Recording. Reload the page, reproduce the problem, then report the issue — the log is filled into the GitHub form for you."
+    : "Turn this on, reload the page and reproduce the problem — then report the issue and the log comes with it.";
+  reportLabel.textContent = debugOn
+    ? "Report an issue with debug log"
+    : "Report an issue on this domain";
+}
+
 async function init(): Promise<void> {
+  debugOn = await isDebugEnabledAsync();
+  updateDebugUI();
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) {
     domainEl.textContent = "No active page";
@@ -127,13 +146,48 @@ hideBtn.addEventListener("click", async () => {
   }
 });
 
-// Report an issue on the current domain
-reportBtn.addEventListener("click", () => {
+// Toggle debug logging
+debugToggle.addEventListener("change", () => {
+  debugOn = debugToggle.checked;
+  setDebug(debugOn);
+  updateDebugUI();
+  showStatus(
+    debugOn ? "Debug mode on — reload the page to record it" : "Debug mode off",
+    "success"
+  );
+});
+
+// Report an issue on the current domain. With debug mode on the report is
+// parked in the service worker, and the content script on the issue form fills
+// it into the body — the log can't ride in the URL, GitHub rejects issue links
+// that long. It also goes to the clipboard so a failed autofill is still one
+// paste away rather than a dead end.
+reportBtn.addEventListener("click", async () => {
   if (!currentDomain) return;
-  const title = encodeURIComponent(`Issue on domain: ${currentDomain}`);
-  const body = encodeURIComponent(`**Domain:** ${currentDomain}\n\n**Description:**\n`);
-  const url = `https://github.com/forrtproject/chromium-extension/issues/new?title=${title}&body=${body}&labels=domain-issue`;
-  chrome.tabs.create({ url });
+
+  let attached = false;
+  let link = issueUrl({ domain: currentDomain });
+
+  if (debugOn) {
+    try {
+      const { text, data } = await buildDebugReport({ pageUrl: currentDomain });
+      link = issueUrl({ domain: currentDomain, report: data });
+      // Park the full log even when the URL already carries a trimmed one: the
+      // issue form upgrades it in place if it can.
+      const stashed = await stashIssueReport(text);
+      attached = link.embedded || stashed;
+      await navigator.clipboard.writeText(text).catch(() => {});
+    } catch {
+      // Report or storage unavailable — open a plain issue instead.
+    }
+  }
+
+  chrome.tabs.create({ url: link.url });
+
+  if (debugOn && !attached) {
+    showStatus("Couldn't attach the log — grab it from Settings", "error");
+    return;
+  }
   window.close();
 });
 

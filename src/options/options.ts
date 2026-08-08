@@ -6,6 +6,15 @@ import {
   isHiddenCommenter,
   saveHiddenCommenters,
 } from "../shared/pubpeer-filter";
+import { isDebugEnabledAsync, setDebug } from "../shared/debug";
+import { clearDebugLog } from "../shared/debug-log";
+import {
+  buildDebugReport,
+  debugReportFilename,
+  issueUrl,
+  stashIssueReport,
+  type DebugReportData,
+} from "../shared/debug-report";
 
 // ── Email form ──────────────────────────────────────────────────────
 
@@ -311,4 +320,113 @@ commenterInput.addEventListener("keydown", (e) => {
 getHiddenCommenters().then((ids) => {
   mutedCommenters = ids;
   renderCommenterList();
+});
+
+// ── Debug mode & issue reports ──────────────────────────────────────
+
+const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
+const debugPreview = document.getElementById("debug-preview") as HTMLPreElement;
+const debugStatus = document.getElementById("debug-status") as HTMLParagraphElement;
+const debugReportBtn = document.getElementById("debug-report-btn") as HTMLButtonElement;
+const debugCopyBtn = document.getElementById("debug-copy-btn") as HTMLButtonElement;
+const debugDownloadBtn = document.getElementById("debug-download-btn") as HTMLButtonElement;
+const debugRefreshBtn = document.getElementById("debug-refresh-btn") as HTMLButtonElement;
+const debugClearBtn = document.getElementById("debug-clear-btn") as HTMLButtonElement;
+
+/** Latest rendered report — what the copy/download/issue buttons act on. */
+let debugReport = "";
+
+function showDebugStatus(msg: string, type: "success" | "error"): void {
+  debugStatus.textContent = msg;
+  debugStatus.className = `status domain-status ${type}`;
+  debugStatus.hidden = false;
+  setTimeout(() => {
+    debugStatus.hidden = true;
+  }, 4000);
+}
+
+async function refreshDebugReport(): Promise<DebugReportData> {
+  const { text, entryCount, data } = await buildDebugReport();
+  debugReport = text;
+  debugPreview.textContent = text;
+  debugPreview.classList.toggle("empty", entryCount === 0);
+  return data;
+}
+
+async function copyDebugReport(): Promise<boolean> {
+  await refreshDebugReport();
+  try {
+    await navigator.clipboard.writeText(debugReport);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+isDebugEnabledAsync().then((enabled) => {
+  debugToggle.checked = enabled;
+});
+
+void refreshDebugReport();
+
+debugToggle.addEventListener("change", () => {
+  setDebug(debugToggle.checked);
+  showDebugStatus(
+    debugToggle.checked
+      ? "Debug mode on — reload the page that misbehaves, reproduce the problem, then come back and refresh the report."
+      : "Debug mode off. The log already captured is kept until you clear it.",
+    "success"
+  );
+});
+
+debugRefreshBtn.addEventListener("click", () => {
+  void refreshDebugReport().then(() => showDebugStatus("Report refreshed.", "success"));
+});
+
+debugCopyBtn.addEventListener("click", async () => {
+  if (await copyDebugReport()) {
+    showDebugStatus("Report copied to the clipboard.", "success");
+  } else {
+    showDebugStatus(
+      "Couldn't reach the clipboard — select the report below and copy it manually.",
+      "error"
+    );
+  }
+});
+
+debugDownloadBtn.addEventListener("click", async () => {
+  await refreshDebugReport();
+  const blob = new Blob([debugReport], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = debugReportFilename();
+  link.click();
+  URL.revokeObjectURL(url);
+  showDebugStatus("Report downloaded — attach the file to your issue.", "success");
+});
+
+debugReportBtn.addEventListener("click", async () => {
+  const data = await refreshDebugReport();
+  const link = issueUrl({ report: data });
+  const stashed = await stashIssueReport(debugReport);
+  // Clipboard as well: if GitHub ever reshapes its issue form, a paste still
+  // beats sending the user back here to fetch the report by hand.
+  await navigator.clipboard.writeText(debugReport).catch(() => {});
+
+  chrome.tabs.create({ url: link.url });
+
+  const attached = link.embedded || stashed;
+  showDebugStatus(
+    attached
+      ? "Opening a GitHub issue with the report filled in."
+      : "Couldn't attach the report — it's on your clipboard, paste it into the issue.",
+    attached ? "success" : "error"
+  );
+});
+
+debugClearBtn.addEventListener("click", async () => {
+  await clearDebugLog();
+  await refreshDebugReport();
+  showDebugStatus("Debug log cleared.", "success");
 });
