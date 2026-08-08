@@ -58,6 +58,13 @@ const configs: esbuild.BuildOptions[] = [
     entryPoints: ["src/walkthrough/walkthrough.ts"],
     outfile: "dist/walkthrough.js",
   },
+  // Ships with the docs site, not the extension: it renders a shared Meta
+  // Report from the link's fragment for readers who don't have ORE installed.
+  {
+    ...sharedOptions,
+    entryPoints: ["src/report-page/index.ts"],
+    outfile: "docs/report.js",
+  },
 ];
 
 function copyStaticAssets() {

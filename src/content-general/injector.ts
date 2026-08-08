@@ -5,6 +5,9 @@ import { getSettings } from "../shared/settings";
 import { safeSendMessage } from "../shared/messages";
 import {RetractionResponse, noticePresentation} from "@shared/doi-retraction";
 import {INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
+import {renderReportDocument, reportUrl, type ReportEntry, type ReportPayload} from "@shared/report";
+import {writeClipboard} from "@shared/clipboard";
+import {showToast} from "@shared/toast";
 
 const BANNER_HOST_ID = "flora-banner-host";
 
@@ -388,84 +391,92 @@ export interface SheetsModalCallbacks {
     onSnooze: () => void;
 }
 
+/** A retraction outranks a concern, which outranks a replication count. */
+function sheetsHeadline(retracted: number, concerned: number): string {
+    if (retracted > 0) {
+        return `${retracted} retracted paper${retracted !== 1 ? "s" : ""} in this sheet`;
+    }
+    if (concerned > 0) {
+        return `${concerned} paper${concerned !== 1 ? "s" : ""} with an expression of concern`;
+    }
+    return "Replication data found";
+}
+
+function noticeSection(notices: RetractionResponse[]): string {
+    if (notices.length === 0) return "";
+
+    const rows = notices.map((notice) => {
+        const {label, pillBackground, pillStroke, pillText} = noticePresentation(notice.kind);
+        return `
+      <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
+        all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;
+        padding:6px 8px;border-radius:6px;background:${pillBackground};
+        border:1px solid ${pillStroke}55;margin-bottom:6px;box-sizing:border-box;
+      ">
+        <span style="
+          flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.2px;
+          color:${pillText};border:1px solid ${pillStroke};background:#fff;
+          padding:1px 6px;border-radius:4px;
+        ">${label}</span>
+        <span style="
+          flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+          font-size:11px;color:#3c4043;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+        ">${escapeHtml(notice.originDoi)}</span>
+        <span style="flex-shrink:0;font-size:11px;color:${pillText};">Notice ↗</span>
+      </a>`;
+    }).join("");
+
+    return `
+      <div data-flora-notices style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:600;color:#5f6368;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;">
+          Withdrawn or questioned
+        </div>
+        ${rows}
+      </div>`;
+}
+
+/**
+ * Retractions and concerns are reported even when the sheet has no replication
+ * data at all — a retracted row is the finding that most needs surfacing, and
+ * it would otherwise pass silently.
+ */
 export function renderSheetsModal(
     matched: { doi: string; result: ReplicationResult }[],
+    notices: RetractionResponse[] = [],
     callbacks?: SheetsModalCallbacks
 ): void {
-    if (matched.length === 0) {
-        removeSheetsModal();
-        return;
-    }
-
     const totalRepl = matched.reduce(
         (sum, m) => sum + m.result.record.stats.n_replications_total, 0
     );
     const totalRepro = matched.reduce(
         (sum, m) => sum + m.result.record.stats.n_reproductions_total, 0
     );
+    const hasReplicationData = totalRepl > 0 || totalRepro > 0;
 
-    if (totalRepl === 0 && totalRepro === 0) {
+    if (!hasReplicationData && notices.length === 0) {
         removeSheetsModal();
         return;
     }
 
+    const retracted = notices.filter((n) => n.kind === "retraction").length;
+    const concerned = notices.length - retracted;
     const doiCount = matched.length;
     const doisParam = matched.map((m) => m.doi).join(",");
 
+    const signature = [
+        doiCount, totalRepl, totalRepro,
+        ...notices.map((n) => `${n.originDoi}:${n.kind}`).sort(),
+    ].join("|");
+
     const existing = document.getElementById(SHEETS_MODAL_ID);
+    if (existing?.dataset.floraSheetsSig === signature) return;
+    existing?.remove();
 
-    if (existing) {
-        // Update in-place — just refresh the dynamic parts
-        const doiCountEl = existing.querySelector<HTMLElement>("[data-flora-doi-count]");
-        const replCountEl = existing.querySelector<HTMLElement>("[data-flora-repl-count]");
-        const replLabelEl = existing.querySelector<HTMLElement>("[data-flora-repl-label]");
-        const reproCountEl = existing.querySelector<HTMLElement>("[data-flora-repro-count]");
-        const reproLabelEl = existing.querySelector<HTMLElement>("[data-flora-repro-label]");
-        const detailsLink = existing.querySelector<HTMLAnchorElement>("[data-flora-details-link]");
+    const summary = hasReplicationData
+        ? `Found replication &amp; reproduction data for <strong data-flora-doi-count style="color:#202124;">${doiCount} DOI${doiCount !== 1 ? "s" : ""}</strong> in this spreadsheet.`
+        : "Checked the DOIs in this spreadsheet against the Retraction Watch database.";
 
-        if (doiCountEl) doiCountEl.textContent = `${doiCount} DOI${doiCount !== 1 ? "s" : ""}`;
-        if (replCountEl) replCountEl.textContent = String(totalRepl);
-        if (replLabelEl) replLabelEl.textContent = `Replication${totalRepl !== 1 ? "s" : ""}`;
-        if (reproCountEl) reproCountEl.textContent = String(totalRepro);
-        if (reproLabelEl) reproLabelEl.textContent = `Reproduction${totalRepro !== 1 ? "s" : ""}`;
-        if (detailsLink) detailsLink.href = `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doisParam)}`;
-        return;
-    }
-
-    // First render — create the modal
-    const host = document.createElement("div");
-    host.id = SHEETS_MODAL_ID;
-    host.innerHTML = `
-    <div role="dialog" aria-labelledby="flora-modal-title" style="
-      position:fixed;top:60px;right:24px;z-index:2147483647;
-      width:360px;background:#fff;border-radius:12px;
-      box-shadow:0 8px 28px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.08);
-      font-family:'Google Sans',Roboto,-apple-system,sans-serif;
-      overflow:hidden;animation:floraSlideIn 0.25s ease-out;
-    ">
-      <!-- Green accent header -->
-      <div style="background:linear-gradient(135deg,#853953,#612D53);padding:14px 16px;display:flex;align-items:center;gap:10px;">
-        <span style="
-          background:rgba(255,255,255,0.2);color:#fff;font-weight:700;font-size:13px;
-          padding:4px 10px;border-radius:6px;letter-spacing:0.3px;
-        ">FORRT ORE</span>
-        <span id="flora-modal-title" style="color:#fff;font-size:13px;font-weight:500;flex:1;">
-          Replication Data Found
-        </span>
-        <span class="flora-modal-close" role="button" tabindex="0" aria-label="Close" style="
-          cursor:pointer;color:rgba(255,255,255,0.7);font-size:20px;line-height:1;
-          width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-          border-radius:50%;transition:background 0.15s;
-        ">\u00d7</span>
-      </div>
-
-      <!-- Body -->
-      <div style="padding:16px;">
-        <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">
-          Found replication &amp; reproduction data for <strong data-flora-doi-count style="color:#202124;">${doiCount} DOI${doiCount !== 1 ? "s" : ""}</strong> in this spreadsheet.
-        </div>
-
-        <!-- Stat cards -->
+    const statCards = hasReplicationData ? `
         <div style="display:flex;gap:10px;margin-bottom:4px;">
           <div style="
             flex:1;background:#f9f0f4;border:1px solid #d4a5b8;border-radius:8px;
@@ -481,10 +492,46 @@ export function renderSheetsModal(
             <div data-flora-repro-count style="font-size:22px;font-weight:600;color:#853953;line-height:1;">${totalRepro}</div>
             <div data-flora-repro-label style="font-size:11px;color:#612D53;margin-top:4px;font-weight:500;">Reproduction${totalRepro !== 1 ? "s" : ""}</div>
           </div>
-        </div>
+        </div>` : "";
+
+    const detailsLink = hasReplicationData ? `
+        <a data-flora-details-link href="https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doisParam)}" target="_blank" rel="noopener" style="
+          all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
+          color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
+        ">View details</a>` : "";
+
+    const host = document.createElement("div");
+    host.id = SHEETS_MODAL_ID;
+    host.dataset.floraSheetsSig = signature;
+    host.innerHTML = `
+    <div role="dialog" aria-labelledby="flora-modal-title" style="
+      position:fixed;top:60px;right:24px;z-index:2147483647;
+      width:360px;background:#fff;border-radius:12px;
+      box-shadow:0 8px 28px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.08);
+      font-family:'Google Sans',Roboto,-apple-system,sans-serif;
+      overflow:hidden;animation:floraSlideIn 0.25s ease-out;
+    ">
+      <div style="background:linear-gradient(135deg,#853953,#612D53);padding:14px 16px;display:flex;align-items:center;gap:10px;">
+        <span style="
+          background:rgba(255,255,255,0.2);color:#fff;font-weight:700;font-size:13px;
+          padding:4px 10px;border-radius:6px;letter-spacing:0.3px;
+        ">FORRT ORE</span>
+        <span id="flora-modal-title" data-flora-modal-title style="color:#fff;font-size:13px;font-weight:500;flex:1;">
+          ${sheetsHeadline(retracted, concerned)}
+        </span>
+        <span class="flora-modal-close" role="button" tabindex="0" aria-label="Close" style="
+          cursor:pointer;color:rgba(255,255,255,0.7);font-size:20px;line-height:1;
+          width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+          border-radius:50%;transition:background 0.15s;
+        ">\u00d7</span>
       </div>
 
-      <!-- Footer -->
+      <div style="padding:16px;">
+        <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">${summary}</div>
+        ${noticeSection(notices)}
+        ${statCards}
+      </div>
+
       <div style="padding:10px 16px 14px;display:flex;align-items:center;gap:8px;">
         <button class="flora-modal-snooze" title="Snooze for 10 minutes" style="
           all:unset;cursor:pointer;padding:7px 8px;font-size:0;line-height:0;
@@ -495,10 +542,7 @@ export function renderSheetsModal(
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#5f6368;border-radius:6px;transition:background 0.15s;
         ">Dismiss</button>
-        <a data-flora-details-link href="https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doisParam)}" target="_blank" rel="noopener" style="
-          all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
-          color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">View details</a>
+        ${detailsLink}
       </div>
     </div>
 
@@ -791,6 +835,89 @@ function panelSignature(
   return parts.join(";;");
 }
 
+const HEADER_ACTION_STYLE =
+  "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);line-height:0;" +
+  "width:28px;height:28px;display:flex;align-items:center;justify-content:center;" +
+  "border-radius:50%;transition:color 0.15s,background 0.15s;";
+
+const DOWNLOAD_ICON =
+  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
+  `stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>` +
+  `<polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+
+const SHARE_ICON =
+  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
+  `stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>` +
+  `<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+
+function headerAction(icon: string, label: string, onClick: () => void): HTMLButtonElement {
+  const btn = document.createElement("button");
+  btn.setAttribute("aria-label", label);
+  btn.title = label;
+  btn.style.cssText = HEADER_ACTION_STYLE;
+  btn.innerHTML = icon;
+  btn.addEventListener("mouseenter", () => {
+    btn.style.color = "#fff";
+    btn.style.background = "rgba(255,255,255,0.15)";
+  });
+  btn.addEventListener("mouseleave", () => {
+    btn.style.color = "rgba(255,255,255,0.8)";
+    btn.style.background = "";
+  });
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+
+function toReportEntry(entry: {
+  doi?: string | null; title?: string | null; journal?: string | null;
+  year?: number | null; url?: string | null; outcome?: string | null;
+  authors?: Array<{given?: string | null; family?: string | null}> | null;
+}): ReportEntry {
+  const first = entry.authors?.[0];
+  const name = first?.family ?? first?.given ?? null;
+  return {
+    title: entry.title ?? entry.doi ?? "Unknown",
+    doi: entry.doi ?? null,
+    url: entry.url ?? null,
+    authors: name ? (entry.authors!.length > 1 ? `${name} et al.` : name) : null,
+    year: entry.year ?? null,
+    journal: entry.journal ?? null,
+    outcome: entry.outcome ?? null,
+  };
+}
+
+/**
+ * Print the report from a detached window rather than the host page: printing
+ * the page itself would produce the article, and the panel is a fixed overlay
+ * that most publisher print stylesheets hide outright.
+ */
+function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
+  return headerAction(DOWNLOAD_ICON, "Save this report (print to PDF)", () => {
+    const win = window.open("", "_blank", "width=900,height=1000");
+    if (!win) {
+      showToast("Allow pop-ups for this site to save the report", {tone: "error"});
+      return;
+    }
+    win.document.write(renderReportDocument(payload()));
+    win.document.close();
+    win.addEventListener("load", () => win.print(), {once: true});
+  });
+}
+
+function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
+  return headerAction(SHARE_ICON, "Copy a link to this report", () => {
+    void reportUrl(payload())
+      .then((url) => writeClipboard(url))
+      .then((copied) => {
+        showToast(
+          copied ? "Report link copied — the report travels inside the link" : "Couldn't copy the link",
+          {tone: copied ? "success" : "error"}
+        );
+      })
+      .catch(() => showToast("Couldn't build the report link", {tone: "error"}));
+  });
+}
+
 export function renderSidePanel(
   articleFeedbacks: PubPeerFeedback[],
   references: { doi: DoiString; title: string }[],
@@ -963,6 +1090,37 @@ export function renderSidePanel(
   header.innerHTML = `
     <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
     <span style="color:#fff;font-size:14px;font-weight:500;flex:1;">Meta Report</span>`;
+
+  const buildPayload = (): ReportPayload => ({
+    v: 1,
+    title: articleTitleText,
+    doi: articleDois[0] ?? null,
+    authors: subtitleAuthors,
+    year: subtitleYear,
+    sourceUrl: location.href,
+    generated: Date.now(),
+    notice: articleNotice ? {kind: articleNotice.kind, doi: articleNotice.doi} : null,
+    replications: articleIsReplication ? [] : allReplicationEntries.map(toReportEntry),
+    reproductions: articleIsReplication ? [] : allReproductionEntries.map(toReportEntry),
+    originals: allOriginalEntries.map(toReportEntry),
+    references: references.map((ref) => {
+      const state = pageState.get(ref.doi);
+      const stats = state?.status === "matched" ? state.result.record.stats : null;
+      return {
+        title: ref.title || refFeedbackByDoi.get(ref.doi)?.title || ref.doi,
+        doi: ref.doi,
+        replications: stats?.n_replications_total ?? 0,
+        reproductions: stats?.n_reproductions_total ?? 0,
+        inAtlas: (stats?.n_originals_total ?? 0) > 0,
+        notice: retractionByDoi.get(ref.doi)?.kind ?? null,
+        comments: refFeedbackByDoi.get(ref.doi)?.total_comments ?? 0,
+      };
+    }),
+    pubpeer: primary ? {comments: primary.total_comments, url: primary.url} : null,
+  });
+
+  header.appendChild(buildSaveButton(buildPayload));
+  header.appendChild(buildShareButton(buildPayload));
 
   const closeBtn = document.createElement("button");
   closeBtn.setAttribute("aria-label", "Close panel");
@@ -1332,19 +1490,25 @@ export function renderSidePanel(
       }
     }
 
-    const refRetraction = retractionByDoi.get(doi);
-    if (refRetraction) {
-      const retractTag = document.createElement("a");
-      retractTag.href = `https://doi.org/${refRetraction.doi}`;
-      retractTag.target = "_blank";
-      retractTag.rel = "noopener noreferrer";
-      retractTag.title = "View the retraction notice";
-      retractTag.style.cssText =
-        "flex-shrink:0;font-size:10px;font-weight:600;color:#fff;" +
-        "background:#FF1744;border:1px solid #FF1744;padding:1px 7px;border-radius:10px;" +
-        "white-space:nowrap;text-decoration:none;cursor:pointer;";
-      retractTag.textContent = "Retracted";
-      tagsRow.appendChild(retractTag);
+    const refNotice = retractionByDoi.get(doi);
+    if (refNotice) {
+      const np = noticePresentation(refNotice.kind);
+      const isRetraction = refNotice.kind === "retraction";
+      const noticeTag = document.createElement("a");
+      noticeTag.href = `https://doi.org/${refNotice.doi}`;
+      noticeTag.target = "_blank";
+      noticeTag.rel = "noopener noreferrer";
+      noticeTag.title = isRetraction
+        ? "View the retraction notice"
+        : "View the expression-of-concern notice";
+      noticeTag.style.cssText =
+        "flex-shrink:0;font-size:10px;font-weight:600;" +
+        (isRetraction
+          ? "color:#fff;background:#FF1744;border:1px solid #FF1744;"
+          : `color:${np.pillText};background:${np.pillBackground};border:1px solid ${np.pillStroke};`) +
+        "padding:1px 7px;border-radius:10px;white-space:nowrap;text-decoration:none;cursor:pointer;";
+      noticeTag.textContent = np.label;
+      tagsRow.appendChild(noticeTag);
     }
 
     if (feedback && feedback.total_comments > 0) {

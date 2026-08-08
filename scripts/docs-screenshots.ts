@@ -5,9 +5,10 @@
 // Two sources, both rendered in Chrome for Testing (see tests/visual/README.md
 // for the first-run extraction gotcha on macOS):
 //
-//   * dist/walkthrough.html — the in-extension tour. Each step contains a
-//     hand-built browser mock; we capture the mock alone, without the tour's
-//     own prose and navigation chrome.
+//   * dist/walkthrough.html — the in-extension tour. Its demos are built by
+//     the extension's own components (see src/walkthrough/demos.ts), so these
+//     images track the real UI rather than a mock of it. We capture the demo
+//     column alone, without the tour's prose and navigation chrome.
 //   * dist/options.html and dist/popup.html — the real settings and popup UI,
 //     rendered with a minimal `chrome.*` stub so they run outside an
 //     extension host.
@@ -28,15 +29,17 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(REPO_ROOT, "docs", "img");
 
-/** Walkthrough step index -> screenshot file name. */
-const WALKTHROUGH_STEPS = [
+/** Walkthrough step index -> screenshot file name; null for prose-only steps. */
+const WALKTHROUGH_STEPS: (string | null)[] = [
+  null, // welcome
   "scholar-confirmed-doi",
   "scholar-unconfirmed-doi",
-  "spreadsheet-detection",
-  "replication-badges",
+  "pills-and-side-tab",
   "pill-icons",
+  "retractions-and-concerns",
   "meta-report-panel",
-  "open-access-retractions",
+  "spreadsheet-detection",
+  null, // closing
 ];
 
 // Enough of the extension APIs for options.js / popup.js to initialise.
@@ -88,13 +91,17 @@ async function main(): Promise<void> {
     await settle(1500);
 
     for (const [i, name] of WALKTHROUGH_STEPS.entries()) {
+      if (!name) continue;
       await tour.evaluate((step) => {
         document.querySelector<HTMLElement>(`.wt-dot[data-step="${step}"]`)?.click();
       }, i);
-      await settle(3000); // let the step's entrance animation finish
-      // Most steps frame their demo in a browser mock; the pill legend doesn't.
+      await settle(3000); // let the step's entrance animation and lookups finish
+      // Most steps frame their demo in a browser mock; the legend steps don't.
+      const step = `#step-${i}`;
       const target =
-        (await tour.$(`#demo-${i} .mock-browser`)) ?? (await tour.$(`#demo-${i}`));
+        (await tour.$(`${step} .mock-browser`)) ??
+        (await tour.$(`${step} .demo-board`)) ??
+        (await tour.$(`${step} .step-demo`));
       if (!target) {
         console.warn(`no demo element for step ${i} (${name}) — skipped`);
         continue;

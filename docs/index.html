@@ -55,7 +55,7 @@
         </div>
         <figure class="shot">
           <img
-            src="img/replication-badges.png"
+            src="img/pills-and-side-tab.png"
             alt="A journal article page with an ORE pill next to the DOI and the ORE tab at the edge of the page"
           />
         </figure>
@@ -74,17 +74,17 @@
 
           <h3>One pill, four signals</h3>
           <p>
-            Left to right: whether the DOI was confirmed or matched by title,
-            whether a free full text exists, whether the paper is discussed on
-            PubPeer, and how many replications or reproductions are on record. A
-            dimmed segment means nothing was found for that signal — it never
-            disappears. A red or amber dot replaces the count when the paper has
-            been retracted or flagged with an expression of concern.
+            Left to right: whether the DOI was read off the page or found by
+            search, whether a free full text exists, whether the paper is
+            discussed on PubPeer, and how many replications or reproductions are
+            on record. A dimmed segment means nothing was found for that signal —
+            it never disappears. Point at the pill and each segment opens into a
+            row you can read and act on; click to keep it open.
           </p>
           <figure class="shot plain wide">
             <img
               src="img/pill-icons.png"
-              alt="Legend explaining each segment of the indicator pill: DOI confirmed, DOI matched by title, open access, PubPeer, replication count, retraction or concern, and nothing on record"
+              alt="The indicator pill shown closed with every signal, closed with none, and open as a panel of rows"
             />
           </figure>
 
@@ -100,7 +100,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/open-access-retractions.png"
+                src="img/retractions-and-concerns.png"
                 alt="An article page with ORE pills next to the title and each reference, one showing a retraction flag"
               />
             </figure>
@@ -117,6 +117,12 @@
                 FLoRA Replication Atlas or a PubPeer thread. If the paper you
                 are reading is itself a replication, the panel shows the
                 original study instead.
+              </p>
+              <p>
+                A report can be saved as a PDF, or shared as a link that opens
+                it as a web page for colleagues who do not have ORE. The report
+                travels inside the link itself — nothing is uploaded, and no
+                server ever sees what you were reading.
               </p>
             </div>
             <figure class="shot">
@@ -143,15 +149,14 @@
               <p>
                 Each result gets a panel with its DOI, a one-click citation in
                 the style you chose, open-access status, PubPeer comment count
-                and replication count. When the DOI comes from a
-                <code>doi.org</code> link or the doi.org resolver, the panel
-                reads “Found on this page”.
+                and replication count. A DOI printed on the page is shown plain;
+                hover it and the panel says it was found there.
               </p>
               <p>
-                When a result carries no DOI at all, ORE resolves it through
-                Crossref and OpenAlex title search and labels it “Matched by
-                title”, with the DOI underlined — a match to check rather than
-                trust.
+                When a result carries no DOI at all, ORE searches Crossref and
+                OpenAlex by title and narrows the candidates by first author and
+                year. A DOI found that way is underlined with dots and labelled
+                “Matched by search” — a match to check rather than trust.
               </p>
             </div>
             <figure class="shot">
@@ -160,8 +165,8 @@
                 alt="A Google Scholar result with an ORE panel showing a DOI matched by title"
               />
               <figcaption>
-                A title-matched result. Confirmed DOIs are shown with a tick
-                instead.
+                A result whose DOI was found by search. A DOI read off the page
+                carries no underline.
               </figcaption>
             </figure>
           </div>
@@ -173,6 +178,9 @@
                 Open a spreadsheet of papers — a screening sheet, a reading list, a
                 reference export — and the whole sheet is scanned, including
                 rows below the fold, with a summary of what was found.
+                Retracted papers and expressions of concern are named
+                individually and linked to their notices, and the popup opens
+                for them even when nothing in the sheet has replication data.
               </p>
             </div>
             <figure class="shot">
@@ -196,7 +204,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/replication-badges.png"
+                src="img/pills-and-side-tab.png"
                 alt="A journal article page showing the ORE pill next to the DOI and the ORE tab"
               />
             </figure>
@@ -234,10 +242,12 @@
               <h3>Settings</h3>
               <p>
                 Set the contact email that Crossref, OpenAlex and Unpaywall ask
-                for, choose your citation style, decide whether every reference
-                gets a DOI pill or only the ones without a visible DOI, cap how
-                much cache is kept, manage the domain blocklist, and mute
-                PubPeer commenters you would rather not see.
+                for, choose your citation style — copied with its italics
+                intact, so it pastes into Word or Google Docs correctly
+                formatted — decide whether every reference gets a DOI pill or
+                only the ones without a visible DOI, cap how much cache is kept,
+                manage the domain blocklist, and mute PubPeer commenters you
+                would rather not see.
               </p>
             </div>
             <figure class="shot">

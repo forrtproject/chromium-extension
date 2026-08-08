@@ -50,12 +50,18 @@ export async function preferredCitationFormat(): Promise<CitationFormat> {
     }
 }
 
-const CITATION_CACHE = new BlobCache<{text: string}>({
+export interface Citation {
+    text: string;
+    /** Inline HTML carrying the emphasis CSL renders. Null for BibTeX/RIS. */
+    html: string | null;
+}
+
+const CITATION_CACHE = new BlobCache<{text: string; html?: string | null}>({
     storageKey: "flora_citation_blob",
     ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days — a published record's citation is stable
 });
 
-const inflight = new Map<string, Promise<string | null>>();
+const inflight = new Map<string, Promise<Citation | null>>();
 
 const ENTITIES: Record<string, string> = {
     amp: "&",
@@ -74,6 +80,17 @@ function stripMarkup(raw: string): string {
         .replace(/&(#?[a-z0-9]+);/gi, (match, entity: string) => ENTITIES[entity.toLowerCase()] ?? match);
 }
 
+// Tags kept from CSL output; every other tag and every attribute is dropped,
+// so nothing but plain emphasis reaches the clipboard.
+const INLINE_TAGS = new Set(["i", "em", "b", "strong", "sub", "sup"]);
+
+function keepInlineMarkup(raw: string): string {
+    return raw.replace(/<(\/?)([a-z0-9]+)[^>]*>/gi, (_match, slash: string, name: string) => {
+        const tag = name.toLowerCase();
+        return INLINE_TAGS.has(tag) ? `<${slash}${tag}>` : "";
+    });
+}
+
 /**
  * Crossref stores an empty editor list on many journal articles, which citeproc
  * renders as a dangling "edited by ," / ", ed." in the styles that name editors.
@@ -86,14 +103,24 @@ function dropEmptyEditor(text: string): string {
         .replace(/\.\s*,\s*ed\.\s+/gi, ". ");
 }
 
-export function tidyCitation(raw: string, format: CitationFormat): string {
-    const text = stripMarkup(raw).trim();
-    if (format.verbatim) return text;
-    return dropEmptyEditor(text)
+function polish(rendered: string): string {
+    return dropEmptyEditor(rendered)
         // Numeric styles prefix the entry with its bibliography position.
         .replace(/^(?:\[\d+\]|\d+\.)\s*/, "")
         .replace(/\s+/g, " ")
         .trim();
+}
+
+export function tidyCitation(raw: string, format: CitationFormat): string {
+    const text = stripMarkup(raw).trim();
+    return format.verbatim ? text : polish(text);
+}
+
+/** The same entry with its emphasis intact, or null where the format has none. */
+export function tidyCitationHtml(raw: string, format: CitationFormat): string | null {
+    if (format.verbatim) return null;
+    const html = polish(keepInlineMarkup(raw).trim());
+    return html || null;
 }
 
 function crossrefUrl(doi: string, email: string): string {
@@ -105,7 +132,7 @@ function doiOrgUrl(doi: string): string {
     return `https://doi.org/${doi.split("/").map(encodeURIComponent).join("/")}`;
 }
 
-async function requestCitation(doi: string, format: CitationFormat): Promise<string | null> {
+async function requestCitation(doi: string, format: CitationFormat): Promise<Citation | null> {
     let email = "";
     try {
         email = (await getSettings()).email;
@@ -117,8 +144,9 @@ async function requestCitation(doi: string, format: CitationFormat): Promise<str
         try {
             const response = await fetch(url, {headers: {Accept: format.accept}});
             if (!response.ok) continue;
-            const text = tidyCitation(await response.text(), format);
-            if (text) return text;
+            const raw = await response.text();
+            const text = tidyCitation(raw, format);
+            if (text) return {text, html: tidyCitationHtml(raw, format)};
         } catch {
             // Try the next service.
         }
@@ -131,20 +159,21 @@ async function requestCitation(doi: string, format: CitationFormat): Promise<str
  * when neither Crossref nor doi.org can render the DOI — failures are not cached
  * so a transient outage doesn't suppress the citation for the cache TTL.
  */
-export async function fetchCitation(doi: string, formatId: string): Promise<string | null> {
+export async function fetchCitation(doi: string, formatId: string): Promise<Citation | null> {
     const format = citationFormat(formatId);
     const key = `${doi}|${format.id}`;
 
+    // Entries cached before rich text shipped carry no `html`.
     const cached = await CITATION_CACHE.get(key);
-    if (cached) return cached.text;
+    if (cached) return {text: cached.text, html: cached.html ?? null};
 
     const existing = inflight.get(key);
     if (existing) return existing;
 
     const pending = requestCitation(doi, format)
-        .then(async (text) => {
-            if (text) await CITATION_CACHE.set(key, {text});
-            return text;
+        .then(async (citation) => {
+            if (citation) await CITATION_CACHE.set(key, citation);
+            return citation;
         })
         .finally(() => inflight.delete(key));
     inflight.set(key, pending);

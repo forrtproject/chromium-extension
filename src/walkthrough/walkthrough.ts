@@ -1,4 +1,6 @@
-const TOTAL = 7;
+import {installOfflineFixtures, mountDemos} from "./demos";
+
+const TOTAL = 9;
 let current = 0;
 
 function activate(n: number): void {
@@ -11,47 +13,43 @@ function activate(n: number): void {
   stepEl?.classList.add("is-active");
   document.querySelector<HTMLElement>(`.wt-dot[data-step="${current}"]`)?.classList.add("active");
 
-  const demo = stepEl?.querySelector<HTMLElement>(".step-demo");
-  if (demo) {
-    demo.classList.remove("is-playing");
-    void demo.offsetHeight;
-    demo.classList.add("is-playing");
-  }
+  if (stepEl) mountDemos(stepEl);
 
   const prev = document.getElementById("prev-btn") as HTMLButtonElement;
   const next = document.getElementById("next-btn") as HTMLButtonElement;
   prev.disabled = current === 0;
-  next.textContent = current === TOTAL - 1 ? "Get started →" : "Next →";
+  next.textContent = current === TOTAL - 1 ? "Open Settings →" : "Next →";
 
   const fill = document.getElementById("progress-fill");
   if (fill) fill.style.width = `${((current + 1) / TOTAL) * 100}%`;
+
+  document.querySelector(".wt-card")?.scrollTo({top: 0});
 }
+
+function finish(): void {
+  chrome.runtime.openOptionsPage();
+  window.close();
+}
+
+installOfflineFixtures();
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("prev-btn")?.addEventListener("click", () => activate(current - 1));
 
   document.getElementById("next-btn")?.addEventListener("click", () => {
-    if (current === TOTAL - 1) {
-      chrome.runtime.openOptionsPage();
-      window.close();
-    } else {
-      activate(current + 1);
-    }
+    if (current === TOTAL - 1) finish();
+    else activate(current + 1);
   });
 
   document.querySelectorAll<HTMLElement>(".wt-dot").forEach((dot) => {
-    dot.addEventListener("click", () => {
-      activate(parseInt(dot.dataset.step ?? "0", 10));
-    });
+    dot.addEventListener("click", () => activate(parseInt(dot.dataset.step ?? "0", 10)));
   });
 
-  document.querySelectorAll<HTMLElement>(".replay-btn").forEach((btn) => {
-    btn.addEventListener("click", () => activate(current));
-  });
+  document.getElementById("skip-btn")?.addEventListener("click", finish);
 
-  document.getElementById("skip-btn")?.addEventListener("click", () => {
-    chrome.runtime.openOptionsPage();
-    window.close();
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") activate(current + 1);
+    if (e.key === "ArrowLeft") activate(current - 1);
   });
 
   activate(0);
