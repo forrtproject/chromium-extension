@@ -3,12 +3,17 @@ import {lookupDOIs} from "@shared/flora-api";
 import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, type TakeReportResponse} from "@shared/messages";
 import {augmentDOIs} from "@shared/doi-augment";
 import {resolvePmcIds} from "@shared/pmc-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
+import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
 
 const cache = new LocalCache<ReplicationResult>("flora");
+
+// The worker owns the debug log: its own entries are stored directly, and
+// every other context ships batches here via FLORA_DEBUG_ENTRIES.
+installDebugLogStore();
 
 // Initialise cache quota from persisted settings (service worker may restart).
 getSettings().then(({ cacheQuotaMb }) => {
@@ -101,6 +106,27 @@ chrome.runtime.onMessage.addListener(
             const tabId = sender.tab?.id;
             if (tabId != null) setActionIcon(active, tabId);
             return false;
+        }
+
+        if (isDebugEntriesRequest(message)) {
+            void appendDebugEntries(message.entries);
+            return false;
+        }
+
+        if (isStashReportRequest(message)) {
+            stashReport(message.report).then(() => sendResponse({ok: true}));
+            return true;
+        }
+
+        if (isTakeReportRequest(message)) {
+            takeReport(message.type === "FLORA_TAKE_REPORT")
+                .then((report) =>
+                    sendResponse({type: "FLORA_TAKE_REPORT_RESULT", report} satisfies TakeReportResponse)
+                )
+                .catch(() =>
+                    sendResponse({type: "FLORA_TAKE_REPORT_RESULT", report: null} satisfies TakeReportResponse)
+                );
+            return true;
         }
 
         if (isLookupRequest(message)) {
@@ -201,6 +227,48 @@ chrome.runtime.onMessage.addListener(
         return false;
     }
 );
+
+// ── Pending issue report ────────────────────────────────────────────────────
+// A report waits here between "Report an issue" being clicked and the GitHub
+// issue form loading. It lives in session storage — never written to disk, gone
+// when the browser closes — and only the worker can read it, so the content
+// script has to ask for it by message.
+
+const PENDING_REPORT_KEY = "flora_pending_report";
+
+/**
+ * How long a parked report stays claimable. Long enough to survive a detour
+ * through GitHub's sign-in flow, short enough that an abandoned report doesn't
+ * turn up in an unrelated issue days later.
+ */
+const PENDING_REPORT_TTL_MS = 15 * 60 * 1000;
+
+async function stashReport(report: string): Promise<void> {
+    try {
+        await chrome.storage.session.set({
+            [PENDING_REPORT_KEY]: {report, createdAt: Date.now()},
+        });
+    } catch {
+        // Session storage unavailable — the report is still on the clipboard.
+    }
+}
+
+/**
+ * Read the parked report, consuming it unless this is only a peek — a peek
+ * asks "is one waiting?" so a failed autofill can say so without throwing the
+ * report away.
+ */
+async function takeReport(consume: boolean): Promise<string | null> {
+    const raw = await chrome.storage.session.get(PENDING_REPORT_KEY);
+    const pending = raw?.[PENDING_REPORT_KEY] as
+        | {report?: string; createdAt?: number}
+        | undefined;
+    if (!pending?.report) return null;
+
+    const expired = Date.now() - (pending.createdAt ?? 0) > PENDING_REPORT_TTL_MS;
+    if (consume || expired) await chrome.storage.session.remove(PENDING_REPORT_KEY);
+    return expired ? null : pending.report;
+}
 
 async function handleLookup(dois: DoiString[]): Promise<LookupResponse> {
     const results: Record<string, ReplicationResult> = {};

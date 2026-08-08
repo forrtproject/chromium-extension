@@ -141,6 +141,88 @@ body {
   color: var(--text-muted);
 }
 
+/* ─── Debug toggle ─── */
+.popup-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.popup-toggle:hover {
+  background: var(--surface);
+}
+
+.popup-toggle-label {
+  flex: 1 1 auto;
+}
+
+.toggle-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 18px;
+}
+
+.toggle-switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.toggle-track::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--white);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform var(--transition-fast);
+}
+
+.toggle-switch input:checked + .toggle-track {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.toggle-switch input:checked + .toggle-track::before {
+  transform: translateX(14px);
+}
+
+.toggle-switch input:focus-visible + .toggle-track {
+  box-shadow: 0 0 0 3px rgba(133, 57, 83, 0.15);
+}
+
+.popup-hint {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  padding: 0 10px 2px;
+  margin-top: -4px;
+}
+
 /* ─── Status toast ─── */
 .popup-status {
   padding: 8px 14px;

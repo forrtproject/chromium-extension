@@ -1,4 +1,60 @@
 import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse} from "./types";
+import type {DebugLogEntry} from "./debug";
+
+/** Any context → service worker: captured debug entries to persist. */
+export interface DebugEntriesRequest {
+    type: "FLORA_DEBUG_ENTRIES";
+    entries: DebugLogEntry[];
+}
+
+export function isDebugEntriesRequest(msg: unknown): msg is DebugEntriesRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_DEBUG_ENTRIES" &&
+        Array.isArray((msg as Record<string, unknown>).entries)
+    );
+}
+
+/**
+ * Popup/options → service worker: hold this report until the GitHub issue form
+ * asks for it. It's parked in the worker rather than passed through the tab URL
+ * because GitHub rejects issue links long enough to carry a log.
+ */
+export interface StashReportRequest {
+    type: "FLORA_STASH_REPORT";
+    report: string;
+}
+
+/**
+ * Issue-form content script → service worker: hand over the parked report
+ * ("take", which consumes it) or just ask whether one is waiting ("peek",
+ * which leaves it for a later attempt).
+ */
+export interface TakeReportRequest {
+    type: "FLORA_TAKE_REPORT" | "FLORA_PEEK_REPORT";
+}
+
+/** Service worker → issue-form content script: the report, or null if none. */
+export interface TakeReportResponse {
+    type: "FLORA_TAKE_REPORT_RESULT";
+    report: string | null;
+}
+
+export function isStashReportRequest(msg: unknown): msg is StashReportRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_STASH_REPORT" &&
+        typeof (msg as Record<string, unknown>).report === "string"
+    );
+}
+
+export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
+    if (typeof msg !== "object" || msg === null) return false;
+    const type = (msg as Record<string, unknown>).type;
+    return type === "FLORA_TAKE_REPORT" || type === "FLORA_PEEK_REPORT";
+}
 
 /** Content script → service worker: request DOI lookups */
 export interface LookupRequest {

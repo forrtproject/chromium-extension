@@ -35,6 +35,11 @@ const configs: esbuild.BuildOptions[] = [
   },
   {
     ...sharedOptions,
+    entryPoints: ["src/content-github/index.ts"],
+    outfile: "dist/content-github.js",
+  },
+  {
+    ...sharedOptions,
     entryPoints: ["src/background/service-worker.ts"],
     outfile: "dist/background.js",
   },

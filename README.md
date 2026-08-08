@@ -66,12 +66,17 @@ chromium-extension/
       cache.ts           # Session cache (chrome.storage.session)
       site-adapters.ts   # Per-site pill placement registry (see below)
       debounce.ts        # Debounce utility
+      debug.ts           # Debug logger + capture (gated on the flora_debug flag)
+      debug-log.ts       # Persistent debug log; the service worker is its only writer
+      debug-report.ts    # Builds the diagnostic report attached to issue reports
     background/
       service-worker.ts  # MV3 service worker — handles FLORA_LOOKUP messages
     content-general/
       index.ts           # Content script for article pages (SPA-aware)
       injector.ts        # Banner, inline badge, and DOI popover rendering (Shadow DOM)
       styles.css         # Banner/badge styles
+    content-github/
+      index.ts           # Fills the debug report into ORE's own GitHub issue form
     content-scholar/
       index.ts           # Content script for Google Scholar
       observer.ts        # MutationObserver + DOI extraction/augmentation for Scholar results
@@ -149,6 +154,46 @@ Placement is covered by `tests/unit/site-adapters.test.ts` (rules in isolation)
 and `tests/unit/reference-placement.test.ts` (the real render path, hostname
 stubbed). Both run against fixtures trimmed from live article pages, so add a
 fixture when you add a site.
+
+### Debug mode & issue reports
+
+Toolbar popup → **Debug mode** turns on logging. Every `debugLog`/`debugWarn`/
+`debugError` call, plus uncaught errors thrown by extension code, is then
+captured alongside the console output. Content scripts and extension pages batch
+their entries and message them to the service worker, which is the only writer of
+the `flora_debug_log` storage key — so there is no read-modify-write race between
+contexts. The log is a ring buffer capped at 800 entries.
+
+To report a bug: turn debug mode on, reload the page, reproduce, then hit
+**Report an issue** in the popup. The diagnostic report — build, user agent,
+behaviour-changing settings and the log — is written into the GitHub issue body
+for you; nothing is submitted until you press GitHub's own button.
+
+Two routes get it there, and the first doesn't touch GitHub's DOM at all:
+
+1. **`?body=` prefill.** GitHub's documented prefill is the reliable path, but a
+   URL only holds so much — `issueUrl()` binary-searches the entry count to fit
+   as much of the log's *tail* as stays under 6 KB, and labels the result "most
+   recent N of M entries" so a trimmed log is never mistaken for a whole one.
+   Trimming whole entries rather than slicing the string keeps the markdown and
+   its code fence intact.
+2. **Form autofill upgrades that to the full log.** The complete report is parked
+   in the worker's session storage; `content-github.ts`, declared only for
+   `github.com/forrtproject/chromium-extension/issues/new*`, waits for the body
+   field and swaps it in between the `<!-- ORE-DEBUG-REPORT:START/END -->`
+   fences. Writes go through the `HTMLTextAreaElement.prototype` value setter
+   plus a bubbling `input` event, or React discards the text on its next render.
+
+The second step is best-effort by design: if it fails, step 1 has already put a
+usable log in the issue. The report is claimed only once a field exists to hold
+it, so a detour through GitHub sign-in leaves it parked rather than consumed (15
+minute TTL). Failure is never silent — the content script verifies the text
+survived 250 ms of re-rendering and raises an on-page toast if it didn't, and the
+full report is on the clipboard either way.
+
+Settings → **Troubleshooting** shows the same report on screen so it can be
+reviewed, downloaded or cleared before it is shared; the user's contact email is
+never included.
 
 ### Automated Workflows
 

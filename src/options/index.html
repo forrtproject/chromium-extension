@@ -333,6 +333,108 @@
 
             <p id="commenter-status-msg" class="status domain-status" hidden></p>
           </div>
+
+          <!-- ═══ DEBUG MODE ═══ -->
+          <div class="detail-card" style="margin-top: 1.25rem">
+            <div class="dh">
+              <div class="dh-label">Troubleshooting</div>
+              <h2 class="dh-title">Debug Mode &amp; Issue Reports</h2>
+              <div class="dh-authors">
+                If something looks wrong, switch debug mode on, reload the page
+                that misbehaves and reproduce the problem &mdash; ORE then keeps
+                a log of what it did. Report the issue and that log is written
+                straight into the GitHub form; read it here first if you'd like
+                to see what you're sending.
+              </div>
+
+              <div class="dh-callout" role="note">
+                <div class="dh-callout-icon" aria-hidden="true">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </div>
+                <div class="dh-callout-body">
+                  <div class="dh-callout-title">What the log contains</div>
+                  <p class="dh-callout-text">
+                    The log records what ORE looked up and where: DOIs found on
+                    the pages you visit, the hostnames of those pages, API
+                    outcomes and any errors. It stays on this computer and is
+                    <strong>never sent anywhere</strong> until you choose to
+                    open an issue with it &mdash; and nothing is submitted until
+                    you press GitHub's own button.
+                  </p>
+                  <p class="dh-callout-text dh-callout-text--muted">
+                    Your email address is never included. Read the report below
+                    before you share it &mdash; a GitHub issue is public.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <label class="toggle-row">
+              <span class="toggle-row-text"
+                >Debug mode &mdash; record a diagnostic log while I browse</span
+              >
+              <span class="toggle-switch">
+                <input type="checkbox" id="debug-toggle" />
+                <span class="toggle-track"></span>
+              </span>
+            </label>
+
+            <div class="action-bar debug-bar">
+              <button type="button" id="debug-report-btn" class="ab-btn accent">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                Report an issue with this log
+              </button>
+              <button type="button" id="debug-copy-btn" class="ab-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy report
+              </button>
+              <button type="button" id="debug-download-btn" class="ab-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download
+              </button>
+              <button type="button" id="debug-refresh-btn" class="ab-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                Refresh
+              </button>
+              <button type="button" id="debug-clear-btn" class="ab-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                Clear log
+              </button>
+            </div>
+
+            <p id="debug-status" class="status domain-status" hidden></p>
+
+            <pre id="debug-preview" class="debug-preview" aria-label="Debug report preview"></pre>
+          </div>
         </div>
       </div>
     </div>

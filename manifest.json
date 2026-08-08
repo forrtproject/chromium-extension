@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FORRT ORE — Open Research Extension",
   "short_name": "FORRT ORE",
-  "version": "0.1.0",
+  "version": "0.1.0.1",
   "description": "Shows replication evidence, retractions, PubPeer comments and open-access copies for the papers on any page you read.",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -76,6 +76,15 @@
       ],
       "js": [
         "dist/content-forrt.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://github.com/forrtproject/chromium-extension/issues/new*"
+      ],
+      "js": [
+        "dist/content-github.js"
       ],
       "run_at": "document_idle"
     },
