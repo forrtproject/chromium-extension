@@ -8,6 +8,11 @@ import {INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {renderReportDocument, reportUrl, type ReportEntry, type ReportPayload} from "@shared/report";
 import {writeClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
+import {hideWorkIndicator, showWorkIndicator} from "@shared/progress-toast";
+
+// The work/progress toast lives in shared so the Scholar content script can
+// drive it without importing this module's article-page rendering.
+export {beginWorkIndicator, count, endWorkIndicator, reportWorkStage} from "@shared/progress-toast";
 
 const BANNER_HOST_ID = "flora-banner-host";
 
@@ -316,71 +321,6 @@ function escapeHtml(s: string): string {
 }
 
 // ──────────────────────────────────────────────
-// "Working" toast — small bottom-right indicator shown while FLoRA queries.
-// ──────────────────────────────────────────────
-
-const WORKING_TOAST_ID = "flora-working-toast";
-let workingRefCount = 0;
-let workingHideTimer: ReturnType<typeof setTimeout> | null = null;
-// Suppressed while the user has hidden FLoRA UI on this page.
-let floraUiHidden = false;
-
-function ensureWorkingToast(): HTMLElement {
-    const existing = document.getElementById(WORKING_TOAST_ID);
-    if (existing) return existing;
-    const host = document.createElement("div");
-    host.id = WORKING_TOAST_ID;
-    host.style.cssText =
-        "position:fixed;bottom:18px;right:18px;z-index:2147483647;" +
-        "display:flex;align-items:center;gap:8px;pointer-events:none;" +
-        "background:linear-gradient(135deg,#853953,#612D53);color:#fff;" +
-        "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
-        "font-size:12px;font-weight:500;padding:8px 12px;border-radius:8px;" +
-        "box-shadow:0 4px 16px rgba(0,0,0,0.18);" +
-        "opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;";
-    const style = document.createElement("style");
-    style.textContent = "@keyframes flora-working-spin{to{transform:rotate(360deg)}}";
-    const spinner = document.createElement("span");
-    spinner.style.cssText =
-        "width:12px;height:12px;border-radius:50%;flex-shrink:0;box-sizing:border-box;" +
-        "border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;" +
-        "animation:flora-working-spin 0.7s linear infinite;";
-    const label = document.createElement("span");
-    label.textContent = "ORE is looking up the papers on this page…";
-    host.appendChild(style);
-    host.appendChild(spinner);
-    host.appendChild(label);
-    document.body.appendChild(host);
-    return host;
-}
-
-/** Show the working toast (ref-counted — nested calls keep it visible). */
-export function beginWorkIndicator(): void {
-    workingRefCount++;
-    if (floraUiHidden) return; // user hid FLoRA UI — don't surface the toast
-    if (workingHideTimer) { clearTimeout(workingHideTimer); workingHideTimer = null; }
-    const host = ensureWorkingToast();
-    requestAnimationFrame(() => {
-        host.style.opacity = "1";
-        host.style.transform = "translateY(0)";
-    });
-}
-
-/** Hide the working toast once all outstanding work has finished. */
-export function endWorkIndicator(): void {
-    workingRefCount = Math.max(0, workingRefCount - 1);
-    if (workingRefCount > 0) return;
-    const host = document.getElementById(WORKING_TOAST_ID);
-    if (!host) return;
-    // Brief delay so quick back-to-back passes don't flicker the toast.
-    workingHideTimer = setTimeout(() => {
-        host.style.opacity = "0";
-        host.style.transform = "translateY(6px)";
-        setTimeout(() => host.remove(), 200);
-    }, 500);
-}
-
-// ──────────────────────────────────────────────
 // Google Sheets modal
 // ──────────────────────────────────────────────
 
@@ -579,9 +519,7 @@ export function removeSheetsModal(): void {
 // ──────────────────────────────────────────────
 
 export function hideAllFloraUI(): void {
-    floraUiHidden = true;
-    const toast = document.getElementById(WORKING_TOAST_ID);
-    if (toast) toast.remove();
+    hideWorkIndicator();
     const banner = document.getElementById(BANNER_HOST_ID);
     if (banner) banner.style.display = "none";
 
@@ -600,7 +538,7 @@ export function hideAllFloraUI(): void {
 }
 
 export function showAllFloraUI(): void {
-    floraUiHidden = false;
+    showWorkIndicator();
     const banner = document.getElementById(BANNER_HOST_ID);
     if (banner) banner.style.display = "";
 

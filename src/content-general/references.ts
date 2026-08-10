@@ -18,6 +18,7 @@ import type {RetractionResponse} from "@shared/doi-retraction";
 import {createIndicatorPill} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {getSettings} from "@shared/settings";
+import {count, reportWorkStage} from "@shared/progress-toast";
 import {debugLog} from "@shared/debug";
 import type {DoiString, LookupState} from "@shared/types";
 import {
@@ -198,6 +199,11 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         + ` augmenting ${augmentTargets.length}`
     );
 
+    if (augmentTargets.length > 0 || pmcTargets.length > 0) {
+        const pending = augmentTargets.length + pmcTargets.length;
+        reportWorkStage("augment", `Augmenting ${count(pending, "reference")} without a DOI…`);
+    }
+
     const empty = new Map<string, DoiString | null>();
     const [augmented, byPmcId] = await Promise.all([
         augmentTargets.length > 0
@@ -232,6 +238,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const augmentResolved = resolved.filter((r) => r.mode === "augment");
     let validated = new Map<DoiString, boolean>();
     if (augmentResolved.length > 0) {
+        reportWorkStage("validate", `Checking ${count(augmentResolved.length, "augmented DOI")} resolve…`);
         try {
             validated = await validateDOIs(augmentResolved.map((r) => r.doi));
         } catch {
