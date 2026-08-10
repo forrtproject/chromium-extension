@@ -19,7 +19,9 @@ import {
 } from "@shared/messages";
 import {
     beginWorkIndicator,
+    count,
     endWorkIndicator,
+    reportWorkStage,
     hideAllFloraUI,
     removeSidePanel,
     removeSheetsModal,
@@ -122,6 +124,9 @@ async function primaryDoiFastPath(): Promise<void> {
 
     beginWorkIndicator();
     try {
+        // "scan", not "lookup": the bar only moves forward, and the full page
+        // pass runs alongside this one.
+        reportWorkStage("scan", "Looking up this article…");
         const request: LookupRequest = {type: "FLORA_LOOKUP", dois: [primary]};
         const response = await safeSendMessage<LookupResponse>(request);
         if (!response) {
@@ -161,7 +166,17 @@ function whenIdle(fn: () => void, timeout = 1000): void {
     }
 }
 
+/** Holds one work indicator across the pass so the bar doesn't restart mid-pipeline. */
 async function scanWholePage(): Promise<void> {
+    beginWorkIndicator();
+    try {
+        await runScanPass();
+    } finally {
+        endWorkIndicator();
+    }
+}
+
+async function runScanPass(): Promise<void> {
     // Detect full URL change (SPA navigation) — clear state
     const currentUrl = location.href;
     if (currentUrl !== lastUrl) {
@@ -185,6 +200,7 @@ async function scanWholePage(): Promise<void> {
     }
     // Fresh DOM scan pass — resets the per-pass findReferenceContainers memo.
     beginDomScanPass();
+    reportWorkStage("scan", "Scanning this page for DOIs…");
 
     // Resolve reference-list DOIs in parallel with the FORRT lookup below.
     resolvedRefsPromise = resolveReferenceDois();
@@ -217,11 +233,13 @@ async function scanWholePage(): Promise<void> {
         debugLog(classified.articleDois, "article DOIs,", classified.referenceDois, "reference DOIs,", classified.otherDois, "other DOIs");
     }
     debugLog(isSheets ? "Sheets:" : "General:", "Extracted DOIs:", dois.length, dois);
+    reportWorkStage("scan", `Found ${count(dois.length, "DOI")} on this page`);
 
     // Validate extracted DOIs via doi.org — remove invalid ones
     if (hasDoiChange && !isSheets && dois.length > 0) {
         beginWorkIndicator();
         try {
+            reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);
             const validation = await validateDOIs(dois);
             const before = dois.length;
             dois = dois.filter((doi) => validation.get(doi) !== false);
@@ -249,6 +267,7 @@ async function scanWholePage(): Promise<void> {
             ...dois,
             ...resolvedRefs.map((r) => r.doi),
         ]));
+        reportWorkStage("notices", `Checking ${count(allNoticeDois.length, "DOI")} for retractions…`);
         redacts = await retractionCheck(allNoticeDois);
 
         const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
@@ -314,6 +333,7 @@ async function scanWholePage(): Promise<void> {
         // that isn't happening.
         let response: LookupResponse | undefined;
         try {
+            reportWorkStage("lookup", `Looking up ${count(newDois.length, "DOI")} in FORRT…`);
             response = await safeSendMessage<LookupResponse>(request);
         } catch (err) {
             debugError("Replication lookup failed:", err);
@@ -345,6 +365,7 @@ async function scanWholePage(): Promise<void> {
         pageStateVersion++; // signal that replication data is now available
 
         try {
+            reportWorkStage("report", "Generating report…");
             // Collect matched DOIs for display
             // On Sheets, skip the "still in DOM" re-check — the canvas DOM is unreliable
             const currentDois = isSheets ? null : new Set(extractDOIs(document));

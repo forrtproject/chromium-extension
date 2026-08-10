@@ -9,6 +9,7 @@ import type {DoiString, DoiSource, LookupState, RetractionResponse} from "@share
 import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
+import {beginWorkIndicator, count, endWorkIndicator, reportWorkStage} from "@shared/progress-toast";
 import {debugLog} from "@shared/debug";
 
 // One colour for every provenance — an unconfirmed DOI is marked by the
@@ -56,12 +57,24 @@ export function observeScholarResults(): void {
     observer.observe(container, {childList: true, subtree: true});
 }
 
+/** Holds one work indicator across the row batch — extraction through to badges. */
 export async function processScholarResults(doc: Document): Promise<void> {
     const rows = doc.querySelectorAll<HTMLElement>(
         `${RESULT_ROW}:not([${PROCESSED_ATTR}])`
     );
     debugLog(`Scholar: ${rows.length} new result row(s) to process`);
     if (rows.length === 0) return;
+
+    beginWorkIndicator();
+    try {
+        await runScholarPass(rows);
+    } finally {
+        endWorkIndicator();
+    }
+}
+
+async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
+    reportWorkStage("scan", `Reading ${count(rows.length, "Scholar result")}…`);
 
     const rowDois: {
         row: HTMLElement;
@@ -125,6 +138,7 @@ export async function processScholarResults(doc: Document): Promise<void> {
 
         let validated = new Map<DoiString, boolean>();
         if (doisToValidate.length > 0) {
+            reportWorkStage("validate", `Checking ${count(doisToValidate.length, "DOI")} resolve…`);
             try {
                 validated = await validateDOIs(doisToValidate);
             } catch {
@@ -165,6 +179,10 @@ export async function processScholarResults(doc: Document): Promise<void> {
             let augmented = new Map<string, DoiString | null>();
             try {
                 if (requestsToAugment.length > 0) {
+                    reportWorkStage(
+                        "augment",
+                        `Augmenting ${count(requestsToAugment.length, "result")} without a DOI…`
+                    );
                     augmented = await augmentDOIsViaWorker(requestsToAugment);
                 }
             } catch {
@@ -247,6 +265,7 @@ export async function processScholarResults(doc: Document): Promise<void> {
 
     const uniqueDois = [...new Set(rowDois.map((rd) => rd.doi))];
     debugLog("Scholar: Sending lookup for", uniqueDois.length, "unique DOIs:", uniqueDois);
+    reportWorkStage("lookup", `Found ${count(uniqueDois.length, "unique DOI")} — looking them up…`);
     const request: LookupRequest = {type: "FLORA_LOOKUP", dois: uniqueDois};
 
     try {
@@ -261,6 +280,7 @@ export async function processScholarResults(doc: Document): Promise<void> {
                 badgedCount++;
             }
         }
+        reportWorkStage("report", `Marking up ${count(badgedCount, "result")}…`);
         refreshScholarBadges();
         debugLog("Scholar: Rendered", badgedCount, "badge(s)");
     } catch (err) {

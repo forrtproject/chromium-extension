@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild";
-import { copyFileSync, mkdirSync } from "fs";
+import { copyFileSync, mkdirSync, readdirSync } from "fs";
 
 const isWatch = process.argv.includes("--watch");
 
@@ -76,6 +76,11 @@ function copyStaticAssets() {
   copyFileSync("src/walkthrough/index.html", "dist/walkthrough.html");
   copyFileSync("src/walkthrough/walkthrough.css", "dist/walkthrough.css");
   copyFileSync("assets/forrt-logo.svg", "dist/forrt-logo.svg");
+  copyFileSync("assets/fonts/fonts.css", "dist/fonts.css");
+  mkdirSync("dist/fonts", { recursive: true });
+  for (const font of readdirSync("assets/fonts").filter((f) => f.endsWith(".woff2"))) {
+    copyFileSync(`assets/fonts/${font}`, `dist/fonts/${font}`);
+  }
   // The service worker fetches this at runtime as the retraction fallback, so
   // it ships as a static asset instead of being bundled into any script.
   copyFileSync("src/retractions.json", "dist/retractions.json");

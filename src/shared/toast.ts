@@ -8,8 +8,9 @@
 // One toast element is reused: a second action replaces the first rather than
 // stacking, so rapid clicks down a reference list never pile up.
 
+import {WORK_TOAST_ID} from "./progress-toast";
+
 const TOAST_ID = "flora-action-toast";
-const WORKING_TOAST_ID = "flora-working-toast";
 
 export type ToastTone = "success" | "error" | "pending";
 
@@ -48,11 +49,15 @@ function clearTimers(): void {
 }
 
 /**
- * Sit above the "scanning" toast when it is on screen — both anchor to the
+ * Sit above the progress toast when it is on screen — both anchor to the
  * bottom-right corner, and a citation fetch can easily overlap a page scan.
+ * Measured, since a wrapped stage label makes it taller; the fallback covers
+ * a layout-less document (tests).
  */
 function bottomOffset(): string {
-    return document.getElementById(WORKING_TOAST_ID) ? "60px" : "18px";
+    const working = document.getElementById(WORK_TOAST_ID);
+    if (!working) return "18px";
+    return `${18 + (working.offsetHeight || 46) + 10}px`;
 }
 
 function ensureToast(): HTMLElement {
