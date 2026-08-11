@@ -1,4 +1,6 @@
 import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse} from "./types";
+import type {AugmentSource} from "./doi-augment";
+import {debugLog} from "./debug";
 import type {DebugLogEntry} from "./debug";
 
 /** Any context → service worker: captured debug entries to persist. */
@@ -106,6 +108,8 @@ export interface AugmentRequest {
 export interface AugmentResponse {
     type: "FLORA_AUGMENT_RESULT";
     results: Record<string, string | null>;
+    /** title → which platform resolved it, so the page log can name it. */
+    sources?: Record<string, AugmentSource | null>;
 }
 
 export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
@@ -171,6 +175,13 @@ export async function augmentDOIsViaWorker(
     const result = new Map<string, DoiString | null>();
     for (const [title, doi] of Object.entries(response?.results ?? {})) {
         result.set(title, doi as DoiString | null);
+        // Resolution happens in the service worker, so without this the page
+        // console never says which platform answered.
+        const source = response?.sources?.[title];
+        debugLog(
+            `Augment: "${title.slice(0, 80)}" → ${doi ?? "no match"}`
+            + (source ? ` via ${source.toUpperCase()}` : "")
+        );
     }
     return result;
 }

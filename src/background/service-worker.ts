@@ -4,7 +4,7 @@ import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extrac
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse} from "@shared/messages";
 import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, type TakeReportResponse} from "@shared/messages";
-import {augmentDOIs} from "@shared/doi-augment";
+import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds} from "@shared/pmc-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
 import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
@@ -350,10 +350,14 @@ async function handleLookup(dois: DoiString[]): Promise<LookupResponse> {
 async function handleAugment(
     requests: AugmentRequest["requests"]
 ): Promise<AugmentResponse> {
-    const resultMap = await augmentDOIs(requests);
+    const resultMap = await augmentDOIsDetailed(requests);
     const results: Record<string, string | null> = {};
-    for (const [title, doi] of resultMap) results[title] = doi ?? null;
-    return { type: "FLORA_AUGMENT_RESULT", results };
+    const sources: Record<string, AugmentSource | null> = {};
+    for (const [title, outcome] of resultMap) {
+        results[title] = outcome.doi ?? null;
+        sources[title] = outcome.source;
+    }
+    return { type: "FLORA_AUGMENT_RESULT", results, sources };
 }
 
 async function handlePmcResolve(pmcids: string[]): Promise<PmcResolveResponse> {

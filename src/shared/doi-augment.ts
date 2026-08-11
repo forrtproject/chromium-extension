@@ -2,11 +2,16 @@ import type {DoiString, DoiAugmentRequest} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
-import {debugWarn} from "./debug";
+import {debugLog, debugWarn, isDebugEnabled} from "./debug";
 
 const OPENALEX_BASE = "https://api.openalex.org/works";
 const CROSSREF_BASE = "https://api.crossref.org/works";
 const MATCH_THRESHOLD_TSR = 88; // token_set_ratio threshold (0–100)
+// token_set_ratio scores 100 whenever one title's tokens are a subset of the
+// other's, so a 3-word title matches a 7-word one perfectly. Coverage is the
+// share of the *queried* title the candidate accounts for, which that ratio
+// cannot express. Set below 100 so a candidate missing a subtitle still passes.
+const MATCH_THRESHOLD_COVERAGE = 75;
 // When page metadata (author/year) is available we accept candidates within this
 // many points of the top title score, then let the metadata break the tie.
 const METADATA_TITLE_BAND = 5;
@@ -149,7 +154,10 @@ function candidateMerit(request: DoiAugmentRequest, candidate: DoiCandidate): nu
  */
 function selectBestCandidate(request: DoiAugmentRequest, candidates: DoiCandidate[]): DoiCandidate | null {
     const eligible = candidates.filter((candidate) => candidate.score >= MATCH_THRESHOLD_TSR);
-    if (eligible.length === 0) return null;
+    if (eligible.length === 0) {
+        debugLog(`Augment: no candidate cleared ${MATCH_THRESHOLD_TSR} for "${request.title.slice(0, 80)}"`);
+        return null;
+    }
 
     const highestScore = Math.max(...eligible.map((candidate) => candidate.score));
     const titleBand = request.firstAuthor || request.year
@@ -170,9 +178,28 @@ function selectBestCandidate(request: DoiAugmentRequest, candidates: DoiCandidat
     const highestMerit = Math.max(...narrowed.map((candidate) => candidateMerit(request, candidate)));
     const best = narrowed.filter((candidate) => candidateMerit(request, candidate) === highestMerit);
     const bestDois = new Set(best.map((candidate) => candidate.doi));
-    if (bestDois.size !== 1) return null;
+    if (bestDois.size !== 1) {
+        // Ambiguity resolves to no DOI, which otherwise looks like "not found".
+        debugLog(
+            `Augment: tie between ${[...bestDois].join(", ")} at merit ${highestMerit.toFixed(1)}`
+            + ` for "${request.title.slice(0, 80)}" — resolving to no DOI`
+        );
+        return null;
+    }
 
-    return best[0];
+    const winner = best[0];
+    const reasons = [
+        candidateMatchesSourceUrl(request, winner) ? "source-url" : null,
+        yearsMatch(request.year, winner.year) ? `year=${winner.year}` : null,
+        authorsMatch(request.firstAuthor, winner.firstAuthor) ? `author=${winner.firstAuthor}` : null,
+    ].filter(Boolean);
+    debugLog(
+        `Augment: "${request.title.slice(0, 80)}" → ${winner.doi} via ${winner.source.toUpperCase()}`
+        + ` (title ${winner.score.toFixed(1)}, merit ${highestMerit.toFixed(1)}`
+        + `${reasons.length > 0 ? ", corroborated by " + reasons.join(" + ") : ", title only"})`
+        + ` from ${eligible.length} candidate(s) across ${new Set(eligible.map((c) => c.source)).size} platform(s)`
+    );
+    return winner;
 }
 
 function extractCrossrefYear(item: {
@@ -250,6 +277,43 @@ export function tokenSetRatio(s1: string, s2: string): number {
 }
 
 /**
+ * Share (0–100) of the queried title's tokens the candidate contains. Guards
+ * against a short generic title scoring 100 against a longer specific one.
+ */
+export function titleCoverage(query: string, candidate: string): number {
+    const queryTokens = new Set(normalizeTitle(query).split(/\s+/).filter(Boolean));
+    if (queryTokens.size === 0) return 0;
+    const candidateTokens = new Set(normalizeTitle(candidate).split(/\s+/).filter(Boolean));
+    let covered = 0;
+    for (const token of queryTokens) if (candidateTokens.has(token)) covered++;
+    return (covered / queryTokens.size) * 100;
+}
+
+function logQueryOutcome(
+    source: "crossref" | "openalex",
+    title: string,
+    returned: number,
+    accepted: DoiCandidate[],
+    rejected: Array<{score: number; coverage: number; title: string}>
+): void {
+    if (!isDebugEnabled()) return;
+    const head = `Augment [${source}] "${title.slice(0, 80)}": ${returned} result(s), ${accepted.length} usable`;
+    if (accepted.length > 0) {
+        const list = accepted
+            .map((c) => `${c.doi} (${c.score.toFixed(1)}) "${c.title.slice(0, 60)}"`)
+            .join("; ");
+        debugLog(`${head} — ${list}`);
+        return;
+    }
+    const best = rejected.sort((a, b) => b.score - a.score)[0];
+    debugLog(best
+        ? `${head} — best was "${best.title.slice(0, 60)}"`
+          + ` (title ${best.score.toFixed(1)}/${MATCH_THRESHOLD_TSR},`
+          + ` coverage ${best.coverage.toFixed(0)}%/${MATCH_THRESHOLD_COVERAGE}%), rejected`
+        : `${head} — nothing usable`);
+}
+
+/**
  * Query Crossref for a title, returning every candidate that clears the title
  * threshold (with author/year/URL metadata for later tie-breaking).
  */
@@ -257,8 +321,12 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
     const {title} = request;
     const cleaned = cleanTitleForSearch(title);
     const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link&mailto=${encodeURIComponent(email)}`;
+    debugLog(`Augment [crossref] query: "${cleaned}"`);
     const response = await fetch(url);
-    if (!response.ok) return [];
+    if (!response.ok) {
+        debugWarn(`Augment [crossref] HTTP ${response.status} for "${cleaned}" — no candidates`);
+        return [];
+    }
 
     const data = (await response.json()) as {
         message?: {
@@ -278,12 +346,17 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
 
     const items = data.message?.items ?? [];
     const candidates: DoiCandidate[] = [];
+    const rejected: Array<{score: number; coverage: number; title: string}> = [];
 
     for (const item of items) {
         if (!item.DOI || !item.title?.[0]) continue;
 
         const tsr = tokenSetRatio(title, item.title[0]);
-        if (tsr >= MATCH_THRESHOLD_TSR) {
+        const coverage = titleCoverage(title, item.title[0]);
+        if (tsr < MATCH_THRESHOLD_TSR || coverage < MATCH_THRESHOLD_COVERAGE) {
+            rejected.push({score: tsr, coverage, title: item.title[0]});
+        }
+        if (tsr >= MATCH_THRESHOLD_TSR && coverage >= MATCH_THRESHOLD_COVERAGE) {
             const doi = normaliseDOI(item.DOI);
             if (doi) {
                 candidates.push({
@@ -299,6 +372,7 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
         }
     }
 
+    logQueryOutcome("crossref", title, items.length, candidates, rejected);
     return candidates;
 }
 
@@ -311,13 +385,17 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
     const cleaned = cleanTitleForSearch(title);
     const url = `${OPENALEX_BASE}?filter=title.search:${encodeURIComponent(cleaned)}&select=id,doi,title,publication_year,authorships,primary_location,locations&per_page=5&mailto=${encodeURIComponent(email)}`;
 
+    debugLog(`Augment [openalex] query: "${cleaned}"`);
     const response = await fetch(url);
     if (response.status === 429) {
         // Rate-limited — throw so Promise.allSettled marks this as rejected and
         // the caller falls back to Crossref results.
         throw new Error("OpenAlex rate limited (429)");
     }
-    if (!response.ok) return [];
+    if (!response.ok) {
+        debugWarn(`Augment [openalex] HTTP ${response.status} for "${cleaned}" — no candidates`);
+        return [];
+    }
 
     const data = (await response.json()) as {
         results?: Array<{
@@ -332,12 +410,17 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
 
     const works = data.results ?? [];
     const candidates: DoiCandidate[] = [];
+    const rejected: Array<{score: number; coverage: number; title: string}> = [];
 
     for (const work of works) {
         if (!work.doi || !work.title) continue;
 
         const tsr = tokenSetRatio(title, work.title);
-        if (tsr >= MATCH_THRESHOLD_TSR) {
+        const coverage = titleCoverage(title, work.title);
+        if (tsr < MATCH_THRESHOLD_TSR || coverage < MATCH_THRESHOLD_COVERAGE) {
+            rejected.push({score: tsr, coverage, title: work.title});
+        }
+        if (tsr >= MATCH_THRESHOLD_TSR && coverage >= MATCH_THRESHOLD_COVERAGE) {
             const doi = normaliseDOI(work.doi);
             if (doi) {
                 candidates.push({
@@ -360,6 +443,7 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
         }
     }
 
+    logQueryOutcome("openalex", title, works.length, candidates, rejected);
     return candidates;
 }
 
@@ -372,7 +456,23 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
 export async function augmentDOIs(
     inputs: Array<string | DoiAugmentRequest>
 ): Promise<Map<string, DoiString | null>> {
-    const results = new Map<string, DoiString | null>();
+    const detailed = await augmentDOIsDetailed(inputs);
+    return new Map([...detailed].map(([title, r]) => [title, r.doi] as const));
+}
+
+/** Where a resolved DOI came from. "cache" means no platform was queried. */
+export type AugmentSource = "crossref" | "openalex" | "both" | "cache";
+
+export interface AugmentOutcome {
+    doi: DoiString | null;
+    source: AugmentSource | null;
+}
+
+/** As `augmentDOIs`, but reports which platform produced each DOI. */
+export async function augmentDOIsDetailed(
+    inputs: Array<string | DoiAugmentRequest>
+): Promise<Map<string, AugmentOutcome>> {
+    const results = new Map<string, AugmentOutcome>();
     if (inputs.length === 0) return results;
     const requests = inputs.map(normalizeRequest).filter((request) => request.title.trim());
     if (requests.length === 0) return results;
@@ -390,7 +490,12 @@ export async function augmentDOIs(
         const key = keyByTitle.get(request.title)!;
         const entry = cached.get(key);
         if (entry) {
-            results.set(request.title, entry.found && entry.doi ? normaliseDOI(entry.doi) : null);
+            const cachedDoi = entry.found && entry.doi ? normaliseDOI(entry.doi) : null;
+            debugLog(
+                `Augment: "${request.title.slice(0, 80)}" → ${cachedDoi ?? "no match"} from cache`
+                + " (no platform queried; clear flora_doi_blob to re-resolve)"
+            );
+            results.set(request.title, {doi: cachedDoi, source: cachedDoi ? "cache" : null});
         } else {
             const group = uncachedByKey.get(key);
             if (group) group.push(request);
@@ -406,8 +511,12 @@ export async function augmentDOIs(
     // configures their email.
     const email = await getUserEmail();
     if (!email) {
+        debugWarn(
+            `Augment: no contact email configured — skipping ${uncachedByKey.size} title(s);`
+            + " neither Crossref nor OpenAlex will be queried"
+        );
         for (const group of uncachedByKey.values()) {
-            for (const request of group) results.set(request.title, null);
+            for (const request of group) results.set(request.title, {doi: null, source: null});
         }
         return results;
     }
@@ -425,7 +534,9 @@ export async function augmentDOIs(
 
         const candidates: DoiCandidate[] = [];
         if (crossrefResult.status === "fulfilled") candidates.push(...crossrefResult.value);
+        else debugWarn(`Augment [crossref] query threw for "${request.title.slice(0, 80)}" —`, crossrefResult.reason);
         if (openalexResult.status === "fulfilled") candidates.push(...openalexResult.value);
+        else debugWarn(`Augment [openalex] query threw for "${request.title.slice(0, 80)}" —`, openalexResult.reason);
 
         // Deduplicate by DOI, merging metadata across the two sources so a
         // candidate seen by both keeps the author/year/urls either provided.
@@ -435,6 +546,10 @@ export async function augmentDOIs(
             if (!existing) {
                 byDoi.set(c.doi, c);
             } else {
+                debugLog(
+                    `Augment: ${c.doi} returned by both platforms`
+                    + ` (crossref/openalex scores ${existing.score.toFixed(1)}/${c.score.toFixed(1)})`
+                );
                 byDoi.set(c.doi, {
                     ...(c.score > existing.score ? c : existing),
                     firstAuthor: existing.firstAuthor ?? c.firstAuthor,
@@ -446,7 +561,11 @@ export async function augmentDOIs(
 
         const best = selectBestCandidate(request, [...byDoi.values()]);
         const doi = best?.doi ?? null;
-        for (const r of group) results.set(r.title, doi);
+        const seenIn = new Set(candidates.filter((c) => c.doi === doi).map((c) => c.source));
+        const source: AugmentSource | null = !best
+            ? null
+            : seenIn.size > 1 ? "both" : best.source;
+        for (const r of group) results.set(r.title, {doi, source});
         updates.push([key, {found: doi !== null, doi}]);
     });
 
@@ -456,7 +575,7 @@ export async function augmentDOIs(
 
     // Defensive: set null for any titles a rejected lookup left unresolved.
     for (const request of requests) {
-        if (!results.has(request.title)) results.set(request.title, null);
+        if (!results.has(request.title)) results.set(request.title, {doi: null, source: null});
     }
 
     return results;
