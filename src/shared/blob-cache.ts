@@ -21,26 +21,59 @@ export interface BlobCacheOptions {
 export class BlobCache<T> {
     private mem: CacheBlob<T> | null = null;
     private loading: Promise<void> | null = null;
+    // Bumped whenever the blob changes underneath us, so a read that started
+    // before the change doesn't install what it found afterwards.
+    private generation = 0;
+    private listenerInstalled = false;
 
     constructor(private readonly opts: BlobCacheOptions) {}
 
+    /**
+     * Without this, clearing the cache does nothing while a context is alive:
+     * reads keep serving the in-memory copy, and the next write flushes it
+     * straight back into storage.
+     */
+    private installInvalidation(): void {
+        if (this.listenerInstalled) return;
+        this.listenerInstalled = true;
+        try {
+            chrome.storage.onChanged?.addListener((changes, area) => {
+                if (area !== "local" || !(this.opts.storageKey in changes)) return;
+                const next = changes[this.opts.storageKey].newValue as CacheBlob<T> | undefined;
+                this.generation++;
+                this.loading = null;
+                this.mem = next && typeof next === "object" ? next : null;
+                if (!this.mem) {
+                    debugLog(`Cache ${this.opts.storageKey}: cleared elsewhere, dropping in-memory copy`);
+                }
+            });
+        } catch {
+            // Storage change events are unavailable in tests and some contexts.
+        }
+    }
+
     private async ensureLoaded(): Promise<void> {
+        this.installInvalidation();
         if (this.mem) return;
         if (!this.loading) {
             this.loading = this.load();
         }
         await this.loading;
+        this.mem ??= {};
     }
 
     private async load(): Promise<void> {
+        const generation = this.generation;
+        let blob: CacheBlob<T> = {};
         try {
             const raw = await chrome.storage.local.get(this.opts.storageKey);
-            const blob = raw[this.opts.storageKey] as CacheBlob<T> | undefined;
-            this.mem = blob && typeof blob === "object" ? blob : {};
+            const stored = raw[this.opts.storageKey] as CacheBlob<T> | undefined;
+            blob = stored && typeof stored === "object" ? stored : {};
         } catch (err) {
             debugWarn(`Cache ${this.opts.storageKey}: load failed, starting empty —`, err);
-            this.mem = {};
         }
+        // A change landed mid-read; the listener's copy is the newer truth.
+        if (generation === this.generation) this.mem = blob;
         if (this.opts.legacyPrefixes && this.opts.legacyPrefixes.length > 0) {
             void this.sweepLegacy(this.opts.legacyPrefixes);
         }
@@ -135,8 +168,21 @@ export class BlobCache<T> {
         }
     }
 
+    /** Drop every entry, in memory and in storage. */
+    async clear(): Promise<void> {
+        this.mem = {};
+        this.generation++;
+        try {
+            await chrome.storage.local.remove(this.opts.storageKey);
+        } catch (err) {
+            debugWarn(`Cache ${this.opts.storageKey}: clear failed —`, err);
+        }
+    }
+
     resetForTesting(): void {
         this.mem = null;
         this.loading = null;
+        this.generation++;
+        this.listenerInstalled = false;
     }
 }
