@@ -2,6 +2,7 @@ import type {DoiString, DoiAugmentRequest} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
+import {debugWarn} from "./debug";
 
 const OPENALEX_BASE = "https://api.openalex.org/works";
 const CROSSREF_BASE = "https://api.crossref.org/works";
@@ -498,8 +499,8 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
                 const data = (await response.json()) as { title?: string };
                 title = data.title ?? null;
             }
-        } catch {
-            // give up — caller falls back to the DOI string
+        } catch (err) {
+            debugWarn(`Title lookup: OpenAlex failed for ${doi} —`, err);
         }
     }
 

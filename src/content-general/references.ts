@@ -19,7 +19,7 @@ import {createIndicatorPill} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {getSettings} from "@shared/settings";
 import {count, reportWorkStage} from "@shared/progress-toast";
-import {debugLog} from "@shared/debug";
+import {debugLog, debugWarn} from "@shared/debug";
 import type {DoiString, LookupState} from "@shared/types";
 import {
     applyPillStyle,
@@ -241,8 +241,8 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         reportWorkStage("validate", `Checking ${count(augmentResolved.length, "augmented DOI")} resolve…`);
         try {
             validated = await validateDOIs(augmentResolved.map((r) => r.doi));
-        } catch {
-            // validation unavailable — trust resolution
+        } catch (err) {
+            debugWarn(`References: validation unavailable for ${augmentResolved.length} augmented DOI(s) —`, err);
         }
     }
     const confirmed = resolved.filter(

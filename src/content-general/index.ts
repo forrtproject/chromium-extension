@@ -33,7 +33,7 @@ import {
     showAllFloraUI
 } from "./injector";
 import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
-import {debugError, debugLog} from "@shared/debug";
+import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
@@ -148,7 +148,8 @@ async function primaryDoiFastPath(): Promise<void> {
 
         placeTitleIndicatorPill();
         updateIndicatorPillBadges(document, pageState, redacts);
-    } catch {
+    } catch (err) {
+        debugError(`Primary DOI fast path failed for ${primary} —`, err);
         rollback();
     } finally {
         endWorkIndicator();
@@ -247,8 +248,8 @@ async function runScanPass(): Promise<void> {
             if (removed > 0) {
                 debugLog(`Validation: removed ${removed} invalid DOI(s)`);
             }
-        } catch {
-            // Validation failed — keep all extracted DOIs as-is
+        } catch (err) {
+            debugWarn(`Validation unavailable for ${dois.length} DOI(s) — keeping them all:`, err);
         } finally {
             endWorkIndicator();
         }
@@ -269,6 +270,7 @@ async function runScanPass(): Promise<void> {
         ]));
         reportWorkStage("notices", `Checking ${count(allNoticeDois.length, "DOI")} for retractions…`);
         redacts = await retractionCheck(allNoticeDois);
+        reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
 
         const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
         const articleDois = new Set(
@@ -512,11 +514,13 @@ async function augmentFromTitle(): Promise<void> {
                     if (!applyPlacement(adapter?.titlePill, document.documentElement, pill, "title pill")) {
                         titleEl.appendChild(pill);
                     }
-                } catch { /* supplementary */ }
+                } catch (err) {
+                    debugWarn(`Title pill for augmented ${resolvedDoi} failed —`, err);
+                }
             }
         }
-    } catch {
-        // Augmentation failed silently
+    } catch (err) {
+        debugWarn(`Title augmentation failed for "${pageTitle}" —`, err);
     }
 }
 
@@ -665,8 +669,8 @@ async function checkPubPeer(): Promise<void> {
 
         lastRenderedPageStateVersion = pageStateVersion;
         renderSidePanel(articleFeedbacks, panelRefs, pageState, doiContext, refFeedbackByDoi, redacts);
-    } catch {
-        // PubPeer is supplementary — fail silently
+    } catch (err) {
+        debugWarn("PubPeer panel: lookup or render failed —", err);
     }
 }
 
@@ -723,22 +727,23 @@ async function fetchSheetDois(): Promise<void> {
         const response = await safeSendMessage<SheetFetchResponse>(request);
         if (myGen !== sheetFetchGen) return; // stale response — tab changed while fetching
         if (!response || response.error || !response.csv) {
-            console.warn("[FLoRA:Sheets] CSV fetch failed:", response?.error);
+            debugWarn("Sheets: CSV fetch failed —", response?.error);
             return;
         }
         sheetCsvDois = extractDOIsFromText(response.csv);
-        console.log(`[FLoRA:Sheets] CSV export found ${sheetCsvDois.length} DOIs`);
+        debugLog(`Sheets: CSV export found ${sheetCsvDois.length} DOIs`);
     } catch (err) {
         if (myGen !== sheetFetchGen) return;
-        console.warn("[FLoRA:Sheets] CSV fetch error:", err);
+        debugError("Sheets: CSV fetch error —", err);
     }
 
     // Always run — re-evaluates modal state even if the CSV fetch failed.
-    scanWholePage();
+    void scanWholePage().catch((err) => debugError("Sheets: scan pass failed —", err));
 }
 
 
 (async () => {
+  try {
     if (window !== window.top) return;
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
@@ -772,7 +777,7 @@ async function fetchSheetDois(): Promise<void> {
                 const nowGid = parseSheetsUrl(location.href)?.gid ?? "0";
                 if (nowGid !== lastGid) {
                     lastGid = nowGid;
-                    console.log("[FLoRA:Sheets] Tab change detected (gid:", nowGid, ") — re-fetching…");
+                    debugLog("Sheets: tab change detected (gid:", nowGid, ") — re-fetching…");
                     sheetFetchGen++;
                     sheetCsvDois = [];
                     processedDois.clear();
@@ -808,4 +813,8 @@ async function fetchSheetDois(): Promise<void> {
             }
         });
     }
+  } catch (err) {
+    debugError(`ORE failed to start on ${location.hostname} —`, err);
+    reportActiveState(false);
+  }
 })();

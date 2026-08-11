@@ -1,5 +1,5 @@
 import type { DoiString } from "./types";
-import { debugLog } from "./debug";
+import { debugLog, debugWarn } from "./debug";
 import { BlobCache } from "./blob-cache";
 
 /**
@@ -91,8 +91,9 @@ export async function validateDOIs(
         results.set(doi, valid);
         updates.push([doi, { valid }]);
         debugLog(`DOI validation: ${doi} → ${valid ? "valid" : "invalid"}`);
-      } catch {
-        // Network error — leave unknown (absent from map); don't cache.
+      } catch (err) {
+        // Left out of the map entirely, so the caller keeps the DOI.
+        debugWarn(`DOI validation: ${doi} unresolved —`, err);
       }
     })
   );

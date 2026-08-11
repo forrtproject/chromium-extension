@@ -2,7 +2,7 @@
 // Cross-context concurrent writes are last-writer-wins on the whole blob —
 // acceptable for a cache (lost write = re-fetch).
 
-import {debugLog} from "./debug";
+import {debugLog, debugWarn} from "./debug";
 
 interface CacheEntry<T> {
     v: T;
@@ -37,7 +37,8 @@ export class BlobCache<T> {
             const raw = await chrome.storage.local.get(this.opts.storageKey);
             const blob = raw[this.opts.storageKey] as CacheBlob<T> | undefined;
             this.mem = blob && typeof blob === "object" ? blob : {};
-        } catch {
+        } catch (err) {
+            debugWarn(`Cache ${this.opts.storageKey}: load failed, starting empty —`, err);
             this.mem = {};
         }
         if (this.opts.legacyPrefixes && this.opts.legacyPrefixes.length > 0) {
@@ -54,8 +55,8 @@ export class BlobCache<T> {
             if (stale.length > 0) {
                 await chrome.storage.local.remove(stale);
             }
-        } catch {
-            // best-effort
+        } catch (err) {
+            debugWarn(`Cache ${this.opts.storageKey}: legacy sweep failed —`, err);
         }
     }
 

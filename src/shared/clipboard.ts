@@ -5,6 +5,7 @@
 const CLIPBOARD_DEADLINE_MS = 1200;
 
 const TIMED_OUT = Symbol("clipboard-timeout");
+import {debugError} from "./debug";
 
 function withDeadline<T>(promise: Promise<T>): Promise<T | typeof TIMED_OUT> {
     return Promise.race([
@@ -26,8 +27,8 @@ function writeViaTextarea(value: string): boolean {
     let copied = false;
     try {
         copied = document.execCommand("copy");
-    } catch {
-        /* nothing more we can do */
+    } catch (err) {
+        debugError("Clipboard: execCommand copy failed —", err);
     }
     ta.remove();
     return copied;

@@ -7,6 +7,7 @@
  */
 
 const BLACKLIST_KEY = "flora_blocked_domains";
+import { debugError } from "./debug";
 let cachedBlockedDomains: string[] | null = null;
 let domainListenerInstalled = false;
 
@@ -32,7 +33,9 @@ export async function getBlockedDomains(): Promise<string[]> {
     const raw = await chrome.storage.sync.get(BLACKLIST_KEY);
     cachedBlockedDomains = (raw[BLACKLIST_KEY] as string[] | undefined) ?? [];
     return cachedBlockedDomains;
-  } catch {
+  } catch (err) {
+    // Silently disables the whole blocklist, so it must be visible in a report.
+    debugError("Blocked domains: read failed — every domain will be treated as allowed:", err);
     cachedBlockedDomains = [];
     return cachedBlockedDomains;
   }

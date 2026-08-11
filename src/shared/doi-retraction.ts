@@ -2,6 +2,7 @@ import {extractDoiFromHref} from "@shared/doi-extractor";
 import {FLORA_NOTICE_PILL_CLASS} from "@shared/doi-label";
 import type {DoiString, NoticeKind, RetractionResponse} from "@shared/types";
 import {safeSendMessage, type RetractionCheckResponse} from "@shared/messages";
+import {debugError} from "@shared/debug";
 
 export const FLORA_RET_CHECK_KEY = "flora-ret-checked";
 
@@ -98,13 +99,44 @@ export function noticePresentation(kind: NoticeKind): NoticePresentation {
  * owns the retraction data (storage, weekly sync, and the bundled fallback)
  * so the multi-megabyte `retractions.json` never ships inside content bundles.
  */
-export async function retractionCheck(dois: DoiString[]): Promise<RetractionResponse[]> {
-    const response = await safeSendMessage<RetractionCheckResponse>({
-        type: "FLORA_RET_CHECK",
-        dois,
-    });
+// Callers arrive a DOI at a time — one per Scholar row, one per augmented
+// title — and each uncached message makes the worker rebuild its whole map, so
+// a page's worth of them cost seconds. Everything asked for in the same tick
+// travels in one message instead.
+const pendingDois = new Set<DoiString>();
+let pendingBatch: Promise<Map<DoiString, RetractionResponse>> | null = null;
 
-    return response?.type === "FLORA_RET_CHECK_RESULT" ? response.results : [];
+function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
+    return new Promise((resolve) => {
+        setTimeout(async () => {
+            const dois = [...pendingDois];
+            pendingDois.clear();
+            pendingBatch = null;
+            try {
+                const response = await safeSendMessage<RetractionCheckResponse>({
+                    type: "FLORA_RET_CHECK",
+                    dois,
+                });
+                const results = response?.type === "FLORA_RET_CHECK_RESULT" ? response.results : [];
+                resolve(new Map(results.map((r) => [r.originDoi, r] as const)));
+            } catch (err) {
+                // One failed batch must not reject every caller sharing it.
+                debugError(`Retraction check failed for ${dois.length} DOI(s) —`, err);
+                resolve(new Map());
+            }
+        }, 0);
+    });
+}
+
+export async function retractionCheck(dois: DoiString[]): Promise<RetractionResponse[]> {
+    if (dois.length === 0) return [];
+    for (const doi of dois) pendingDois.add(doi);
+    pendingBatch ??= flushRetractionQueue();
+
+    const byDoi = await pendingBatch;
+    return dois
+        .map((doi) => byDoi.get(doi))
+        .filter((notice): notice is RetractionResponse => notice !== undefined);
 }
 
 // Retracted DOIs that already have a pill on the page — the "Retracted" pill

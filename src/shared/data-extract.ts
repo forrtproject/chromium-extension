@@ -1,3 +1,5 @@
+import {debugError} from "./debug";
+
 export const RET_MAP_KEY = "RetractionLookupLocal"
 
 /**
@@ -30,9 +32,9 @@ export async function fetchRetractionMap(): Promise<RetractionMaps | undefined> 
         const data = await response.json();
         if (data && typeof data === 'object' && data.retractions && data.concerns)
             return data as RetractionMaps;
-        console.error("Unexpected retraction data shape from", PREBUILT_JSON_URL);
+        debugError("Retractions: unexpected data shape from", PREBUILT_JSON_URL);
     } catch (error) {
-        console.error("Error fetching retraction data:", error);
+        debugError("Retractions: download failed —", error);
     }
 }
 

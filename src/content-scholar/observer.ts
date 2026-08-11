@@ -10,7 +10,7 @@ import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {beginWorkIndicator, count, endWorkIndicator, reportWorkStage} from "@shared/progress-toast";
-import {debugLog} from "@shared/debug";
+import {debugError, debugLog, debugWarn} from "@shared/debug";
 
 // One colour for every provenance — an unconfirmed DOI is marked by the
 // underline inside the pill, not by a different colour.
@@ -50,7 +50,9 @@ export function observeScholarResults(): void {
         }
 
         if (hasNewRows) {
-            processScholarResults(document);
+            void processScholarResults(document).catch((err) =>
+                debugError("Scholar: pass on newly loaded rows failed —", err)
+            );
         }
     });
 
@@ -114,7 +116,7 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
         if (extraction?.confident) {
             debugLog(`Scholar resolve [confident] "${title}" → ${extraction.doi}`);
             rowDois.push({row, doi: extraction.doi, source: "extracted"});
-            preInjectLabels(row, extraction.doi, PILL_COLOR, false);
+            void preInjectLabels(row, extraction.doi, PILL_COLOR, false);
         } else {
             // Non-confident or no extraction — collect for augmentation cross-check
             rowInfos.push({
@@ -141,8 +143,8 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
             reportWorkStage("validate", `Checking ${count(doisToValidate.length, "DOI")} resolve…`);
             try {
                 validated = await validateDOIs(doisToValidate);
-            } catch {
-                // Validation failed — all remain unvalidated
+            } catch (err) {
+                debugWarn(`Scholar: validation failed for ${doisToValidate.length} DOI(s) —`, err);
             }
         }
 
@@ -185,8 +187,8 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
                     );
                     augmented = await augmentDOIsViaWorker(requestsToAugment);
                 }
-            } catch {
-                // Augmentation failed — fall through with empty map
+            } catch (err) {
+                debugWarn(`Scholar: augmentation failed for ${requestsToAugment.length} row(s) —`, err);
             }
 
             for (const info of pendingInfos) {
@@ -215,7 +217,8 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
                     let valid = false;
                     try {
                         valid = await validateDOI(info.extractedDoi);
-                    } catch { /* validation failed */
+                    } catch (err) {
+                        debugWarn(`Scholar: revalidation failed for ${info.extractedDoi} —`, err);
                     }
 
                     if (valid) {
@@ -239,7 +242,9 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
                                 const titleEl = info.row.querySelector<HTMLElement>(".gs_rt");
                                 if (titleEl) injectRetractionInfo(titleEl, notices[0], { afterend: true });
                             }
-                        } catch { /* supplementary */ }
+                        } catch (err) {
+                            debugWarn(`Scholar: notice check failed for ${info.extractedDoi} —`, err);
+                        }
                     }
                 } else if (!info.extractedDoi && augmentedDoi) {
                     // No extraction, only augmented → rendered as unconfirmed
@@ -289,11 +294,15 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
 }
 
 async function preInjectLabels(row: HTMLElement, doi: DoiString, color: string, isAugmented = false): Promise<void> {
-    injectDoiLabel(row, doi, color, isAugmented);
-    const notices = await retractionCheck([doi]);
-    if (notices?.[0]) {
-        scholarRedacts.set(doi, notices[0]);
-        refreshScholarBadges();
+    try {
+        injectDoiLabel(row, doi, color, isAugmented);
+        const notices = await retractionCheck([doi]);
+        if (notices?.[0]) {
+            scholarRedacts.set(doi, notices[0]);
+            refreshScholarBadges();
+        }
+    } catch (err) {
+        debugError(`Scholar: could not label ${doi} —`, err);
     }
 }
 

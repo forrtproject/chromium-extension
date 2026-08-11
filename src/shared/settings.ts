@@ -1,5 +1,7 @@
 /** Centralised extension settings stored in chrome.storage.sync. */
 
+import { debugError } from "./debug";
+
 export interface FloraSettings {
   /** Contact email for Crossref/OpenAlex polite pool (required). */
   email: string;
@@ -56,7 +58,8 @@ export async function getSettings(): Promise<FloraSettings> {
     const stored = raw[STORAGE_KEY] as Partial<FloraSettings> | undefined;
     cachedSettings = { ...DEFAULTS, ...stored };
     return cachedSettings;
-  } catch {
+  } catch (err) {
+    debugError("Settings: read failed — falling back to defaults:", err);
     cachedSettings = { ...DEFAULTS };
     return cachedSettings;
   }

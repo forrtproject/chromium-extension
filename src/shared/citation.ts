@@ -5,6 +5,8 @@
 // Nothing is fetched until a reader asks for a citation — one lookup per DOI per
 // format, then cached — so a page full of references costs no extra requests.
 
+import {debugWarn} from "./debug";
+
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
 
@@ -147,8 +149,8 @@ async function requestCitation(doi: string, format: CitationFormat): Promise<Cit
             const raw = await response.text();
             const text = tidyCitation(raw, format);
             if (text) return {text, html: tidyCitationHtml(raw, format)};
-        } catch {
-            // Try the next service.
+        } catch (err) {
+            debugWarn(`Citation: ${url} failed for ${doi} —`, err);
         }
     }
     return null;

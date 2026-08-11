@@ -1,6 +1,8 @@
 // Commenters muted in the embedded PubPeer panel, matched case-insensitively
 // on their PubPeer display name.
 
+import { debugWarn } from "./debug";
+
 const HIDDEN_COMMENTERS_KEY = "flora_hidden_pubpeer_commenters";
 
 export const DEFAULT_HIDDEN_COMMENTERS = ["FORRT"];
@@ -33,7 +35,8 @@ export async function getHiddenCommenters(): Promise<string[]> {
     const stored = raw[HIDDEN_COMMENTERS_KEY] as string[] | undefined;
     cachedHiddenCommenters = stored ?? [...DEFAULT_HIDDEN_COMMENTERS];
     return cachedHiddenCommenters;
-  } catch {
+  } catch (err) {
+    debugWarn("Hidden commenters: read failed — falling back to defaults:", err);
     cachedHiddenCommenters = [...DEFAULT_HIDDEN_COMMENTERS];
     return cachedHiddenCommenters;
   }
