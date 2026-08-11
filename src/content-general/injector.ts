@@ -1,6 +1,6 @@
 import type { DoiString, LookupState, ReplicationResult, ReplicationEntry, OriginalEntry, DoiContext } from "../shared/types";
 import type { PubPeerFeedback } from "../shared/pubpeer-api";
-import { debugLog } from "../shared/debug";
+import { debugLog, debugWarn } from "../shared/debug";
 import { getSettings } from "../shared/settings";
 import { safeSendMessage } from "../shared/messages";
 import {RetractionResponse, noticePresentation} from "@shared/doi-retraction";
@@ -62,7 +62,8 @@ async function isSetupPromptSuppressed(): Promise<boolean> {
     try {
         const resp = await chrome.runtime.sendMessage({type: "FLORA_IS_SETUP_DISMISSED"});
         if (resp?.dismissed) return true;
-    } catch { /* background unavailable */
+    } catch (err) {
+        debugWarn("Setup prompt: dismissed-state check failed —", err);
     }
 
     // Snoozed until a future time?
@@ -70,7 +71,8 @@ async function isSetupPromptSuppressed(): Promise<boolean> {
         const synced = await chrome.storage.sync.get(SETUP_REMIND_KEY);
         const remindAfter = synced[SETUP_REMIND_KEY] as number | undefined;
         if (remindAfter && Date.now() < remindAfter) return true;
-    } catch { /* storage unavailable */
+    } catch (err) {
+        debugWarn("Setup prompt: snooze check failed —", err);
     }
 
     return false;
@@ -79,14 +81,16 @@ async function isSetupPromptSuppressed(): Promise<boolean> {
 async function dismissSetupForSession(): Promise<void> {
     try {
         await chrome.runtime.sendMessage({type: "FLORA_DISMISS_SETUP"});
-    } catch { /* ignore */
+    } catch (err) {
+        debugWarn("Setup prompt: dismiss did not persist —", err);
     }
 }
 
 async function snoozeSetup(ms: number): Promise<void> {
     try {
         await chrome.storage.sync.set({[SETUP_REMIND_KEY]: Date.now() + ms});
-    } catch { /* ignore */
+    } catch (err) {
+        debugWarn("Setup prompt: snooze did not persist —", err);
     }
 }
 
@@ -710,7 +714,11 @@ function attachTabDrag(tab: HTMLElement): void {
     if (didDrag) {
       tab.dataset.dragged = "1"; // click handler reads this to ignore the synthetic click after mouseup
       _customTabTop = parseInt(tab.style.top);
-      try { localStorage.setItem(TAB_STORAGE_KEY, String(_customTabTop)); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(TAB_STORAGE_KEY, String(_customTabTop));
+      } catch (err) {
+        debugWarn("PubPeer tab: position did not persist —", err);
+      }
     }
   };
 
@@ -1365,8 +1373,8 @@ export function renderSidePanel(
           `<path d="M7 11V7a5 5 0 0 1 9.9-1"/>` +
           `</svg>`;
         placeholder.replaceWith(icon);
-      } catch {
-        // ignore network errors per entry
+      } catch (err) {
+        debugWarn("Side panel: open-access icon lookup failed for an entry —", err);
       }
     }
   })();

@@ -1,5 +1,5 @@
 import { getBlockedDomains, saveBlockedDomains, isDomainBlocked } from "../shared/domains";
-import { isDebugEnabledAsync, setDebug } from "../shared/debug";
+import { debugError, debugWarn, isDebugEnabledAsync, setDebug } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 
 const domainEl = document.getElementById("current-domain")!;
@@ -101,8 +101,9 @@ async function init(): Promise<void> {
         hidden = true;
         updateHideUI();
       }
-    } catch {
-      // Content script not running on this page — that's fine
+    } catch (err) {
+      // Expected on pages ORE doesn't run on; only useful when chasing a report.
+      debugWarn("Popup: no content script on this tab —", err);
     }
   }
 }
@@ -141,7 +142,8 @@ hideBtn.addEventListener("click", async () => {
     hidden = !hidden;
     updateHideUI();
     showStatus(hidden ? "Hidden until page refresh" : "ORE restored", "success");
-  } catch {
+  } catch (err) {
+    debugWarn("Popup: hide/show message failed —", err);
     showStatus("Nothing from ORE on this page", "error");
   }
 });
@@ -177,8 +179,8 @@ reportBtn.addEventListener("click", async () => {
       const stashed = await stashIssueReport(text);
       attached = link.embedded || stashed;
       await navigator.clipboard.writeText(text).catch(() => {});
-    } catch {
-      // Report or storage unavailable — open a plain issue instead.
+    } catch (err) {
+      debugError("Popup: building the debug report failed —", err);
     }
   }
 
@@ -203,4 +205,8 @@ optionsBtn.addEventListener("click", () => {
   window.close();
 });
 
-init();
+init().catch((err) => {
+  debugError("Popup: init failed —", err);
+  domainEl.textContent = "Couldn't read this tab";
+  showStatus("ORE couldn't start — see Settings to report it", "error");
+});

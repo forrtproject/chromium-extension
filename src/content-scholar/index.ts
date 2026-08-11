@@ -1,5 +1,5 @@
 import { observeScholarResults, processScholarResults } from "./observer";
-import { debugLog } from "@shared/debug";
+import { debugError, debugLog } from "@shared/debug";
 import { isSetupComplete } from "@shared/settings";
 import { isDomainBlocked } from "@shared/domains";
 import { renderSetupPrompt, hideAllFloraUI, showAllFloraUI } from "../content-general/injector";
@@ -14,26 +14,33 @@ function reportActiveState(active: boolean): void {
 }
 
 (async () => {
-  if (window !== window.top) return;
+  try {
+    if (window !== window.top) return;
 
-  if (await isDomainBlocked(location.hostname)) {
-    debugLog("Domain is blocked:", location.hostname);
+    if (await isDomainBlocked(location.hostname)) {
+      debugLog("Domain is blocked:", location.hostname);
+      reportActiveState(false);
+      return;
+    }
+    reportActiveState(true);
+
+    if (!(await isSetupComplete())) {
+      renderSetupPrompt();
+    }
+
+    debugLog("Scholar content script loaded");
+
+    // Process any results already on the page
+    void processScholarResults(document).catch((err) =>
+      debugError("Scholar: initial pass failed —", err)
+    );
+
+    // Start observing for dynamically loaded results
+    observeScholarResults();
+  } catch (err) {
+    debugError("ORE failed to start on Scholar —", err);
     reportActiveState(false);
-    return;
   }
-  reportActiveState(true);
-
-  if (!(await isSetupComplete())) {
-    renderSetupPrompt();
-  }
-
-  debugLog("Scholar content script loaded");
-
-  // Process any results already on the page
-  processScholarResults(document);
-
-  // Start observing for dynamically loaded results
-  observeScholarResults();
 })();
 
 let floraHidden = false;

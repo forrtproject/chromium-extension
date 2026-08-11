@@ -3,6 +3,7 @@
 
 import { getSettings } from "./settings";
 import { BlobCache } from "./blob-cache";
+import { debugWarn } from "./debug";
 
 export interface OpenAccessLocation {
     /** Free full-text URL — the PDF when the location offers one. */
@@ -113,7 +114,8 @@ export async function fetchOpenAccess(doi: string): Promise<OpenAccessStatus | n
         };
         void OA_CACHE.set(doi, status);
         return status;
-    } catch {
+    } catch (err) {
+        debugWarn(`Open access: Unpaywall lookup failed for ${doi} —`, err);
         return null;
     }
 }

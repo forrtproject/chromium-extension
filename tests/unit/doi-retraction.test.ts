@@ -43,6 +43,30 @@ describe("doi retraction content helper", () => {
         ]);
     });
 
+    it("coalesces same-tick checks into one message", async () => {
+        const retracted = doi("10.1038/nature12373");
+        const clean = doi("10.1234/fine");
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue({
+            type: "FLORA_RET_CHECK_RESULT",
+            results: [{originDoi: retracted, doi: "10.1038/retraction", kind: "retraction"}],
+        });
+
+        const {retractionCheck} = await import("../../src/shared/doi-retraction");
+        const [first, second] = await Promise.all([
+            retractionCheck([retracted]),
+            retractionCheck([clean]),
+        ]);
+
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+            type: "FLORA_RET_CHECK",
+            dois: [retracted, clean],
+        });
+        // Each caller gets only what it asked about.
+        expect(first).toEqual([{originDoi: retracted, doi: "10.1038/retraction", kind: "retraction"}]);
+        expect(second).toEqual([]);
+    });
+
     it("returns no retractions for unexpected responses", async () => {
         (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue({
             type: "FLORA_LOOKUP_RESULT",

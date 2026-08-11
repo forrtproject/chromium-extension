@@ -8,6 +8,7 @@ import {augmentDOIs} from "@shared/doi-augment";
 import {resolvePmcIds} from "@shared/pmc-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
 import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
+import {debugError, debugWarn} from "@shared/debug";
 
 const cache = new LocalCache<ReplicationResult>("flora");
 
@@ -31,6 +32,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
     if (area === "local" && RET_MAP_KEY in changes) {
         cachedRetractionSource = null;
+        retractionSourceLoad = null;
     }
 });
 
@@ -57,8 +59,9 @@ function setActionIcon(active: boolean, tabId?: number): void {
     let imageData: Record<number, ImageData>;
     try {
         imageData = { 16: drawFloraIcon(16, active), 32: drawFloraIcon(32, active) };
-    } catch {
-        return; // OffscreenCanvas unavailable — leave the default icon
+    } catch (err) {
+        debugWarn("Toolbar icon: draw failed, keeping the default icon —", err);
+        return;
     }
     const details = tabId != null ? { tabId, imageData } : { imageData };
     chrome.action.setIcon(details).catch(() => {});
@@ -248,8 +251,9 @@ async function stashReport(report: string): Promise<void> {
         await chrome.storage.session.set({
             [PENDING_REPORT_KEY]: {report, createdAt: Date.now()},
         });
-    } catch {
-        // Session storage unavailable — the report is still on the clipboard.
+    } catch (err) {
+        // The report is still on the clipboard; only the autofill handoff is lost.
+        debugError("Debug report: could not park the report for the issue form —", err);
     }
 }
 
@@ -320,8 +324,8 @@ async function handleLookup(dois: DoiString[]): Promise<LookupResponse> {
                 // catch (which would mark the whole batch as failed).
                 try {
                     await cache.set(doi, r, MONTH_MS);
-                } catch {
-                    // Non-fatal: the result stands; we just re-fetch next time.
+                } catch (err) {
+                    debugWarn(`Lookup: cache write failed for ${doi} —`, err);
                 }
             }
             // No result (no record yet, or a transient batch failure): do NOT
@@ -330,6 +334,7 @@ async function handleLookup(dois: DoiString[]): Promise<LookupResponse> {
         }
     } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
+        debugError(`Lookup: FORRT API failed for ${toFetch.length} DOI(s) — ${msg}`, err);
         for (const doi of toFetch) {
             errors[doi] = msg;
         }
@@ -375,6 +380,7 @@ async function handleSheetFetch(
         const csv = await resp.text();
         return {type: "FLORA_SHEET_FETCH_RESULT", csv, error: null};
     } catch (err) {
+        debugError("Sheets: CSV export fetch failed —", err);
         return {
             type: "FLORA_SHEET_FETCH_RESULT",
             csv: null,
@@ -430,14 +436,27 @@ async function loadBundledRetractionMap(): Promise<RetractionMaps> {
     try {
         return await bundledRetractionMapPromise;
     } catch (error) {
+        debugError("Retractions: bundled fallback map failed to load —", error);
         bundledRetractionMapPromise = null; // allow a retry on the next call
         throw error;
     }
 }
 
-async function getRetractionSource(): Promise<RetractionMaps> {
-    if (cachedRetractionSource) return cachedRetractionSource;
+// Shared across checks that arrive while the first load is still running. The
+// worker is killed after ~30s idle, so every wake reloads: reading the 3.5MB
+// blob and rebuilding both maps per concurrent check cost seconds on a page
+// that asks about its DOIs one at a time.
+let retractionSourceLoad: Promise<RetractionMaps> | null = null;
 
+function getRetractionSource(): Promise<RetractionMaps> {
+    if (cachedRetractionSource) return Promise.resolve(cachedRetractionSource);
+    retractionSourceLoad ??= loadRetractionSource().finally(() => {
+        retractionSourceLoad = null;
+    });
+    return retractionSourceLoad;
+}
+
+async function loadRetractionSource(): Promise<RetractionMaps> {
     const storageResult = await chrome.storage.local.get([RET_MAP_KEY]);
     const stored = storageResult[RET_MAP_KEY] as RetractionMaps | undefined;
     const hasStoredData = !!stored && (
@@ -464,7 +483,8 @@ async function handleRetractionCheck(dois: DoiString[]): Promise<RetractionCheck
     let source: RetractionMaps;
     try {
         source = await getRetractionSource();
-    } catch {
+    } catch (err) {
+        debugError(`Retractions: no source available, ${dois.length} DOI(s) unchecked —`, err);
         return {type: "FLORA_RET_CHECK_RESULT", results: [], error: "Retraction data unavailable"};
     }
 
@@ -483,7 +503,18 @@ async function handleRetractionCheck(dois: DoiString[]): Promise<RetractionCheck
     return {type: "FLORA_RET_CHECK_RESULT", results};
 }
 
-export async function syncRetractionsInfo() {
+// Every uncached check kicks off a sync; without this guard a page's worth of
+// them each download the full 3.5MB map and write it back.
+let syncInFlight: Promise<void> | null = null;
+
+export function syncRetractionsInfo(): Promise<void> {
+    syncInFlight ??= runRetractionSync().finally(() => {
+        syncInFlight = null;
+    });
+    return syncInFlight;
+}
+
+async function runRetractionSync(): Promise<void> {
     const minInterval = 1000 * 60 * 60 * 24 * 7; // weekly
     const currentTime = Date.now();
     const previous = await chrome.storage.local.get(["synctime"]) ?? 0;

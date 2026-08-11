@@ -6,7 +6,7 @@ import {
   isHiddenCommenter,
   saveHiddenCommenters,
 } from "../shared/pubpeer-filter";
-import { isDebugEnabledAsync, setDebug } from "../shared/debug";
+import { debugError, isDebugEnabledAsync, setDebug } from "../shared/debug";
 import { clearDebugLog } from "../shared/debug-log";
 import {
   buildDebugReport,
@@ -41,7 +41,8 @@ form.addEventListener("submit", async (e) => {
     statusMsg.className = "status success";
     statusMsg.hidden = false;
     saveBtn.textContent = "Save";
-  } catch {
+  } catch (err) {
+    debugError("Settings: save failed —", err);
     statusMsg.textContent = "Failed to save — please try again.";
     statusMsg.className = "status error";
     statusMsg.hidden = false;
@@ -130,7 +131,8 @@ cacheQuotaSaveBtn.addEventListener("click", async () => {
     cacheQuotaStatus.className = "status domain-status success";
     cacheQuotaStatus.hidden = false;
     setTimeout(() => { cacheQuotaStatus.hidden = true; }, 3000);
-  } catch {
+  } catch (err) {
+    debugError("Settings: cache quota save failed —", err);
     cacheQuotaStatus.textContent = "Failed to save — please try again.";
     cacheQuotaStatus.className = "status domain-status error";
     cacheQuotaStatus.hidden = false;
@@ -364,7 +366,8 @@ async function copyDebugReport(): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(debugReport);
     return true;
-  } catch {
+  } catch (err) {
+    debugError("Settings: copying the debug report failed —", err);
     return false;
   }
 }

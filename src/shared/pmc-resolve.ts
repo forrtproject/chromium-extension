@@ -5,7 +5,7 @@ import type {DoiString} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
-import {debugLog} from "./debug";
+import {debugLog, debugWarn} from "./debug";
 
 const IDCONV_BASE = "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/";
 // NCBI caps one request at 200 ids.
@@ -76,8 +76,9 @@ export async function resolvePmcIds(rawIds: string[]): Promise<Map<string, DoiSt
         let records: IdConvRecord[];
         try {
             records = await fetchIdConv(batch);
-        } catch {
-            continue; // leave uncached so a later pass retries
+        } catch (err) {
+            debugWarn(`PMC resolve: batch of ${batch.length} failed, retrying next pass —`, err);
+            continue;
         }
         for (const record of records) {
             const id = normalisePmcId(record["requested-id"]) ?? normalisePmcId(record.pmcid);
