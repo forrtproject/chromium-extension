@@ -54,7 +54,7 @@ function pubpeerFeedback(doi: string): PubPeerFeedback | null {
     const fixture = PUBPEER_FIXTURES[doi];
     if (!fixture) return null;
     return {
-        id: doi,
+        id: doi.toLowerCase(),
         title: fixture.title,
         total_comments: fixture.comments,
         total_peeriodical_comments: 0,
