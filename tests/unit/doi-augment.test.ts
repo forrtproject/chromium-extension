@@ -8,7 +8,7 @@ vi.mock("../../src/shared/settings", () => ({
   isSetupComplete: vi.fn().mockResolvedValue(true),
 }));
 
-import { normalizeTitle, similarity, tokenSetRatio, augmentDOIs, _resetAugmentCachesForTesting } from "../../src/shared/doi-augment";
+import { normalizeTitle, similarity, tokenSetRatio, augmentDOIs, fetchTitleByDoi, _resetAugmentCachesForTesting } from "../../src/shared/doi-augment";
 import { getSettings } from "../../src/shared/settings";
 
 const OPENALEX_URL = "https://api.openalex.org/works";
@@ -387,6 +387,70 @@ describe("augmentDOIs", () => {
     expect(setSpy).not.toHaveBeenCalled(); // and crucially never poisoned the cache
   });
 
+  it("does not cache a no-match when neither platform answered", async () => {
+    server.use(
+      http.get(CROSSREF_URL, () => HttpResponse.error()),
+      http.get(OPENALEX_URL, () => HttpResponse.error())
+    );
+    const setSpy = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+    setSpy.mockClear();
+
+    const results = await augmentDOIs(["An Offline Paper"]);
+
+    expect(results.get("An Offline Paper")).toBeNull();
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not cache a no-match when both platforms are down", async () => {
+    server.use(
+      http.get(CROSSREF_URL, () => new HttpResponse(null, { status: 503 })),
+      http.get(OPENALEX_URL, () => new HttpResponse(null, { status: 503 }))
+    );
+    const setSpy = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+    setSpy.mockClear();
+
+    const results = await augmentDOIs(["A Paper During An Outage"]);
+
+    expect(results.get("A Paper During An Outage")).toBeNull();
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it("caches a no-match when one platform answered", async () => {
+    server.use(
+      http.get(CROSSREF_URL, () => HttpResponse.json({ message: { items: [] } })),
+      http.get(OPENALEX_URL, () => new HttpResponse(null, { status: 503 }))
+    );
+    const setSpy = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+    setSpy.mockClear();
+
+    const results = await augmentDOIs(["A Genuinely Unknown Paper"]);
+
+    expect(results.get("A Genuinely Unknown Paper")).toBeNull();
+    expect(setSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-queries a title after a failed lookup instead of serving a cached miss", async () => {
+    server.use(
+      http.get(CROSSREF_URL, () => HttpResponse.error()),
+      http.get(OPENALEX_URL, () => HttpResponse.error())
+    );
+
+    expect((await augmentDOIs(["A Retried Paper"])).get("A Retried Paper")).toBeNull();
+
+    server.use(
+      http.get(CROSSREF_URL, () =>
+        HttpResponse.json({
+          message: { items: [{ DOI: "10.1038/retried", title: ["A Retried Paper"] }] },
+        })
+      ),
+      http.get(OPENALEX_URL, () => HttpResponse.json({ results: [] }))
+    );
+
+    expect((await augmentDOIs(["A Retried Paper"])).get("A Retried Paper")).toBe(
+      "10.1038/retried"
+    );
+  });
+
   it("deduplicates titles that share a normalized key", async () => {
     let crossrefHits = 0;
     server.use(
@@ -600,5 +664,57 @@ describe("augmentDOIs", () => {
     const results = await augmentDOIs([{ title, firstAuthor: "Vaswani", year: 2017 }]);
 
     expect(results.get(title)).toBeNull();
+  });
+});
+
+describe("fetchTitleByDoi", () => {
+  const DOI = "10.1038/nature12373";
+  const CROSSREF_WORK = `${CROSSREF_URL}/*`;
+  const OPENALEX_WORK = "https://api.openalex.org/works/*";
+
+  beforeEach(() => {
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    _resetAugmentCachesForTesting();
+  });
+
+  it("does not cache a null title when a platform never answered", async () => {
+    server.use(
+      http.get(CROSSREF_WORK, () => new HttpResponse(null, { status: 404 })),
+      http.get(OPENALEX_WORK, () => HttpResponse.error())
+    );
+    const setSpy = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+    setSpy.mockClear();
+
+    expect(await fetchTitleByDoi(DOI)).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it("caches a null title when both platforms answered", async () => {
+    server.use(
+      http.get(CROSSREF_WORK, () => new HttpResponse(null, { status: 404 })),
+      http.get(OPENALEX_WORK, () => new HttpResponse(null, { status: 404 }))
+    );
+    const setSpy = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+    setSpy.mockClear();
+
+    expect(await fetchTitleByDoi(DOI)).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(setSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("caches a title resolved by Crossref", async () => {
+    server.use(
+      http.get(CROSSREF_WORK, () =>
+        HttpResponse.json({ message: { title: ["The Effect of Sleep on Memory Consolidation"] } })
+      )
+    );
+    const setSpy = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+    setSpy.mockClear();
+
+    expect(await fetchTitleByDoi(DOI)).toBe("The Effect of Sleep on Memory Consolidation");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(setSpy).toHaveBeenCalledTimes(1);
   });
 });

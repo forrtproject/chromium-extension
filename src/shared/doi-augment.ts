@@ -323,10 +323,7 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
     const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link&mailto=${encodeURIComponent(email)}`;
     debugLog(`Augment [crossref] query: "${cleaned}"`);
     const response = await fetch(url);
-    if (!response.ok) {
-        debugWarn(`Augment [crossref] HTTP ${response.status} for "${cleaned}" — no candidates`);
-        return [];
-    }
+    if (!response.ok) throw new Error(`Crossref HTTP ${response.status}`);
 
     const data = (await response.json()) as {
         message?: {
@@ -387,15 +384,7 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
 
     debugLog(`Augment [openalex] query: "${cleaned}"`);
     const response = await fetch(url);
-    if (response.status === 429) {
-        // Rate-limited — throw so Promise.allSettled marks this as rejected and
-        // the caller falls back to Crossref results.
-        throw new Error("OpenAlex rate limited (429)");
-    }
-    if (!response.ok) {
-        debugWarn(`Augment [openalex] HTTP ${response.status} for "${cleaned}" — no candidates`);
-        return [];
-    }
+    if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
 
     const data = (await response.json()) as {
         results?: Array<{
@@ -566,7 +555,17 @@ export async function augmentDOIsDetailed(
             ? null
             : seenIn.size > 1 ? "both" : best.source;
         for (const r of group) results.set(r.title, {doi, source});
-        updates.push([key, {found: doi !== null, doi}]);
+
+        const answered =
+            crossrefResult.status === "fulfilled" || openalexResult.status === "fulfilled";
+        if (answered) {
+            updates.push([key, {found: doi !== null, doi}]);
+        } else {
+            debugWarn(
+                `Augment: neither platform answered for "${request.title.slice(0, 80)}"`
+                + " — not caching the no-match so it retries next time"
+            );
+        }
     });
 
     await Promise.allSettled(lookupPromises);
@@ -598,11 +597,14 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
     if (cached) return cached.title;
 
     let title: string | null = null;
+    let crossrefAnswered = false;
+    let openalexAnswered = false;
 
     try {
         const email = await getUserEmail();
         const mailto = email ? `?mailto=${encodeURIComponent(email)}` : "";
         const response = await fetch(`${CROSSREF_BASE}/${doi}${mailto}`);
+        crossrefAnswered = response.ok || response.status === 404;
         if (response.ok) {
             const data = (await response.json()) as { message?: { title?: string[] } };
             title = data.message?.title?.[0] ?? null;
@@ -614,6 +616,7 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
     if (!title) {
         try {
             const response = await fetch(`${OPENALEX_BASE}/doi:${doi}?select=title`);
+            openalexAnswered = response.ok || response.status === 404;
             if (response.ok) {
                 const data = (await response.json()) as { title?: string };
                 title = data.title ?? null;
@@ -623,7 +626,9 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
         }
     }
 
-    void TITLE_CACHE.set(doi, {title});
+    if (title !== null || (crossrefAnswered && openalexAnswered)) {
+        void TITLE_CACHE.set(doi, {title});
+    }
     return title;
 }
 
