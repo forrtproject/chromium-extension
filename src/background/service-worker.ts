@@ -94,6 +94,22 @@ chrome.runtime.onStartup.addListener(() => {
     syncRetractionsInfo().then().catch();
 });
 
+const RETRACTION_SYNC_ALARM = "flora-retraction-sync";
+
+async function ensureRetractionSyncAlarm(): Promise<void> {
+    // Re-creating an alarm restarts its countdown, and this runs on every worker wake.
+    const existing = await chrome.alarms.get(RETRACTION_SYNC_ALARM);
+    if (!existing) chrome.alarms.create(RETRACTION_SYNC_ALARM, {periodInMinutes: 60 * 24});
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === RETRACTION_SYNC_ALARM) syncRetractionsInfo().then().catch();
+});
+
+ensureRetractionSyncAlarm().catch((err) => {
+    debugWarn("Retractions: could not schedule the daily refresh alarm —", err);
+});
+
 
 /** In-flight dedup: prevents duplicate API calls for the same DOI */
 const inflight = new Map<DoiString, Promise<ReplicationResult | null>>();
