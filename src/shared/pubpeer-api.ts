@@ -47,6 +47,8 @@ export async function lookupPubPeer(
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
 
+const cacheKey = (doi: string): string => doi.toLowerCase();
+
 const PUBPEER_CACHE = new BlobCache<{ feedback: PubPeerFeedback | null }>({
   storageKey: "flora_pubpeer_blob",
   ttlMs: CACHE_TTL,
@@ -78,9 +80,9 @@ export async function lookupPubPeerForDois<T extends string>(
   // 1. Serve from cache; collect DOIs that need a network call.
   const uncached: T[] = [];
   const now = Date.now();
-  const cached = await PUBPEER_CACHE.getMany(dois);
+  const cached = await PUBPEER_CACHE.getMany(dois.map(cacheKey));
   for (const doi of dois) {
-    const entry = cached.get(doi);
+    const entry = cached.get(cacheKey(doi));
     if (entry) {
       if (entry.feedback) result.set(doi, entry.feedback);
     } else {
@@ -101,7 +103,7 @@ export async function lookupPubPeerForDois<T extends string>(
   // 2. One batch call for all uncached DOIs.
   let feedbacks: PubPeerFeedback[] = [];
   try {
-    feedbacks = await lookupPubPeer(uncached, []);
+    feedbacks = await lookupPubPeer(uncached.map(cacheKey), []);
   } catch (err) {
     if (err instanceof PubPeerRateLimitError) {
       rateLimitedUntil = now + err.retryAfterMs;
@@ -113,14 +115,14 @@ export async function lookupPubPeerForDois<T extends string>(
   // feedback.id is the DOI — build a lookup map from the response.
   const hitByDoi = new Map<string, PubPeerFeedback>();
   for (const fb of feedbacks) {
-    if (fb.id) hitByDoi.set(fb.id, fb);
+    if (fb.id) hitByDoi.set(cacheKey(fb.id), fb);
   }
 
   // 3. Cache every uncached DOI (hit → feedback, miss → null) and populate result.
   const writes: Array<[string, { feedback: PubPeerFeedback | null }]> = [];
   for (const doi of uncached) {
-    const feedback = hitByDoi.get(doi) ?? null;
-    writes.push([doi, { feedback }]);
+    const feedback = hitByDoi.get(cacheKey(doi)) ?? null;
+    writes.push([cacheKey(doi), { feedback }]);
     if (feedback) result.set(doi, feedback);
   }
   void PUBPEER_CACHE.setMany(writes);
