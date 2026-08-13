@@ -42,9 +42,7 @@ const CLOSE_STYLE =
     "padding-right:10px;user-select:none;align-self:center;color:rgba(255,255,255,0.8);";
 
 const BG = {
-    loading: "background:#6b7280;",
     success: "background:#853953;",
-    warning: "background:#ea580c;",
     error: "background:#dc2626;",
 } as const;
 
@@ -56,6 +54,17 @@ const REMIND_PILL_STYLE =
 const SETUP_HOST_ID = "flora-setup-prompt";
 
 const SETUP_REMIND_KEY = "flora_setup_remind_after";
+
+function onActivate(el: Element, handler: () => void): void {
+    el.addEventListener("click", handler);
+    el.addEventListener("keydown", (e) => {
+        const key = (e as KeyboardEvent).key;
+        if (key === "Enter" || key === " ") {
+            e.preventDefault();
+            handler();
+        }
+    });
+}
 
 async function isSetupPromptSuppressed(): Promise<boolean> {
     // Dismissed this browser session? (relayed via background service worker)
@@ -148,10 +157,12 @@ export async function renderSetupPrompt(): Promise<void> {
 
     document.body.appendChild(host);
 
-    host.querySelector(".flora-setup-close")?.addEventListener("click", async () => {
-        await dismissSetupForSession();
-        host.remove();
-    });
+    const closeEl = host.querySelector(".flora-setup-close");
+    if (closeEl) {
+        onActivate(closeEl, () => {
+            void dismissSetupForSession().then(() => host.remove());
+        });
+    }
 
     host.querySelector(".flora-setup-open")?.addEventListener("click", () => {
         void safeSendMessage({type: "FLORA_OPEN_OPTIONS"});
@@ -166,16 +177,6 @@ export async function renderSetupPrompt(): Promise<void> {
             host.remove();
         });
     }
-}
-
-export function renderLoadingBanner(): void {
-    const host = ensureBannerHost();
-    host.innerHTML = `
-    <div style="${BANNER_BASE_STYLE}${BG.loading}">
-      <span style="${LOGO_STYLE}">FORRT ORE</span>
-      <span style="${TEXT_STYLE}">Checking replication data\u2026</span>
-    </div>`;
-    requestAnimationFrame(() => adjustPageForBanner());
 }
 
 export function renderErrorBanner(message: string): void {
@@ -298,39 +299,28 @@ function adjustPageForBanner(): void {
     // Make space for the banner at the top of the body
     setTracked(document.body, "padding-top", `${bannerHeight}px`);
 
-    // Gather fixed elements and push them down (skip our own UI elements)
     const setupPrompt = document.getElementById(SETUP_HOST_ID);
-    const fixedElements = Array.from(document.querySelectorAll<HTMLElement>("*")).filter(
-        (el) =>
-            el !== banner &&
-            el !== inner &&
-            !setupPrompt?.contains(el) &&
-            window.getComputedStyle(el).position === "fixed"
-    );
-    for (const el of fixedElements) {
-        if (isSheets) {
-            // Only shift top-anchored elements; skip bottom-anchored ones (sheet tabs bar)
-            const cs = window.getComputedStyle(el);
-            const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
-            if (hasBottom && parseInt(cs.bottom) < 50) continue;
-            const currentTop = parseInt(cs.top) || 0;
-            setTracked(el, "top", `${currentTop + bannerHeight}px`);
-        } else {
-            setTracked(el, "padding-top", `${bannerHeight}px`);
-        }
-    }
-
-    // Gather sticky elements and conditionally push them down
-    const stickyElements = Array.from(document.querySelectorAll<HTMLElement>("*")).filter(
-        (el) => el !== banner && el !== inner && window.getComputedStyle(el).position === "sticky"
-    );
-    for (const el of stickyElements) {
-        const position = el.getBoundingClientRect().top;
-        const threshold = parseInt(window.getComputedStyle(el).top);
-        if (position < bannerHeight || position <= threshold) {
-            setTracked(el, "padding-top", `${bannerHeight}px`);
-        } else {
-            restoreTracked(el, "padding-top");
+    for (const el of document.querySelectorAll<HTMLElement>("*")) {
+        if (el === banner || el === inner || setupPrompt?.contains(el)) continue;
+        const cs = window.getComputedStyle(el);
+        if (cs.position === "fixed") {
+            if (isSheets) {
+                // Only shift top-anchored elements; skip bottom-anchored ones (sheet tabs bar)
+                const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
+                if (hasBottom && parseInt(cs.bottom) < 50) continue;
+                const currentTop = parseInt(cs.top) || 0;
+                setTracked(el, "top", `${currentTop + bannerHeight}px`);
+            } else {
+                setTracked(el, "padding-top", `${bannerHeight}px`);
+            }
+        } else if (cs.position === "sticky") {
+            const position = el.getBoundingClientRect().top;
+            const threshold = parseInt(cs.top);
+            if (position < bannerHeight || position <= threshold) {
+                setTracked(el, "padding-top", `${bannerHeight}px`);
+            } else {
+                restoreTracked(el, "padding-top");
+            }
         }
     }
 }
@@ -525,7 +515,7 @@ export function renderSheetsModal(
 
     // Wire up close / dismiss
     for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
-        el.addEventListener("click", () => {
+        onActivate(el, () => {
             removeSheetsModal();
             callbacks?.onDismiss();
         });
@@ -1017,7 +1007,10 @@ export function renderSidePanel(
 
   cleanupTabPositioning();
   runPanelCleanups();
-  existingHost?.remove();
+  if (existingHost) {
+    existingHost.dataset.floraPanelStale = "1";
+    existingHost.remove();
+  }
 
   const host = document.createElement("div");
   host.id = PUBPEER_PANEL_ID;
@@ -1404,19 +1397,20 @@ export function renderSidePanel(
     if (oaPlaceholders.size === 0) return;
     const { email } = await getSettings();
     if (!email) return;
-    for (const [doi, placeholder] of oaPlaceholders) {
+    await Promise.allSettled([...oaPlaceholders].map(async ([doi, placeholder]) => {
       try {
+        if (host.dataset.floraPanelStale === "1") return;
         const resp = await fetch(
           `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`
         );
-        if (!resp.ok) continue;
+        if (!resp.ok) return;
         const data = await resp.json() as {
           is_oa?: boolean;
           best_oa_location?: { url_for_pdf?: string | null; url?: string | null } | null;
         };
-        if (!data.is_oa) continue;
+        if (!data.is_oa) return;
         const oaUrl = data.best_oa_location?.url_for_pdf ?? data.best_oa_location?.url;
-        if (!oaUrl) continue;
+        if (!oaUrl) return;
         const icon = document.createElement("a");
         icon.href = oaUrl;
         icon.target = "_blank";
@@ -1440,11 +1434,12 @@ export function renderSidePanel(
           `<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>` +
           `<path d="M7 11V7a5 5 0 0 1 9.9-1"/>` +
           `</svg>`;
+        if (!placeholder.isConnected) return;
         placeholder.replaceWith(icon);
       } catch (err) {
         debugWarn("Side panel: open-access icon lookup failed for an entry —", err);
       }
-    }
+    }));
   })();
 
   // Build one reference row (title + FORRT/retraction/PubPeer tags).
@@ -1824,7 +1819,11 @@ export function renderSidePanel(
 export function removeSidePanel(): void {
   cleanupTabPositioning();
   runPanelCleanups();
-  document.getElementById(PUBPEER_PANEL_ID)?.remove();
+  const host = document.getElementById(PUBPEER_PANEL_ID);
+  if (host) {
+    host.dataset.floraPanelStale = "1";
+    host.remove();
+  }
 }
 
 function isSafePubPeerUrl(url: string): boolean {
@@ -1835,109 +1834,3 @@ function isSafePubPeerUrl(url: string): boolean {
     return false;
   }
 }
-
-// ──────────────────────────────────────────────
-// Retractions Banner
-// ──────────────────────────────────────────────
-
-const RETRACTS_MODAL_ID = "flora-retracts-modal";
-
-export interface RetractsModalCallbacks {
-    onDismiss: () => void;
-    onSnooze: () => void;
-}
-
-export function renderRetractedBanner(
-    matched: RetractionResponse[],
-    callbacks?: RetractsModalCallbacks
-): void {
-    if (matched.length === 0) {
-        removeRetractsModal();
-        return;
-    }
-    if (document.getElementById(RETRACTS_MODAL_ID)) {
-        return
-    }
-    const host = document.createElement("div");
-    let entries = document.createElement(matched.length > 1 ? "ol" : "div");
-    for (const m of matched) {
-        let wrapper = document.createElement(matched.length > 1 ? "li" : "div");
-        let link = document.createElement("a");
-        link.href = `https://doi.org/${m.doi}`;
-        link.innerText = m.originDoi;
-        link.style.fontWeight = "normal";
-        link.style.color = "#111";
-        link.style.textDecoration = "none";
-        link.style.display = "block";
-        if (m != matched[0]) wrapper.style.marginTop = "8px";
-        if (matched.length > 1) {
-            wrapper.style.listStyleType = "bullet";
-            wrapper.style.marginLeft = "12px";
-        }
-        wrapper.appendChild(link);
-        entries.appendChild(wrapper);
-    }
-    host.id = RETRACTS_MODAL_ID;
-    host.innerHTML = `
-    <div role="dialog" aria-labelledby="flora-modal-title" style="
-      position:fixed;top:60px;right:24px;z-index:2147483647;
-      width:360px;background:#fff;border-radius:12px;
-      box-shadow:0 8px 28px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.08);
-      font-family:'Google Sans',Roboto,-apple-system,sans-serif;
-      overflow:hidden;animation:floraSlideIn 0.25s ease-out;
-    ">
-      <!-- header -->
-      <div style="background:linear-gradient(135deg,#853953,#612D53);padding:14px 16px;display:flex;align-items:center;gap:10px;">
-        <span style="
-          background:rgba(255,255,255,0.2);color:#fff;font-weight:700;font-size:13px;
-          padding:4px 10px;border-radius:6px;letter-spacing:0.3px;
-        ">FORRT ORE</span>
-        <span id="flora-modal-title" style="color:#fff;font-size:13px;font-weight:500;flex:1;">
-          Caution &mdash; Retraction Alert
-        </span>
-        <span class="flora-modal-close" role="button" tabindex="0" aria-label="Close" style="
-          cursor:pointer;color:rgba(255,255,255,0.7);font-size:20px;line-height:1;
-          width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-          border-radius:50%;transition:background 0.15s;
-        ">\u00d7</span>
-      </div>
-      <!-- Body -->
-      <div style="padding:16px;">
-        <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" style="width:18px!important; height:18px!important; display: inline-block; vertical-align: text-bottom; margin-right:4px;"><path d="M320 64C334.7 64 348.2 72.1 355.2 85L571.2 485C577.9 497.4 577.6 512.4 570.4 524.5C563.2 536.6 550.1 544 536 544L104 544C89.9 544 76.8 536.6 69.6 524.5C62.4 512.4 62.1 497.4 68.8 485L284.8 85C291.8 72.1 305.3 64 320 64zM320 416C302.3 416 288 430.3 288 448C288 465.7 302.3 480 320 480C337.7 480 352 465.7 352 448C352 430.3 337.7 416 320 416zM320 224C301.8 224 287.3 239.5 288.6 257.7L296 361.7C296.9 374.2 307.4 384 319.9 384C332.5 384 342.9 374.3 343.8 361.7L351.2 257.7C352.5 239.5 338.1 224 319.8 224z"/></svg>
-        Found a mention of <strong data-flora-doi-count style="color:#202124;">${matched.length} retraction${matched.length !== 1 ? "s" : ""}</strong> on this page.
-        </div>
-        <!-- list of entries -->
-        <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;flex:1;background:#f9f0f4;border:1px solid #d4a5b8;border-radius:8px;
-            padding:12px;text-align:left;max-height: 250px;overflow: auto">
-        ${entries.outerHTML}
-        </div>
-      </div>  
-      <!-- Footer -->
-      <div style="padding:10px 16px 14px;display:flex;align-items:center;gap:8px;">
-        <span style="display: flex;flex-grow: 1;"></span>
-        <button class="flora-modal-dismiss" style="
-          all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
-          color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">Close</button>
-      </div>
-    </div>
-    <style>
-      @keyframes floraSlideIn {
-        from { opacity:0; transform:translateY(-8px); }
-        to { opacity:1; transform:translateY(0); }
-      }
-    </style>`;
-    document.body.appendChild(host);
-    for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
-        el.addEventListener("click", () => {
-            removeRetractsModal();
-            callbacks?.onDismiss();
-        });
-    }
-}
-
-export function removeRetractsModal(): void {
-    document.getElementById(RETRACTS_MODAL_ID)?.remove();
-}
-

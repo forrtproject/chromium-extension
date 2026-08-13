@@ -392,6 +392,17 @@ function isReferenceContainer(el: Element): boolean {
   return false;
 }
 
+/** True when `el` sits inside, is, or contains a reference section. */
+export function touchesReferenceSection(el: Element): boolean {
+  for (let node: Element | null = el; node; node = node.parentElement) {
+    if (isReferenceContainer(node)) return true;
+  }
+  for (const descendant of el.querySelectorAll("[class],[id]")) {
+    if (isReferenceContainer(descendant)) return true;
+  }
+  return false;
+}
+
 // Per-pass memo: findReferenceContainers runs several times per handler pass
 // and a full-document scan is expensive. beginDomScanPass() bumps the epoch.
 let _scanEpoch = 0;

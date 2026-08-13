@@ -592,6 +592,8 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
     const cached = await TITLE_CACHE.get(doi);
     if (cached) return cached.title;
 
+    const encodedDoi = doi.split("/").map(encodeURIComponent).join("/");
+
     let title: string | null = null;
     let crossrefAnswered = false;
     let openalexAnswered = false;
@@ -599,7 +601,7 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
     try {
         const email = await getUserEmail();
         const mailto = email ? `?mailto=${encodeURIComponent(email)}` : "";
-        const response = await fetch(`${CROSSREF_BASE}/${doi}${mailto}`);
+        const response = await fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`);
         crossrefAnswered = response.ok || response.status === 404;
         if (response.ok) {
             const data = (await response.json()) as { message?: { title?: string[] } };
@@ -611,7 +613,7 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
 
     if (!title) {
         try {
-            const response = await fetch(`${OPENALEX_BASE}/doi:${doi}?select=title`);
+            const response = await fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`);
             openalexAnswered = response.ok || response.status === 404;
             if (response.ok) {
                 const data = (await response.json()) as { title?: string };

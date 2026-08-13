@@ -59,7 +59,6 @@ let augmentAttempted = false;
 let articleFeedbacksFetched = false;
 let lastReferenceDoiKey = "";
 let lastArticleFeedbacks: PubPeerFeedback[] = [];
-let lastRefFeedbackByDoi: Map<DoiString, PubPeerFeedback> = new Map();
 // Monotonically increments when FORRT lookup results land in pageState.
 let pageStateVersion = 0;
 let lastRenderedPageStateVersion = -1;
@@ -76,7 +75,6 @@ let snoozeUntil = 0;
 const isSheets = location.href.includes("docs.google.com/spreadsheets");
 // Track whether the popup has hidden FLoRA UI on this page (session only)
 let floraHidden = false;
-let dismissRedacts = false;
 
 // Tell the service worker whether FLoRA is active on this tab so it can swap the
 // toolbar icon (maroon = active, gray = inactive).
@@ -198,11 +196,11 @@ async function runScanPass(): Promise<void> {
         seenDois.clear();
         doiContext.clear();
         lastArticleFeedbacks = [];
-        lastRefFeedbackByDoi = new Map();
         articleFeedbacksFetched = false;
         lastReferenceDoiKey = "";
         lastRenderedPageStateVersion = -1;
         pageState.clear();
+        redacts = [];
         augmentAttempted = false;
         resetRetractionPills();
         removeIndicatorPills();
@@ -270,14 +268,14 @@ async function runScanPass(): Promise<void> {
     }
 
     // Drop occurrences inside FLoRA's own UI so we don't pill our own panel rows.
-    const FLORA_UI_IDS = ["flora-pubpeer-panel", "flora-retracts-modal", "flora-banner-host", "flora-setup-prompt", "flora-sheets-modal"];
+    const FLORA_UI_IDS = ["flora-pubpeer-panel", "flora-banner-host", "flora-setup-prompt", "flora-sheets-modal"];
     const pageOccurrences = occurrences.filter(
         (occ) => !FLORA_UI_IDS.some((id) => occ.anchor.closest(`#${id}`) !== null)
     );
 
     // One retraction check for occurrences + resolved refs; held in `redacts`.
-    if (hasDoiChange && dois.length > 0) {
-        const resolvedRefs = await refsPromise;
+    const resolvedRefs = await refsPromise;
+    if ((hasDoiChange && dois.length > 0) || resolvedRefs.length > 0) {
         try {
             const allNoticeDois = Array.from(new Set([
                 ...dois,
@@ -658,7 +656,6 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
         ]);
         articleFeedbacksFetched = true;
         lastArticleFeedbacks = articleFeedbacks;
-        lastRefFeedbackByDoi = refFeedbackByDoi;
         lastReferenceDoiKey = refKey;
 
         // Panel lists only refs with PubPeer comments, a notice, or FORRT data.

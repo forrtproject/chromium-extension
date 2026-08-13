@@ -1,4 +1,4 @@
-import {containsDoiCandidate} from "@shared/doi-extractor";
+import {containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extractor";
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog} from "@shared/debug";
 
@@ -6,11 +6,12 @@ const MAX_INCREMENTAL_NODES = 50;
 
 const DEBOUNCE_MS = 300;
 
-/** True when any added subtree actually introduces DOI-like content. */
+/** True when any added subtree introduces DOI-like content or reference entries. */
 export function scanAddedNodes(nodes: Element[]): boolean {
     for (const el of nodes) {
         if (!el.isConnected) continue;
         if (containsDoiCandidate(el)) return true;
+        if (touchesReferenceSection(el)) return true;
     }
     return false;
 }
