@@ -15,7 +15,7 @@
   --error-bg: #fef0ee;
   --text: #2C2C2C;
   --text-secondary: #4a4a4a;
-  --text-muted: #888;
+  --text-muted: #57606a;
   --border: #d0d1d1;
   --border-light: #e0e1e1;
   --font-display: "Domine", Georgia, serif;
@@ -95,6 +95,14 @@ body {
 }
 
 /* ─── Buttons ─── */
+.popup-btn:focus-visible,
+.popup-link:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .popup-btn {
   all: unset;
   cursor: pointer;

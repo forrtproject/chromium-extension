@@ -158,10 +158,25 @@ describe("cite action", () => {
     await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith(CITATION));
   });
 
-  it("says so when the citation can't be rendered", async () => {
+  it("blames the connection when no service answers", async () => {
     fetchMock.mockImplementation((url: string) =>
       /crossref|doi\.org/.test(url)
         ? Promise.reject(new Error("offline"))
+        : new Promise<Response>(() => {})
+    );
+    const pill = createIndicatorPill({doi: DOI});
+    document.body.appendChild(pill);
+
+    citeBtn(pill).click();
+
+    await vi.waitFor(() => expect(citeBtn(pill).title).toBe("Couldn't reach Crossref"));
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("blames the style when the service answers that it has none", async () => {
+    fetchMock.mockImplementation((url: string) =>
+      /crossref|doi\.org/.test(url)
+        ? Promise.resolve({ok: false, status: 404, text: () => Promise.resolve("")} as unknown as Response)
         : new Promise<Response>(() => {})
     );
     const pill = createIndicatorPill({doi: DOI});

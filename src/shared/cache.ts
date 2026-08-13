@@ -8,7 +8,11 @@ export const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
  * Enforces a soft storage quota: when usage approaches the limit it evicts
  * expired entries first, then live entries oldest-first (LRU by createdAt).
  */
+const QUOTA_CHECK_INTERVAL_MS = 60_000;
+
 export class LocalCache<T> {
+  private lastQuotaCheck = 0;
+
   private quotaBytes: number;
 
   constructor(
@@ -29,6 +33,42 @@ export class LocalCache<T> {
    *  - `null`       — cached no-match (negative result)
    *  - `T`          — cached match
    */
+  async getMany(keys: string[]): Promise<Map<string, T | null>> {
+    const out = new Map<string, T | null>();
+    if (keys.length === 0) return out;
+
+    const storageKeys = keys.map((k) => this.storageKey(k));
+    const raw = await chrome.storage.local.get(storageKeys);
+    const now = Date.now();
+    const stale: string[] = [];
+
+    for (const key of keys) {
+      const storageKey = this.storageKey(key);
+      const entry = raw[storageKey] as CachedEntry<T> | undefined;
+      if (!entry) continue;
+      if (entry.expiresAt !== null && now > entry.expiresAt) {
+        stale.push(storageKey);
+        continue;
+      }
+      out.set(key, entry.data);
+    }
+
+    if (stale.length > 0) void chrome.storage.local.remove(stale);
+    return out;
+  }
+
+  async setMany(entries: Array<[string, T | null]>, ttlMs: number | null): Promise<void> {
+    if (entries.length === 0) return;
+    await this.sweepIfOverQuota();
+    const now = Date.now();
+    const expiresAt = ttlMs === null ? null : now + ttlMs;
+    const payload: Record<string, CachedEntry<T>> = {};
+    for (const [key, data] of entries) {
+      payload[this.storageKey(key)] = { data, expiresAt, createdAt: now };
+    }
+    await chrome.storage.local.set(payload);
+  }
+
   async get(key: string): Promise<T | null | undefined> {
     const storageKey = this.storageKey(key);
     const result = await chrome.storage.local.get(storageKey);
@@ -58,11 +98,13 @@ export class LocalCache<T> {
 
   private async sweepIfOverQuota(): Promise<void> {
     if (this.quotaBytes === 0) return; // 0 = unlimited
+    const now = Date.now();
+    if (now - this.lastQuotaCheck < QUOTA_CHECK_INTERVAL_MS) return;
+    this.lastQuotaCheck = now;
     const used = await chrome.storage.local.getBytesInUse(null);
     if (used < this.quotaBytes) return;
 
     const all = await chrome.storage.local.get(null);
-    const now = Date.now();
     const mine = Object.keys(all).filter(k => k.startsWith(`${this.prefix}:`));
 
     // First reclaim any expired entries for this prefix.

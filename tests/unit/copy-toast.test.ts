@@ -116,7 +116,7 @@ describe("copy confirmation toast", () => {
     await vi.waitFor(() => expect(toastText()).toContain("copied"));
   });
 
-  it("replaces the pending toast when the citation can't be rendered", async () => {
+  it("replaces the pending toast when no service answers", async () => {
     fetchMock.mockImplementation((url: string) =>
       /crossref|doi\.org/.test(url)
         ? Promise.reject(new Error("offline"))
@@ -128,7 +128,7 @@ describe("copy confirmation toast", () => {
 
     citeBtn(pill).click();
 
-    await vi.waitFor(() => expect(toastText()).toContain("No APA citation available"));
+    await vi.waitFor(() => expect(toastText()).toContain("Couldn't reach Crossref"));
     expect(toastText()).not.toContain("Fetching");
   });
 

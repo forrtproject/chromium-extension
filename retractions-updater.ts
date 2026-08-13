@@ -66,7 +66,7 @@ function clean(s: string | undefined): string {
 }
 
 function cleanDoi(s: string | undefined): string {
-    return clean(s).replace(/\?.*$|#.+$/s, "");
+    return clean(s).replace(/\?.*$|#.+$/s, "").toLowerCase();
 }
 
 function isRealDoi(doi: string): boolean {
@@ -137,7 +137,7 @@ export async function getRetractionMap(): Promise<RetractionMaps | undefined> {
     console.error(
         `Parsed ${rows.length - 1} rows -> ${Object.keys(retractions).length} retractions, ` +
         `${Object.keys(concerns).length} expressions of concern.`);
-    return {retractions, concerns};
+    return {retractions, concerns, lowercasedKeys: true};
 }
 
 getRetractionMap().then(map => {

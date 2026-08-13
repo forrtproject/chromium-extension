@@ -144,8 +144,30 @@ export async function retractionCheck(dois: DoiString[]): Promise<RetractionResp
 const pilledRetractionDois = new Set<string>();
 
 /** Clear per-DOI retraction-pill tracking — call on SPA navigation. */
-export function resetRetractionPills(): void {
+export function resetRetractionPills(root: ParentNode = document): void {
     pilledRetractionDois.clear();
+    for (const pill of root.querySelectorAll(`.${FLORA_NOTICE_PILL_CLASS}`)) pill.remove();
+    for (const anchor of root.querySelectorAll(`[${FLORA_RET_CHECK_KEY}]`)) {
+        anchor.removeAttribute(FLORA_RET_CHECK_KEY);
+    }
+}
+
+export interface DoiOccurrenceAnchor {
+    doi: DoiString;
+    anchor: Element;
+}
+
+export function injectInlineRetractionPills(
+    occurrences: readonly DoiOccurrenceAnchor[],
+    retractionByDoi: ReadonlyMap<DoiString, RetractionResponse>,
+    titlePillDoi: DoiString | null,
+): void {
+    for (const occ of occurrences) {
+        const notice = retractionByDoi.get(occ.doi);
+        if (!notice) continue;
+        if (titlePillDoi !== null && occ.doi === titlePillDoi) continue;
+        injectRetractionInfo(occ.anchor, notice);
+    }
 }
 
 export interface InjectRetractionOptions {

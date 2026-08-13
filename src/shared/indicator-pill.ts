@@ -16,11 +16,18 @@ import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation} from "@shared/doi-retraction";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
-import {fetchCitation, preferredCitationFormat, type CitationFormat} from "@shared/citation";
+import {fetchCitationDetailed, preferredCitationFormat, type CitationFormat} from "@shared/citation";
+import {debugWarn} from "@shared/debug";
+import {ensureFocusStyle} from "@shared/flora-ui";
+import {getSettings} from "@shared/settings";
 import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
+
+export function removeIndicatorPills(root: ParentNode = document): void {
+    for (const pill of root.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)) pill.remove();
+}
 
 export const PAGE_PROVENANCE = "Found on this page";
 export const SEARCH_PROVENANCE =
@@ -219,7 +226,7 @@ function rowIconWrapStyle(color: string, available: boolean, compact = false): s
 }
 
 function rowSubStyle(available: boolean, compact = false): string {
-    return `font-size:${compact ? "10px" : "10.5px"};color:${available ? "#57606a" : "#8b949e"};line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+    return `font-size:${compact ? "10px" : "10.5px"};color:#57606a;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
 }
 
 function rowActionStyle(color: string, compact = false): string {
@@ -236,6 +243,7 @@ function buildRow(opts: {
     /** Status text for compact rows, where the full sentence has no room. */
     subtitleShort?: string;
     href?: string;
+    onAction?: () => void;
     actionLabel?: string;
     /** Action text for compact rows; falls back to a bare arrow. */
     actionLabelShort?: string;
@@ -266,7 +274,36 @@ function buildRow(opts: {
     </span>
     ${useLink ? `<span style="${rowActionStyle(opts.accent, opts.compact)}">${action}</span>` : ""}
   `;
+    if (!useLink && opts.onAction) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = opts.compact ? "Settings" : "Settings ↗";
+        button.style.cssText =
+            `all:unset;cursor:pointer;${rowActionStyle(opts.accent, opts.compact)}`;
+        button.addEventListener("click", (e) => {
+            e.stopPropagation();
+            opts.onAction?.();
+        });
+        row.appendChild(button);
+        row.style.cursor = "default";
+    }
     return row;
+}
+
+async function hasContactEmail(): Promise<boolean> {
+    try {
+        return (await getSettings()).email.trim().length > 0;
+    } catch {
+        return true;
+    }
+}
+
+function openFloraOptions(): void {
+    try {
+        chrome.runtime.sendMessage({type: "FLORA_OPEN_OPTIONS"}).catch(() => {});
+    } catch (err) {
+        debugWarn("Pill: could not open the options page —", err);
+    }
 }
 
 const DOT_ICON = (color: string) => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};"></span>`;
@@ -295,14 +332,23 @@ function buildOaChoice(loc: OpenAccessLocation, compact: boolean): HTMLElement {
 
     const meta = document.createElement("span");
     meta.textContent = [loc.isPdf ? "PDF" : null, loc.version].filter(Boolean).join(" · ");
-    meta.style.cssText = "flex-shrink:0;color:#8b949e;";
+    meta.style.cssText = "flex-shrink:0;color:#57606a;";
 
     item.appendChild(label);
     if (meta.textContent) item.appendChild(meta);
     return item;
 }
 
-function buildOaRow(oa: OpenAccessStatus | null, compact = false): HTMLElement {
+type OaState = OpenAccessStatus | null | "pending" | "no-email";
+
+function oaSubtitle(state: OaState, available: boolean): string {
+    if (state === "pending") return "Checking…";
+    if (state === "no-email") return "Add your email in Settings to check open access";
+    return available ? "Free full text available" : "Not confirmed open access";
+}
+
+function buildOaRow(state: OaState, compact = false): HTMLElement {
+    const oa = state === "pending" || state === "no-email" ? null : state;
     const available = !!oa?.isOa;
     const locations = oaLocations(oa);
 
@@ -312,7 +358,8 @@ function buildOaRow(oa: OpenAccessStatus | null, compact = false): HTMLElement {
             accent: "#853953",
             available: available && locations.length === 1,
             title: "Open Access",
-            subtitle: available ? "Free full text available" : "Not confirmed open access",
+            subtitle: oaSubtitle(state, available),
+            onAction: state === "no-email" ? openFloraOptions : undefined,
             subtitleShort: available ? "Free" : "—",
             href: locations[0]?.url,
             actionLabel: "View PDF",
@@ -392,17 +439,21 @@ function buildOaRow(oa: OpenAccessStatus | null, compact = false): HTMLElement {
     return wrapper;
 }
 
-function buildPubPeerRow(feedback: PubPeerFeedback | null, compact = false): HTMLElement {
+function buildPubPeerRow(state: PubPeerFeedback | null | "pending", compact = false): HTMLElement {
+    const feedback = state === "pending" ? null : state;
     const available = !!feedback && feedback.total_comments > 0;
+    const subtitle = state === "pending"
+        ? "Checking…"
+        : available && feedback
+            ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"}`
+            : "No discussion found";
     return buildRow({
         iconHtml: PUBPEER_HUB_SVG,
         accent: "#446058",
         available,
         title: "PubPeer",
-        subtitle: available && feedback
-            ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"}`
-            : "No discussion found",
-        subtitleShort: available && feedback ? `${feedback.total_comments}` : "—",
+        subtitle,
+        subtitleShort: state === "pending" ? "…" : available && feedback ? `${feedback.total_comments}` : "—",
         href: feedback?.url,
         actionLabel: "View thread",
         attr: "data-flora-pubpeer-row",
@@ -624,11 +675,16 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
         // The fetch is a network round trip — say so, rather than leaving the
         // reader wondering whether the click registered.
         showToast(`Fetching ${format.label} citation…`, {tone: "pending", duration: 0});
-        const citation = await fetchCitation(doi, format.id);
+        const {citation, reachable} = await fetchCitationDetailed(doi, format.id);
         if (token !== loadToken) return;
         if (!citation) {
-            flash(QUOTE_SVG, "Citation unavailable");
-            showToast(`No ${format.label} citation available for this DOI`, {tone: "error"});
+            flash(QUOTE_SVG, reachable ? "Citation unavailable" : "Couldn't reach Crossref");
+            showToast(
+                reachable
+                    ? `No ${format.label} citation available for this DOI`
+                    : "Couldn't reach Crossref — check your connection and try again",
+                {tone: "error"}
+            );
             return;
         }
         const copied = citation.html
@@ -691,25 +747,33 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     sectionDivider.style.cssText = `height:1px;background:#eaeef2;margin:${compact ? "2px 0" : "0 0 2px"};`;
     rows.appendChild(sectionDivider);
 
-    let oaRow = buildOaRow(null, compact);
+    let oaRow = buildOaRow(opts.oaStatus ? "pending" : null, compact);
     rows.appendChild(oaRow);
+    const settleOa = (state: OaState, oa: OpenAccessStatus | null): void => {
+        const resolved = buildOaRow(state, compact);
+        oaRow.replaceWith(resolved);
+        oaRow = resolved;
+        opts.onOa?.(oa);
+    };
     if (opts.oaStatus) {
-        void opts.oaStatus.then((oa) => {
-            const resolved = buildOaRow(oa, compact);
-            oaRow.replaceWith(resolved);
-            oaRow = resolved;
-            opts.onOa?.(oa);
-        }).catch(() => {});
+        void opts.oaStatus
+            .then(async (oa) => {
+                settleOa(oa ?? (await hasContactEmail() ? null : "no-email"), oa);
+            })
+            .catch(() => settleOa(null, null));
     }
 
-    let pubpeerRow = buildPubPeerRow(null, compact);
+    let pubpeerRow = buildPubPeerRow("pending", compact);
     rows.appendChild(pubpeerRow);
-    void lookupPubPeerForDoi(opts.doi).then((feedback) => {
+    const settlePubPeer = (feedback: PubPeerFeedback | null): void => {
         const resolved = buildPubPeerRow(feedback, compact);
         pubpeerRow.replaceWith(resolved);
         pubpeerRow = resolved;
         opts.onPubPeer?.(feedback);
-    }).catch(() => {});
+    };
+    void lookupPubPeerForDoi(opts.doi)
+        .then(settlePubPeer)
+        .catch(() => settlePubPeer(null));
 
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
         opts.doi, opts.retraction, opts.replicationsCount, opts.reproductionsCount
@@ -724,7 +788,24 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
  * the pill's shape stays stable as async data lands. Hovering (or clicking,
  * to pin) the pill opens a popover with one interactive row per segment.
  */
+function pillAriaLabel(
+    doi: string,
+    retraction: RetractionResponse | null,
+    replications: number | null,
+    reproductions: number | null,
+): string {
+    const parts: string[] = [];
+    if (retraction) {
+        parts.push(retraction.kind === "concern" ? "expression of concern" : "retracted");
+    }
+    const studies = (replications ?? 0) + (reproductions ?? 0);
+    if (studies > 0) parts.push(`${studies} replication or reproduction ${studies === 1 ? "study" : "studies"}`);
+    const summary = parts.length > 0 ? parts.join(", ") : "no flags yet";
+    return `Open research details for ${doi}: ${summary}. Press Enter for more.`;
+}
+
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
+    ensureFocusStyle();
     const {doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
 
     const wrapper = document.createElement("span");
@@ -739,6 +820,11 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     wrapper.style.cssText = "position: relative; display: inline-block; vertical-align: baseline; top: 5px;";
 
     const pill = document.createElement("span");
+    pill.setAttribute("role", "button");
+    pill.setAttribute("tabindex", "0");
+    pill.setAttribute("aria-haspopup", "dialog");
+    pill.setAttribute("aria-expanded", "false");
+    pill.setAttribute("aria-label", pillAriaLabel(doi, retraction, replicationsCount, reproductionsCount));
     pill.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -800,6 +886,8 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     // ── Popover — one interactive row per segment, plus DOI copy/open ──
     const popover = document.createElement("div");
+    popover.setAttribute("role", "dialog");
+    popover.setAttribute("aria-label", `Open research details for ${doi}`);
     popover.setAttribute("data-flora-popover", "");
     // position:fixed (not absolute) so the popover is positioned against the
     // viewport — an ancestor with overflow:hidden (common on article content
@@ -849,6 +937,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         }
         // Reveal first so the popover has measurable dimensions.
         popover.style.display = "flex";
+        pill.setAttribute("aria-expanded", "true");
 
         const gap = 8;
         const margin = 4;
@@ -895,6 +984,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         if (pinned) return;
         hideTimeout = setTimeout(() => {
             popover.style.display = "none";
+            pill.setAttribute("aria-expanded", "false");
         }, 200);
     };
 
@@ -935,6 +1025,26 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     pill.addEventListener("mouseleave", hide);
     popover.addEventListener("mouseenter", show);
     popover.addEventListener("mouseleave", hide);
+
+    pill.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+            e.preventDefault();
+            pill.click();
+        } else if (e.key === "Escape" && pinned) {
+            unpin();
+            pill.focus();
+        }
+    });
+
+    wrapper.addEventListener("focusin", show);
+    wrapper.addEventListener("focusout", (e) => {
+        if (!wrapper.contains(e.relatedTarget as Node | null)) hide();
+    });
+    popover.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        unpin();
+        pill.focus();
+    });
 
     wrapper.appendChild(pill);
     wrapper.appendChild(popover);

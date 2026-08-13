@@ -4,11 +4,11 @@ import { debugLog, debugWarn } from "../shared/debug";
 import { getSettings } from "../shared/settings";
 import { safeSendMessage } from "../shared/messages";
 import {RetractionResponse, noticePresentation} from "@shared/doi-retraction";
-import {INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {renderReportDocument, reportUrl, type ReportEntry, type ReportPayload} from "@shared/report";
 import {writeClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {hideWorkIndicator, showWorkIndicator} from "@shared/progress-toast";
+import {ensureFocusStyle, FLORA_UI_SELECTOR} from "@shared/flora-ui";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -42,9 +42,7 @@ const CLOSE_STYLE =
     "padding-right:10px;user-select:none;align-self:center;color:rgba(255,255,255,0.8);";
 
 const BG = {
-    loading: "background:#6b7280;",
     success: "background:#853953;",
-    warning: "background:#ea580c;",
     error: "background:#dc2626;",
 } as const;
 
@@ -56,6 +54,17 @@ const REMIND_PILL_STYLE =
 const SETUP_HOST_ID = "flora-setup-prompt";
 
 const SETUP_REMIND_KEY = "flora_setup_remind_after";
+
+function onActivate(el: Element, handler: () => void): void {
+    el.addEventListener("click", handler);
+    el.addEventListener("keydown", (e) => {
+        const key = (e as KeyboardEvent).key;
+        if (key === "Enter" || key === " ") {
+            e.preventDefault();
+            handler();
+        }
+    });
+}
 
 async function isSetupPromptSuppressed(): Promise<boolean> {
     // Dismissed this browser session? (relayed via background service worker)
@@ -95,6 +104,7 @@ async function snoozeSetup(ms: number): Promise<void> {
 }
 
 export async function renderSetupPrompt(): Promise<void> {
+  ensureFocusStyle();
     if (document.getElementById(SETUP_HOST_ID)) return;
     if (await isSetupPromptSuppressed()) return;
 
@@ -147,10 +157,12 @@ export async function renderSetupPrompt(): Promise<void> {
 
     document.body.appendChild(host);
 
-    host.querySelector(".flora-setup-close")?.addEventListener("click", async () => {
-        await dismissSetupForSession();
-        host.remove();
-    });
+    const closeEl = host.querySelector(".flora-setup-close");
+    if (closeEl) {
+        onActivate(closeEl, () => {
+            void dismissSetupForSession().then(() => host.remove());
+        });
+    }
 
     host.querySelector(".flora-setup-open")?.addEventListener("click", () => {
         void safeSendMessage({type: "FLORA_OPEN_OPTIONS"});
@@ -165,16 +177,6 @@ export async function renderSetupPrompt(): Promise<void> {
             host.remove();
         });
     }
-}
-
-export function renderLoadingBanner(): void {
-    const host = ensureBannerHost();
-    host.innerHTML = `
-    <div style="${BANNER_BASE_STYLE}${BG.loading}">
-      <span style="${LOGO_STYLE}">FORRT ORE</span>
-      <span style="${TEXT_STYLE}">Checking replication data\u2026</span>
-    </div>`;
-    requestAnimationFrame(() => adjustPageForBanner());
 }
 
 export function renderErrorBanner(message: string): void {
@@ -248,16 +250,41 @@ function ensureBannerHost(): HTMLElement {
 }
 
 // Track elements we've modified so we can restore them on removal
-const modifiedElements = new Set<HTMLElement>();
+interface InlineValue {
+    value: string;
+    priority: string;
+}
+
+const modifiedElements = new Map<HTMLElement, Map<string, InlineValue>>();
+
+function setTracked(el: HTMLElement, prop: string, value: string, priority = "important"): void {
+    let record = modifiedElements.get(el);
+    if (!record) {
+        record = new Map<string, InlineValue>();
+        modifiedElements.set(el, record);
+    }
+    if (!record.has(prop)) {
+        record.set(prop, {
+            value: el.style.getPropertyValue(prop),
+            priority: el.style.getPropertyPriority(prop),
+        });
+    }
+    el.style.setProperty(prop, value, priority);
+}
+
+function restoreTracked(el: HTMLElement, prop: string): void {
+    const original = modifiedElements.get(el)?.get(prop);
+    if (!original) return;
+    if (original.value === "") el.style.removeProperty(prop);
+    else el.style.setProperty(prop, original.value, original.priority);
+}
 
 export function removeBanner(): void {
     const host = document.getElementById(BANNER_HOST_ID);
     if (host) {
         host.remove();
-        document.body.style.removeProperty("padding-top");
-        for (const el of modifiedElements) {
-            el.style.removeProperty("padding-top");
-            el.style.removeProperty("top");
+        for (const [el, record] of modifiedElements) {
+            for (const prop of record.keys()) restoreTracked(el, prop);
         }
         modifiedElements.clear();
     }
@@ -270,44 +297,31 @@ function adjustPageForBanner(): void {
     const bannerHeight = inner?.offsetHeight || 35;
 
     // Make space for the banner at the top of the body
-    document.body.style.setProperty("padding-top", `${bannerHeight}px`, "important");
+    setTracked(document.body, "padding-top", `${bannerHeight}px`);
 
-    // Gather fixed elements and push them down (skip our own UI elements)
     const setupPrompt = document.getElementById(SETUP_HOST_ID);
-    const fixedElements = Array.from(document.querySelectorAll<HTMLElement>("*")).filter(
-        (el) =>
-            el !== banner &&
-            el !== inner &&
-            !setupPrompt?.contains(el) &&
-            window.getComputedStyle(el).position === "fixed"
-    );
-    for (const el of fixedElements) {
-        if (isSheets) {
-            // Only shift top-anchored elements; skip bottom-anchored ones (sheet tabs bar)
-            const cs = window.getComputedStyle(el);
-            const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
-            if (hasBottom && parseInt(cs.bottom) < 50) continue;
-            const currentTop = parseInt(cs.top) || 0;
-            el.style.setProperty("top", `${currentTop + bannerHeight}px`, "important");
-        } else {
-            el.style.setProperty("padding-top", `${bannerHeight}px`, "important");
+    for (const el of document.querySelectorAll<HTMLElement>("*")) {
+        if (el === banner || el === inner || setupPrompt?.contains(el)) continue;
+        const cs = window.getComputedStyle(el);
+        if (cs.position === "fixed") {
+            if (isSheets) {
+                // Only shift top-anchored elements; skip bottom-anchored ones (sheet tabs bar)
+                const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
+                if (hasBottom && parseInt(cs.bottom) < 50) continue;
+                const currentTop = parseInt(cs.top) || 0;
+                setTracked(el, "top", `${currentTop + bannerHeight}px`);
+            } else {
+                setTracked(el, "padding-top", `${bannerHeight}px`);
+            }
+        } else if (cs.position === "sticky") {
+            const position = el.getBoundingClientRect().top;
+            const threshold = parseInt(cs.top);
+            if (position < bannerHeight || position <= threshold) {
+                setTracked(el, "padding-top", `${bannerHeight}px`);
+            } else {
+                restoreTracked(el, "padding-top");
+            }
         }
-        modifiedElements.add(el);
-    }
-
-    // Gather sticky elements and conditionally push them down
-    const stickyElements = Array.from(document.querySelectorAll<HTMLElement>("*")).filter(
-        (el) => el !== banner && el !== inner && window.getComputedStyle(el).position === "sticky"
-    );
-    for (const el of stickyElements) {
-        const position = el.getBoundingClientRect().top;
-        const threshold = parseInt(window.getComputedStyle(el).top);
-        if (position < bannerHeight || position <= threshold) {
-            el.style.setProperty("padding-top", `${bannerHeight}px`, "important");
-        } else {
-            el.style.setProperty("padding-top", "0px", "important");
-        }
-        modifiedElements.add(el);
     }
 }
 
@@ -501,7 +515,7 @@ export function renderSheetsModal(
 
     // Wire up close / dismiss
     for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
-        el.addEventListener("click", () => {
+        onActivate(el, () => {
             removeSheetsModal();
             callbacks?.onDismiss();
         });
@@ -522,17 +536,22 @@ export function removeSheetsModal(): void {
 // Hide / show ALL FLoRA UI (popup toggle)
 // ──────────────────────────────────────────────
 
+export const HIDE_STYLE_ID = "flora-hide-style";
+
 export function hideAllFloraUI(): void {
     hideWorkIndicator();
+    if (!document.getElementById(HIDE_STYLE_ID)) {
+        const style = document.createElement("style");
+        style.id = HIDE_STYLE_ID;
+        style.textContent = `${FLORA_UI_SELECTOR} { display: none !important; }`;
+        (document.head ?? document.documentElement).appendChild(style);
+    }
+
     const banner = document.getElementById(BANNER_HOST_ID);
     if (banner) banner.style.display = "none";
 
     const modal = document.getElementById(SHEETS_MODAL_ID);
     if (modal) modal.style.display = "none";
-
-    for (const el of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-        el.style.display = "none";
-    }
 
   const setup = document.getElementById(SETUP_HOST_ID);
   if (setup) setup.style.display = "none";
@@ -543,15 +562,13 @@ export function hideAllFloraUI(): void {
 
 export function showAllFloraUI(): void {
     showWorkIndicator();
+    document.getElementById(HIDE_STYLE_ID)?.remove();
+
     const banner = document.getElementById(BANNER_HOST_ID);
     if (banner) banner.style.display = "";
 
     const modal = document.getElementById(SHEETS_MODAL_ID);
     if (modal) modal.style.display = "";
-
-    for (const el of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-        el.style.display = "";
-    }
 
   const setup = document.getElementById(SETUP_HOST_ID);
   if (setup) setup.style.display = "";
@@ -595,6 +612,27 @@ const TAB_STORAGE_KEY = "flora_tab_top_v1";
 let _tabPositionObserver: MutationObserver | null = null;
 let _tabResizeHandler: (() => void) | null = null;
 let _tabDragCleanup: (() => void) | null = null;
+let _tabRepositionTimer: ReturnType<typeof setTimeout> | null = null;
+
+const panelCleanups: Array<() => void> = [];
+
+function runPanelCleanups(): void {
+  while (panelCleanups.length > 0) panelCleanups.pop()!();
+}
+
+let _panelZIndexStyle: HTMLStyleElement | null = null;
+
+function setPanelZIndex(zIndex: string): void {
+  if (!_panelZIndexStyle?.isConnected) {
+    _panelZIndexStyle = document.createElement("style");
+    (document.head ?? document.documentElement).appendChild(_panelZIndexStyle);
+    panelCleanups.push(() => {
+      _panelZIndexStyle?.remove();
+      _panelZIndexStyle = null;
+    });
+  }
+  _panelZIndexStyle.textContent = `#scite-popup,#unpaywall{z-index:${zIndex} !important;}`;
+}
 // null = never set by user; number = user-dragged position in px from top
 let _customTabTop: number | null = (() => {
   try {
@@ -612,13 +650,31 @@ function cleanupTabPositioning(): void {
   }
   _tabDragCleanup?.();
   _tabDragCleanup = null;
+  if (_tabRepositionTimer) {
+    clearTimeout(_tabRepositionTimer);
+    _tabRepositionTimer = null;
+  }
 }
+
+const RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS = 750;
+let _lastSweep = {at: 0, vw: 0, vh: 0, top: ""};
 
 function positionTabOnRightEdge(tab: HTMLElement): void {
   // Respect user-dragged position
   if (_customTabTop !== null) {
     const clamped = Math.max(0, Math.min(window.innerHeight - (tab.offsetHeight || 80), _customTabTop));
     tab.style.top = `${Math.round(clamped)}px`;
+    return;
+  }
+
+  const now = Date.now();
+  if (
+    _lastSweep.top !== "" &&
+    now - _lastSweep.at < RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS &&
+    _lastSweep.vw === window.innerWidth &&
+    _lastSweep.vh === window.innerHeight
+  ) {
+    tab.style.top = _lastSweep.top;
     return;
   }
 
@@ -674,7 +730,9 @@ function positionTabOnRightEdge(tab: HTMLElement): void {
     bestTop = Math.max(gs + MARGIN, Math.min(center - TAB_H / 2, ge - TAB_H - MARGIN));
   }
 
-  tab.style.top = `${Math.round(bestTop)}px`;
+  const top = `${Math.round(bestTop)}px`;
+  tab.style.top = top;
+  _lastSweep = {at: Date.now(), vw: window.innerWidth, vh: window.innerHeight, top};
 }
 
 function attachTabDrag(tab: HTMLElement): void {
@@ -738,11 +796,10 @@ function setupTabPositioning(tab: HTMLElement): void {
   positionTabOnRightEdge(tab);
   attachTabDrag(tab);
 
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   const reposition = (): void => {
     if (_customTabTop !== null) return; // user has a preferred spot
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => positionTabOnRightEdge(tab), 200);
+    if (_tabRepositionTimer) clearTimeout(_tabRepositionTimer);
+    _tabRepositionTimer = setTimeout(() => positionTabOnRightEdge(tab), 200);
   };
 
   // subtree:true catches plugins that inject into nested containers
@@ -949,7 +1006,11 @@ export function renderSidePanel(
   }
 
   cleanupTabPositioning();
-  existingHost?.remove();
+  runPanelCleanups();
+  if (existingHost) {
+    existingHost.dataset.floraPanelStale = "1";
+    existingHost.remove();
+  }
 
   const host = document.createElement("div");
   host.id = PUBPEER_PANEL_ID;
@@ -1336,19 +1397,20 @@ export function renderSidePanel(
     if (oaPlaceholders.size === 0) return;
     const { email } = await getSettings();
     if (!email) return;
-    for (const [doi, placeholder] of oaPlaceholders) {
+    await Promise.allSettled([...oaPlaceholders].map(async ([doi, placeholder]) => {
       try {
+        if (host.dataset.floraPanelStale === "1") return;
         const resp = await fetch(
           `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`
         );
-        if (!resp.ok) continue;
+        if (!resp.ok) return;
         const data = await resp.json() as {
           is_oa?: boolean;
           best_oa_location?: { url_for_pdf?: string | null; url?: string | null } | null;
         };
-        if (!data.is_oa) continue;
+        if (!data.is_oa) return;
         const oaUrl = data.best_oa_location?.url_for_pdf ?? data.best_oa_location?.url;
-        if (!oaUrl) continue;
+        if (!oaUrl) return;
         const icon = document.createElement("a");
         icon.href = oaUrl;
         icon.target = "_blank";
@@ -1372,11 +1434,12 @@ export function renderSidePanel(
           `<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>` +
           `<path d="M7 11V7a5 5 0 0 1 9.9-1"/>` +
           `</svg>`;
+        if (!placeholder.isConnected) return;
         placeholder.replaceWith(icon);
       } catch (err) {
         debugWarn("Side panel: open-access icon lookup failed for an entry —", err);
       }
-    }
+    }));
   })();
 
   // Build one reference row (title + FORRT/retraction/PubPeer tags).
@@ -1628,6 +1691,10 @@ export function renderSidePanel(
       }
     };
     window.addEventListener("message", onIframeMessage);
+    panelCleanups.push(() => {
+      clearTimeout(fallbackTimer);
+      window.removeEventListener("message", onIframeMessage);
+    });
     iframe.addEventListener("error", showFallback);
 
     iframeWrap.appendChild(iframe);
@@ -1703,9 +1770,7 @@ export function renderSidePanel(
     tab.style.right = `${PANEL_WIDTH}px`;
     arrow.style.transform = "rotate(180deg)";
     tab.setAttribute("aria-label", "Close FLoRA panel");
-    const style = document.createElement("style");
-    style.textContent = "#scite-popup,#unpaywall{z-index:2147483646 !important;}";
-    (document.head ?? document.documentElement).appendChild(style);
+    setPanelZIndex("2147483646");
   };
 
   const closePanel = (): void => {
@@ -1716,9 +1781,7 @@ export function renderSidePanel(
     tab.style.right = "0";
     arrow.style.transform = "rotate(0deg)";
     tab.setAttribute("aria-label", "Open the FORRT ORE panel");
-    const style = document.createElement("style");
-    style.textContent = "#scite-popup,#unpaywall{z-index:2147483647 !important;}";
-    (document.head ?? document.documentElement).appendChild(style);
+    setPanelZIndex("2147483647");
   };
 
   // Use a shared didDrag flag so the click handler can tell drag from tap.
@@ -1755,7 +1818,12 @@ export function renderSidePanel(
 
 export function removeSidePanel(): void {
   cleanupTabPositioning();
-  document.getElementById(PUBPEER_PANEL_ID)?.remove();
+  runPanelCleanups();
+  const host = document.getElementById(PUBPEER_PANEL_ID);
+  if (host) {
+    host.dataset.floraPanelStale = "1";
+    host.remove();
+  }
 }
 
 function isSafePubPeerUrl(url: string): boolean {
@@ -1766,109 +1834,3 @@ function isSafePubPeerUrl(url: string): boolean {
     return false;
   }
 }
-
-// ──────────────────────────────────────────────
-// Retractions Banner
-// ──────────────────────────────────────────────
-
-const RETRACTS_MODAL_ID = "flora-retracts-modal";
-
-export interface RetractsModalCallbacks {
-    onDismiss: () => void;
-    onSnooze: () => void;
-}
-
-export function renderRetractedBanner(
-    matched: RetractionResponse[],
-    callbacks?: RetractsModalCallbacks
-): void {
-    if (matched.length === 0) {
-        removeRetractsModal();
-        return;
-    }
-    if (document.getElementById(RETRACTS_MODAL_ID)) {
-        return
-    }
-    const host = document.createElement("div");
-    let entries = document.createElement(matched.length > 1 ? "ol" : "div");
-    for (const m of matched) {
-        let wrapper = document.createElement(matched.length > 1 ? "li" : "div");
-        let link = document.createElement("a");
-        link.href = `https://doi.org/${m.doi}`;
-        link.innerText = m.originDoi;
-        link.style.fontWeight = "normal";
-        link.style.color = "#111";
-        link.style.textDecoration = "none";
-        link.style.display = "block";
-        if (m != matched[0]) wrapper.style.marginTop = "8px";
-        if (matched.length > 1) {
-            wrapper.style.listStyleType = "bullet";
-            wrapper.style.marginLeft = "12px";
-        }
-        wrapper.appendChild(link);
-        entries.appendChild(wrapper);
-    }
-    host.id = RETRACTS_MODAL_ID;
-    host.innerHTML = `
-    <div role="dialog" aria-labelledby="flora-modal-title" style="
-      position:fixed;top:60px;right:24px;z-index:2147483647;
-      width:360px;background:#fff;border-radius:12px;
-      box-shadow:0 8px 28px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.08);
-      font-family:'Google Sans',Roboto,-apple-system,sans-serif;
-      overflow:hidden;animation:floraSlideIn 0.25s ease-out;
-    ">
-      <!-- header -->
-      <div style="background:linear-gradient(135deg,#853953,#612D53);padding:14px 16px;display:flex;align-items:center;gap:10px;">
-        <span style="
-          background:rgba(255,255,255,0.2);color:#fff;font-weight:700;font-size:13px;
-          padding:4px 10px;border-radius:6px;letter-spacing:0.3px;
-        ">FORRT ORE</span>
-        <span id="flora-modal-title" style="color:#fff;font-size:13px;font-weight:500;flex:1;">
-          Caution &mdash; Retraction Alert
-        </span>
-        <span class="flora-modal-close" role="button" tabindex="0" aria-label="Close" style="
-          cursor:pointer;color:rgba(255,255,255,0.7);font-size:20px;line-height:1;
-          width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-          border-radius:50%;transition:background 0.15s;
-        ">\u00d7</span>
-      </div>
-      <!-- Body -->
-      <div style="padding:16px;">
-        <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" style="width:18px!important; height:18px!important; display: inline-block; vertical-align: text-bottom; margin-right:4px;"><path d="M320 64C334.7 64 348.2 72.1 355.2 85L571.2 485C577.9 497.4 577.6 512.4 570.4 524.5C563.2 536.6 550.1 544 536 544L104 544C89.9 544 76.8 536.6 69.6 524.5C62.4 512.4 62.1 497.4 68.8 485L284.8 85C291.8 72.1 305.3 64 320 64zM320 416C302.3 416 288 430.3 288 448C288 465.7 302.3 480 320 480C337.7 480 352 465.7 352 448C352 430.3 337.7 416 320 416zM320 224C301.8 224 287.3 239.5 288.6 257.7L296 361.7C296.9 374.2 307.4 384 319.9 384C332.5 384 342.9 374.3 343.8 361.7L351.2 257.7C352.5 239.5 338.1 224 319.8 224z"/></svg>
-        Found a mention of <strong data-flora-doi-count style="color:#202124;">${matched.length} retraction${matched.length !== 1 ? "s" : ""}</strong> on this page.
-        </div>
-        <!-- list of entries -->
-        <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;flex:1;background:#f9f0f4;border:1px solid #d4a5b8;border-radius:8px;
-            padding:12px;text-align:left;max-height: 250px;overflow: auto">
-        ${entries.outerHTML}
-        </div>
-      </div>  
-      <!-- Footer -->
-      <div style="padding:10px 16px 14px;display:flex;align-items:center;gap:8px;">
-        <span style="display: flex;flex-grow: 1;"></span>
-        <button class="flora-modal-dismiss" style="
-          all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
-          color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">Close</button>
-      </div>
-    </div>
-    <style>
-      @keyframes floraSlideIn {
-        from { opacity:0; transform:translateY(-8px); }
-        to { opacity:1; transform:translateY(0); }
-      }
-    </style>`;
-    document.body.appendChild(host);
-    for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
-        el.addEventListener("click", () => {
-            removeRetractsModal();
-            callbacks?.onDismiss();
-        });
-    }
-}
-
-export function removeRetractsModal(): void {
-    document.getElementById(RETRACTS_MODAL_ID)?.remove();
-}
-

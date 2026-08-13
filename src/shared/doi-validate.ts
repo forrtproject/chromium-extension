@@ -9,6 +9,21 @@ import { BlobCache } from "./blob-cache";
  */
 
 const HANDLE_API = "https://doi.org/api/handles/";
+const MAX_CONCURRENT_CHECKS = 6;
+
+async function mapWithLimit<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      await worker(items[next++]);
+    }
+  });
+  await Promise.all(runners);
+}
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const VALIDATION_CACHE = new BlobCache<{ valid: boolean }>({
@@ -67,36 +82,34 @@ export async function validateDOIs(
   // per resolved DOI (each VALIDATION_CACHE.set is a full chrome.storage.local
   // write of the whole blob).
   const updates: Array<[DoiString, { valid: boolean }]> = [];
-  await Promise.allSettled(
-    uncached.map(async (doi) => {
-      try {
-        // Preserve slashes as URL path separators so multi-slash DOIs
-        // (e.g. 10.6338/JDA.202212/SP_17(4).0000) route correctly on doi.org.
-        // encodeURIComponent on the full DOI would collapse all '/' to %2F,
-        // making the server see a single opaque segment instead of a path.
-        const encodedHandle = doi.split("/").map(encodeURIComponent).join("/");
-        const response = await fetch(`${HANDLE_API}${encodedHandle}`);
-        if (!response.ok) {
-          // 404 = the Handle System has no record of this DOI → invalid.
-          // Any other non-OK status (429, 5xx) is transient — leave unknown.
-          if (response.status === 404) {
-            results.set(doi, false);
-            updates.push([doi, { valid: false }]);
-          }
-          return;
+  await mapWithLimit(uncached, MAX_CONCURRENT_CHECKS, async (doi) => {
+    try {
+      // Preserve slashes as URL path separators so multi-slash DOIs
+      // (e.g. 10.6338/JDA.202212/SP_17(4).0000) route correctly on doi.org.
+      // encodeURIComponent on the full DOI would collapse all '/' to %2F,
+      // making the server see a single opaque segment instead of a path.
+      const encodedHandle = doi.split("/").map(encodeURIComponent).join("/");
+      const response = await fetch(`${HANDLE_API}${encodedHandle}`);
+      if (!response.ok) {
+        // 404 = the Handle System has no record of this DOI → invalid.
+        // Any other non-OK status (429, 5xx) is transient — leave unknown.
+        if (response.status === 404) {
+          results.set(doi, false);
+          updates.push([doi, { valid: false }]);
         }
-        const data = (await response.json()) as { responseCode?: number };
-        // responseCode 1 = success (handle exists)
-        const valid = data.responseCode === 1;
-        results.set(doi, valid);
-        updates.push([doi, { valid }]);
-        debugLog(`DOI validation: ${doi} → ${valid ? "valid" : "invalid"}`);
-      } catch (err) {
-        // Left out of the map entirely, so the caller keeps the DOI.
-        debugWarn(`DOI validation: ${doi} unresolved —`, err);
+        return;
       }
-    })
-  );
+      const data = (await response.json()) as { responseCode?: number };
+      // responseCode 1 = success (handle exists)
+      const valid = data.responseCode === 1;
+      results.set(doi, valid);
+      updates.push([doi, { valid }]);
+      debugLog(`DOI validation: ${doi} → ${valid ? "valid" : "invalid"}`);
+    } catch (err) {
+      // Left out of the map entirely, so the caller keeps the DOI.
+      debugWarn(`DOI validation: ${doi} unresolved —`, err);
+    }
+  });
 
   if (updates.length > 0) await VALIDATION_CACHE.setMany(updates);
   return results;

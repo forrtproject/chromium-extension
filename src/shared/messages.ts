@@ -110,13 +110,15 @@ export interface AugmentResponse {
     results: Record<string, string | null>;
     /** title → which platform resolved it, so the page log can name it. */
     sources?: Record<string, AugmentSource | null>;
+    unanswered?: string[];
 }
 
 export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_AUGMENT"
+        (msg as Record<string, unknown>).type === "FLORA_AUGMENT" &&
+        Array.isArray((msg as Record<string, unknown>).requests)
     );
 }
 
@@ -136,7 +138,8 @@ export function isPmcResolveRequest(msg: unknown): msg is PmcResolveRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_PMC_RESOLVE"
+        (msg as Record<string, unknown>).type === "FLORA_PMC_RESOLVE" &&
+        Array.isArray((msg as Record<string, unknown>).pmcids)
     );
 }
 
@@ -172,8 +175,13 @@ export async function augmentDOIsViaWorker(
         type: "FLORA_AUGMENT",
         requests,
     });
+    const unanswered = new Set(response?.unanswered ?? []);
     const result = new Map<string, DoiString | null>();
     for (const [title, doi] of Object.entries(response?.results ?? {})) {
+        if (unanswered.has(title)) {
+            debugLog(`Augment: "${title.slice(0, 80)}" — no platform answered, leaving it unresolved`);
+            continue;
+        }
         result.set(title, doi as DoiString | null);
         // Resolution happens in the service worker, so without this the page
         // console never says which platform answered.
@@ -215,7 +223,8 @@ export function isLookupRequest(msg: unknown): msg is LookupRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_LOOKUP"
+        (msg as Record<string, unknown>).type === "FLORA_LOOKUP" &&
+        Array.isArray((msg as Record<string, unknown>).dois)
     );
 }
 
@@ -223,7 +232,8 @@ export function isRetractionCheckRequest(msg: unknown): msg is RetractionCheckRe
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_RET_CHECK"
+        (msg as Record<string, unknown>).type === "FLORA_RET_CHECK" &&
+        Array.isArray((msg as Record<string, unknown>).dois)
     );
 }
 
@@ -231,6 +241,8 @@ export function isSheetFetchRequest(msg: unknown): msg is SheetFetchRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_SHEET_FETCH"
+        (msg as Record<string, unknown>).type === "FLORA_SHEET_FETCH" &&
+        typeof (msg as Record<string, unknown>).spreadsheetId === "string" &&
+        typeof (msg as Record<string, unknown>).gid === "string"
     );
 }

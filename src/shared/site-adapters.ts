@@ -534,12 +534,21 @@ export function isInReferenceScope(entry: Element, adapter: SiteAdapter | null):
     return entry.closest(adapter.referenceScope) !== null;
 }
 
+let expandedForUrl: string | null = null;
+
 export function expandReferencesSection(adapter: SiteAdapter | null): void {
     const selector = adapter?.autoExpandReferences;
     if (!selector) return;
+    if (expandedForUrl === location.href) return;
     const trigger = document.querySelector<HTMLElement>(selector);
-    if (!trigger || trigger.getAttribute("aria-expanded") === "true") return;
+    if (!trigger) return;
+    expandedForUrl = location.href;
+    if (trigger.getAttribute("aria-expanded") === "true") return;
     trigger.click();
+}
+
+export function _resetExpandReferencesForTesting(): void {
+    expandedForUrl = null;
 }
 
 function toKebab(prop: string): string {

@@ -19,7 +19,7 @@ installDebugLogStore();
 // Initialise cache quota from persisted settings (service worker may restart).
 getSettings().then(({ cacheQuotaMb }) => {
     cache.setQuota(cacheQuotaMb === 0 ? 0 : cacheQuotaMb * 1024 * 1024);
-}).catch();
+}).catch((err) => debugError("Cache quota: could not read settings —", err));
 
 // Keep quota in sync when the user changes the setting; drop the cached
 // retraction source whenever a fresh map is synced into local storage.
@@ -87,12 +87,12 @@ chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
         chrome.tabs.create({ url: chrome.runtime.getURL("dist/walkthrough.html") });
     }
-    syncRetractionsInfo().then().catch();
+    syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
 });
 
 // Refresh retraction data once per browser session (weekly interval enforced inside).
 chrome.runtime.onStartup.addListener(() => {
-    syncRetractionsInfo().then().catch();
+    syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
 });
 
 const RETRACTION_SYNC_ALARM = "flora-retraction-sync";
@@ -103,7 +103,9 @@ async function ensureRetractionSyncAlarm(): Promise<void> {
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === RETRACTION_SYNC_ALARM) syncRetractionsInfo().then().catch();
+    if (alarm.name === RETRACTION_SYNC_ALARM) {
+        syncRetractionsInfo().catch((err) => debugError("Retractions: scheduled sync failed —", err));
+    }
 });
 
 ensureRetractionSyncAlarm().catch((err) => {
@@ -149,14 +151,15 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (isLookupRequest(message)) {
-            handleLookup(message.dois)
+            const dois = message.dois;
+            handleLookup(dois)
                 .then(sendResponse)
                 .catch(() =>
                     sendResponse({
                         type: "FLORA_LOOKUP_RESULT",
                         results: {},
                         errors: Object.fromEntries(
-                            message.dois.map((d) => [d, "Service worker error"])
+                            dois.map((d) => [d, "Service worker error"])
                         ),
                     } satisfies LookupResponse)
                 );
@@ -190,9 +193,12 @@ chrome.runtime.onMessage.addListener(
             message !== null &&
             (message as { type?: string }).type === "FLORA_DISMISS_SETUP"
         ) {
-            chrome.storage.session.set({flora_setup_dismissed: true}).then(() => {
-                sendResponse({ok: true});
-            });
+            chrome.storage.session.set({flora_setup_dismissed: true})
+                .then(() => sendResponse({ok: true}))
+                .catch((err) => {
+                    debugError("Setup dismiss failed —", err);
+                    sendResponse({ok: false});
+                });
             return true;
         }
 
@@ -201,9 +207,12 @@ chrome.runtime.onMessage.addListener(
             message !== null &&
             (message as { type?: string }).type === "FLORA_IS_SETUP_DISMISSED"
         ) {
-            chrome.storage.session.get("flora_setup_dismissed").then((result) => {
-                sendResponse({dismissed: !!result.flora_setup_dismissed});
-            });
+            chrome.storage.session.get("flora_setup_dismissed")
+                .then((result) => sendResponse({dismissed: !!result.flora_setup_dismissed}))
+                .catch((err) => {
+                    debugError("Setup dismiss read failed —", err);
+                    sendResponse({dismissed: false});
+                });
             return true;
         }
         if (isSheetFetchRequest(message)) {
@@ -298,10 +307,11 @@ async function handleLookup(dois: DoiString[]): Promise<LookupResponse> {
     // Check cache and in-flight requests. We only persist matched results, so a
     // truthy cache hit is a real result. A null entry (legacy negative cache) or
     // a miss both fall through to re-query, so newly added FORRT data surfaces.
+    const cached = await cache.getMany(dois);
     for (const doi of dois) {
-        const cached = await cache.get(doi);
-        if (cached) {
-            results[doi] = cached;
+        const hit = cached.get(doi);
+        if (hit) {
+            results[doi] = hit;
         } else if (inflight.has(doi)) {
             const r = await inflight.get(doi)!;
             if (r) results[doi] = r;
@@ -329,24 +339,21 @@ async function handleLookup(dois: DoiString[]): Promise<LookupResponse> {
     try {
         const apiResults = await batchPromise;
 
+        const writes: Array<[string, ReplicationResult]> = [];
         for (const doi of toFetch) {
             const r = apiResults.get(doi);
             if (r) {
                 results[doi] = r;
-                // Cache the result with a finite TTL. A cache-WRITE failure
-                // (e.g. storage quota) must never demote a successful lookup to
-                // an error: the result is already in `results`, so we swallow
-                // the write error here rather than letting it hit the outer
-                // catch (which would mark the whole batch as failed).
-                try {
-                    await cache.set(doi, r, MONTH_MS);
-                } catch (err) {
-                    debugWarn(`Lookup: cache write failed for ${doi} —`, err);
-                }
+                writes.push([doi, r]);
             }
             // No result (no record yet, or a transient batch failure): do NOT
             // cache. We re-query every time so newly added FORRT data surfaces
             // instead of being suppressed by a stale negative cache entry.
+        }
+        try {
+            await cache.setMany(writes, MONTH_MS);
+        } catch (err) {
+            debugWarn(`Lookup: cache write failed for ${writes.length} DOI(s) —`, err);
         }
     } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
@@ -369,11 +376,13 @@ async function handleAugment(
     const resultMap = await augmentDOIsDetailed(requests);
     const results: Record<string, string | null> = {};
     const sources: Record<string, AugmentSource | null> = {};
+    const unanswered: string[] = [];
     for (const [title, outcome] of resultMap) {
         results[title] = outcome.doi ?? null;
         sources[title] = outcome.source;
+        if (!outcome.answered) unanswered.push(title);
     }
-    return { type: "FLORA_AUGMENT_RESULT", results, sources };
+    return { type: "FLORA_AUGMENT_RESULT", results, sources, unanswered };
 }
 
 async function handlePmcResolve(pmcids: string[]): Promise<PmcResolveResponse> {
@@ -430,6 +439,15 @@ function lowercaseKeys(obj: Record<string, string> | undefined): Record<string, 
     return out;
 }
 
+function normaliseRetractionMaps(map: RetractionMaps): RetractionMaps {
+    if (map.lowercasedKeys) return map;
+    return {
+        retractions: lowercaseKeys(map.retractions),
+        concerns: lowercaseKeys(map.concerns),
+        lowercasedKeys: true,
+    };
+}
+
 // Normalised retraction source, cached so lowercaseKeys runs once per sync
 // rather than once per lookup. Invalidated by the storage.onChanged listener
 // above whenever a fresh map is written.
@@ -449,10 +467,7 @@ async function loadBundledRetractionMap(): Promise<RetractionMaps> {
                 throw new Error(`Failed to load bundled retractions: ${response.status}`);
             }
             const data = await response.json() as RetractionMaps;
-            return {
-                retractions: lowercaseKeys(data.retractions),
-                concerns: lowercaseKeys(data.concerns),
-            };
+            return normaliseRetractionMaps(data);
         })();
     }
     try {
@@ -491,10 +506,7 @@ async function loadRetractionSource(): Promise<RetractionMaps> {
     );
 
     if (hasStoredData) {
-        const source: RetractionMaps = {
-            retractions: lowercaseKeys(stored!.retractions),
-            concerns: lowercaseKeys(stored!.concerns),
-        };
+        const source = normaliseRetractionMaps(stored!);
         if (generation === retractionGeneration) cachedRetractionSource = source;
         return source;
     }
@@ -502,7 +514,7 @@ async function loadRetractionSource(): Promise<RetractionMaps> {
     // Nothing synced yet: kick off a sync for next time and answer from the
     // bundled JSON now. Don't cache the fallback — onChanged will pick up the
     // synced map, but until then we re-read so an in-flight sync is noticed.
-    syncRetractionsInfo().then().catch();
+    syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
     return loadBundledRetractionMap();
 }
 
