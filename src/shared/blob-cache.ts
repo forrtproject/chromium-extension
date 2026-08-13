@@ -11,9 +11,12 @@ interface CacheEntry<T> {
 
 type CacheBlob<T> = Record<string, CacheEntry<T>>;
 
+const DEFAULT_MAX_ENTRIES = 5000;
+
 export interface BlobCacheOptions {
     storageKey: string;
     ttlMs: number;
+    maxEntries?: number;
     /** One-shot cleanup of legacy per-row keys from the pre-blob cache shape. */
     legacyPrefixes?: string[];
 }
@@ -72,8 +75,15 @@ export class BlobCache<T> {
         } catch (err) {
             debugWarn(`Cache ${this.opts.storageKey}: load failed, starting empty —`, err);
         }
+        const dropped = this.sweepExpired(blob);
         // A change landed mid-read; the listener's copy is the newer truth.
-        if (generation === this.generation) this.mem = blob;
+        if (generation === this.generation) {
+            this.mem = blob;
+            if (dropped > 0) {
+                debugLog(`Cache ${this.opts.storageKey}: dropped ${dropped} expired entr(ies) on load`);
+                void this.flush();
+            }
+        }
         if (this.opts.legacyPrefixes && this.opts.legacyPrefixes.length > 0) {
             void this.sweepLegacy(this.opts.legacyPrefixes);
         }
@@ -139,8 +149,35 @@ export class BlobCache<T> {
         await this.flush();
     }
 
+    private sweepExpired(blob: CacheBlob<T>): number {
+        const now = Date.now();
+        let dropped = 0;
+        for (const key of Object.keys(blob)) {
+            if (now - blob[key].t > this.opts.ttlMs) {
+                delete blob[key];
+                dropped++;
+            }
+        }
+        return dropped;
+    }
+
+    private trimToMaxEntries(blob: CacheBlob<T>): number {
+        const max = this.opts.maxEntries ?? DEFAULT_MAX_ENTRIES;
+        const keys = Object.keys(blob);
+        if (keys.length <= max) return 0;
+        keys.sort((a, b) => blob[a].t - blob[b].t);
+        const dropCount = keys.length - max;
+        for (let i = 0; i < dropCount; i++) delete blob[keys[i]];
+        return dropCount;
+    }
+
     private async flush(): Promise<void> {
         if (!this.mem) return;
+        this.sweepExpired(this.mem);
+        const trimmed = this.trimToMaxEntries(this.mem);
+        if (trimmed > 0) {
+            debugLog(`Cache ${this.opts.storageKey}: trimmed ${trimmed} oldest entr(ies) over the cap`);
+        }
         try {
             await chrome.storage.local.set({[this.opts.storageKey]: this.mem});
         } catch {

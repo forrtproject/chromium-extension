@@ -61,6 +61,7 @@ export interface Citation {
 const CITATION_CACHE = new BlobCache<{text: string; html?: string | null}>({
     storageKey: "flora_citation_blob",
     ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days — a published record's citation is stable
+    maxEntries: 1500,
 });
 
 const inflight = new Map<string, Promise<Citation | null>>();
