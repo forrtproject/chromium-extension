@@ -598,6 +598,27 @@ const TAB_STORAGE_KEY = "flora_tab_top_v1";
 let _tabPositionObserver: MutationObserver | null = null;
 let _tabResizeHandler: (() => void) | null = null;
 let _tabDragCleanup: (() => void) | null = null;
+let _tabRepositionTimer: ReturnType<typeof setTimeout> | null = null;
+
+const panelCleanups: Array<() => void> = [];
+
+function runPanelCleanups(): void {
+  while (panelCleanups.length > 0) panelCleanups.pop()!();
+}
+
+let _panelZIndexStyle: HTMLStyleElement | null = null;
+
+function setPanelZIndex(zIndex: string): void {
+  if (!_panelZIndexStyle?.isConnected) {
+    _panelZIndexStyle = document.createElement("style");
+    (document.head ?? document.documentElement).appendChild(_panelZIndexStyle);
+    panelCleanups.push(() => {
+      _panelZIndexStyle?.remove();
+      _panelZIndexStyle = null;
+    });
+  }
+  _panelZIndexStyle.textContent = `#scite-popup,#unpaywall{z-index:${zIndex} !important;}`;
+}
 // null = never set by user; number = user-dragged position in px from top
 let _customTabTop: number | null = (() => {
   try {
@@ -615,6 +636,10 @@ function cleanupTabPositioning(): void {
   }
   _tabDragCleanup?.();
   _tabDragCleanup = null;
+  if (_tabRepositionTimer) {
+    clearTimeout(_tabRepositionTimer);
+    _tabRepositionTimer = null;
+  }
 }
 
 function positionTabOnRightEdge(tab: HTMLElement): void {
@@ -741,11 +766,10 @@ function setupTabPositioning(tab: HTMLElement): void {
   positionTabOnRightEdge(tab);
   attachTabDrag(tab);
 
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   const reposition = (): void => {
     if (_customTabTop !== null) return; // user has a preferred spot
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => positionTabOnRightEdge(tab), 200);
+    if (_tabRepositionTimer) clearTimeout(_tabRepositionTimer);
+    _tabRepositionTimer = setTimeout(() => positionTabOnRightEdge(tab), 200);
   };
 
   // subtree:true catches plugins that inject into nested containers
@@ -952,6 +976,7 @@ export function renderSidePanel(
   }
 
   cleanupTabPositioning();
+  runPanelCleanups();
   existingHost?.remove();
 
   const host = document.createElement("div");
@@ -1631,6 +1656,10 @@ export function renderSidePanel(
       }
     };
     window.addEventListener("message", onIframeMessage);
+    panelCleanups.push(() => {
+      clearTimeout(fallbackTimer);
+      window.removeEventListener("message", onIframeMessage);
+    });
     iframe.addEventListener("error", showFallback);
 
     iframeWrap.appendChild(iframe);
@@ -1706,9 +1735,7 @@ export function renderSidePanel(
     tab.style.right = `${PANEL_WIDTH}px`;
     arrow.style.transform = "rotate(180deg)";
     tab.setAttribute("aria-label", "Close FLoRA panel");
-    const style = document.createElement("style");
-    style.textContent = "#scite-popup,#unpaywall{z-index:2147483646 !important;}";
-    (document.head ?? document.documentElement).appendChild(style);
+    setPanelZIndex("2147483646");
   };
 
   const closePanel = (): void => {
@@ -1719,9 +1746,7 @@ export function renderSidePanel(
     tab.style.right = "0";
     arrow.style.transform = "rotate(0deg)";
     tab.setAttribute("aria-label", "Open the FORRT ORE panel");
-    const style = document.createElement("style");
-    style.textContent = "#scite-popup,#unpaywall{z-index:2147483647 !important;}";
-    (document.head ?? document.documentElement).appendChild(style);
+    setPanelZIndex("2147483647");
   };
 
   // Use a shared didDrag flag so the click handler can tell drag from tap.
@@ -1758,6 +1783,7 @@ export function renderSidePanel(
 
 export function removeSidePanel(): void {
   cleanupTabPositioning();
+  runPanelCleanups();
   document.getElementById(PUBPEER_PANEL_ID)?.remove();
 }
 
