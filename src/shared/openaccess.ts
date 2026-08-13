@@ -72,11 +72,8 @@ const OA_CACHE = new BlobCache<OpenAccessStatus>({
     ttlMs: 30 * 24 * 60 * 60 * 1000, // 30 days — OA status changes rarely
 });
 
-let _cachedEmail: string | null = null;
 async function getUserEmail(): Promise<string> {
-    if (_cachedEmail) return _cachedEmail;
     const { email } = await getSettings();
-    _cachedEmail = email;
     return email;
 }
 
@@ -123,5 +120,4 @@ export async function fetchOpenAccess(doi: string): Promise<OpenAccessStatus | n
 /** Test-only: drop in-memory cache state so each case starts fresh. */
 export function _resetOpenAccessCacheForTesting(): void {
     OA_CACHE.resetForTesting();
-    _cachedEmail = null;
 }

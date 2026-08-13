@@ -22,9 +22,6 @@ const DOI_AUGMENT_CACHE = new BlobCache<CachedDoiResult>({
     legacyPrefixes: ["flora_doi:"],
 });
 
-/** Cached email — refreshed once per page/worker lifecycle. */
-let _cachedEmail: string | null = null;
-
 interface CachedDoiResult {
     found: boolean;
     doi: string | null;
@@ -45,9 +42,7 @@ interface DoiCandidate {
 }
 
 async function getUserEmail(): Promise<string> {
-    if (_cachedEmail) return _cachedEmail;
     const {email} = await getSettings();
-    _cachedEmail = email;
     return email;
 }
 
@@ -636,5 +631,4 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
 export function _resetAugmentCachesForTesting(): void {
     DOI_AUGMENT_CACHE.resetForTesting();
     TITLE_CACHE.resetForTesting();
-    _cachedEmail = null;
 }
