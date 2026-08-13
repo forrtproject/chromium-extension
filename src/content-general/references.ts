@@ -120,6 +120,12 @@ export function releaseReferenceEntries(resolved: ResolvedReference[]): void {
     for (const r of resolved) releaseReferenceEntry(r.entry);
 }
 
+export function resetReferenceMarkers(root: ParentNode = document): void {
+    for (const el of root.querySelectorAll(`[${PROCESSED_ATTR}]`)) {
+        el.removeAttribute(PROCESSED_ATTR);
+    }
+}
+
 // One colour for every provenance — an unconfirmed DOI is marked by the
 // underline inside the pill, not by a different colour.
 const PILL_COLOR = "#853953";

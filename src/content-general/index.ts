@@ -38,11 +38,11 @@ import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
 import {injectInlineRetractionPills, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
-import {createIndicatorPill, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
+import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 
 import {fetchOpenAccess} from "@shared/openaccess";
-import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, type ResolvedReference} from "./references";
+import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
@@ -195,6 +195,8 @@ async function runScanPass(): Promise<void> {
         pageState.clear();
         augmentAttempted = false;
         resetRetractionPills();
+        removeIndicatorPills();
+        resetReferenceMarkers();
         if (isSheets) {
             removeSheetsModal();
         } else {

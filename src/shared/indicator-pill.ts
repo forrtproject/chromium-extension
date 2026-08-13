@@ -22,6 +22,10 @@ import {showToast} from "@shared/toast";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
+export function removeIndicatorPills(root: ParentNode = document): void {
+    for (const pill of root.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)) pill.remove();
+}
+
 export const PAGE_PROVENANCE = "Found on this page";
 export const SEARCH_PROVENANCE =
     "Matched by search — looked up by title, first author and year. Check it is the right paper.";
