@@ -47,6 +47,14 @@ Object.defineProperty(globalThis, "chrome", {
       },
       openOptionsPage: vi.fn(),
     },
+    alarms: {
+      get: vi.fn().mockResolvedValue(undefined),
+      create: vi.fn(),
+      clear: vi.fn().mockResolvedValue(true),
+      onAlarm: {
+        addListener: vi.fn(),
+      },
+    },
     tabs: {
       create: vi.fn(),
       onUpdated: {

@@ -8,7 +8,8 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "activeTab"
+    "activeTab",
+    "alarms"
   ],
   "action": {
     "default_popup": "dist/popup.html"

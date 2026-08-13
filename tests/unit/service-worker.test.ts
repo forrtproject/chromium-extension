@@ -28,6 +28,13 @@ vi.mock("../../src/shared/settings", () => ({
     getSettings: vi.fn().mockResolvedValue({email: "test@example.com", cacheQuotaMb: 500}),
 }));
 
+// Mock the retraction download so no test reaches the network
+const mockStorageSync = vi.fn().mockResolvedValue(true);
+vi.mock("../../src/shared/data-extract", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../../src/shared/data-extract")>()),
+    storageSync: () => mockStorageSync(),
+}));
+
 // Mock cache
 const cacheStore = new Map<string, unknown>();
 // Records every cache.set(key, data, ttlMs) so tests can assert TTL is applied.
@@ -65,6 +72,7 @@ describe("service-worker", () => {
         sender: unknown,
         sendResponse: (response: unknown) => void
     ) => boolean | undefined;
+    let alarmHandler: (alarm: {name: string}) => void;
 
     beforeEach(async () => {
         cacheStore.clear();
@@ -72,17 +80,24 @@ describe("service-worker", () => {
         cacheSetError = null;
         mockLookupDOIs.mockReset();
         mockResolvePmcIds.mockReset();
+        mockStorageSync.mockClear();
         (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
+        (chrome.alarms.get as ReturnType<typeof vi.fn>).mockReset().mockResolvedValue(undefined);
+        (chrome.alarms.create as ReturnType<typeof vi.fn>).mockReset();
 
 
         const addListenerMock = vi.fn();
         (chrome.runtime.onMessage.addListener as ReturnType<typeof vi.fn>) =
             addListenerMock;
+        const alarmListenerMock = vi.fn();
+        (chrome.alarms.onAlarm.addListener as ReturnType<typeof vi.fn>) =
+            alarmListenerMock;
 
         vi.resetModules();
         await import("../../src/background/service-worker");
 
         messageHandler = addListenerMock.mock.calls[0][0];
+        alarmHandler = alarmListenerMock.mock.calls[0][0];
     });
 
     function sendMessage(request: LookupRequest): Promise<LookupResponse> {
@@ -344,6 +359,46 @@ describe("service-worker", () => {
             expect(response.results).toEqual([]);
             expect(response.error).toBeTruthy();
             vi.unstubAllGlobals();
+        });
+    });
+
+    describe("scheduled retraction refresh", () => {
+        it("creates a daily alarm when none exists", async () => {
+            await vi.waitFor(() =>
+                expect(chrome.alarms.create).toHaveBeenCalledWith(
+                    "flora-retraction-sync",
+                    {periodInMinutes: 60 * 24}
+                )
+            );
+        });
+
+        it("does not recreate an existing alarm", async () => {
+            (chrome.alarms.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+                name: "flora-retraction-sync",
+            });
+            (chrome.alarms.create as ReturnType<typeof vi.fn>).mockClear();
+
+            vi.resetModules();
+            await import("../../src/background/service-worker");
+
+            await vi.waitFor(() => expect(chrome.alarms.get).toHaveBeenCalled());
+            expect(chrome.alarms.create).not.toHaveBeenCalled();
+        });
+
+        it("syncs retraction data when the alarm fires", async () => {
+            alarmHandler({name: "flora-retraction-sync"});
+
+            await vi.waitFor(() => expect(mockStorageSync).toHaveBeenCalled());
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                expect.objectContaining({synctime: expect.any(Number)})
+            );
+        });
+
+        it("ignores alarms belonging to other features", async () => {
+            alarmHandler({name: "some-other-alarm"});
+
+            await Promise.resolve();
+            expect(mockStorageSync).not.toHaveBeenCalled();
         });
     });
 
