@@ -43,6 +43,7 @@ import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-a
 
 import {fetchOpenAccess} from "@shared/openaccess";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, type ResolvedReference} from "./references";
+import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
 
@@ -50,6 +51,7 @@ const pageState = new Map<DoiString, LookupState>();
 let redacts: RetractionResponse[] = [];
 // Keep memory of detected DOIs to track dynamic page changes
 const processedDois = new Set<DoiString>();
+const seenDois = new SeenDois();
 const doiContext = new Map<DoiString, DoiContext>();
 let lastUrl = location.href;
 let augmentAttempted = false;
@@ -183,6 +185,7 @@ async function runScanPass(): Promise<void> {
     if (currentUrl !== lastUrl) {
         lastUrl = currentUrl;
         processedDois.clear();
+        seenDois.clear();
         doiContext.clear();
         lastArticleFeedbacks = [];
         lastRefFeedbackByDoi = new Map();
@@ -221,8 +224,8 @@ async function runScanPass(): Promise<void> {
     // DOI occurrences with source + anchor, so badges place without re-scanning.
     const occurrences = extractDoiOccurrences(document);
 
-    const hasDoiChange = processedDois.size !== dois.length ||
-        !dois.every(doi => processedDois.has(doi));
+    const hasDoiChange = seenDois.hasUnseen(dois);
+    seenDois.mark(dois);
 
     // Populate per-DOI context only when the set changed (idempotent map sets).
     if (classified && hasDoiChange) {
@@ -781,6 +784,7 @@ async function fetchSheetDois(): Promise<void> {
                     sheetFetchGen++;
                     sheetCsvDois = [];
                     processedDois.clear();
+                    seenDois.clear();
                     pageState.clear();
                     removeSheetsModal();
                     fetchSheetDois();
