@@ -28,7 +28,6 @@ vi.mock("../../src/shared/settings", () => ({
     getSettings: vi.fn().mockResolvedValue({email: "test@example.com", cacheQuotaMb: 500}),
 }));
 
-// Mock the retraction download so no test reaches the network
 const mockStorageSync = vi.fn().mockResolvedValue(true);
 vi.mock("../../src/shared/data-extract", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../../src/shared/data-extract")>()),
@@ -73,6 +72,10 @@ describe("service-worker", () => {
         sendResponse: (response: unknown) => void
     ) => boolean | undefined;
     let alarmHandler: (alarm: {name: string}) => void;
+    let storageChangeHandlers: Array<
+        (changes: Record<string, {newValue?: unknown}>, area: string) => void
+    >;
+    let pendingMapReads: Array<(result: unknown) => void>;
 
     beforeEach(async () => {
         cacheStore.clear();
@@ -92,6 +95,10 @@ describe("service-worker", () => {
         const alarmListenerMock = vi.fn();
         (chrome.alarms.onAlarm.addListener as ReturnType<typeof vi.fn>) =
             alarmListenerMock;
+        storageChangeHandlers = [];
+        pendingMapReads = [];
+        (chrome.storage.onChanged.addListener as ReturnType<typeof vi.fn>) =
+            vi.fn((fn) => storageChangeHandlers.push(fn));
 
         vi.resetModules();
         await import("../../src/background/service-worker");
@@ -125,6 +132,25 @@ describe("service-worker", () => {
                 return {};
             }
         );
+    }
+
+    function blockRetractionMapReads(): void {
+        (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
+            (keys: unknown) => {
+                const wants = (key: string) =>
+                    keys === key || (Array.isArray(keys) && keys.includes(key));
+                if (!wants(RET_MAP_KEY)) return Promise.resolve({});
+                return new Promise((resolve) => pendingMapReads.push(resolve));
+            }
+        );
+    }
+
+    function releaseMapRead(index: number, map: RetractionMaps): void {
+        pendingMapReads[index]({[RET_MAP_KEY]: map});
+    }
+
+    function landRetractionSync(map: RetractionMaps): void {
+        for (const fn of storageChangeHandlers) fn({[RET_MAP_KEY]: {newValue: map}}, "local");
     }
 
     it("returns results for matched DOIs", async () => {
@@ -359,6 +385,59 @@ describe("service-worker", () => {
             expect(response.results).toEqual([]);
             expect(response.error).toBeTruthy();
             vi.unstubAllGlobals();
+        });
+    });
+
+    describe("retraction cache invalidation", () => {
+        const PRE_SYNC: RetractionMaps = {
+            retractions: {"10.1000/old": "10.1000/old-notice"},
+            concerns: {},
+        };
+        const POST_SYNC: RetractionMaps = {
+            retractions: {"10.1000/old": "10.1000/old-notice", "10.1000/fresh": "10.1000/fresh-notice"},
+            concerns: {},
+        };
+        const FRESH_HIT = {
+            originDoi: "10.1000/fresh",
+            doi: "10.1000/fresh-notice",
+            kind: "retraction",
+        };
+
+        it("does not cache a map read before a sync landed", async () => {
+            blockRetractionMapReads();
+            const duringSync = sendRetractionCheck([doi("10.1000/fresh")]);
+            await vi.waitFor(() => expect(pendingMapReads).toHaveLength(1));
+
+            landRetractionSync(POST_SYNC);
+            releaseMapRead(0, PRE_SYNC);
+            expect((await duringSync).results).toEqual([]);
+
+            const afterSync = sendRetractionCheck([doi("10.1000/fresh")]);
+            await vi.waitFor(() => expect(pendingMapReads).toHaveLength(2));
+            releaseMapRead(1, POST_SYNC);
+
+            expect((await afterSync).results).toEqual([FRESH_HIT]);
+        });
+
+        it("keeps the newer load when a superseded one finishes", async () => {
+            blockRetractionMapReads();
+            const superseded = sendRetractionCheck([doi("10.1000/fresh")]);
+            await vi.waitFor(() => expect(pendingMapReads).toHaveLength(1));
+
+            landRetractionSync(POST_SYNC);
+            const reload = sendRetractionCheck([doi("10.1000/fresh")]);
+            await vi.waitFor(() => expect(pendingMapReads).toHaveLength(2));
+
+            releaseMapRead(0, PRE_SYNC);
+            await superseded;
+
+            const shouldReuseReload = sendRetractionCheck([doi("10.1000/fresh")]);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(pendingMapReads).toHaveLength(2);
+
+            releaseMapRead(1, POST_SYNC);
+            expect((await reload).results).toEqual([FRESH_HIT]);
+            expect((await shouldReuseReload).results).toEqual([FRESH_HIT]);
         });
     });
 
