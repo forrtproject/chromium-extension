@@ -8,10 +8,28 @@ export const FLORA_UI_SELECTOR = "[data-flora-ui]";
 
 const FLORA_OWNED_SELECTOR = `${FLORA_UI_SELECTOR}, [id^="flora-"]`;
 
+const FOCUS_STYLE_ID = "flora-focus-style";
+
+export function ensureFocusStyle(): void {
+    if (document.getElementById(FOCUS_STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = FOCUS_STYLE_ID;
+    style.textContent =
+        `${FLORA_OWNED_SELECTOR} :focus-visible, ${FLORA_OWNED_SELECTOR}:focus-visible {` +
+        ` outline: 2px solid #853953; outline-offset: 2px; }`;
+    (document.head ?? document.documentElement).appendChild(style);
+}
+
+export function owningElement(node: Node): Element | null {
+    if (node.nodeType === Node.ELEMENT_NODE) return node as Element;
+    if (node.nodeType === Node.TEXT_NODE) return node.parentElement;
+    return null;
+}
+
 /** True for nodes FLoRA injected itself. */
 export function isFloraOwnedNode(node: Node): boolean {
-    if (node.nodeType !== Node.ELEMENT_NODE) return true; // text/comment — not meaningful for DOI scanning
-    const el = node as Element;
+    const el = owningElement(node);
+    if (!el) return true;
     if (el.id.startsWith("flora-")) return true;
     for (const c of el.classList) {
         if (c.startsWith("flora-")) return true;

@@ -117,7 +117,8 @@ export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_AUGMENT"
+        (msg as Record<string, unknown>).type === "FLORA_AUGMENT" &&
+        Array.isArray((msg as Record<string, unknown>).requests)
     );
 }
 
@@ -137,7 +138,8 @@ export function isPmcResolveRequest(msg: unknown): msg is PmcResolveRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_PMC_RESOLVE"
+        (msg as Record<string, unknown>).type === "FLORA_PMC_RESOLVE" &&
+        Array.isArray((msg as Record<string, unknown>).pmcids)
     );
 }
 
@@ -221,7 +223,8 @@ export function isLookupRequest(msg: unknown): msg is LookupRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_LOOKUP"
+        (msg as Record<string, unknown>).type === "FLORA_LOOKUP" &&
+        Array.isArray((msg as Record<string, unknown>).dois)
     );
 }
 
@@ -229,7 +232,8 @@ export function isRetractionCheckRequest(msg: unknown): msg is RetractionCheckRe
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_RET_CHECK"
+        (msg as Record<string, unknown>).type === "FLORA_RET_CHECK" &&
+        Array.isArray((msg as Record<string, unknown>).dois)
     );
 }
 

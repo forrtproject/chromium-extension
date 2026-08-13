@@ -23,6 +23,7 @@ export interface RetractionMaps {
     retractions: Record<string, string>;
     /** originalPaperDOI -> expression-of-concern notice DOI */
     concerns: Record<string, string>;
+    lowercasedKeys?: boolean;
 }
 
 export async function fetchRetractionMap(): Promise<RetractionMaps | undefined> {

@@ -44,7 +44,7 @@ function findSmallestTextContainer(root: HTMLElement, needle: string): HTMLEleme
     let best: HTMLElement | null = null;
     let bestLen = Infinity;
     for (const el of root.querySelectorAll<HTMLElement>("*")) {
-        const t = el.innerText ?? el.textContent ?? "";
+        const t = el.textContent ?? "";
         if (!t.includes(needle)) continue;
         if (t.length < bestLen) {
             best = el;
@@ -57,13 +57,13 @@ function findSmallestTextContainer(root: HTMLElement, needle: string): HTMLEleme
 // Descendant with ≥50% but <100% of the entry's text — the citation body,
 // excluding trailing action-link rows ("Article | Google Scholar").
 function findCitationBody(entry: HTMLElement): HTMLElement | null {
-    const entryText = (entry.innerText ?? entry.textContent ?? "").trim();
+    const entryText = (entry.textContent ?? "").trim();
     if (entryText.length < 40) return null;
     const floor = Math.floor(entryText.length * 0.5);
     let best: HTMLElement | null = null;
     let bestLen = 0;
     for (const el of entry.querySelectorAll<HTMLElement>("*")) {
-        const t = (el.innerText ?? el.textContent ?? "").trim();
+        const t = (el.textContent ?? "").trim();
         if (t.length >= floor && t.length < entryText.length && t.length > bestLen) {
             best = el;
             bestLen = t.length;

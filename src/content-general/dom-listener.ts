@@ -1,5 +1,5 @@
 import {containsDoiCandidate} from "@shared/doi-extractor";
-import {isExternalMutation, isFloraOwnedNode} from "@shared/flora-ui";
+import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog} from "@shared/debug";
 
 const MAX_INCREMENTAL_NODES = 50;
@@ -24,6 +24,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     let debounceTimer: ReturnType<typeof setTimeout>;
     let pendingNodes: Element[] = [];
     let pendingFullScan = false;
+    let missedWhileHidden = false;
 
     const flush = (): void => {
         const nodes = pendingNodes;
@@ -39,7 +40,10 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
 
     const observer = new MutationObserver((mutations) => {
         // Do no work while this tab is in the background.
-        if (document.hidden) return;
+        if (document.hidden) {
+            missedWhileHidden = true;
+            return;
+        }
         let hasExternalChange = false;
         for (const m of mutations) {
             if (!isExternalMutation(m)) continue;
@@ -49,7 +53,8 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
             }
             for (const node of m.addedNodes) {
                 if (isFloraOwnedNode(node)) continue;
-                pendingNodes.push(node as Element);
+                const el = owningElement(node);
+                if (el) pendingNodes.push(el);
             }
         }
         if (!hasExternalChange) return;
@@ -58,10 +63,10 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         debounceTimer = setTimeout(flush, DEBOUNCE_MS);
     });
     observer.observe(document.body, {childList: true, subtree: true});
-    // Re-scan when the tab becomes active again — mutations that happened while
-    // it was hidden were ignored above.
     document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) scanWholePage();
+        if (document.hidden || !missedWhileHidden) return;
+        missedWhileHidden = false;
+        scanWholePage();
     });
     return observer;
 }

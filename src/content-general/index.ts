@@ -42,6 +42,7 @@ import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, IN
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 
 import {fetchOpenAccess} from "@shared/openaccess";
+import {showToast} from "@shared/toast";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
@@ -179,6 +180,15 @@ async function scanWholePage(): Promise<void> {
     }
 }
 
+let nothingToFlagReportedFor: string | null = null;
+
+function reportNothingToFlag(examined: number, flagged: boolean): void {
+    if (examined === 0 || flagged) return;
+    if (nothingToFlagReportedFor === location.href) return;
+    nothingToFlagReportedFor = location.href;
+    showToast(`Checked ${count(examined, "paper")} — nothing to flag`, {tone: "success"});
+}
+
 async function runScanPass(): Promise<void> {
     // Detect full URL change (SPA navigation) — clear state
     const currentUrl = location.href;
@@ -302,7 +312,7 @@ async function runScanPass(): Promise<void> {
         debugLog("No valid DOIs found on page, attempting title augmentation");
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
-        if (!isSheets) augmentFromTitle().then().catch();
+        if (!isSheets) augmentFromTitle().catch((err) => debugError("Title augmentation failed —", err));
         if (!isSheets) void checkPubPeer(refsPromise);
         return;
     }
@@ -375,7 +385,7 @@ async function runScanPass(): Promise<void> {
             reportWorkStage("report", "Generating report…");
             // Collect matched DOIs for display
             // On Sheets, skip the "still in DOM" re-check — the canvas DOM is unreliable
-            const currentDois = isSheets ? null : new Set(extractDOIs(document));
+            const currentDois = isSheets ? null : new Set(dois);
             const matched = [...pageState.entries()]
                 .filter(([doi, s]) => {
                     if (s.status !== "matched") return false;
@@ -405,6 +415,7 @@ async function runScanPass(): Promise<void> {
             if (!isSheets) {
                 placeTitleIndicatorPill();
                 updateIndicatorPillBadges(document, pageState, redacts);
+                reportNothingToFlag(dois.length, matched.length > 0 || redacts.length > 0);
             }
         } catch (err) {
             // Rendering failed after a successful lookup: log it for a bug
@@ -770,7 +781,7 @@ async function fetchSheetDois(): Promise<void> {
     reportActiveState(true);
     // Show setup prompt if email not configured (non-blocking — extension still runs)
     if (!(await isSetupComplete())) {
-        renderSetupPrompt().then().catch();
+        renderSetupPrompt().catch((err) => debugError("Setup prompt failed to render —", err));
     }
     const startFlora = (): void => {
         if (isSheets) {

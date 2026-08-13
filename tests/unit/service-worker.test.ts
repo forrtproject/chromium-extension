@@ -62,6 +62,25 @@ vi.mock("../../src/shared/cache", () => ({
             if (cacheSetError) throw cacheSetError;
             cacheStore.set(`${this.prefix}:${key}`, data);
         }
+
+        async getMany(keys: string[]) {
+            const out = new Map<string, unknown>();
+            for (const key of keys) {
+                const full = `${this.prefix}:${key}`;
+                if (cacheStore.has(full)) out.set(key, cacheStore.get(full));
+            }
+            return out;
+        }
+
+        async setMany(entries: Array<[string, unknown]>, ttlMs: number | null) {
+            for (const [key, data] of entries) {
+                cacheSetCalls.push({key, data, ttlMs});
+            }
+            if (cacheSetError) throw cacheSetError;
+            for (const [key, data] of entries) {
+                cacheStore.set(`${this.prefix}:${key}`, data);
+            }
+        }
     },
 }));
 
@@ -266,6 +285,26 @@ describe("service-worker", () => {
         expect(Object.keys(response.errors)).toHaveLength(0);
         // The write was attempted (and threw) but did not corrupt the response.
         expect(cacheSetCalls).toHaveLength(1);
+    });
+
+    it("does not claim an async response for a lookup with no dois", () => {
+        const sendResponse = vi.fn();
+        const claimed = messageHandler({type: "FLORA_LOOKUP"}, {}, sendResponse);
+
+        expect(claimed).toBeFalsy();
+        expect(sendResponse).not.toHaveBeenCalled();
+    });
+
+    it("answers a setup-dismiss request even when session storage fails", async () => {
+        (chrome.storage.session.set as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+            new Error("session storage unavailable")
+        );
+
+        const response = await new Promise((resolve) => {
+            messageHandler({type: "FLORA_DISMISS_SETUP"}, {}, resolve as (r: unknown) => void);
+        });
+
+        expect(response).toEqual({ok: false});
     });
 
     it("ignores non-lookup messages", () => {

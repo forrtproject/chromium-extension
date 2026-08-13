@@ -243,7 +243,7 @@ export interface DoiOccurrence {
 
 export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
   const occurrences: DoiOccurrence[] = [];
-  if (!doc.body) return occurrences;
+  if (!doc.body || !pageMightContainDoi(doc)) return occurrences;
 
   // Anchor DOIs to their reference entry, not a per-link "Crossref" button.
   const entrySet = new Set<HTMLElement>(
@@ -330,6 +330,7 @@ export function containsDoiCandidate(el: Element): boolean {
 }
 
 function extractFromVisibleText(doc: Document, found: Set<DoiString>): void {
+  if (!pageMightContainDoi(doc)) return;
   const rawText = doc.body?.innerText || doc.body?.textContent || "";
   const bodyText = decodeEncodedDois(rawText.replace(WORD_BREAK_CHARS, ""));
   const matches = bodyText.matchAll(DOI_TEXT_REGEX);
@@ -342,12 +343,23 @@ function extractFromVisibleText(doc: Document, found: Set<DoiString>): void {
 }
 
 // Authoritative sources only — body text/links would pick up cited DOIs.
+let _primaryDoiCache: { epoch: number; doc: Document; result: DoiString | null } | null = null;
+
 export function extractPrimaryDOI(doc: Document): DoiString | null {
+  if (
+    _primaryDoiCache &&
+    _primaryDoiCache.epoch === _scanEpoch &&
+    _primaryDoiCache.doc === doc
+  ) {
+    return _primaryDoiCache.result;
+  }
   const found = new Set<DoiString>();
   extractFromUrl(doc, found);
   extractFromMeta(doc, found);
   extractFromJsonLd(doc, found);
-  return found.size > 0 ? [...found][0] : null;
+  const result = found.size > 0 ? [...found][0] : null;
+  _primaryDoiCache = { epoch: _scanEpoch, doc, result };
+  return result;
 }
 
 export function extractDOIsFromText(text: string): DoiString[] {
@@ -384,6 +396,20 @@ function isReferenceContainer(el: Element): boolean {
 // and a full-document scan is expensive. beginDomScanPass() bumps the epoch.
 let _scanEpoch = 0;
 let _refContainerCache: { epoch: number; doc: Document; result: Element[] } | null = null;
+let _doiProbeCache: { epoch: number; doc: Document; result: boolean } | null = null;
+
+export function pageMightContainDoi(doc: Document): boolean {
+  if (
+    _doiProbeCache &&
+    _doiProbeCache.epoch === _scanEpoch &&
+    _doiProbeCache.doc === doc
+  ) {
+    return _doiProbeCache.result;
+  }
+  const result = !!doc.body && containsDoiCandidate(doc.body);
+  _doiProbeCache = { epoch: _scanEpoch, doc, result };
+  return result;
+}
 
 export function beginDomScanPass(): void {
   _scanEpoch++;

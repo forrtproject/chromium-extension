@@ -8,7 +8,7 @@ import {renderReportDocument, reportUrl, type ReportEntry, type ReportPayload} f
 import {writeClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {hideWorkIndicator, showWorkIndicator} from "@shared/progress-toast";
-import {FLORA_UI_SELECTOR} from "@shared/flora-ui";
+import {ensureFocusStyle, FLORA_UI_SELECTOR} from "@shared/flora-ui";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -95,6 +95,7 @@ async function snoozeSetup(ms: number): Promise<void> {
 }
 
 export async function renderSetupPrompt(): Promise<void> {
+  ensureFocusStyle();
     if (document.getElementById(SETUP_HOST_ID)) return;
     if (await isSetupPromptSuppressed()) return;
 
@@ -665,11 +666,25 @@ function cleanupTabPositioning(): void {
   }
 }
 
+const RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS = 750;
+let _lastSweep = {at: 0, vw: 0, vh: 0, top: ""};
+
 function positionTabOnRightEdge(tab: HTMLElement): void {
   // Respect user-dragged position
   if (_customTabTop !== null) {
     const clamped = Math.max(0, Math.min(window.innerHeight - (tab.offsetHeight || 80), _customTabTop));
     tab.style.top = `${Math.round(clamped)}px`;
+    return;
+  }
+
+  const now = Date.now();
+  if (
+    _lastSweep.top !== "" &&
+    now - _lastSweep.at < RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS &&
+    _lastSweep.vw === window.innerWidth &&
+    _lastSweep.vh === window.innerHeight
+  ) {
+    tab.style.top = _lastSweep.top;
     return;
   }
 
@@ -725,7 +740,9 @@ function positionTabOnRightEdge(tab: HTMLElement): void {
     bestTop = Math.max(gs + MARGIN, Math.min(center - TAB_H / 2, ge - TAB_H - MARGIN));
   }
 
-  tab.style.top = `${Math.round(bestTop)}px`;
+  const top = `${Math.round(bestTop)}px`;
+  tab.style.top = top;
+  _lastSweep = {at: Date.now(), vw: window.innerWidth, vh: window.innerHeight, top};
 }
 
 function attachTabDrag(tab: HTMLElement): void {

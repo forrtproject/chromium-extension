@@ -64,7 +64,7 @@ const CITATION_CACHE = new BlobCache<{text: string; html?: string | null}>({
     maxEntries: 1500,
 });
 
-const inflight = new Map<string, Promise<Citation | null>>();
+const inflight = new Map<string, Promise<CitationOutcome>>();
 
 const ENTITIES: Record<string, string> = {
     amp: "&",
@@ -135,7 +135,12 @@ function doiOrgUrl(doi: string): string {
     return `https://doi.org/${doi.split("/").map(encodeURIComponent).join("/")}`;
 }
 
-async function requestCitation(doi: string, format: CitationFormat): Promise<Citation | null> {
+export interface CitationOutcome {
+    citation: Citation | null;
+    reachable: boolean;
+}
+
+async function requestCitation(doi: string, format: CitationFormat): Promise<CitationOutcome> {
     let email = "";
     try {
         email = (await getSettings()).email;
@@ -143,18 +148,20 @@ async function requestCitation(doi: string, format: CitationFormat): Promise<Cit
         // Polite-pool contact is optional for content negotiation.
     }
 
+    let reachable = false;
     for (const url of [crossrefUrl(doi, email), doiOrgUrl(doi)]) {
         try {
             const response = await fetch(url, {headers: {Accept: format.accept}});
+            if (response.status < 500) reachable = true;
             if (!response.ok) continue;
             const raw = await response.text();
             const text = tidyCitation(raw, format);
-            if (text) return {text, html: tidyCitationHtml(raw, format)};
+            if (text) return {citation: {text, html: tidyCitationHtml(raw, format)}, reachable: true};
         } catch (err) {
             debugWarn(`Citation: ${url} failed for ${doi} —`, err);
         }
     }
-    return null;
+    return {citation: null, reachable};
 }
 
 /**
@@ -162,25 +169,29 @@ async function requestCitation(doi: string, format: CitationFormat): Promise<Cit
  * when neither Crossref nor doi.org can render the DOI — failures are not cached
  * so a transient outage doesn't suppress the citation for the cache TTL.
  */
-export async function fetchCitation(doi: string, formatId: string): Promise<Citation | null> {
+export async function fetchCitationDetailed(doi: string, formatId: string): Promise<CitationOutcome> {
     const format = citationFormat(formatId);
     const key = `${doi}|${format.id}`;
 
     // Entries cached before rich text shipped carry no `html`.
     const cached = await CITATION_CACHE.get(key);
-    if (cached) return {text: cached.text, html: cached.html ?? null};
+    if (cached) return {citation: {text: cached.text, html: cached.html ?? null}, reachable: true};
 
     const existing = inflight.get(key);
     if (existing) return existing;
 
     const pending = requestCitation(doi, format)
-        .then(async (citation) => {
-            if (citation) await CITATION_CACHE.set(key, citation);
-            return citation;
+        .then(async (outcome) => {
+            if (outcome.citation) await CITATION_CACHE.set(key, outcome.citation);
+            return outcome;
         })
         .finally(() => inflight.delete(key));
     inflight.set(key, pending);
     return pending;
+}
+
+export async function fetchCitation(doi: string, formatId: string): Promise<Citation | null> {
+    return (await fetchCitationDetailed(doi, formatId)).citation;
 }
 
 /** Test-only: drop in-memory cache state so each case starts fresh. */

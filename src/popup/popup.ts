@@ -108,6 +108,17 @@ async function init(): Promise<void> {
   }
 }
 
+async function tearDownFloraOnPage(): Promise<boolean> {
+  if (activeTabId == null) return false;
+  try {
+    await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_HIDE_UI" });
+    return true;
+  } catch (err) {
+    debugWarn("Popup: could not clear ORE from the page —", err);
+    return false;
+  }
+}
+
 // Block / unblock the current domain
 blockBtn.addEventListener("click", async () => {
   if (!currentDomain) return;
@@ -118,14 +129,22 @@ blockBtn.addEventListener("click", async () => {
     const updated = domains.filter((d) => d !== currentDomain);
     await saveBlockedDomains(updated);
     blocked = false;
-    showStatus(`Unblocked ${currentDomain}`, "success");
+    showStatus(`Unblocked ${currentDomain} — reload to apply`, "success");
   } else {
     if (!domains.includes(currentDomain)) {
       domains.push(currentDomain);
       await saveBlockedDomains(domains);
     }
     blocked = true;
-    showStatus(`Blocked ${currentDomain}`, "success");
+    const cleared = await tearDownFloraOnPage();
+    if (cleared) {
+      hidden = true;
+      updateHideUI();
+    }
+    showStatus(
+      cleared ? `Blocked ${currentDomain}` : `Blocked ${currentDomain} — reload to apply`,
+      "success"
+    );
   }
 
   updateBlockUI();
