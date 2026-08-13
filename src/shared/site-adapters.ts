@@ -438,6 +438,24 @@ const PMC_NCBI: SiteAdapter = {
     referencePillStyle: { top: "0px" },
 };
 
+const OSF_IO: SiteAdapter = {
+    id: "osf-io",
+    hostnames: ["osf.io"],
+    titlePill: [
+        {
+            selector: "a.flex.flex-column.gap-3.custom-light-hover.dark-blue-link.md\\:flex-row",
+            position: "after",
+        },
+        { selector: ".title", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    referenceScope: ".references",
+    titlePillStyle: { top: "0px" },
+    referencePillStyle: { top: "0px" },
+};
+
 export const SITE_ADAPTERS: SiteAdapter[] = [
     SCIENCE_ORG,
     SAGEPUB,
@@ -465,7 +483,8 @@ export const SITE_ADAPTERS: SiteAdapter[] = [
     PEERCOMMUNITYIN,
     METAROR,
     F1000RESEARCH,
-    PMC_NCBI
+    PMC_NCBI,
+    OSF_IO,
 ];
 
 function normaliseHost(hostname: string): string {
