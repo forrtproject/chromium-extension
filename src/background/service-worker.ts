@@ -31,6 +31,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
         }
     }
     if (area === "local" && RET_MAP_KEY in changes) {
+        retractionGeneration++;
         cachedRetractionSource = null;
         retractionSourceLoad = null;
     }
@@ -97,7 +98,6 @@ chrome.runtime.onStartup.addListener(() => {
 const RETRACTION_SYNC_ALARM = "flora-retraction-sync";
 
 async function ensureRetractionSyncAlarm(): Promise<void> {
-    // Re-creating an alarm restarts its countdown, and this runs on every worker wake.
     const existing = await chrome.alarms.get(RETRACTION_SYNC_ALARM);
     if (!existing) chrome.alarms.create(RETRACTION_SYNC_ALARM, {periodInMinutes: 60 * 24});
 }
@@ -435,6 +435,8 @@ function lowercaseKeys(obj: Record<string, string> | undefined): Record<string, 
 // above whenever a fresh map is written.
 let cachedRetractionSource: RetractionMaps | null = null;
 
+let retractionGeneration = 0;
+
 // The bundled fallback is fetched lazily (not statically imported) so it stays
 // out of the worker bundle until the very first install before any sync.
 let bundledRetractionMapPromise: Promise<RetractionMaps> | null = null;
@@ -470,13 +472,17 @@ let retractionSourceLoad: Promise<RetractionMaps> | null = null;
 
 function getRetractionSource(): Promise<RetractionMaps> {
     if (cachedRetractionSource) return Promise.resolve(cachedRetractionSource);
-    retractionSourceLoad ??= loadRetractionSource().finally(() => {
-        retractionSourceLoad = null;
-    });
+    if (!retractionSourceLoad) {
+        const load: Promise<RetractionMaps> = loadRetractionSource().finally(() => {
+            if (retractionSourceLoad === load) retractionSourceLoad = null;
+        });
+        retractionSourceLoad = load;
+    }
     return retractionSourceLoad;
 }
 
 async function loadRetractionSource(): Promise<RetractionMaps> {
+    const generation = retractionGeneration;
     const storageResult = await chrome.storage.local.get([RET_MAP_KEY]);
     const stored = storageResult[RET_MAP_KEY] as RetractionMaps | undefined;
     const hasStoredData = !!stored && (
@@ -485,11 +491,12 @@ async function loadRetractionSource(): Promise<RetractionMaps> {
     );
 
     if (hasStoredData) {
-        cachedRetractionSource = {
+        const source: RetractionMaps = {
             retractions: lowercaseKeys(stored!.retractions),
             concerns: lowercaseKeys(stored!.concerns),
         };
-        return cachedRetractionSource;
+        if (generation === retractionGeneration) cachedRetractionSource = source;
+        return source;
     }
 
     // Nothing synced yet: kick off a sync for next time and answer from the
