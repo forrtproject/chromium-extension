@@ -42,7 +42,8 @@ import {createIndicatorPill, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} fr
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 
 import {fetchOpenAccess} from "@shared/openaccess";
-import {resolveReferenceDois, renderResolvedReferences, type ResolvedReference} from "./references";
+import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, type ResolvedReference} from "./references";
+import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
 
 const pageState = new Map<DoiString, LookupState>();
@@ -59,9 +60,6 @@ let lastRefFeedbackByDoi: Map<DoiString, PubPeerFeedback> = new Map();
 // Monotonically increments when FORRT lookup results land in pageState.
 let pageStateVersion = 0;
 let lastRenderedPageStateVersion = -1;
-// In-flight reference resolution, shared across one render pass.
-let resolvedRefsPromise: Promise<ResolvedReference[]> | null = null;
-
 /** Monotonic counter — incremented on each sheet tab switch to discard stale CSV responses. */
 let sheetFetchGen = 0;
 // DOIs extracted from the full sheet CSV (populated asynchronously on Sheets)
@@ -167,11 +165,13 @@ function whenIdle(fn: () => void, timeout = 1000): void {
     }
 }
 
+const runScanPasses = serializeWithRerun(() => runScanPass());
+
 /** Holds one work indicator across the pass so the bar doesn't restart mid-pipeline. */
 async function scanWholePage(): Promise<void> {
     beginWorkIndicator();
     try {
-        await runScanPass();
+        await runScanPasses();
     } finally {
         endWorkIndicator();
     }
@@ -189,7 +189,6 @@ async function runScanPass(): Promise<void> {
         articleFeedbacksFetched = false;
         lastReferenceDoiKey = "";
         lastRenderedPageStateVersion = -1;
-        resolvedRefsPromise = null;
         pageState.clear();
         augmentAttempted = false;
         resetRetractionPills();
@@ -204,7 +203,7 @@ async function runScanPass(): Promise<void> {
     reportWorkStage("scan", "Scanning this page for DOIs…");
 
     // Resolve reference-list DOIs in parallel with the FORRT lookup below.
-    resolvedRefsPromise = resolveReferenceDois();
+    const refsPromise = resolveReferenceDois();
 
     // Non-Sheets: one classification scan (allDois). Sheets: canvas extractDOIs + CSV.
     let dois: DoiString[];
@@ -263,32 +262,37 @@ async function runScanPass(): Promise<void> {
 
     // One retraction check for occurrences + resolved refs; held in `redacts`.
     if (hasDoiChange && dois.length > 0) {
-        const resolvedRefs = resolvedRefsPromise ? await resolvedRefsPromise : [];
-        const allNoticeDois = Array.from(new Set([
-            ...dois,
-            ...resolvedRefs.map((r) => r.doi),
-        ]));
-        reportWorkStage("notices", `Checking ${count(allNoticeDois.length, "DOI")} for retractions…`);
-        redacts = await retractionCheck(allNoticeDois);
-        reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
+        const resolvedRefs = await refsPromise;
+        try {
+            const allNoticeDois = Array.from(new Set([
+                ...dois,
+                ...resolvedRefs.map((r) => r.doi),
+            ]));
+            reportWorkStage("notices", `Checking ${count(allNoticeDois.length, "DOI")} for retractions…`);
+            redacts = await retractionCheck(allNoticeDois);
+            reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
 
-        const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
-        const articleDois = new Set(
-            [...doiContext.entries()].filter(([, ctx]) => ctx === "article").map(([doi]) => doi)
-        );
-        const titleEl = document.querySelector<HTMLHeadingElement>("h1");
+            const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
+            const articleDois = new Set(
+                [...doiContext.entries()].filter(([, ctx]) => ctx === "article").map(([doi]) => doi)
+            );
+            const titleEl = document.querySelector<HTMLHeadingElement>("h1");
 
-        // Inline pills for remaining (reference/other) occurrences. Article DOIs
-        // get the merged indicator pill at the title instead (placeTitleIndicatorPill).
-        for (const occ of pageOccurrences) {
-            const notice = retractionByDoi.get(occ.doi);
-            if (!notice) continue;
-            if (titleEl && articleDois.has(occ.doi)) continue;
-            injectRetractionInfo(occ.anchor, notice);
+            // Inline pills for remaining (reference/other) occurrences. Article DOIs
+            // get the merged indicator pill at the title instead (placeTitleIndicatorPill).
+            for (const occ of pageOccurrences) {
+                const notice = retractionByDoi.get(occ.doi);
+                if (!notice) continue;
+                if (titleEl && articleDois.has(occ.doi)) continue;
+                injectRetractionInfo(occ.anchor, notice);
+            }
+
+            // Pills for augmented refs with no on-page anchor (idempotent).
+            renderResolvedReferences(resolvedRefs, retractionByDoi, pageState);
+        } catch (err) {
+            releaseReferenceEntries(resolvedRefs);
+            throw err;
         }
-
-        // Pills for augmented refs with no on-page anchor (idempotent).
-        renderResolvedReferences(resolvedRefs, retractionByDoi, pageState);
     }
 
     // Filter out already-processed DOIs
@@ -300,7 +304,7 @@ async function runScanPass(): Promise<void> {
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
         if (!isSheets) augmentFromTitle().then().catch();
-        if (!isSheets) void checkPubPeer();
+        if (!isSheets) void checkPubPeer(refsPromise);
         return;
     }
 
@@ -311,7 +315,7 @@ async function runScanPass(): Promise<void> {
         // (triggered by that mutation) would otherwise return without restoring it.
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
-        if (!isSheets) void checkPubPeer();
+        if (!isSheets) void checkPubPeer(refsPromise);
         return;
     }
     debugLog(isSheets ? "Sheets:" : "General:", "New DOIs to look up:", newDois.length, newDois);
@@ -393,7 +397,7 @@ async function runScanPass(): Promise<void> {
                 if (isSheetsModalSuppressed()) removeSheetsModal();
                 else renderSheetsModal(matched, redacts, sheetsModalCallbacks);
             } else {
-                void checkPubPeer();
+                void checkPubPeer(refsPromise);
             }
 
             // Merged indicator pills (skip on Google Sheets — modal only).
@@ -606,12 +610,12 @@ function extractPageAugmentationMetadata(doc: Document): Omit<DoiAugmentRequest,
     };
 }
 
-async function checkPubPeer(): Promise<void> {
+async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): Promise<void> {
     if (isSheets) return;
     const primaryDoi = extractPrimaryDOI(document);
     if (!primaryDoi) return;
     try {
-        const resolvedRefs = resolvedRefsPromise ? await resolvedRefsPromise : [];
+        const resolvedRefs = refsPromise ? await refsPromise : [];
 
         // Union resolved refs with on-page reference DOIs for full PubPeer coverage.
         const seen = new Set<DoiString>();

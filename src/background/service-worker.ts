@@ -369,11 +369,13 @@ async function handleAugment(
     const resultMap = await augmentDOIsDetailed(requests);
     const results: Record<string, string | null> = {};
     const sources: Record<string, AugmentSource | null> = {};
+    const unanswered: string[] = [];
     for (const [title, outcome] of resultMap) {
         results[title] = outcome.doi ?? null;
         sources[title] = outcome.source;
+        if (!outcome.answered) unanswered.push(title);
     }
-    return { type: "FLORA_AUGMENT_RESULT", results, sources };
+    return { type: "FLORA_AUGMENT_RESULT", results, sources, unanswered };
 }
 
 async function handlePmcResolve(pmcids: string[]): Promise<PmcResolveResponse> {

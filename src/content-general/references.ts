@@ -111,6 +111,15 @@ function placeReferencePill(
 }
 
 const PROCESSED_ATTR = "data-flora-ref-processed";
+
+function releaseReferenceEntry(entry: ReferenceEntry): void {
+    entry.element.removeAttribute(PROCESSED_ATTR);
+}
+
+export function releaseReferenceEntries(resolved: ResolvedReference[]): void {
+    for (const r of resolved) releaseReferenceEntry(r.entry);
+}
+
 // One colour for every provenance — an unconfirmed DOI is marked by the
 // underline inside the pill, not by a different colour.
 const PILL_COLOR = "#853953";
@@ -205,23 +214,33 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     }
 
     const empty = new Map<string, DoiString | null>();
-    const [augmented, byPmcId] = await Promise.all([
+    const [augmentSettled, pmcSettled] = await Promise.allSettled([
         augmentTargets.length > 0
-            ? augmentDOIsViaWorker(augmentTargets.map((p) => p.entry.text)).catch(() => empty)
-            : empty,
+            ? augmentDOIsViaWorker(augmentTargets.map((p) => p.entry.text))
+            : Promise.resolve(empty),
         pmcTargets.length > 0
-            ? resolvePmcIdsViaWorker(pmcTargets.map((p) => p.pmcid)).catch(() => empty)
-            : empty,
+            ? resolvePmcIdsViaWorker(pmcTargets.map((p) => p.pmcid))
+            : Promise.resolve(empty),
     ]);
+    if (augmentSettled.status === "rejected") {
+        debugWarn(`References: augmentation failed for ${augmentTargets.length} entr(ies) —`, augmentSettled.reason);
+    }
+    if (pmcSettled.status === "rejected") {
+        debugWarn(`References: PMC resolution failed for ${pmcTargets.length} entr(ies) —`, pmcSettled.reason);
+    }
+    const augmented = augmentSettled.status === "fulfilled" ? augmentSettled.value : empty;
+    const byPmcId = pmcSettled.status === "fulfilled" ? pmcSettled.value : empty;
 
     const resolved: ResolvedReference[] = [];
     for (const p of queued) {
         if (p.mode === "hidden") {
             resolved.push({entry: p.entry, doi: p.doi, mode: "hidden"});
         } else if (p.mode === "pmc") {
+            if (!byPmcId.has(p.pmcid)) releaseReferenceEntry(p.entry);
             const doi = byPmcId.get(p.pmcid) ?? null;
             if (doi) resolved.push({entry: p.entry, doi, mode: "pmc"});
         } else {
+            if (!augmented.has(p.entry.text)) releaseReferenceEntry(p.entry);
             const doi = augmented.get(p.entry.text) ?? null;
             if (doi) resolved.push({entry: p.entry, doi, mode: "augment"});
         }

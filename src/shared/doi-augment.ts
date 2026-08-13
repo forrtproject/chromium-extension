@@ -450,6 +450,7 @@ export type AugmentSource = "crossref" | "openalex" | "both" | "cache";
 export interface AugmentOutcome {
     doi: DoiString | null;
     source: AugmentSource | null;
+    answered: boolean;
 }
 
 /** As `augmentDOIs`, but reports which platform produced each DOI. */
@@ -479,7 +480,7 @@ export async function augmentDOIsDetailed(
                 `Augment: "${request.title.slice(0, 80)}" → ${cachedDoi ?? "no match"} from cache`
                 + " (no platform queried; clear flora_doi_blob to re-resolve)"
             );
-            results.set(request.title, {doi: cachedDoi, source: cachedDoi ? "cache" : null});
+            results.set(request.title, {doi: cachedDoi, source: cachedDoi ? "cache" : null, answered: true});
         } else {
             const group = uncachedByKey.get(key);
             if (group) group.push(request);
@@ -500,7 +501,7 @@ export async function augmentDOIsDetailed(
             + " neither Crossref nor OpenAlex will be queried"
         );
         for (const group of uncachedByKey.values()) {
-            for (const request of group) results.set(request.title, {doi: null, source: null});
+            for (const request of group) results.set(request.title, {doi: null, source: null, answered: false});
         }
         return results;
     }
@@ -549,10 +550,10 @@ export async function augmentDOIsDetailed(
         const source: AugmentSource | null = !best
             ? null
             : seenIn.size > 1 ? "both" : best.source;
-        for (const r of group) results.set(r.title, {doi, source});
-
         const answered =
             crossrefResult.status === "fulfilled" || openalexResult.status === "fulfilled";
+        for (const r of group) results.set(r.title, {doi, source, answered});
+
         if (answered) {
             updates.push([key, {found: doi !== null, doi}]);
         } else {
@@ -569,7 +570,7 @@ export async function augmentDOIsDetailed(
 
     // Defensive: set null for any titles a rejected lookup left unresolved.
     for (const request of requests) {
-        if (!results.has(request.title)) results.set(request.title, {doi: null, source: null});
+        if (!results.has(request.title)) results.set(request.title, {doi: null, source: null, answered: false});
     }
 
     return results;

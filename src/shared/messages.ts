@@ -110,6 +110,7 @@ export interface AugmentResponse {
     results: Record<string, string | null>;
     /** title → which platform resolved it, so the page log can name it. */
     sources?: Record<string, AugmentSource | null>;
+    unanswered?: string[];
 }
 
 export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
@@ -172,8 +173,13 @@ export async function augmentDOIsViaWorker(
         type: "FLORA_AUGMENT",
         requests,
     });
+    const unanswered = new Set(response?.unanswered ?? []);
     const result = new Map<string, DoiString | null>();
     for (const [title, doi] of Object.entries(response?.results ?? {})) {
+        if (unanswered.has(title)) {
+            debugLog(`Augment: "${title.slice(0, 80)}" — no platform answered, leaving it unresolved`);
+            continue;
+        }
         result.set(title, doi as DoiString | null);
         // Resolution happens in the service worker, so without this the page
         // console never says which platform answered.
