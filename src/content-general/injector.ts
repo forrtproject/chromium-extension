@@ -248,16 +248,41 @@ function ensureBannerHost(): HTMLElement {
 }
 
 // Track elements we've modified so we can restore them on removal
-const modifiedElements = new Set<HTMLElement>();
+interface InlineValue {
+    value: string;
+    priority: string;
+}
+
+const modifiedElements = new Map<HTMLElement, Map<string, InlineValue>>();
+
+function setTracked(el: HTMLElement, prop: string, value: string, priority = "important"): void {
+    let record = modifiedElements.get(el);
+    if (!record) {
+        record = new Map<string, InlineValue>();
+        modifiedElements.set(el, record);
+    }
+    if (!record.has(prop)) {
+        record.set(prop, {
+            value: el.style.getPropertyValue(prop),
+            priority: el.style.getPropertyPriority(prop),
+        });
+    }
+    el.style.setProperty(prop, value, priority);
+}
+
+function restoreTracked(el: HTMLElement, prop: string): void {
+    const original = modifiedElements.get(el)?.get(prop);
+    if (!original) return;
+    if (original.value === "") el.style.removeProperty(prop);
+    else el.style.setProperty(prop, original.value, original.priority);
+}
 
 export function removeBanner(): void {
     const host = document.getElementById(BANNER_HOST_ID);
     if (host) {
         host.remove();
-        document.body.style.removeProperty("padding-top");
-        for (const el of modifiedElements) {
-            el.style.removeProperty("padding-top");
-            el.style.removeProperty("top");
+        for (const [el, record] of modifiedElements) {
+            for (const prop of record.keys()) restoreTracked(el, prop);
         }
         modifiedElements.clear();
     }
@@ -270,7 +295,7 @@ function adjustPageForBanner(): void {
     const bannerHeight = inner?.offsetHeight || 35;
 
     // Make space for the banner at the top of the body
-    document.body.style.setProperty("padding-top", `${bannerHeight}px`, "important");
+    setTracked(document.body, "padding-top", `${bannerHeight}px`);
 
     // Gather fixed elements and push them down (skip our own UI elements)
     const setupPrompt = document.getElementById(SETUP_HOST_ID);
@@ -288,11 +313,10 @@ function adjustPageForBanner(): void {
             const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
             if (hasBottom && parseInt(cs.bottom) < 50) continue;
             const currentTop = parseInt(cs.top) || 0;
-            el.style.setProperty("top", `${currentTop + bannerHeight}px`, "important");
+            setTracked(el, "top", `${currentTop + bannerHeight}px`);
         } else {
-            el.style.setProperty("padding-top", `${bannerHeight}px`, "important");
+            setTracked(el, "padding-top", `${bannerHeight}px`);
         }
-        modifiedElements.add(el);
     }
 
     // Gather sticky elements and conditionally push them down
@@ -303,11 +327,10 @@ function adjustPageForBanner(): void {
         const position = el.getBoundingClientRect().top;
         const threshold = parseInt(window.getComputedStyle(el).top);
         if (position < bannerHeight || position <= threshold) {
-            el.style.setProperty("padding-top", `${bannerHeight}px`, "important");
+            setTracked(el, "padding-top", `${bannerHeight}px`);
         } else {
-            el.style.setProperty("padding-top", "0px", "important");
+            restoreTracked(el, "padding-top");
         }
-        modifiedElements.add(el);
     }
 }
 
