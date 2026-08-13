@@ -65,6 +65,10 @@ function clean(s: string | undefined): string {
     return (s ?? '').replace(/^"|"$/g, '').trim();
 }
 
+function cleanDoi(s: string | undefined): string {
+    return clean(s).replace(/\?.*$|#.+$/s, "");
+}
+
 function isRealDoi(doi: string): boolean {
     return doi !== '' && doi.toLowerCase() !== 'unavailable';
 }
@@ -97,12 +101,12 @@ export async function getRetractionMap(): Promise<RetractionMaps | undefined> {
         const cols = rows[i];
         const nature = clean(cols[natureIdx]);
         if (!STATUS_NATURES.has(nature)) continue;
-        const originalDOI = clean(cols[originalIdx]);
+        const originalDOI = cleanDoi(cols[originalIdx]);
         if (!isRealDoi(originalDOI)) continue;
         const event: StatusEvent = {
             nature,
             time: parseDate(cols[dateIdx]),
-            notice: clean(cols[noticeIdx]),
+            notice: cleanDoi(cols[noticeIdx]),
         };
         const list = byDoi.get(originalDOI);
         if (list) list.push(event);
