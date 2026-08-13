@@ -37,7 +37,7 @@ import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
-import {injectRetractionInfo, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
+import {injectInlineRetractionPills, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 
@@ -273,19 +273,13 @@ async function runScanPass(): Promise<void> {
             reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
 
             const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
-            const articleDois = new Set(
-                [...doiContext.entries()].filter(([, ctx]) => ctx === "article").map(([doi]) => doi)
-            );
             const titleEl = document.querySelector<HTMLHeadingElement>("h1");
 
-            // Inline pills for remaining (reference/other) occurrences. Article DOIs
-            // get the merged indicator pill at the title instead (placeTitleIndicatorPill).
-            for (const occ of pageOccurrences) {
-                const notice = retractionByDoi.get(occ.doi);
-                if (!notice) continue;
-                if (titleEl && articleDois.has(occ.doi)) continue;
-                injectRetractionInfo(occ.anchor, notice);
-            }
+            injectInlineRetractionPills(
+                pageOccurrences,
+                retractionByDoi,
+                titleEl ? extractPrimaryDOI(document) : null,
+            );
 
             // Pills for augmented refs with no on-page anchor (idempotent).
             renderResolvedReferences(resolvedRefs, retractionByDoi, pageState);
@@ -343,11 +337,13 @@ async function runScanPass(): Promise<void> {
             response = await safeSendMessage<LookupResponse>(request);
         } catch (err) {
             debugError("Replication lookup failed:", err);
+            if (!isSheets) placeTitleIndicatorPill();
             renderErrorBanner("Couldn't load replication data for this page");
             return;
         }
         if (!response) {
             // Extension context invalidated (reload/update) — stale script, stop quietly.
+            if (!isSheets) placeTitleIndicatorPill();
             return;
         }
         debugLog("Lookup response:", Object.keys(response.results).length, "results,", Object.keys(response.errors).length, "errors");

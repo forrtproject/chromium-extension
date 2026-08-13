@@ -148,6 +148,24 @@ export function resetRetractionPills(): void {
     pilledRetractionDois.clear();
 }
 
+export interface DoiOccurrenceAnchor {
+    doi: DoiString;
+    anchor: Element;
+}
+
+export function injectInlineRetractionPills(
+    occurrences: readonly DoiOccurrenceAnchor[],
+    retractionByDoi: ReadonlyMap<DoiString, RetractionResponse>,
+    titlePillDoi: DoiString | null,
+): void {
+    for (const occ of occurrences) {
+        const notice = retractionByDoi.get(occ.doi);
+        if (!notice) continue;
+        if (titlePillDoi !== null && occ.doi === titlePillDoi) continue;
+        injectRetractionInfo(occ.anchor, notice);
+    }
+}
+
 export interface InjectRetractionOptions {
     /**
      * Skip the link-search smart placement and append the pill directly to
