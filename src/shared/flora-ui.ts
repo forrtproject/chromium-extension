@@ -6,7 +6,9 @@
 
 export const FLORA_UI_SELECTOR = "[data-flora-ui]";
 
-const FLORA_OWNED_SELECTOR = `${FLORA_UI_SELECTOR}, [id^="flora-"]`;
+const FLORA_OWNED_PARTS = [FLORA_UI_SELECTOR, '[id^="flora-"]'];
+
+const FLORA_OWNED_SELECTOR = FLORA_OWNED_PARTS.join(", ");
 
 const FOCUS_STYLE_ID = "flora-focus-style";
 
@@ -14,9 +16,12 @@ export function ensureFocusStyle(): void {
     if (document.getElementById(FOCUS_STYLE_ID)) return;
     const style = document.createElement("style");
     style.id = FOCUS_STYLE_ID;
+    const focused = FLORA_OWNED_PARTS.flatMap((part) => [
+        `${part}:focus-visible`,
+        `${part} :focus-visible`,
+    ]);
     style.textContent =
-        `${FLORA_OWNED_SELECTOR} :focus-visible, ${FLORA_OWNED_SELECTOR}:focus-visible {` +
-        ` outline: 2px solid #853953; outline-offset: 2px; }`;
+        `${focused.join(", ")} { outline: 2px solid #853953; outline-offset: 2px; }`;
     (document.head ?? document.documentElement).appendChild(style);
 }
 

@@ -366,3 +366,49 @@ describe("registry hygiene", () => {
     expect(science.referencePill).not.toBe(sage.referencePill);
   });
 });
+
+describe("osf.io title placement", () => {
+  const adapter = () => resolveSiteAdapter("osf.io") as SiteAdapter;
+
+  function osfDoc(): Document {
+    return new JSDOM(`<!doctype html><html><body>
+      <div id="root">
+        <a href="/abc12" class="flex flex-column gap-3 custom-light-hover dark-blue-link md:flex-row">
+          <h2 class="title">A registered report</h2>
+        </a>
+      </div>
+    </body></html>`).window.document;
+  }
+
+  it("resolves osf.io to its own adapter", () => {
+    expect(adapter().id).toBe("osf-io");
+  });
+
+  it("places the title pill directly after the title link", () => {
+    const doc = osfDoc();
+    const p = doc.createElement("span");
+
+    expect(applyPlacement(adapter().titlePill, doc.documentElement, p)).toBe(true);
+
+    const link = doc.querySelector("a.custom-light-hover")!;
+    expect(link.nextElementSibling).toBe(p);
+    expect(link.contains(p)).toBe(false);
+  });
+
+  it("escapes the responsive class so the selector parses", () => {
+    const doc = osfDoc();
+    const selector = adapter().titlePill![0].selector;
+
+    expect(selector).toContain("md\\:flex-row");
+    expect(doc.querySelector(selector)).toBe(doc.querySelector("a.custom-light-hover"));
+  });
+
+  it("falls back to .title when the link's utility classes change", () => {
+    const doc = osfDoc();
+    doc.querySelector("a")!.className = "flex flex-column gap-3";
+    const p = doc.createElement("span");
+
+    expect(applyPlacement(adapter().titlePill, doc.documentElement, p)).toBe(true);
+    expect(doc.querySelector(".title")!.nextElementSibling).toBe(p);
+  });
+});
