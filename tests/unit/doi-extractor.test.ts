@@ -4,6 +4,7 @@ import { join } from "path";
 import { JSDOM } from "jsdom";
 import {
   extractDOIs,
+  extractDoiFromHref,
   extractDOIsFromText,
   findReferenceContainers,
   findReferenceEntries,
@@ -993,5 +994,31 @@ describe("containsDoiCandidate", () => {
 
   it("is false for a bare year or version number that is not a DOI prefix", () => {
     expect(containsDoiCandidate(el(`<div><span>Published 2019, v10.2 of the toolkit</span></div>`))).toBe(false);
+  });
+});
+
+describe("extractDoiFromHref", () => {
+  it("drops a tracking query string on a doi.org link", () => {
+    expect(extractDoiFromHref("https://doi.org/10.1002/job.2278?af=R")).toBe(
+      "10.1002/job.2278"
+    );
+  });
+
+  it("drops a fragment anchor on a doi.org link", () => {
+    expect(extractDoiFromHref("https://doi.org/10.1002/job.2278#abstract")).toBe(
+      "10.1002/job.2278"
+    );
+  });
+
+  it("drops a tracking query string on a publisher landing page", () => {
+    expect(
+      extractDoiFromHref("https://onlinelibrary.wiley.com/doi/full/10.1002/job.2278?af=R")
+    ).toBe("10.1002/job.2278");
+  });
+
+  it("still reads a DOI out of a doi query param", () => {
+    expect(
+      extractDoiFromHref("https://example.com/article?doi=10.1002/job.2278&src=feed")
+    ).toBe("10.1002/job.2278");
   });
 });

@@ -1,5 +1,7 @@
 import type { DoiString } from "./types";
 
+const URL_QUERY_OR_FRAGMENT = /\?.*$|#.+$/s;
+
 const DOI_PREFIXES = [
   "https://doi.org/",
   "http://doi.org/",
@@ -35,6 +37,8 @@ export function normaliseDOI(raw: unknown): DoiString | null {
       break;
     }
   }
+
+  doi = doi.replace(URL_QUERY_OR_FRAGMENT, "");
 
   // A valid DOI starts with "10." followed by a registrant code
   if (!/^10\.\d{4,}/.test(doi)) {

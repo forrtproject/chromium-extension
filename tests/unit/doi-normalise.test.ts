@@ -69,4 +69,44 @@ describe("normaliseDOI", () => {
   it("returns null for just a URL prefix with no DOI", () => {
     expect(normaliseDOI("https://doi.org/")).toBeNull();
   });
+
+  it("strips a publisher tracking query string", () => {
+    expect(normaliseDOI("https://doi.org/10.1002/job.2278?af=R")).toBe(
+      "10.1002/job.2278"
+    );
+  });
+
+  it("strips a fragment anchor", () => {
+    expect(normaliseDOI("https://doi.org/10.1002/job.2278#abstract")).toBe(
+      "10.1002/job.2278"
+    );
+  });
+
+  it("strips a share fragment appended after the DOI", () => {
+    expect(
+      normaliseDOI("https://doi.org/10.1080/09645292.2010.545518#.Us5z4LSsxK0")
+    ).toBe("10.1080/09645292.2010.545518");
+  });
+
+  it("strips a query string that arrived percent-encoded", () => {
+    expect(normaliseDOI("https://doi.org/10.1002%2Fjob.2278%3Faf%3DR")).toBe(
+      "10.1002/job.2278"
+    );
+  });
+
+  it("strips a query string ahead of a fragment", () => {
+    expect(normaliseDOI("https://doi.org/10.1002/job.2278?af=R#abstract")).toBe(
+      "10.1002/job.2278"
+    );
+  });
+
+  it("keeps a trailing '#' — a SICI check character, not a fragment", () => {
+    expect(
+      normaliseDOI("10.1002/(SICI)1097-0142(19960101)77:1<1::AID-CNCR1>3.0.CO;2-#")
+    ).toBe("10.1002/(sici)1097-0142(19960101)77:1<1::aid-cncr1>3.0.co;2-#");
+  });
+
+  it("returns null when the DOI is only a query string", () => {
+    expect(normaliseDOI("https://doi.org/?af=R")).toBeNull();
+  });
 });
