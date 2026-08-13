@@ -4,11 +4,11 @@ import { debugLog, debugWarn } from "../shared/debug";
 import { getSettings } from "../shared/settings";
 import { safeSendMessage } from "../shared/messages";
 import {RetractionResponse, noticePresentation} from "@shared/doi-retraction";
-import {INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {renderReportDocument, reportUrl, type ReportEntry, type ReportPayload} from "@shared/report";
 import {writeClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {hideWorkIndicator, showWorkIndicator} from "@shared/progress-toast";
+import {FLORA_UI_SELECTOR} from "@shared/flora-ui";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -522,17 +522,22 @@ export function removeSheetsModal(): void {
 // Hide / show ALL FLoRA UI (popup toggle)
 // ──────────────────────────────────────────────
 
+export const HIDE_STYLE_ID = "flora-hide-style";
+
 export function hideAllFloraUI(): void {
     hideWorkIndicator();
+    if (!document.getElementById(HIDE_STYLE_ID)) {
+        const style = document.createElement("style");
+        style.id = HIDE_STYLE_ID;
+        style.textContent = `${FLORA_UI_SELECTOR} { display: none !important; }`;
+        (document.head ?? document.documentElement).appendChild(style);
+    }
+
     const banner = document.getElementById(BANNER_HOST_ID);
     if (banner) banner.style.display = "none";
 
     const modal = document.getElementById(SHEETS_MODAL_ID);
     if (modal) modal.style.display = "none";
-
-    for (const el of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-        el.style.display = "none";
-    }
 
   const setup = document.getElementById(SETUP_HOST_ID);
   if (setup) setup.style.display = "none";
@@ -543,15 +548,13 @@ export function hideAllFloraUI(): void {
 
 export function showAllFloraUI(): void {
     showWorkIndicator();
+    document.getElementById(HIDE_STYLE_ID)?.remove();
+
     const banner = document.getElementById(BANNER_HOST_ID);
     if (banner) banner.style.display = "";
 
     const modal = document.getElementById(SHEETS_MODAL_ID);
     if (modal) modal.style.display = "";
-
-    for (const el of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-        el.style.display = "";
-    }
 
   const setup = document.getElementById(SETUP_HOST_ID);
   if (setup) setup.style.display = "";
