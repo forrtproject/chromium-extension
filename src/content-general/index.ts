@@ -49,7 +49,20 @@ import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
 
 const pageState = new Map<DoiString, LookupState>();
+// Retraction notices for the page: `pageNotices` is replaced by each check of
+// the page's own DOIs, `refNotices` accumulates those of resolved references
+// (whose DOIs are not on the page), and `redacts` is the union everyone reads.
 let redacts: RetractionResponse[] = [];
+let pageNotices: RetractionResponse[] = [];
+const refNotices = new Map<DoiString, RetractionResponse>();
+function refreshRedacts(): void {
+    const onPage = new Set(pageNotices.map((n) => n.originDoi));
+    redacts = [...pageNotices, ...[...refNotices.values()].filter((n) => !onPage.has(n.originDoi))];
+}
+// Reference resolution still running after the pass that started it, and the
+// "nothing to flag" verdict it must complete before that toast is shown.
+let refsPending = 0;
+let pendingNothingToFlag: {examined: number; flagged: boolean} | null = null;
 // Keep memory of detected DOIs to track dynamic page changes
 const processedDois = new Set<DoiString>();
 const seenDois = new SeenDois();
@@ -201,6 +214,9 @@ async function runScanPass(): Promise<void> {
         lastRenderedPageStateVersion = -1;
         pageState.clear();
         redacts = [];
+        pageNotices = [];
+        refNotices.clear();
+        pendingNothingToFlag = null;
         augmentAttempted = false;
         resetRetractionPills();
         removeIndicatorPills();
@@ -273,34 +289,22 @@ async function runScanPass(): Promise<void> {
         (occ) => !FLORA_UI_IDS.some((id) => occ.anchor.closest(`#${id}`) !== null)
     );
 
-    // One retraction check for occurrences + resolved refs; held in `redacts`.
-    const resolvedRefs = await refsPromise;
-    if ((hasDoiChange && dois.length > 0) || resolvedRefs.length > 0) {
-        try {
-            const allNoticeDois = Array.from(new Set([
-                ...dois,
-                ...resolvedRefs.map((r) => r.doi),
-            ]));
-            reportWorkStage("notices", `Checking ${count(allNoticeDois.length, "DOI")} for retractions…`);
-            redacts = await retractionCheck(allNoticeDois);
-            reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
-
-            const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
-            const titleEl = document.querySelector<HTMLHeadingElement>("h1");
-
-            injectInlineRetractionPills(
-                pageOccurrences,
-                retractionByDoi,
-                titleEl ? extractPrimaryDOI(document) : null,
-            );
-
-            // Pills for augmented refs with no on-page anchor (idempotent).
-            renderResolvedReferences(resolvedRefs, retractionByDoi, pageState);
-        } catch (err) {
-            releaseReferenceEntries(resolvedRefs);
-            throw err;
-        }
+    // Retraction check for the page's own DOIs. Reference resolution (title
+    // augmentation, PMC ids) can take many seconds against rate-limited APIs,
+    // so the pass does not wait for it: finishReferences() pills those
+    // references when their DOIs arrive.
+    if (hasDoiChange && dois.length > 0) {
+        reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
+        pageNotices = await retractionCheck(dois);
+        refreshRedacts();
+        const titleEl = document.querySelector<HTMLHeadingElement>("h1");
+        injectInlineRetractionPills(
+            pageOccurrences,
+            new Map(redacts.map((r) => [r.originDoi, r] as const)),
+            titleEl ? extractPrimaryDOI(document) : null,
+        );
     }
+    const refsDone = finishReferences(refsPromise);
 
     // Filter out already-processed DOIs
     const newDois = dois.filter((doi) => !processedDois.has(doi));
@@ -311,7 +315,7 @@ async function runScanPass(): Promise<void> {
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
         if (!isSheets) augmentFromTitle().catch((err) => debugError("Title augmentation failed —", err));
-        if (!isSheets) void checkPubPeer(refsPromise);
+        if (!isSheets) void checkPubPeer(refsDone);
         return;
     }
 
@@ -322,7 +326,7 @@ async function runScanPass(): Promise<void> {
         // (triggered by that mutation) would otherwise return without restoring it.
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
-        if (!isSheets) void checkPubPeer(refsPromise);
+        if (!isSheets) void checkPubPeer(refsDone);
         return;
     }
     debugLog(isSheets ? "Sheets:" : "General:", "New DOIs to look up:", newDois.length, newDois);
@@ -406,14 +410,21 @@ async function runScanPass(): Promise<void> {
                 if (isSheetsModalSuppressed()) removeSheetsModal();
                 else renderSheetsModal(matched, redacts, sheetsModalCallbacks);
             } else {
-                void checkPubPeer(refsPromise);
+                void checkPubPeer(refsDone);
             }
 
             // Merged indicator pills (skip on Google Sheets — modal only).
             if (!isSheets) {
                 placeTitleIndicatorPill();
                 updateIndicatorPillBadges(document, pageState, redacts);
-                reportNothingToFlag(dois.length, matched.length > 0 || redacts.length > 0);
+                const flagged = matched.length > 0 || redacts.length > 0;
+                if (refsPending > 0) {
+                    // Verdict waits for the references still being resolved.
+                    pendingNothingToFlag = {examined: dois.length, flagged};
+                    reportWorkStage("report", "Resolving references without a DOI…");
+                } else {
+                    reportNothingToFlag(dois.length, flagged);
+                }
             }
         } catch (err) {
             // Rendering failed after a successful lookup: log it for a bug
@@ -423,6 +434,57 @@ async function runScanPass(): Promise<void> {
     } finally {
         endWorkIndicator();
     }
+}
+
+/**
+ * Second half of a scan pass, off the pass's own timeline: once the DOI-less
+ * references are resolved, check them for retractions, pill them, refresh the
+ * badges, and settle the "nothing to flag" verdict the pass left open. Keeps
+ * the work toast up while it runs. Never rejects — a failure releases the
+ * reference entries so a later pass can retry them.
+ */
+function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<ResolvedReference[]> {
+    const passUrl = lastUrl;
+    refsPending++;
+    beginWorkIndicator();
+    return refsPromise
+        .then(async (resolvedRefs) => {
+            if (location.href !== passUrl) {
+                // Navigated away while resolving — these entries belong to the old page.
+                releaseReferenceEntries(resolvedRefs);
+                return [];
+            }
+            let notices: RetractionResponse[] = [];
+            if (resolvedRefs.length > 0) {
+                try {
+                    reportWorkStage("notices", `Checking ${count(resolvedRefs.length, "reference")} for retractions…`);
+                    notices = await retractionCheck([...new Set(resolvedRefs.map((r) => r.doi))]);
+                    for (const n of notices) refNotices.set(n.originDoi, n);
+                    refreshRedacts();
+                    reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
+                    renderResolvedReferences(resolvedRefs, new Map(redacts.map((r) => [r.originDoi, r] as const)), pageState);
+                    if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
+                } catch (err) {
+                    releaseReferenceEntries(resolvedRefs);
+                    debugError(`References: marking up ${resolvedRefs.length} resolved reference(s) failed —`, err);
+                    return [];
+                }
+            }
+            if (pendingNothingToFlag && refsPending === 1) {
+                const {examined, flagged} = pendingNothingToFlag;
+                pendingNothingToFlag = null;
+                reportNothingToFlag(examined + resolvedRefs.length, flagged || notices.length > 0);
+            }
+            return resolvedRefs;
+        })
+        .catch((err) => {
+            debugError("References: resolution failed —", err);
+            return [];
+        })
+        .finally(() => {
+            refsPending--;
+            endWorkIndicator();
+        });
 }
 
 /**

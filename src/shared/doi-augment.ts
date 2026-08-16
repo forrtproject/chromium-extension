@@ -455,6 +455,7 @@ export async function augmentDOIs(
 
 /** Where a resolved DOI came from. "cache" means no platform was queried. */
 export type AugmentSource = "crossref" | "openalex" | "both" | "cache";
+type AugmentPlatform = "crossref" | "openalex";
 
 export interface AugmentOutcome {
     doi: DoiString | null;
@@ -515,22 +516,33 @@ export async function augmentDOIsDetailed(
         return results;
     }
 
-    // Query each distinct title once (Crossref + OpenAlex in parallel), then use
-    // the page metadata to pick the single best candidate. Cache writes are
+    // Query each distinct title on one platform first — titles alternate
+    // between Crossref and OpenAlex so the load (and OpenAlex's daily credit
+    // budget) is split — and ask the other only when the first fails, finds
+    // nothing, or returns several DOIs (a preprint/journal pair, say) whose
+    // tie the second platform's metadata may break. Then use the page
+    // metadata to pick the single best candidate. Cache writes are
     // accumulated and flushed once at the end.
     const updates: Array<[string, CachedDoiResult]> = [];
-    const lookupPromises = [...uncachedByKey.entries()].map(async ([key, group]) => {
+    const lookupPromises = [...uncachedByKey.entries()].map(async ([key, group], index) => {
         const request = group[0];
-        const [crossrefResult, openalexResult] = await Promise.allSettled([
-            queryCrossref(request, email),
-            queryOpenAlex(request, email),
-        ]);
+        const order: AugmentPlatform[] = index % 2 === 0 ? ["crossref", "openalex"] : ["openalex", "crossref"];
+        const outcomes: Partial<Record<AugmentPlatform, PromiseSettledResult<DoiCandidate[]>>> = {};
+        for (const platform of order) {
+            const [outcome] = await Promise.allSettled([
+                platform === "crossref" ? queryCrossref(request, email) : queryOpenAlex(request, email),
+            ]);
+            outcomes[platform] = outcome;
+            if (outcome.status === "fulfilled" && new Set(outcome.value.map((c) => c.doi)).size === 1) break;
+        }
+        const crossrefResult = outcomes.crossref ?? {status: "skipped"} as const;
+        const openalexResult = outcomes.openalex ?? {status: "skipped"} as const;
 
         const candidates: DoiCandidate[] = [];
         if (crossrefResult.status === "fulfilled") candidates.push(...crossrefResult.value);
-        else debugWarn(`Augment [crossref] query threw for "${request.title.slice(0, 80)}" —`, crossrefResult.reason);
+        else if (crossrefResult.status === "rejected") debugWarn(`Augment [crossref] query threw for "${request.title.slice(0, 80)}" —`, crossrefResult.reason);
         if (openalexResult.status === "fulfilled") candidates.push(...openalexResult.value);
-        else debugWarn(`Augment [openalex] query threw for "${request.title.slice(0, 80)}" —`, openalexResult.reason);
+        else if (openalexResult.status === "rejected") debugWarn(`Augment [openalex] query threw for "${request.title.slice(0, 80)}" —`, openalexResult.reason);
 
         // Deduplicate by DOI, merging metadata across the two sources so a
         // candidate seen by both keeps the author/year/urls either provided.
