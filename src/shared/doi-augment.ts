@@ -3,9 +3,18 @@ import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
 import {debugLog, debugWarn, isDebugEnabled} from "./debug";
+import {RequestGate} from "./request-gate";
 
 const OPENALEX_BASE = "https://api.openalex.org/works";
 const CROSSREF_BASE = "https://api.crossref.org/works";
+
+// A reference list can hold dozens of titles without a DOI; fired all at once,
+// both platforms answer 429 within the second. Crossref's polite pool allows
+// 3 concurrent requests at 3/s; OpenAlex allows 10/s but charges a title
+// search 10 credits against a free budget of 1000/day per client, and answers
+// 429 with a Retry-After of "midnight UTC" once that is spent.
+const crossrefGate = new RequestGate("Crossref", 3, 400);
+const openalexGate = new RequestGate("OpenAlex", 3, 100);
 const MATCH_THRESHOLD_TSR = 88; // token_set_ratio threshold (0–100)
 // token_set_ratio scores 100 whenever one title's tokens are a subset of the
 // other's, so a 3-word title matches a 7-word one perfectly. Coverage is the
@@ -317,7 +326,7 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
     const cleaned = cleanTitleForSearch(title);
     const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link&mailto=${encodeURIComponent(email)}`;
     debugLog(`Augment [crossref] query: "${cleaned}"`);
-    const response = await fetch(url);
+    const response = await crossrefGate.fetch(url);
     if (!response.ok) throw new Error(`Crossref HTTP ${response.status}`);
 
     const data = (await response.json()) as {
@@ -378,7 +387,7 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
     const url = `${OPENALEX_BASE}?filter=title.search:${encodeURIComponent(cleaned)}&select=id,doi,title,publication_year,authorships,primary_location,locations&per_page=5&mailto=${encodeURIComponent(email)}`;
 
     debugLog(`Augment [openalex] query: "${cleaned}"`);
-    const response = await fetch(url);
+    const response = await openalexGate.fetch(url);
     if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
 
     const data = (await response.json()) as {
@@ -601,7 +610,7 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
     try {
         const email = await getUserEmail();
         const mailto = email ? `?mailto=${encodeURIComponent(email)}` : "";
-        const response = await fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`);
+        const response = await crossrefGate.fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`);
         crossrefAnswered = response.ok || response.status === 404;
         if (response.ok) {
             const data = (await response.json()) as { message?: { title?: string[] } };
@@ -613,7 +622,7 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
 
     if (!title) {
         try {
-            const response = await fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`);
+            const response = await openalexGate.fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`);
             openalexAnswered = response.ok || response.status === 404;
             if (response.ok) {
                 const data = (await response.json()) as { title?: string };

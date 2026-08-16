@@ -8,6 +8,16 @@ vi.mock("../../src/shared/settings", () => ({
   isSetupComplete: vi.fn().mockResolvedValue(true),
 }));
 
+// The request gate spaces real requests out; these tests exercise matching,
+// not pacing, so route its fetch straight through.
+vi.mock("../../src/shared/request-gate", () => ({
+  RequestGate: class {
+    fetch(url: string, init?: RequestInit) {
+      return fetch(url, init);
+    }
+  },
+}));
+
 import { normalizeTitle, similarity, tokenSetRatio, augmentDOIs, fetchTitleByDoi, _resetAugmentCachesForTesting } from "../../src/shared/doi-augment";
 import { getSettings } from "../../src/shared/settings";
 
