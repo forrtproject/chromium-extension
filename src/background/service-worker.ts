@@ -8,7 +8,7 @@ import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds} from "@shared/pmc-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
 import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
-import {debugError, debugLog, debugWarn} from "@shared/debug";
+import {debugError, debugLog, debugWarn, isDebugEnabledAsync} from "@shared/debug";
 
 const cache = new LocalCache<ReplicationResult>("flora");
 
@@ -16,8 +16,9 @@ const cache = new LocalCache<ReplicationResult>("flora");
 // every other context ships batches here via FLORA_DEBUG_ENTRIES.
 installDebugLogStore();
 // A wake-up marker: with the log open, gaps between a page's request and this
-// line show how long Chrome took to start the worker.
-debugLog("Worker started");
+// line show how long Chrome took to start the worker. Logged once the debug
+// flag has been read — a top-level debugLog runs before that and is dropped.
+isDebugEnabledAsync().then(() => debugLog("Worker started")).catch(() => {});
 
 // Initialise cache quota from persisted settings (service worker may restart).
 getSettings().then(({ cacheQuotaMb }) => {
