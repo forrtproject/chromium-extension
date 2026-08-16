@@ -222,7 +222,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const empty = new Map<string, DoiString | null>();
     const [augmentSettled, pmcSettled] = await Promise.allSettled([
         augmentTargets.length > 0
-            ? augmentDOIsViaWorker(augmentTargets.map((p) => p.entry.text))
+            ? augmentDOIsViaWorker(augmentTargets.map((p) => ({title: p.entry.text, kind: "citation" as const})))
             : Promise.resolve(empty),
         pmcTargets.length > 0
             ? resolvePmcIdsViaWorker(pmcTargets.map((p) => p.pmcid))
