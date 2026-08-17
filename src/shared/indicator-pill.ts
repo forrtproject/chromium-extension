@@ -1071,7 +1071,11 @@ function ensurePanelStyle(): void {
     if (document.getElementById(PANEL_STYLE_ID)) return;
     const style = document.createElement("style");
     style.id = PANEL_STYLE_ID;
-    style.textContent = `[data-flora-panel] [data-flora-row-sub]{flex-shrink:0;}`;
+    // Layout defaults live here rather than inline so a site stylesheet (see
+    // content-search/sites/*.css) can override them with an ordinary selector.
+    style.textContent =
+        `[data-flora-panel]{max-width:260px;margin-top:4px;}` +
+        `[data-flora-panel] [data-flora-row-sub]{flex-shrink:0;}`;
     (document.head ?? document.documentElement).appendChild(style);
 }
 
@@ -1095,8 +1099,6 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
     wrapper.style.cssText = `
     display: block;
     box-sizing: border-box;
-    max-width: 260px;
-    margin-top: 4px;
     background: #ffffff;
     border: 1px solid ${color}40;
     border-radius: 8px;

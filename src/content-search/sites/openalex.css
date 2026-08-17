@@ -1,0 +1,10 @@
+/* OpenAlex: .result-item is a flex row whose text column (.result-content)
+   grows; the panel is its right-hand sibling. */
+.result-item > [data-flora-panel] {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: 240px;
+  max-width: 40%;
+  margin-left: 12px;
+  margin-top: 0;
+}

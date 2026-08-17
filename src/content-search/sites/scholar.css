@@ -1,0 +1,6 @@
+/* Google Scholar: the panel sits in the right-hand PDF column (.gs_ggs) that
+   Scholar itself floats beside each result. */
+.gs_ggs [data-flora-panel] {
+  max-width: 260px;
+  margin-top: 4px;
+}

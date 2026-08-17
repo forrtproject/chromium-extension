@@ -2,14 +2,14 @@
 
 **FORRT ORE** (Open Research Extension) is a browser extension for Chrome and Edge that detects academic papers on the web and surfaces what is known about them: replication and reproduction evidence from the [FORRT Replication Database](https://forrt.org/replication-database/), retractions and expressions of concern, PubPeer discussion, and open-access full text.
 
-When you visit an article page (PubMed, journal websites, preprint servers, etc.) or search on Google Scholar, ORE scans for DOIs, looks them up, and shows what it found in an inline pill next to each paper and each reference.
+When you visit an article page (PubMed, journal websites, preprint servers, etc.) or search on Google Scholar or OpenAlex, ORE scans for DOIs, looks them up, and shows what it found in an inline pill next to each paper and each reference.
 
 📖 **[User documentation](https://forrt.org/chromium-extension/)** — what ORE shows, where it works, how to install it, and the [privacy policy](https://forrt.org/chromium-extension/privacy.html). Source for that site lives in [`docs/`](docs/).
 
 ## What it does
 
 - **Article pages**: Displays a banner at the top of the page summarizing replication/reproduction data for all DOIs found on the page. Inline badges also appear next to individual DOI links. Handles SPAs by detecting URL changes and re-scanning automatically.
-- **Google Scholar**: Adds DOI pills and replication badges to the right-hand side of each search result (alongside the PDF link area). When a result lacks a native `.gs_ggs` container, one is created to match Scholar's own layout.
+- **Search results (Google Scholar, OpenAlex)**: Adds an indicator panel (DOI, open access, PubPeer, replication/retraction status) beside each result. One shared pipeline resolves each row's DOI — from the row itself, from the site's own record id (OpenAlex work ids are resolved through its API in one batched call), or by title search — and a per-site adapter in `src/content-search/sites/` supplies the selectors and a stylesheet that places the panel in that site's layout. Adding a site means adding one adapter file, one CSS file and the manifest URL patterns.
 - **DOI extraction**: Extracts DOIs from meta tags, JSON-LD, link hrefs, visible text, and HTML tables. Handles word-break characters (zero-width spaces, soft hyphens) and validates DOI suffixes to avoid partial matches from split HTML.
 - **DOI augmentation**: When a page or Scholar result doesn't have a DOI in its HTML, ORE queries [Crossref](https://www.crossref.org/) and [OpenAlex](https://openalex.org/) to resolve the article title to a DOI via fuzzy matching (token-set-ratio > 88%).
 - **DOI popover**: Each DOI pill has a hover popover showing the full DOI string with a copy-to-clipboard button.
@@ -77,11 +77,11 @@ chromium-extension/
       styles.css         # Banner/badge styles
     content-github/
       index.ts           # Fills the debug report into ORE's own GitHub issue form
-    content-scholar/
-      index.ts           # Content script for Google Scholar
-      observer.ts        # MutationObserver + DOI extraction/augmentation for Scholar results
-      badge.ts           # Scholar replication badge rendering (Shadow DOM)
-      styles.css         # Scholar badge styles
+    content-search/
+      index.ts           # Content script for search-results sites (picks the adapter by hostname)
+      pipeline.ts        # Shared row → DOI → lookup → panel pipeline
+      observer.ts        # Re-runs the pipeline when the site adds result rows
+      sites/             # One adapter (.ts) + placement stylesheet (.css) per site; index.ts registers them
     options/
       index.html         # Options page
   tests/
@@ -227,7 +227,7 @@ never included.
 3. Found DOIs are sent to the **background service worker** via `chrome.runtime.sendMessage`.
 4. The service worker checks its **session cache**, deduplicates in-flight requests, and calls the **FORRT Replication API** for any uncached DOIs.
 5. Results are sent back to the content script, which renders **banners** and **inline badges** using Shadow DOM.
-6. On **Google Scholar**, DOI pills with copy-to-clipboard popovers and replication badges are injected into the right-side `.gs_ggs` container of each result row (created if absent).
+6. On **search-results sites** (Google Scholar, OpenAlex), an indicator panel is injected into each result row where the site adapter's stylesheet places it (Scholar: the right-side `.gs_ggs` column, created if absent; OpenAlex: a right-hand column beside the result text).
 7. The content-general script detects **SPA navigations** (URL changes) and re-scans the page automatically.
 
 ## Data sources & credits

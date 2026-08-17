@@ -4,7 +4,7 @@ import {promisify} from "node:util";
 
 const contentEntries = [
     "src/content-general/index.ts",
-    "src/content-scholar/index.ts",
+    "src/content-search/index.ts",
 ];
 const execFileAsync = promisify(execFile);
 

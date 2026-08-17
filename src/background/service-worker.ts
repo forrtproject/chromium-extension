@@ -2,10 +2,11 @@ import {LocalCache, MONTH_MS} from "@shared/cache";
 import {lookupDOIs} from "@shared/flora-api";
 import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
-import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, type TakeReportResponse} from "@shared/messages";
+import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, type TakeReportResponse} from "@shared/messages";
 import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds} from "@shared/pmc-resolve";
+import {resolveOpenAlexIds} from "@shared/openalex-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
 import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
 import {debugError, debugWarn} from "@shared/debug";
@@ -252,6 +253,18 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (isOpenAlexResolveRequest(message)) {
+            handleOpenAlexResolve(message.ids)
+                .then(sendResponse)
+                .catch(() =>
+                    sendResponse({
+                        type: "FLORA_OPENALEX_RESOLVE_RESULT",
+                        results: {},
+                    } satisfies OpenAlexResolveResponse)
+                );
+            return true;
+        }
+
         return false;
     }
 );
@@ -383,6 +396,12 @@ async function handleAugment(
         if (!outcome.answered) unanswered.push(title);
     }
     return { type: "FLORA_AUGMENT_RESULT", results, sources, unanswered };
+}
+
+async function handleOpenAlexResolve(ids: string[]): Promise<OpenAlexResolveResponse> {
+    const results: Record<string, string | null> = {};
+    for (const [id, doi] of await resolveOpenAlexIds(ids)) results[id] = doi;
+    return {type: "FLORA_OPENALEX_RESOLVE_RESULT", results};
 }
 
 async function handlePmcResolve(pmcids: string[]): Promise<PmcResolveResponse> {

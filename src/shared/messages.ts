@@ -143,6 +143,42 @@ export function isPmcResolveRequest(msg: unknown): msg is PmcResolveRequest {
     );
 }
 
+/** Content script → service worker: resolve OpenAlex work ids to DOIs */
+export interface OpenAlexResolveRequest {
+    type: "FLORA_OPENALEX_RESOLVE";
+    ids: string[];
+}
+
+/** Service worker → content script: OpenAlex id → DOI (or null when the work has none) */
+export interface OpenAlexResolveResponse {
+    type: "FLORA_OPENALEX_RESOLVE_RESULT";
+    results: Record<string, string | null>;
+}
+
+export function isOpenAlexResolveRequest(msg: unknown): msg is OpenAlexResolveRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_OPENALEX_RESOLVE" &&
+        Array.isArray((msg as Record<string, unknown>).ids)
+    );
+}
+
+/** Ask the service worker to run resolveOpenAlexIds. */
+export async function resolveOpenAlexIdsViaWorker(
+    ids: string[]
+): Promise<Map<string, DoiString | null>> {
+    const response = await safeSendMessage<OpenAlexResolveResponse>({
+        type: "FLORA_OPENALEX_RESOLVE",
+        ids,
+    });
+    const result = new Map<string, DoiString | null>();
+    for (const [id, doi] of Object.entries(response?.results ?? {})) {
+        result.set(id, doi as DoiString | null);
+    }
+    return result;
+}
+
 /**
  * Ask the service worker to run resolvePmcIds — NCBI's converter sends no CORS
  * headers, so the fetch has to happen in the background context.

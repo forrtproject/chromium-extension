@@ -123,10 +123,12 @@
         "*://scholar.google.es/*",
         "*://scholar.google.it/*",
         "*://scholar.google.com.br/*",
-        "*://scholar.google.com.au/*"
+        "*://scholar.google.com.au/*",
+        "*://openalex.org/*",
+        "*://*.openalex.org/*"
       ],
       "js": [
-        "dist/content-scholar.js"
+        "dist/content-search.js"
       ],
       "run_at": "document_idle"
     }
