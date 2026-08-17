@@ -3,9 +3,18 @@ import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
 import {debugLog, debugWarn, isDebugEnabled} from "./debug";
+import {RequestGate} from "./request-gate";
 
 const OPENALEX_BASE = "https://api.openalex.org/works";
 const CROSSREF_BASE = "https://api.crossref.org/works";
+
+// A reference list can hold dozens of titles without a DOI; fired all at once,
+// both platforms answer 429 within the second. Crossref's polite pool allows
+// 3 concurrent requests at 3/s; OpenAlex allows 10/s but charges a title
+// search 10 credits against a free budget of 1000/day per client, and answers
+// 429 with a Retry-After of "midnight UTC" once that is spent.
+const crossrefGate = new RequestGate("Crossref", 3, 400);
+const openalexGate = new RequestGate("OpenAlex", 3, 100);
 const MATCH_THRESHOLD_TSR = 88; // token_set_ratio threshold (0–100)
 // token_set_ratio scores 100 whenever one title's tokens are a subset of the
 // other's, so a 3-word title matches a 7-word one perfectly. Coverage is the
@@ -317,7 +326,7 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
     const cleaned = cleanTitleForSearch(title);
     const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link&mailto=${encodeURIComponent(email)}`;
     debugLog(`Augment [crossref] query: "${cleaned}"`);
-    const response = await fetch(url);
+    const response = await crossrefGate.fetch(url);
     if (!response.ok) throw new Error(`Crossref HTTP ${response.status}`);
 
     const data = (await response.json()) as {
@@ -378,7 +387,7 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
     const url = `${OPENALEX_BASE}?filter=title.search:${encodeURIComponent(cleaned)}&select=id,doi,title,publication_year,authorships,primary_location,locations&per_page=5&mailto=${encodeURIComponent(email)}`;
 
     debugLog(`Augment [openalex] query: "${cleaned}"`);
-    const response = await fetch(url);
+    const response = await openalexGate.fetch(url);
     if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
 
     const data = (await response.json()) as {
@@ -446,6 +455,7 @@ export async function augmentDOIs(
 
 /** Where a resolved DOI came from. "cache" means no platform was queried. */
 export type AugmentSource = "crossref" | "openalex" | "both" | "cache";
+type AugmentPlatform = "crossref" | "openalex";
 
 export interface AugmentOutcome {
     doi: DoiString | null;
@@ -506,22 +516,33 @@ export async function augmentDOIsDetailed(
         return results;
     }
 
-    // Query each distinct title once (Crossref + OpenAlex in parallel), then use
-    // the page metadata to pick the single best candidate. Cache writes are
+    // Query each distinct title on one platform first — titles alternate
+    // between Crossref and OpenAlex so the load (and OpenAlex's daily credit
+    // budget) is split — and ask the other only when the first fails, finds
+    // nothing, or returns several DOIs (a preprint/journal pair, say) whose
+    // tie the second platform's metadata may break. Then use the page
+    // metadata to pick the single best candidate. Cache writes are
     // accumulated and flushed once at the end.
     const updates: Array<[string, CachedDoiResult]> = [];
-    const lookupPromises = [...uncachedByKey.entries()].map(async ([key, group]) => {
+    const lookupPromises = [...uncachedByKey.entries()].map(async ([key, group], index) => {
         const request = group[0];
-        const [crossrefResult, openalexResult] = await Promise.allSettled([
-            queryCrossref(request, email),
-            queryOpenAlex(request, email),
-        ]);
+        const order: AugmentPlatform[] = index % 2 === 0 ? ["crossref", "openalex"] : ["openalex", "crossref"];
+        const outcomes: Partial<Record<AugmentPlatform, PromiseSettledResult<DoiCandidate[]>>> = {};
+        for (const platform of order) {
+            const [outcome] = await Promise.allSettled([
+                platform === "crossref" ? queryCrossref(request, email) : queryOpenAlex(request, email),
+            ]);
+            outcomes[platform] = outcome;
+            if (outcome.status === "fulfilled" && new Set(outcome.value.map((c) => c.doi)).size === 1) break;
+        }
+        const crossrefResult = outcomes.crossref ?? {status: "skipped"} as const;
+        const openalexResult = outcomes.openalex ?? {status: "skipped"} as const;
 
         const candidates: DoiCandidate[] = [];
         if (crossrefResult.status === "fulfilled") candidates.push(...crossrefResult.value);
-        else debugWarn(`Augment [crossref] query threw for "${request.title.slice(0, 80)}" —`, crossrefResult.reason);
+        else if (crossrefResult.status === "rejected") debugWarn(`Augment [crossref] query threw for "${request.title.slice(0, 80)}" —`, crossrefResult.reason);
         if (openalexResult.status === "fulfilled") candidates.push(...openalexResult.value);
-        else debugWarn(`Augment [openalex] query threw for "${request.title.slice(0, 80)}" —`, openalexResult.reason);
+        else if (openalexResult.status === "rejected") debugWarn(`Augment [openalex] query threw for "${request.title.slice(0, 80)}" —`, openalexResult.reason);
 
         // Deduplicate by DOI, merging metadata across the two sources so a
         // candidate seen by both keeps the author/year/urls either provided.
@@ -601,7 +622,7 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
     try {
         const email = await getUserEmail();
         const mailto = email ? `?mailto=${encodeURIComponent(email)}` : "";
-        const response = await fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`);
+        const response = await crossrefGate.fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`);
         crossrefAnswered = response.ok || response.status === 404;
         if (response.ok) {
             const data = (await response.json()) as { message?: { title?: string[] } };
@@ -613,7 +634,7 @@ export async function fetchTitleByDoi(doi: string): Promise<string | null> {
 
     if (!title) {
         try {
-            const response = await fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`);
+            const response = await openalexGate.fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`);
             openalexAnswered = response.ok || response.status === 404;
             if (response.ok) {
                 const data = (await response.json()) as { title?: string };

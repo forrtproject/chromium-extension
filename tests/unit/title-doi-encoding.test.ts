@@ -8,6 +8,15 @@ vi.mock("../../src/shared/settings", () => ({
   isSetupComplete: vi.fn().mockResolvedValue(true),
 }));
 
+// Pacing between real requests is not under test here.
+vi.mock("../../src/shared/request-gate", () => ({
+  RequestGate: class {
+    fetch(url: string, init?: RequestInit) {
+      return fetch(url, init);
+    }
+  },
+}));
+
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 afterEach(() => server.resetHandlers());
