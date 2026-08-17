@@ -115,7 +115,15 @@ export interface RetractionResponse {
 
 /** Input to the DOI-augmentation title search */
 export interface DoiAugmentRequest {
+    /** A bare title, or — with kind "citation" — a whole reference-list entry. */
     title: string;
+    /**
+     * "title" (default): `title` is a paper title; candidates must match it
+     * closely. "citation": `title` is a full citation string (authors, year,
+     * title, venue, locators) — candidates are verified field by field
+     * against it instead.
+     */
+    kind?: "title" | "citation";
     firstAuthor?: string | null;
     year?: number | null;
     sourceUrl?: string | null;

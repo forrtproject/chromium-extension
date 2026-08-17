@@ -48,6 +48,17 @@ interface DoiCandidate {
     firstAuthor?: string | null;
     year?: number | null;
     urls?: string[];
+    containerTitle?: string | null;
+    volume?: string | null;
+    firstPage?: string | null;
+    /** Citation requests only: which candidate fields the citation text confirmed. */
+    citationMatches?: CitationMatches;
+}
+
+interface CitationMatches {
+    year: boolean;
+    author: boolean;
+    locator: boolean;
 }
 
 async function getUserEmail(): Promise<string> {
@@ -83,15 +94,15 @@ function cleanTitleForSearch(title: string): string {
  */
 function normalizeAuthorName(author: string | null | undefined): string {
     if (!author) return "";
-    const ascii = author
+    const plain = author
         .normalize("NFKD")
         .replace(/[̀-ͯ]/g, "")
         .toLowerCase()
-        .replace(/[^\w\s-]/g, " ")
+        .replace(/[^\p{L}\p{N}\s-]/gu, " ")
         .replace(/\s+/g, " ")
         .trim();
-    if (!ascii) return "";
-    const tokens = ascii.split(/\s+/).filter((token) => token && !/^[a-z]\.?$/.test(token));
+    if (!plain) return "";
+    const tokens = plain.split(/\s+/).filter((token) => token && !/^\p{L}$/u.test(token));
     return tokens[tokens.length - 1] ?? "";
 }
 
@@ -99,6 +110,7 @@ function normalizeRequest(input: string | DoiAugmentRequest): DoiAugmentRequest 
     if (typeof input === "string") return {title: input};
     return {
         title: input.title,
+        kind: input.kind ?? "title",
         firstAuthor: input.firstAuthor ?? null,
         year: input.year ?? null,
         sourceUrl: input.sourceUrl ?? null,
@@ -148,7 +160,132 @@ function candidateMerit(request: DoiAugmentRequest, candidate: DoiCandidate): nu
     if (candidateMatchesSourceUrl(request, candidate)) merit += 8;
     if (yearsMatch(request.year, candidate.year)) merit += 3;
     if (authorsMatch(request.firstAuthor, candidate.firstAuthor)) merit += 3;
+    // Fields the citation text confirmed outrank ones it merely didn't contradict,
+    // so a journal article (volume/pages present in the citation) beats the
+    // same-titled preprint that has no locators to check.
+    const m = candidate.citationMatches;
+    if (m) merit += (m.year ? 3 : 0) + (m.author ? 3 : 0) + (m.locator ? 4 : 0);
     return merit;
+}
+
+// ── Citation-string verification ────────────────────────────────────────────
+// A reference-list entry ("Wakefield, A. J., … (1998). Ileal-lymphoid-nodular
+// hyperplasia … The Lancet, 351(9103), 637–641.") is not parsed: it is reduced
+// to a bag of tokens, and each candidate's *structured* fields — which
+// Crossref returns already parsed — are checked for presence in that bag.
+// That is format-agnostic (APA, Vancouver, Wikipedia's markup all contain the
+// same surname, year, volume and page tokens) and mirrors Crossref's own
+// search-then-validate reference matching.
+
+/** Share of the candidate title's tokens the citation must contain. */
+const CITATION_TITLE_COVERAGE = 80;
+/** Share of the journal-name tokens (generic words removed) the citation must contain. */
+const CITATION_JOURNAL_COVERAGE = 50;
+/** Words too common across journal names to count as evidence for one journal. */
+const JOURNAL_STOPWORDS = new Set([
+    "the", "of", "and", "for", "in", "on", "de", "la", "le", "der", "und", "des",
+    "journal", "journals", "review", "reviews", "annals", "proceedings", "transactions", "letters",
+    "bulletin", "archives", "acta", "advances", "reports", "research", "studies", "quarterly",
+    "international", "national", "european", "american", "british", "science", "sciences",
+]);
+/** The first-author surname must sit within this many leading citation tokens. */
+const AUTHOR_LEAD_TOKENS = 8;
+
+/**
+ * Lowercase, diacritics stripped, split on anything that is not a letter or
+ * digit in any script (so en/em dashes split page ranges and CJK runs stay
+ * whole). Order-preserving; wrap in a Set for membership tests.
+ */
+export function citationTokenList(text: string): string[] {
+    return text
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
+export function citationTokens(text: string): Set<string> {
+    return new Set(citationTokenList(text));
+}
+
+function tokenCoverage(needle: string, haystack: Set<string>, ignore?: Set<string>): {covered: number; total: number} {
+    const tokens = [...citationTokens(needle)].filter((t) => !ignore?.has(t));
+    let covered = 0;
+    for (const t of tokens) if (haystack.has(t)) covered++;
+    return {covered, total: tokens.length};
+}
+
+/**
+ * Verify a candidate against a citation string. Returns the title coverage
+ * (0–100, used as the candidate's score) plus which fields the citation
+ * confirmed, or null when the candidate is contradicted or under-supported:
+ *  - title: ≥ 80 % of the candidate's title tokens present;
+ *  - year: present within ±1 (online-first vs print), if the candidate has one;
+ *  - first author: surname among the leading tokens (reference styles put the
+ *    first author first), if the candidate has a usable one — this also keeps
+ *    a co-author, or the author of a second work in the same entry, from
+ *    standing in;
+ *  - locator: volume, first page, or half the journal-name tokens (generic
+ *    words removed) present, if the candidate has any of those; a token that
+ *    served as the year cannot serve as volume or page too.
+ * A field the candidate lacks cannot contradict, but at least two of the
+ * three must be positively confirmed, and all three for a candidate title of
+ * ≤ 3 tokens (generic titles like "Editorial" match anything).
+ */
+export function verifyAgainstCitation(
+    citation: string,
+    candidate: {title: string; firstAuthor?: string | null; year?: number | null; containerTitle?: string | null; volume?: string | null; firstPage?: string | null},
+): {coverage: number; matches: CitationMatches} | null {
+    const tokens = citationTokenList(citation);
+    const bag = new Set(tokens);
+
+    // Crossref prefixes the record of a retracted/withdrawn article with its
+    // status; the citation was written before that happened.
+    const plainTitle = candidate.title.replace(/^\s*(retracted|withdrawn)(\s+article)?\s*[:\-–—]\s*/i, "");
+    const title = tokenCoverage(plainTitle, bag);
+    if (title.total === 0) return null;
+    const coverage = (title.covered / title.total) * 100;
+    if (coverage < CITATION_TITLE_COVERAGE) return null;
+
+    let year = false;
+    let yearToken: string | null = null;
+    if (typeof candidate.year === "number") {
+        yearToken = [candidate.year, candidate.year - 1, candidate.year + 1].map(String).find((y) => bag.has(y)) ?? null;
+        year = yearToken !== null;
+        if (!year) return null;
+    }
+
+    let author = false;
+    const surname = normalizeAuthorName(candidate.firstAuthor);
+    // Skip initials-only or empty names; a two-character non-Latin surname is a real one.
+    if (surname.length >= 3 || (surname.length > 0 && /[^\x00-\x7f]/.test(surname))) {
+        const lead = tokens.slice(0, AUTHOR_LEAD_TOKENS);
+        const last = surname.split(/[\s-]+/).pop() ?? "";
+        author = lead.includes(surname) || lead.includes(last);
+        if (!author) return null;
+    }
+
+    let locator = false;
+    const hasLocator = !!(candidate.volume || candidate.firstPage || candidate.containerTitle);
+    if (hasLocator) {
+        const usable = (v: string | null | undefined): boolean => !!v && v.toLowerCase() !== yearToken && bag.has(v.toLowerCase());
+        const volumeHit = usable(candidate.volume);
+        const pageHit = usable(candidate.firstPage);
+        let journalHit = false;
+        if (candidate.containerTitle) {
+            const j = tokenCoverage(candidate.containerTitle, bag, JOURNAL_STOPWORDS);
+            journalHit = j.total > 0 && (j.covered / j.total) * 100 >= CITATION_JOURNAL_COVERAGE;
+        }
+        locator = volumeHit || pageHit || journalHit;
+        if (!locator) return null;
+    }
+
+    const confirmed = [year, author, locator].filter(Boolean).length;
+    if (confirmed < 2) return null;
+    if (title.total <= 3 && confirmed < 3) return null;
+    return {coverage, matches: {year, author, locator}};
 }
 
 /**
@@ -157,14 +294,15 @@ function candidateMerit(request: DoiAugmentRequest, candidate: DoiCandidate): nu
  * DOI — better to show nothing than to guess the wrong paper.
  */
 function selectBestCandidate(request: DoiAugmentRequest, candidates: DoiCandidate[]): DoiCandidate | null {
-    const eligible = candidates.filter((candidate) => candidate.score >= MATCH_THRESHOLD_TSR);
+    const threshold = request.kind === "citation" ? CITATION_TITLE_COVERAGE : MATCH_THRESHOLD_TSR;
+    const eligible = candidates.filter((candidate) => candidate.score >= threshold);
     if (eligible.length === 0) {
-        debugLog(`Augment: no candidate cleared ${MATCH_THRESHOLD_TSR} for "${request.title.slice(0, 80)}"`);
+        debugLog(`Augment: no candidate cleared ${threshold} for "${request.title.slice(0, 80)}"`);
         return null;
     }
 
     const highestScore = Math.max(...eligible.map((candidate) => candidate.score));
-    const titleBand = request.firstAuthor || request.year
+    const titleBand = request.kind === "citation" || request.firstAuthor || request.year
         ? eligible.filter((candidate) => candidate.score >= highestScore - METADATA_TITLE_BAND)
         : eligible.filter((candidate) => candidate.score === highestScore);
 
@@ -323,9 +461,15 @@ function logQueryOutcome(
  */
 async function queryCrossref(request: DoiAugmentRequest, email: string): Promise<DoiCandidate[]> {
     const {title} = request;
+    const isCitation = request.kind === "citation";
     const cleaned = cleanTitleForSearch(title);
-    const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link&mailto=${encodeURIComponent(email)}`;
-    debugLog(`Augment [crossref] query: "${cleaned}"`);
+    // `query.bibliographic` is Crossref's field for whole reference strings;
+    // `query.title` for a bare title.
+    const query = isCitation
+        ? `query.bibliographic=${encodeURIComponent(cleaned)}`
+        : `query.title=${encodeURIComponent(cleaned)}`;
+    const url = `${CROSSREF_BASE}?${query}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link,container-title,volume,page&mailto=${encodeURIComponent(email)}`;
+    debugLog(`Augment [crossref] ${isCitation ? "citation" : "query"}: "${cleaned}"`);
     const response = await crossrefGate.fetch(url);
     if (!response.ok) throw new Error(`Crossref HTTP ${response.status}`);
 
@@ -341,6 +485,9 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
                 published?: {"date-parts"?: number[][]};
                 URL?: string;
                 link?: Array<{URL?: string}>;
+                "container-title"?: string[];
+                volume?: string;
+                page?: string;
             }>;
         };
     };
@@ -351,25 +498,34 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
 
     for (const item of items) {
         if (!item.DOI || !item.title?.[0]) continue;
+        const doi = normaliseDOI(item.DOI);
+        if (!doi) continue;
+        const fields = {
+            title: item.title[0],
+            firstAuthor: item.author?.[0]?.family ?? item.author?.[0]?.name ?? null,
+            year: extractCrossrefYear(item),
+            urls: compactUrls([item.URL, ...(item.link ?? []).map((link) => link.URL)]),
+            containerTitle: item["container-title"]?.[0] ?? null,
+            volume: item.volume ?? null,
+            firstPage: item.page?.split(/[-–—]/)[0]?.trim() || null,
+        };
 
-        const tsr = tokenSetRatio(title, item.title[0]);
-        const coverage = titleCoverage(title, item.title[0]);
-        if (tsr < MATCH_THRESHOLD_TSR || coverage < MATCH_THRESHOLD_COVERAGE) {
-            rejected.push({score: tsr, coverage, title: item.title[0]});
-        }
-        if (tsr >= MATCH_THRESHOLD_TSR && coverage >= MATCH_THRESHOLD_COVERAGE) {
-            const doi = normaliseDOI(item.DOI);
-            if (doi) {
-                candidates.push({
-                    doi,
-                    title: item.title[0],
-                    score: tsr,
-                    source: "crossref",
-                    firstAuthor: item.author?.[0]?.family ?? item.author?.[0]?.name ?? null,
-                    year: extractCrossrefYear(item),
-                    urls: compactUrls([item.URL, ...(item.link ?? []).map((link) => link.URL)]),
-                });
+        if (isCitation) {
+            const verdict = verifyAgainstCitation(title, fields);
+            if (verdict) {
+                candidates.push({doi, score: verdict.coverage, source: "crossref", citationMatches: verdict.matches, ...fields});
+            } else {
+                rejected.push({score: 0, coverage: 0, title: fields.title});
             }
+            continue;
+        }
+
+        const tsr = tokenSetRatio(title, fields.title);
+        const coverage = titleCoverage(title, fields.title);
+        if (tsr >= MATCH_THRESHOLD_TSR && coverage >= MATCH_THRESHOLD_COVERAGE) {
+            candidates.push({doi, score: tsr, source: "crossref", ...fields});
+        } else {
+            rejected.push({score: tsr, coverage, title: fields.title});
         }
     }
 
@@ -475,7 +631,12 @@ export async function augmentDOIsDetailed(
     // Check cache first — single-blob lookup keyed by normalized title. The
     // cache stays title-keyed; page metadata only influences candidate choice,
     // not the cache identity.
-    const keyByTitle = new Map(requests.map((r) => [r.title, normalizeTitle(r.title)] as const));
+    // Citation requests get their own key space: a whole-citation miss cached
+    // under the title-matching rules must not answer for the field-verified path.
+    const keyByTitle = new Map(requests.map((r) => [
+        r.title,
+        (r.kind === "citation" ? "cite:" : "") + normalizeTitle(r.title),
+    ] as const));
     const cached = await DOI_AUGMENT_CACHE.getMany([...new Set(keyByTitle.values())]);
 
     // Group cache misses by their normalized key so titles that only differ in
@@ -526,7 +687,12 @@ export async function augmentDOIsDetailed(
     const updates: Array<[string, CachedDoiResult]> = [];
     const lookupPromises = [...uncachedByKey.entries()].map(async ([key, group], index) => {
         const request = group[0];
-        const order: AugmentPlatform[] = index % 2 === 0 ? ["crossref", "openalex"] : ["openalex", "crossref"];
+        // OpenAlex's title search needs every query token in the title, so a
+        // whole citation string returns nothing there; citations go to Crossref
+        // alone (its `query.bibliographic` is built for them).
+        const order: AugmentPlatform[] = request.kind === "citation"
+            ? ["crossref"]
+            : index % 2 === 0 ? ["crossref", "openalex"] : ["openalex", "crossref"];
         const outcomes: Partial<Record<AugmentPlatform, PromiseSettledResult<DoiCandidate[]>>> = {};
         for (const platform of order) {
             const [outcome] = await Promise.allSettled([
