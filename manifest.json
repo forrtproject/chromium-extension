@@ -125,7 +125,7 @@
         "*://scholar.google.com.br/*",
         "*://scholar.google.com.au/*",
         "*://openalex.org/*",
-        "*://*.openalex.org/*"
+        "*://www.openalex.org/*"
       ],
       "js": [
         "dist/content-search.js"

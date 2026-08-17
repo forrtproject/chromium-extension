@@ -3,6 +3,12 @@
 // `a.result-title` points at /works/w<id>; `.result-meta` holds "<year> ·
 // <authors> · <venue> · <cited-by>" as sibling spans. Rows print no DOI, so
 // the work id is resolved to one through the OpenAlex API in one batched call.
+// Paging and re-sorting replace the row elements (checked live), so the
+// observer's "new rows" trigger covers client-side navigation.
+//
+// content-general also runs on openalex.org on purpose: work pages
+// (/works/W…) link the DOI, which that script annotates, and result rows print
+// no DOI for it to pick up.
 
 import {debugLog} from "@shared/debug";
 import {resolveOpenAlexIdsViaWorker} from "@shared/messages";

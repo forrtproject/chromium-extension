@@ -78,7 +78,13 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     let pending: RowInfo[] = [];
     for (const row of rows) {
         row.setAttribute(PROCESSED_ATTR, "true");
-        const extraction = adapter.extractRow(row);
+        let extraction: RowExtraction | null;
+        try {
+            extraction = adapter.extractRow(row);
+        } catch (err) {
+            debugWarn(`${label}: could not read a result row —`, err);
+            continue;
+        }
         if (!extraction) continue;
         const info: RowInfo = {...extraction, row};
         if (info.doi && info.confident) {
@@ -211,8 +217,9 @@ async function placeNoticeOnly(adapter: SearchSiteAdapter, row: HTMLElement, doi
     try {
         const notices = await retractionCheck([doi]);
         if (notices.length === 0) return;
-        const target = adapter.noticeTarget(row);
+        const target = adapter.noticeTarget?.(row) ?? null;
         if (target) injectRetractionInfo(target, notices[0], {afterend: true});
+        else injectRetractionInfo(row, notices[0]);
     } catch (err) {
         debugWarn(`${adapter.label}: notice check failed for ${doi} —`, err);
     }
