@@ -60,15 +60,15 @@ describe("progress toast", () => {
 
     it("reports the running stage and fills the bar", () => {
         beginWorkIndicator();
-        reportWorkStage("lookup", "Looking up 10 DOIs in FORRT…");
+        reportWorkStage("lookup", "Looking up 10 DOIs in FLoRA…");
         settle();
-        expect(label()).toBe("Looking up 10 DOIs in FORRT…");
+        expect(label()).toBe("Looking up 10 DOIs in FLoRA…");
         expect(Number(percent())).toBeGreaterThan(0);
     });
 
     it("never rewinds the bar when a parallel stage reports late", () => {
         beginWorkIndicator();
-        reportWorkStage("lookup", "Looking up 10 DOIs in FORRT…");
+        reportWorkStage("lookup", "Looking up 10 DOIs in FLoRA…");
         settle();
         const atLookup = Number(percent());
         // References resolve alongside validation — stages report out of order.
@@ -78,7 +78,7 @@ describe("progress toast", () => {
     });
 
     it("ignores a stage reported with no pass in flight", () => {
-        reportWorkStage("lookup", "Looking up 10 DOIs in FORRT…");
+        reportWorkStage("lookup", "Looking up 10 DOIs in FLoRA…");
         settle();
         expect(toast()).toBeNull();
     });
@@ -118,14 +118,14 @@ describe("progress toast", () => {
 
         hideWorkIndicator();
         expect(toast()).toBeNull();
-        reportWorkStage("lookup", "Looking up 10 DOIs in FORRT…");
+        reportWorkStage("lookup", "Looking up 10 DOIs in FLoRA…");
         settle();
         expect(toast()).toBeNull();
 
         showWorkIndicator();
         // The pass kept running while hidden — the bar resumes where it got to.
         expect(toast()).not.toBeNull();
-        expect(label()).toBe("Looking up 10 DOIs in FORRT…");
+        expect(label()).toBe("Looking up 10 DOIs in FLoRA…");
         expect(Number(percent())).toBeGreaterThan(0);
     });
 

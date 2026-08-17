@@ -2,7 +2,7 @@ import {extractDoiFromHref} from "@shared/doi-extractor";
 import {FLORA_NOTICE_PILL_CLASS} from "@shared/doi-label";
 import type {DoiString, NoticeKind, RetractionResponse} from "@shared/types";
 import {safeSendMessage, type RetractionCheckResponse} from "@shared/messages";
-import {debugError} from "@shared/debug";
+import {debugError, debugLog, debugWarn} from "@shared/debug";
 
 export const FLORA_RET_CHECK_KEY = "flora-ret-checked";
 
@@ -106,18 +106,41 @@ export function noticePresentation(kind: NoticeKind): NoticePresentation {
 const pendingDois = new Set<DoiString>();
 let pendingBatch: Promise<Map<DoiString, RetractionResponse>> | null = null;
 
+// The check is a lookup table read in the worker, so a slow answer means the
+// worker is wedged or slow to wake — not that the data is slow. Give up on
+// this pass after this long so the page's own lookup and report still run.
+export const RETRACTION_CHECK_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | "timeout"> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => resolve("timeout"), ms);
+        promise.then(
+            (v) => { clearTimeout(timer); resolve(v); },
+            (e) => { clearTimeout(timer); reject(e); },
+        );
+    });
+}
+
 function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
     return new Promise((resolve) => {
         setTimeout(async () => {
             const dois = [...pendingDois];
             pendingDois.clear();
             pendingBatch = null;
+            const started = performance.now();
             try {
-                const response = await safeSendMessage<RetractionCheckResponse>({
-                    type: "FLORA_RET_CHECK",
-                    dois,
-                });
+                const response = await withTimeout(
+                    safeSendMessage<RetractionCheckResponse>({type: "FLORA_RET_CHECK", dois}),
+                    RETRACTION_CHECK_TIMEOUT_MS,
+                );
+                const elapsed = Math.round(performance.now() - started);
+                if (response === "timeout") {
+                    debugWarn(`Retraction check: no answer from the worker after ${elapsed} ms for ${dois.length} DOI(s) — continuing without notices`);
+                    resolve(new Map());
+                    return;
+                }
                 const results = response?.type === "FLORA_RET_CHECK_RESULT" ? response.results : [];
+                debugLog(`Retraction check: ${dois.length} DOI(s) → ${results.length} notice(s) in ${elapsed} ms`);
                 resolve(new Map(results.map((r) => [r.originDoi, r] as const)));
             } catch (err) {
                 // One failed batch must not reject every caller sharing it.

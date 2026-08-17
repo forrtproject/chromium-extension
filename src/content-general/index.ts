@@ -346,7 +346,7 @@ async function runScanPass(): Promise<void> {
         // that isn't happening.
         let response: LookupResponse | undefined;
         try {
-            reportWorkStage("lookup", `Looking up ${count(newDois.length, "DOI")} in FORRT…`);
+            reportWorkStage("lookup", `Looking up ${count(newDois.length, "DOI")} in FLoRA…`);
             response = await safeSendMessage<LookupResponse>(request);
         } catch (err) {
             debugError("Replication lookup failed:", err);
