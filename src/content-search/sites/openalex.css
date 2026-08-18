@@ -1,10 +1,13 @@
-/* OpenAlex: .result-item is a flex row whose text column (.result-content)
-   grows; the panel is its right-hand sibling. */
+/* OpenAlex: .result-item is a flex row (gap: 8px) whose text column
+   (.result-content) grows; some rows add a .result-aside (PDF button) after
+   it. The panel is placed after the text column and ordered last, so it forms
+   one right-aligned column across all rows, with the PDF button beside it. */
 .result-item > [data-flora-panel] {
+  order: 1;
   flex: 0 0 auto;
   align-self: flex-start;
   width: 240px;
   max-width: 40%;
-  margin-left: 4px; /* .result-item already has gap: 8px */
+  margin-left: 4px;
   margin-top: 0;
 }
