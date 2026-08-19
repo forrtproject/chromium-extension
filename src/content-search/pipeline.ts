@@ -244,15 +244,25 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
                 debugLog(`${label} resolve [conflict] "${info.title}" → using augmented ${augmentedDoi} (extracted was ${extractedDoi})`);
                 place(info, augmentedDoi, "augmented", true);
             } else if (extractedDoi) {
-                // Extracted but the title search found nothing — last-resort doi.org check
-                if (revalidated.get(extractedDoi)) {
+                // Extracted but the title search found nothing — last-resort
+                // doi.org check. validateDOIs answers false only when doi.org
+                // says the DOI is absent; a DOI it could not reach is left out
+                // of the map entirely.
+                const validity = revalidated.get(extractedDoi);
+                if (validity === true) {
                     debugLog(`${label} resolve [extracted-revalidated] "${info.title}" → ${extractedDoi} (doi.org confirmed on retry)`);
                     place(info, extractedDoi, "extracted", false);
-                } else {
+                } else if (validity === false) {
                     // Invalid DOI — no panel, but still surface a retraction/concern
                     // notice (the static map is keyed independently of doi.org validity).
                     debugLog(`${label} resolve [extracted-invalid] "${info.title}" → ${extractedDoi} rejected (doi.org says invalid)`);
                     await placeNoticeOnly(adapter, info.row, extractedDoi);
+                } else {
+                    // doi.org never answered. Hand the row back unprocessed so
+                    // the next pass can try it, rather than calling a DOI
+                    // invalid on a network failure.
+                    info.row.removeAttribute(PROCESSED_ATTR);
+                    debugLog(`${label} resolve [extracted-unresolved] "${info.title}" → ${extractedDoi} left for a later pass (doi.org did not answer)`);
                 }
             } else if (augmentedDoi) {
                 debugLog(`${label} resolve [augmented-only] "${info.title}" → ${augmentedDoi} (no extraction)`);
