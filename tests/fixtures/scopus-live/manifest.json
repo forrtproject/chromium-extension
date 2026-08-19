@@ -1,0 +1,45 @@
+{
+  "snapshotDate": "2026-08-19",
+  "source": "www.scopus.com results, captured from a signed-in browser session. Query strings were stripped from every href; the pages carry no personal data beyond the session, which is not part of the DOM.",
+  "snapshots": [
+    {
+      "query": "priming",
+      "requestedUrl": "https://www.scopus.com/pages/search/publications",
+      "file": "tests/fixtures/scopus-live/scopus-list-01.html",
+      "view": "list",
+      "note": "Partial live capture of one `li` result (the capture ends inside the cited-by cell): its tail and the action footer were completed by hand, and a second result was cloned from it with a different record id, title, authors and source line.",
+      "resultCount": 2,
+      "rows": [
+        {
+          "index": 1,
+          "title": "The power of virtual identities: How priming actual and ideal selves shapes cool brand preference",
+          "scopusId": "105046159914",
+          "firstAuthor": "Huang X.",
+          "source": "Journal of Retailing and Consumer Services, 2027, 94, 105005"
+        },
+        {
+          "index": 2,
+          "title": "Self-control and limited willpower: current status of ego depletion theory",
+          "scopusId": "105045375847",
+          "firstAuthor": "Baumeister R.F.",
+          "source": "Journal of Personality and Social Psychology, 2024, 126, 1102",
+          "note": "cloned from result 1, not a live row"
+        }
+      ]
+    },
+    {
+      "query": "priming",
+      "requestedUrl": "https://www.scopus.com/results/results.uri",
+      "file": "tests/fixtures/scopus-live/scopus-table-01.html",
+      "view": "table",
+      "note": "Live capture of the results table, truncated by the capture inside the fifth result; the toolbar table and the incomplete fifth result were dropped, leaving four complete three-`tr` groups.",
+      "resultCount": 4,
+      "rows": [
+        {"index": 1, "title": "Atypical semantic priming in individuals at clinical risk for psychosis", "scopusId": "105039146513", "firstAuthor": "Rich, H.M.", "year": 2026},
+        {"index": 2, "title": "The effect of cause scope and cultural values on brand evaluations: The role of construal level and social distance", "scopusId": "105046251691", "firstAuthor": "Ma, F.", "year": 2026},
+        {"index": 3, "title": "Audiobook familiarization is associated with theta-gamma power modulations", "scopusId": "105042660010", "firstAuthor": "Malekmohammadi, A.", "year": 2026},
+        {"index": 4, "title": "Moral smog effect: Perceived environmental threat increases individual moral licensing", "scopusId": "105046543328", "firstAuthor": "Chen, S.", "year": 2026}
+      ]
+    }
+  ]
+}

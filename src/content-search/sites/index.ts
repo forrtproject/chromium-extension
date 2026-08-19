@@ -17,10 +17,12 @@ import {OPENALEX} from "./openalex";
 import {PUBMED} from "./pubmed";
 import {EUROPEPMC} from "./europepmc";
 import {SEMANTIC_SCHOLAR} from "./semanticscholar";
+import {SCOPUS} from "./scopus";
+import {EBSCO} from "./ebsco";
 
 export type {RowExtraction, SearchSiteAdapter} from "./types";
 
-export const SEARCH_SITE_ADAPTERS: readonly SearchSiteAdapter[] = [SCHOLAR, OPENALEX, SEMANTIC_SCHOLAR, PUBMED, EUROPEPMC];
+export const SEARCH_SITE_ADAPTERS: readonly SearchSiteAdapter[] = [SCHOLAR, OPENALEX, SEMANTIC_SCHOLAR, PUBMED, EUROPEPMC, SCOPUS, EBSCO];
 
 function normaliseHost(hostname: string): string {
     return hostname.toLowerCase().replace(/^www\./, "");

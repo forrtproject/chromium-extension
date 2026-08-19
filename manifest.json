@@ -132,7 +132,10 @@
         "*://www.semanticscholar.org/*",
         "*://pubmed.ncbi.nlm.nih.gov/*",
         "*://europepmc.org/*",
-        "*://www.europepmc.org/*"
+        "*://www.europepmc.org/*",
+        "*://scopus.com/*",
+        "*://www.scopus.com/*",
+        "*://research.ebsco.com/*"
       ],
       "js": [
         "dist/content-search.js"

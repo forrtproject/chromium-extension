@@ -1,0 +1,9 @@
+/* EBSCOhost: the card body is a single text column (metadata list, abstract
+   snippet, subjects). The panel sits between the metadata list and the
+   snippet, left-aligned with the text and no wider than it needs to be. */
+dl[data-auto="result-item-metadata"] + [data-flora-panel] {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 6px 0 8px;
+}

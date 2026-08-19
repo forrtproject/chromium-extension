@@ -1,0 +1,11 @@
+/* Scopus: in list view the panel follows the source line at the foot of the
+   text column; in table view it is appended to the title cell, the widest of
+   the six columns. Both spots are narrow, so the panel is capped and kept on
+   its own line rather than flowing beside the text. */
+[data-testid="author-list"] + * + [data-flora-panel],
+td > [data-flora-panel] {
+  display: block;
+  width: fit-content;
+  max-width: 260px;
+  margin: 6px 0 2px;
+}
