@@ -12,8 +12,9 @@
 //      made for them.
 //
 //   2. Request interception. Page-context fetches (doi.org handle API,
-//      PubPeer POST, Unpaywall) are served canned JSON; worker-context fetches
-//      (FORRT rep-api, Crossref, OpenAlex, the GitHub retraction sync) are
+//      PubPeer POST, Unpaywall) are served canned JSON; every worker-context
+//      fetch to anything but the local fixture server (FORRT rep-api, Crossref,
+//      OpenAlex, the GitHub retraction sync, PMC, …) is
 //      failed via a CDP Fetch session on the service-worker target. Together
 //      these guarantee pass/fail never depends on real network access.
 //
@@ -276,18 +277,21 @@ export function classifyPageRequest(url: string): MockResponse | "allow" | "abor
   return "abort";
 }
 
-/** Worker-context hosts that must never hit the network (failed via CDP Fetch). */
+/**
+ * Worker-context requests that must never reach the network (failed via CDP
+ * Fetch). Everything the service worker asks for over http(s) is refused unless
+ * it is the local fixture server: the seeds above already answer every lookup a
+ * fixture needs, so a request that gets here is an unmocked path and must fail
+ * loudly rather than call a live API. The extension's own packaged resources
+ * (`chrome-extension://…`) are not http(s) and pass through.
+ */
 export function isBlockedWorkerHost(url: string): boolean {
+  let parsed: URL;
   try {
-    const host = new URL(url).host;
-    return (
-      host === "rep-api.forrt.org" ||
-      host === "api.crossref.org" ||
-      host === "api.openalex.org" ||
-      host === "raw.githubusercontent.com" ||
-      host === "docs.google.com"
-    );
+    parsed = new URL(url);
   } catch {
-    return false;
+    return true;
   }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  return parsed.hostname !== "127.0.0.1" && parsed.hostname !== "localhost";
 }
