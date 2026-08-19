@@ -109,7 +109,9 @@ let pendingBatch: Promise<Map<DoiString, RetractionResponse>> | null = null;
 // The check is a lookup table read in the worker, so a slow answer means the
 // worker is wedged or slow to wake — not that the data is slow. Give up on
 // this pass after this long so the page's own lookup and report still run.
-export const RETRACTION_CHECK_TIMEOUT_MS = 15_000;
+// Long enough to cover safeSendMessage's retries (~4.3 s of back-off plus the
+// worker's cold start) without stalling the toast for much longer.
+export const RETRACTION_CHECK_TIMEOUT_MS = 8_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | "timeout"> {
     return new Promise((resolve, reject) => {

@@ -285,17 +285,41 @@ export function isContextInvalidated(err: unknown): boolean {
 }
 
 /**
- * `chrome.runtime.sendMessage` wrapper that swallows "Extension context
- * invalidated" rejections (resolving to `undefined`) so stale content scripts
- * don't surface uncaught promise errors after an extension reload. All other
- * errors still reject so genuine failures stay visible.
+ * Chrome rejects a message with this when no listener received it — typically
+ * while an idle worker is being torn down, or right after an extension update.
+ * The worker comes up for the next message, so the call is worth repeating.
+ *
+ * Do not include "message port/channel closed" here: those errors can occur
+ * after a listener has started handling the request, so replaying them could
+ * duplicate network calls or non-idempotent work.
+ */
+export function isWorkerUnreachable(err: unknown): boolean {
+    return err instanceof Error &&
+        /Receiving end does not exist/i.test(err.message);
+}
+
+/** Back-off between attempts; the total wait stays under 5 s. */
+export const SEND_RETRY_DELAYS_MS = [300, 1000, 3000];
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * `chrome.runtime.sendMessage` wrapper that (1) retries when the worker was
+ * unreachable, and (2) swallows "Extension context invalidated" rejections
+ * (resolving to `undefined`) so stale content scripts don't surface uncaught
+ * promise errors after an extension reload. All other errors still reject so
+ * genuine failures stay visible.
  */
 export async function safeSendMessage<T = unknown>(message: unknown): Promise<T | undefined> {
-    try {
-        return (await chrome.runtime.sendMessage(message)) as T;
-    } catch (err) {
-        if (isContextInvalidated(err)) return undefined;
-        throw err;
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return (await chrome.runtime.sendMessage(message)) as T;
+        } catch (err) {
+            if (isContextInvalidated(err)) return undefined;
+            const delay = SEND_RETRY_DELAYS_MS[attempt];
+            if (delay === undefined || !isWorkerUnreachable(err)) throw err;
+            await sleep(delay);
+        }
     }
 }
 

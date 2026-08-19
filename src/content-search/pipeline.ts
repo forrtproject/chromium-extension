@@ -8,7 +8,7 @@
 //   4. a title/author/year search via Crossref/OpenAlex (rendered as unconfirmed)
 
 import type {DoiAugmentRequest} from "@shared/doi-augment";
-import {augmentDOIsViaWorker} from "@shared/messages";
+import {augmentDOIsViaWorker, safeSendMessage} from "@shared/messages";
 // injectRetractionInfo is still used for rows whose DOI failed validation:
 // those get no indicator panel, so there is no badge row to carry the notice.
 import {injectRetractionInfo, retractionCheck} from "@shared/doi-retraction";
@@ -288,7 +288,8 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     const request: LookupRequest = {type: "FLORA_LOOKUP", dois: uniqueDois};
 
     try {
-        const response: LookupResponse = await chrome.runtime.sendMessage(request);
+        const response = await safeSendMessage<LookupResponse>(request);
+        if (!response) return; // extension reloaded underneath this page — stop quietly
         debugLog(`${label}: Lookup response:`, Object.keys(response.results).length, "results,", Object.keys(response.errors).length, "errors");
 
         let badgedCount = 0;
