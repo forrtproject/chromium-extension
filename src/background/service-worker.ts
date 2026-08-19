@@ -77,14 +77,10 @@ function setActionIcon(active: boolean, tabId?: number): void {
     chrome.action.setTitle(tabId != null ? { tabId, title } : { title }).catch(() => {});
 }
 
-// Default to inactive; an applicable page's content script flips it to active.
+// Default to inactive; an applicable page's content script flips it to active
+// per tab. Chrome clears a tab-specific icon on navigation, so leaving a site
+// falls back to this default without the worker having to watch tab updates.
 setActionIcon(false);
-
-// Reset to inactive while a tab navigates — the content script re-activates it
-// if the new page is applicable (so leaving a site clears the active state).
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (changeInfo.status === "loading") setActionIcon(false, tabId);
-});
 
 // Open the walkthrough on first install and seed retraction data immediately.
 chrome.runtime.onInstalled.addListener((details) => {
