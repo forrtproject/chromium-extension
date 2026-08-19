@@ -205,14 +205,17 @@ export function isContextInvalidated(err: unknown): boolean {
 }
 
 /**
- * Chrome rejects a message with one of these when the service worker is not
- * running at that instant and was not started for it — typically while an idle
- * worker is being torn down, or right after an extension update. The worker
- * comes up for the next message, so the call is worth repeating.
+ * Chrome rejects a message with this when no listener received it — typically
+ * while an idle worker is being torn down, or right after an extension update.
+ * The worker comes up for the next message, so the call is worth repeating.
+ *
+ * Do not include "message port/channel closed" here: those errors can occur
+ * after a listener has started handling the request, so replaying them could
+ * duplicate network calls or non-idempotent work.
  */
 export function isWorkerUnreachable(err: unknown): boolean {
     return err instanceof Error &&
-        /Receiving end does not exist|message port closed|message channel closed/i.test(err.message);
+        /Receiving end does not exist/i.test(err.message);
 }
 
 /** Back-off between attempts; the total wait stays under 5 s. */

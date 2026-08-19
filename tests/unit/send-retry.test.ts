@@ -1,8 +1,8 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from "vitest";
 
-// safeSendMessage retries when Chrome reports the worker unreachable (a
-// message that arrived while the idle worker was shutting down); other
-// failures surface immediately and a dead context resolves to undefined.
+// safeSendMessage retries only when Chrome says no listener received the
+// message. A closed response port may mean the listener already started work,
+// so that error must surface rather than replaying the request.
 describe("safeSendMessage retry", () => {
     const send = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
 
@@ -40,6 +40,16 @@ describe("safeSendMessage retry", () => {
         send.mockRejectedValue(new Error("Something else"));
         const {safeSendMessage} = await import("../../src/shared/messages");
         await expect(safeSendMessage({type: "FLORA_LOOKUP", dois: []})).rejects.toThrow("Something else");
+        expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+        "The message port closed before a response was received.",
+        "A listener indicated an asynchronous response, but the message channel closed before a response was received.",
+    ])("does not retry after a request may have reached the listener: %s", async (message) => {
+        send.mockRejectedValue(new Error(message));
+        const {safeSendMessage} = await import("../../src/shared/messages");
+        await expect(safeSendMessage({type: "FLORA_TAKE_REPORT"})).rejects.toThrow(message);
         expect(send).toHaveBeenCalledTimes(1);
     });
 
