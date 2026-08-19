@@ -9,7 +9,15 @@ import type {DoiString, DoiSource, LookupState, RetractionResponse} from "@share
 import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
-import {beginWorkIndicator, count, endWorkIndicator, reportWorkStage} from "@shared/progress-toast";
+import {
+    beginWorkIndicator,
+    count,
+    endWorkIndicator,
+    reportWorkStage,
+    setWorkItems,
+    updateWorkItem,
+    type WorkItem,
+} from "@shared/progress-toast";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 
 // One colour for every provenance — an unconfirmed DOI is marked by the
@@ -24,6 +32,19 @@ const scholarRedacts = new Map<DoiString, RetractionResponse>();
 
 function refreshScholarBadges(): void {
     updateIndicatorPillBadges(document, scholarState, [...scholarRedacts.values()]);
+}
+
+// Set by the popup's hide command and by the work toast's pause control (both
+// handled in index.ts). Lives here because the pass reads it to stop marking up
+// rows, and index.ts already imports this module.
+let scholarHidden = false;
+
+export function setScholarHidden(hidden: boolean): void {
+    scholarHidden = hidden;
+}
+
+export function isScholarHidden(): boolean {
+    return scholarHidden;
 }
 
 const RESULT_CONTAINER = "#gs_res_ccl";
@@ -61,13 +82,17 @@ export function observeScholarResults(): void {
 
 /** Holds one work indicator across the row batch — extraction through to badges. */
 export async function processScholarResults(doc: Document): Promise<void> {
+    if (scholarHidden) {
+        debugLog("Scholar: paused on this site — skipping the pass");
+        return;
+    }
     const rows = doc.querySelectorAll<HTMLElement>(
         `${RESULT_ROW}:not([${PROCESSED_ATTR}])`
     );
     debugLog(`Scholar: ${rows.length} new result row(s) to process`);
     if (rows.length === 0) return;
 
-    beginWorkIndicator();
+    beginWorkIndicator({stages: ["scan", "validate", "augment", "lookup", "report"]});
     try {
         await runScholarPass(rows);
     } finally {
@@ -134,17 +159,20 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
     // Phase 2: Validate extracted DOIs via doi.org, then augment only what's still unresolved
     if (rowInfos.length > 0) {
         // Step 1: Validate extracted DOIs with doi.org (cheap HEAD-like check)
-        const doisToValidate = rowInfos
-            .filter((r) => r.extractedDoi !== null)
-            .map((r) => r.extractedDoi!);
+        const withExtracted = rowInfos.filter((r) => r.extractedDoi !== null);
+        const doisToValidate = withExtracted.map((r) => r.extractedDoi!);
 
         let validated = new Map<DoiString, boolean>();
         if (doisToValidate.length > 0) {
             reportWorkStage("validate", `Checking ${count(doisToValidate.length, "DOI")} resolve…`);
+            setWorkItems(withExtracted.map((r) => workItem(r.extractedDoi!, r.title, r.extractedDoi!)));
             try {
                 validated = await validateDOIs(doisToValidate);
             } catch (err) {
                 debugWarn(`Scholar: validation failed for ${doisToValidate.length} DOI(s) —`, err);
+            }
+            for (const doi of doisToValidate) {
+                updateWorkItem(doi, validated.get(doi) ? "done" : "failed");
             }
         }
 
@@ -170,14 +198,13 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
 
         // Step 2: Augment only the remaining unresolved rows
         if (pendingInfos.length > 0) {
-            const requestsToAugment: DoiAugmentRequest[] = pendingInfos
-                .filter((r) => r.title)
-                .map((r) => ({
-                    title: r.title,
-                    firstAuthor: r.firstAuthor,
-                    year: r.year,
-                    sourceUrl: r.sourceUrl,
-                }));
+            const titledInfos = pendingInfos.filter((r) => r.title);
+            const requestsToAugment: DoiAugmentRequest[] = titledInfos.map((r) => ({
+                title: r.title,
+                firstAuthor: r.firstAuthor,
+                year: r.year,
+                sourceUrl: r.sourceUrl,
+            }));
             let augmented = new Map<string, DoiString | null>();
             try {
                 if (requestsToAugment.length > 0) {
@@ -185,10 +212,15 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
                         "augment",
                         `Augmenting ${count(requestsToAugment.length, "result")} without a DOI…`
                     );
+                    setWorkItems(titledInfos.map((r) => workItem(r.title, r.title, rowByline(r))));
                     augmented = await augmentDOIsViaWorker(requestsToAugment);
                 }
             } catch (err) {
                 debugWarn(`Scholar: augmentation failed for ${requestsToAugment.length} row(s) —`, err);
+            }
+            for (const info of titledInfos) {
+                const doi = augmented.get(info.title) ?? null;
+                updateWorkItem(info.title, doi ? "done" : "failed", doi ?? "no DOI found");
             }
 
             for (const info of pendingInfos) {
@@ -271,6 +303,11 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
     const uniqueDois = [...new Set(rowDois.map((rd) => rd.doi))];
     debugLog("Scholar: Sending lookup for", uniqueDois.length, "unique DOIs:", uniqueDois);
     reportWorkStage("lookup", `Found ${count(uniqueDois.length, "unique DOI")} — looking them up…`);
+    const titleByDoi = new Map<DoiString, string>();
+    for (const {row, doi} of rowDois) {
+        if (!titleByDoi.has(doi)) titleByDoi.set(doi, rowTitle(row));
+    }
+    setWorkItems(uniqueDois.map((doi) => workItem(doi, titleByDoi.get(doi) ?? doi, doi)));
     const request: LookupRequest = {type: "FLORA_LOOKUP", dois: uniqueDois};
 
     try {
@@ -285,12 +322,37 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
                 badgedCount++;
             }
         }
+        for (const doi of uniqueDois) {
+            if (response.errors[doi]) updateWorkItem(doi, "failed");
+            else updateWorkItem(doi, response.results[doi] ? "flagged" : "done");
+        }
+
+        // Paused while the lookup ran — the results stay in scholarState for a
+        // later pass, but nothing goes on the page.
+        if (scholarHidden) return;
+
         reportWorkStage("report", `Marking up ${count(badgedCount, "result")}…`);
         refreshScholarBadges();
         debugLog("Scholar: Rendered", badgedCount, "badge(s)");
     } catch (err) {
         debugLog("Scholar: Lookup failed:", err);
     }
+}
+
+function rowTitle(row: HTMLElement): string {
+    // The heading starts with Scholar's type tags ("[HTML]", "[PDF]") — not part of the title.
+    return row.querySelector(".gs_rt a, .gs_rt")?.textContent?.replace(/^(\s*\[[A-Z]+\])+\s*/, "").trim() ?? "";
+}
+
+/** First author and year of a row, for the item's right-hand detail column. */
+function rowByline(info: {firstAuthor: string | null; year: number | null}): string | undefined {
+    const parts = [info.firstAuthor, info.year?.toString()].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : undefined;
+}
+
+/** One work-toast item, pending until its stage reports back on it. */
+function workItem(id: string, label: string, detail?: string): WorkItem {
+    return {id, label: label || id, detail, status: "pending"};
 }
 
 async function preInjectLabels(row: HTMLElement, doi: DoiString, color: string, isAugmented = false): Promise<void> {

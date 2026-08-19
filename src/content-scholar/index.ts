@@ -1,7 +1,7 @@
-import { observeScholarResults, processScholarResults } from "./observer";
+import { isScholarHidden, observeScholarResults, processScholarResults, setScholarHidden } from "./observer";
 import { debugError, debugLog } from "@shared/debug";
 import { isSetupComplete } from "@shared/settings";
-import { isDomainBlocked } from "@shared/domains";
+import { isDomainBlocked, isDomainSnoozed } from "@shared/domains";
 import { renderSetupPrompt, hideAllFloraUI, showAllFloraUI } from "../content-general/injector";
 
 // Tell the service worker whether FLoRA is active on this tab (toolbar icon).
@@ -19,6 +19,12 @@ function reportActiveState(active: boolean): void {
 
     if (await isDomainBlocked(location.hostname)) {
       debugLog("Domain is blocked:", location.hostname);
+      reportActiveState(false);
+      return;
+    }
+
+    if (await isDomainSnoozed(location.hostname)) {
+      debugLog("Domain is snoozed:", location.hostname);
       reportActiveState(false);
       return;
     }
@@ -43,8 +49,6 @@ function reportActiveState(active: boolean): void {
   }
 })();
 
-let floraHidden = false;
-
 // hideAllFloraUI/showAllFloraUI already sweep the merged indicator pills, which
 // is the only per-result UI Scholar rows carry.
 function hideScholarUI(): void {
@@ -60,16 +64,25 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
   const type = (message as { type?: string }).type;
 
   if (type === "FLORA_HIDE_UI") {
-    floraHidden = true;
+    setScholarHidden(true);
     hideScholarUI();
     reportActiveState(false);
     sendResponse({ ok: true });
   } else if (type === "FLORA_SHOW_UI") {
-    floraHidden = false;
+    setScholarHidden(false);
     showScholarUI();
     reportActiveState(true);
     sendResponse({ ok: true });
   } else if (type === "FLORA_GET_STATE") {
-    sendResponse({ hidden: floraHidden });
+    sendResponse({ hidden: isScholarHidden() });
   }
+});
+
+// The pause control on the work toast writes the snooze (or block) to storage
+// itself, then announces it here so this page clears immediately instead of
+// waiting for a reload.
+document.addEventListener("flora-pause-site", () => {
+  setScholarHidden(true);
+  hideScholarUI();
+  reportActiveState(false);
 });
