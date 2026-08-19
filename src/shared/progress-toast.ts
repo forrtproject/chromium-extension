@@ -110,11 +110,13 @@ const PANEL_STYLE =
 const CHEVRON_SVG =
     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" ` +
     `style="width:12px;height:12px;display:block;transition:transform 0.18s ease;">` +
-    `<path d="M3 10l5-5 5 5"/></svg>`;
+    `<path d="M3 6l5 5 5-5"/></svg>`;
 
+// Same clock as the Sheets modal's snooze button.
 const PAUSE_SVG =
-    `<svg viewBox="0 0 16 16" fill="currentColor" style="width:12px;height:12px;display:block;">` +
-    `<rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>`;
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ` +
+    `stroke-linejoin="round" style="width:13px;height:13px;display:block;">` +
+    `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 
 const CLOSE_SVG =
     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" ` +
@@ -260,12 +262,12 @@ function buildPauseRow(): HTMLElement {
     const row = document.createElement("div");
     row.setAttribute("data-flora-work-pause-row", "");
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", "Pause ORE on this site");
+    row.setAttribute("aria-label", "Snooze ORE on this site");
     row.style.cssText = PAUSE_ROW_STYLE;
 
     const caption = document.createElement("span");
     caption.style.cssText = "color:rgba(255,255,255,0.75);font-size:11px;margin-right:2px;";
-    caption.textContent = "Pause ORE here:";
+    caption.textContent = "Snooze ORE here:";
 
     const hour = textButton("1 hour");
     hour.addEventListener("click", () => {
@@ -391,7 +393,7 @@ function ensureToast(): HTMLElement {
     label.textContent = labelText;
 
     const pauseRow = buildPauseRow();
-    const pause = iconButton("Pause ORE on this site", PAUSE_SVG);
+    const pause = iconButton("Snooze ORE on this site", PAUSE_SVG);
     pause.setAttribute("data-flora-work-pause", "");
     pause.setAttribute("aria-expanded", "false");
     pause.addEventListener("click", () => {

@@ -170,8 +170,8 @@ also offers **Copy log** in its expanded panel, and — with the popup's
 `Done in 2.3 s · Copy log` after the pass. Every stage transition is logged with
 its duration (`Work: augment done in 2310 ms`), so a slow pass shows which stage
 took the time. The same panel lists the stages of the current pass (on Google
-Scholar also the DOIs and titles being resolved) and a **Cancel** button; the ⏸
-icon pauses ORE on the site for an hour or until tomorrow (resume from the popup)
+Scholar also the DOIs and titles being resolved) and a **Cancel** button; the clock
+icon snoozes ORE on the site for an hour or until tomorrow (resume from the popup)
 or disables it on the domain.
 
 To report a bug: turn debug mode on, reload the page, reproduce, then hit
