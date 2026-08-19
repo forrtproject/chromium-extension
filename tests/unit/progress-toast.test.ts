@@ -297,6 +297,25 @@ describe("progress toast", () => {
         expect(toast()).toBeNull();
     });
 
+    it("does not bring a dismissed finished toast back for a late item update", async () => {
+        setDebug(true);
+        settings.offerLogCopyAfterPass = true;
+        beginWorkIndicator({stages: ["lookup"]});
+        await vi.advanceTimersByTimeAsync(0); // the setting is read asynchronously
+        reportWorkStage("lookup", "Looking up 1 DOI…");
+        settle();
+        setWorkItems([{id: "i0", label: "Paper 0", status: "pending"}]);
+        endWorkIndicator(); // leaves the one-line copy offer up
+        settings.offerLogCopyAfterPass = false;
+
+        toast()!.querySelector<HTMLButtonElement>("[data-flora-work-finish] button:last-of-type")!.click();
+        expect(toast()).toBeNull();
+
+        updateWorkItem("i0", "done"); // a straggler arrives after the toast is gone
+        vi.advanceTimersByTime(1000);
+        expect(toast()).toBeNull();
+    });
+
     it("dismisses the toast for the pass and shows it again on the next one", () => {
         beginWorkIndicator();
         reportWorkStage("scan", "Scanning this page for DOIs…");

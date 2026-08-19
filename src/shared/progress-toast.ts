@@ -641,6 +641,9 @@ function render(immediate = true): void {
         else queueRender();
         return;
     }
+    // The toast is gone. A straggler from a pass that already ended must not
+    // bring it back — only a running pass gets a fresh one.
+    if (refCount === 0) return;
     if (showTimer) return;
     showTimer = setTimeout(() => {
         showTimer = null;
