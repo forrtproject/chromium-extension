@@ -3,6 +3,7 @@ import {
     beginWorkIndicator,
     endWorkIndicator,
     hideWorkIndicator,
+    isWorkCancelled,
     reportWorkStage,
     setWorkItems,
     showWorkIndicator,
@@ -27,6 +28,11 @@ const domainWrites = vi.hoisted(() => ({
     blockDomain: vi.fn(async () => undefined),
 }));
 vi.mock("../../src/shared/domains", () => domainWrites);
+
+const settings = vi.hoisted(() => ({offerLogCopyAfterPass: false}));
+vi.mock("../../src/shared/settings", () => ({
+    getSettings: vi.fn(async () => settings),
+}));
 
 function toast(): HTMLElement | null {
     return document.getElementById(WORK_TOAST_ID);
@@ -266,13 +272,13 @@ describe("progress toast", () => {
         expect(toast()!.style.pointerEvents).toBe("none");
         expect(button("chevron").style.pointerEvents).toBe("auto");
         expect(button("close").style.pointerEvents).toBe("auto");
-        expand();
-        expect(toast()!.querySelector<HTMLElement>("[data-flora-work-pause] button")!.style.pointerEvents).toBe(
-            "auto"
-        );
+        button("pause").click();
+        const pauseRow = toast()!.querySelector<HTMLElement>("[data-flora-work-pause-row]")!;
+        expect(pauseRow.style.display).toBe("flex");
+        expect(pauseRow.querySelector<HTMLElement>("button")!.style.pointerEvents).toBe("auto");
     });
 
-    it("offers the copy-log buttons only while debug logging is on", () => {
+    it("offers the copy-log button only while debug logging is on", () => {
         beginWorkIndicator();
         settle();
         expand();
@@ -285,22 +291,22 @@ describe("progress toast", () => {
         settle();
         expand();
         expect(toast()!.querySelector("[data-flora-work-copy]")).not.toBeNull();
-        expect(toast()!.querySelector("[data-flora-work-arm]")).not.toBeNull();
+        expect(toast()!.querySelector("[data-flora-work-cancel]")).not.toBeNull();
     });
 
-    it("holds the toast open when the copy is armed and copies on click", async () => {
+    it("keeps a one-line copy offer up after the pass when the setting is on", async () => {
         setDebug(true);
+        settings.offerLogCopyAfterPass = true;
         beginWorkIndicator();
+        await vi.advanceTimersByTimeAsync(0); // the setting is read asynchronously
         reportWorkStage("scan", "Scanning this page for DOIs…");
         settle();
-        expand();
-        button("arm").click();
-        expect(button("arm").textContent).toBe("Will copy when finished ✓");
 
         endWorkIndicator();
         vi.advanceTimersByTime(2000);
         expect(toast()).not.toBeNull();
-        expect(label()).toBe("Pass finished — log ready");
+        const finishLabel = toast()!.querySelector("[data-flora-work-finish-label]")!.textContent ?? "";
+        expect(finishLabel).toMatch(/^Done in \d+ ms$/);
 
         const copy = button("final-copy");
         copy.click();
@@ -308,8 +314,23 @@ describe("progress toast", () => {
         expect(buildDebugReport).toHaveBeenCalled();
         expect(writeClipboard).toHaveBeenCalledWith("REPORT");
         expect(copy.textContent).toBe("Copied ✓");
+        settings.offerLogCopyAfterPass = false;
     });
-    it("pause menu persists the snooze before telling the page to hide", async () => {
+
+    it("cancel stops the pass at the pipeline's next check and hides the toast", () => {
+        beginWorkIndicator();
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+        expand();
+        expect(isWorkCancelled()).toBe(false);
+        button("cancel").click();
+        expect(isWorkCancelled()).toBe(true);
+        expect(toast()).toBeNull();
+        endWorkIndicator();
+        expect(isWorkCancelled()).toBe(false);
+    });
+
+    it("pause row persists the snooze before telling the page to hide", async () => {
         let resolveWrite: (until: number) => void = () => {};
         domainWrites.snoozeDomain.mockImplementationOnce(
             () => new Promise<number>((resolve) => { resolveWrite = resolve; }),
@@ -320,9 +341,9 @@ describe("progress toast", () => {
         beginWorkIndicator();
         reportWorkStage("scan", "Scanning this page for DOIs…");
         settle();
-        expand();
-        const menu = toast()!.querySelector<HTMLElement>("[data-flora-work-pause-menu]")!;
-        menu.querySelector<HTMLButtonElement>("button")!.click(); // "Pause here for 1 hour"
+        button("pause").click();
+        const pauseRow = toast()!.querySelector<HTMLElement>("[data-flora-work-pause-row]")!;
+        pauseRow.querySelector<HTMLButtonElement>("button")!.click(); // "Pause 1 hour"
 
         expect(domainWrites.snoozeDomain).toHaveBeenCalledWith(location.hostname, 3_600_000);
         expect(toast()).toBeNull();

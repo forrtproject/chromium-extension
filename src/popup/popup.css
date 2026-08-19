@@ -261,3 +261,10 @@ a:focus-visible {
   color: var(--error);
   background: var(--error-bg);
 }
+
+/* Secondary toggle that belongs to the debug switch above it */
+.popup-toggle--sub {
+  padding-left: 32px;
+  font-weight: 500;
+  font-size: 12px;
+}

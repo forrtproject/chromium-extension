@@ -7,6 +7,7 @@ import {
 } from "../shared/domains";
 import { debugError, debugWarn, isDebugEnabledAsync, setDebug } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
+import { getSettings, saveSettings } from "../shared/settings";
 
 const domainEl = document.getElementById("current-domain")!;
 const blockBtn = document.getElementById("block-btn")!;
@@ -21,6 +22,8 @@ const reportBtn = document.getElementById("report-btn")!;
 const reportLabel = document.getElementById("report-btn-label")!;
 const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
 const debugHint = document.getElementById("debug-hint")!;
+const logCopyRow = document.getElementById("log-copy-row")!;
+const logCopyToggle = document.getElementById("log-copy-toggle") as HTMLInputElement;
 const statusEl = document.getElementById("popup-status")!;
 
 let currentDomain = "";
@@ -85,10 +88,12 @@ function updateDebugUI(): void {
   reportLabel.textContent = debugOn
     ? "Report an issue with debug log"
     : "Report an issue on this domain";
+  logCopyRow.hidden = !debugOn;
 }
 
 async function init(): Promise<void> {
   debugOn = await isDebugEnabledAsync();
+  logCopyToggle.checked = (await getSettings()).offerLogCopyAfterPass;
   updateDebugUI();
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -213,6 +218,11 @@ debugToggle.addEventListener("change", () => {
     debugOn ? "Debug mode on — reload the page to record it" : "Debug mode off",
     "success"
   );
+});
+
+// Keep a one-line "Copy log" toast up after each pass (debug mode only)
+logCopyToggle.addEventListener("change", () => {
+  void saveSettings({ offerLogCopyAfterPass: logCopyToggle.checked });
 });
 
 // Report an issue on the current domain. With debug mode on the report is

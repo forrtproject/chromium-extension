@@ -13,6 +13,7 @@ import {
     beginWorkIndicator,
     count,
     endWorkIndicator,
+    isWorkCancelled,
     reportWorkStage,
     setWorkItems,
     updateWorkItem,
@@ -174,6 +175,7 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
             for (const doi of doisToValidate) {
                 updateWorkItem(doi, validated.get(doi) ? "done" : "failed");
             }
+            if (isWorkCancelled()) return;
         }
 
         // Separate rows into validated (done) vs still-pending (need augmentation)
@@ -222,6 +224,7 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
                 const doi = augmented.get(info.title) ?? null;
                 updateWorkItem(info.title, doi ? "done" : "failed", doi ?? "no DOI found");
             }
+            if (isWorkCancelled()) return;
 
             for (const info of pendingInfos) {
                 const augmentedDoi = augmented.get(info.title) ?? null;
@@ -327,9 +330,9 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
             else updateWorkItem(doi, response.results[doi] ? "flagged" : "done");
         }
 
-        // Paused while the lookup ran — the results stay in scholarState for a
-        // later pass, but nothing goes on the page.
-        if (scholarHidden) return;
+        // Paused or cancelled while the lookup ran — the results stay in
+        // scholarState for a later pass, but nothing goes on the page.
+        if (scholarHidden || isWorkCancelled()) return;
 
         reportWorkStage("report", `Marking up ${count(badgedCount, "result")}…`);
         refreshScholarBadges();

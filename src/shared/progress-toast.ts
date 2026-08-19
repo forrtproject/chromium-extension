@@ -10,6 +10,7 @@ import {debugLog, flushDebugLog, isDebugEnabled} from "@shared/debug";
 import {buildDebugReport} from "@shared/debug-report";
 import {writeClipboard} from "@shared/clipboard";
 import {blockDomain, snoozeDomain} from "@shared/domains";
+import {getSettings} from "@shared/settings";
 
 export const WORK_TOAST_ID = "flora-working-toast";
 
@@ -56,7 +57,6 @@ const STAGE_LABEL: Record<WorkStage, string> = {
 };
 
 const DEFAULT_LABEL = "ORE is looking up the papers on this page…";
-const FINISHED_LABEL = "Pass finished — log ready";
 
 const HOST_STYLE =
     "position:fixed;bottom:18px;right:18px;z-index:2147483647;" +
@@ -64,17 +64,19 @@ const HOST_STYLE =
     "background:linear-gradient(135deg,#853953,#612D53);color:#fff;" +
     "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
     "font-size:12px;font-weight:500;padding:9px 12px;border-radius:8px;" +
-    "min-width:220px;max-width:320px;box-sizing:border-box;" +
+    "min-width:220px;max-width:360px;box-sizing:border-box;" +
     "box-shadow:0 4px 16px rgba(0,0,0,0.18);" +
     "opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;";
 
+// Page stylesheets reach into the toast (Scholar gives every button a
+// min-width, for one), so every control starts from all:unset.
 const SPINNER_STYLE =
-    "width:12px;height:12px;border-radius:50%;flex-shrink:0;box-sizing:border-box;" +
+    "all:unset;display:block;width:12px;height:12px;border-radius:50%;flex-shrink:0;box-sizing:border-box;" +
     "border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;" +
     "animation:flora-work-spin 0.7s linear infinite;";
 
 const SMALL_SPINNER_STYLE =
-    "display:inline-block;width:9px;height:9px;border-radius:50%;box-sizing:border-box;" +
+    "all:unset;display:inline-block;width:9px;height:9px;border-radius:50%;box-sizing:border-box;" +
     "border:1.5px solid rgba(255,255,255,0.35);border-top-color:#fff;" +
     "animation:flora-work-spin 0.7s linear infinite;";
 
@@ -87,22 +89,18 @@ const FILL_STYLE =
     "transition:width 0.25s ease;";
 
 const ICON_BUTTON_STYLE =
-    "width:20px;height:20px;border:0;border-radius:5px;background:transparent;" +
+    "all:unset;box-sizing:border-box;width:20px;height:20px;border-radius:5px;" +
     "color:rgba(255,255,255,0.85);cursor:pointer;display:inline-flex;" +
-    "align-items:center;justify-content:center;padding:0;flex-shrink:0;pointer-events:auto;";
+    "align-items:center;justify-content:center;flex-shrink:0;pointer-events:auto;";
 
 const TEXT_BUTTON_STYLE =
-    "border:1px solid rgba(255,255,255,0.45);background:transparent;color:#fff;" +
-    "font:inherit;font-size:11px;padding:3px 9px;border-radius:5px;cursor:pointer;" +
-    "pointer-events:auto;white-space:nowrap;";
+    "all:unset;box-sizing:border-box;border:1px solid rgba(255,255,255,0.45);color:#fff;" +
+    "font-family:inherit;font-size:11px;line-height:1.3;padding:3px 9px;border-radius:5px;" +
+    "cursor:pointer;pointer-events:auto;white-space:nowrap;";
 
-const MENU_STYLE =
-    "display:none;flex-direction:column;gap:2px;margin-top:5px;padding:4px;" +
-    "border-radius:6px;background:rgba(0,0,0,0.28);pointer-events:auto;";
-
-const MENU_ITEM_STYLE =
-    "border:0;background:transparent;color:#fff;font:inherit;font-size:11px;" +
-    "text-align:left;padding:4px 7px;border-radius:4px;cursor:pointer;pointer-events:auto;";
+// The pause choices sit in their own row under the bar while the ⏸ is open.
+const PAUSE_ROW_STYLE =
+    "display:none;flex-wrap:wrap;gap:5px;align-items:center;pointer-events:auto;";
 
 const PANEL_STYLE =
     "display:none;flex-direction:column;gap:6px;padding-top:4px;margin-top:2px;" +
@@ -113,6 +111,10 @@ const CHEVRON_SVG =
     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" ` +
     `style="width:12px;height:12px;display:block;transition:transform 0.18s ease;">` +
     `<path d="M3 10l5-5 5 5"/></svg>`;
+
+const PAUSE_SVG =
+    `<svg viewBox="0 0 16 16" fill="currentColor" style="width:12px;height:12px;display:block;">` +
+    `<rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>`;
 
 const CLOSE_SVG =
     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" ` +
@@ -148,8 +150,10 @@ let labelText = DEFAULT_LABEL;
 let suppressed = false;
 let dismissed = false;
 let expanded = false;
-let copyWhenFinished = false;
+let cancelled = false;
 let finished = false;
+// Debug setting: keep a compact "Copy log" row up once the pass ends.
+let offerLogCopy = false;
 let stages: StageRecord[] = [];
 let currentStage: WorkStage | null = null;
 let items: WorkItem[] = [];
@@ -228,15 +232,6 @@ function textButton(text: string): HTMLButtonElement {
     return button;
 }
 
-function menuItem(text: string): HTMLButtonElement {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.setAttribute("role", "menuitem");
-    button.textContent = text;
-    button.style.cssText = MENU_ITEM_STYLE;
-    return button;
-}
-
 /** 6 am the next calendar day, in the user's own timezone. */
 function msUntilTomorrow6am(): number {
     const target = new Date();
@@ -261,48 +256,40 @@ async function pauseSite(
     document.dispatchEvent(new CustomEvent("flora-pause-site", {detail}));
 }
 
-function buildPauseMenu(): HTMLElement {
-    const wrap = document.createElement("div");
-    wrap.setAttribute("data-flora-work-pause", "");
-    wrap.style.cssText = "position:relative;pointer-events:auto;";
+function buildPauseRow(): HTMLElement {
+    const row = document.createElement("div");
+    row.setAttribute("data-flora-work-pause-row", "");
+    row.setAttribute("role", "group");
+    row.setAttribute("aria-label", "Pause ORE on this site");
+    row.style.cssText = PAUSE_ROW_STYLE;
 
-    const menu = document.createElement("div");
-    menu.setAttribute("data-flora-work-pause-menu", "");
-    menu.setAttribute("role", "menu");
-    menu.style.cssText = MENU_STYLE;
+    const caption = document.createElement("span");
+    caption.style.cssText = "color:rgba(255,255,255,0.75);font-size:11px;margin-right:2px;";
+    caption.textContent = "Pause ORE here:";
 
-    const trigger = textButton("Pause on this site ▾");
-    trigger.setAttribute("aria-haspopup", "menu");
-    trigger.setAttribute("aria-expanded", "false");
-    trigger.addEventListener("click", () => {
-        const open = menu.style.display === "flex";
-        menu.style.display = open ? "none" : "flex";
-        trigger.setAttribute("aria-expanded", String(!open));
-    });
-
-    const hour = menuItem("Pause here for 1 hour");
+    const hour = textButton("1 hour");
     hour.addEventListener("click", () => {
         const hostname = location.hostname;
         const until = Date.now() + 60 * 60 * 1000;
         void pauseSite(snoozeDomain(hostname, 60 * 60 * 1000), {hostname, until});
     });
 
-    const tomorrow = menuItem("Pause here until tomorrow");
+    const tomorrow = textButton("Until tomorrow");
     tomorrow.addEventListener("click", () => {
         const hostname = location.hostname;
         const duration = msUntilTomorrow6am();
         void pauseSite(snoozeDomain(hostname, duration), {hostname, until: Date.now() + duration});
     });
 
-    const block = menuItem("Block this site (undo in options)");
+    const block = textButton("Disable on this domain");
+    block.title = "Re-enable from the ORE popup or options";
     block.addEventListener("click", () => {
         const hostname = location.hostname;
         void pauseSite(blockDomain(hostname), {hostname, blocked: true});
     });
 
-    menu.append(hour, tomorrow, block);
-    wrap.append(trigger, menu);
-    return wrap;
+    row.append(caption, hour, tomorrow, block);
+    return row;
 }
 
 /** Flash the outcome on the button that started the copy. */
@@ -332,32 +319,36 @@ function buildFooter(): HTMLElement {
     const footer = document.createElement("div");
     footer.setAttribute("data-flora-work-footer", "");
     footer.style.cssText =
-        "display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;" +
-        "align-items:flex-start;padding-top:6px;";
-    footer.append(buildPauseMenu());
+        "display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center;padding-top:6px;";
 
     if (isDebugEnabled()) {
         const copy = textButton("Copy log");
         copy.setAttribute("data-flora-work-copy", "");
         copy.addEventListener("click", () => void copyLog(copy));
-
-        const arm = textButton("Copy log when finished");
-        arm.setAttribute("data-flora-work-arm", "");
-        arm.addEventListener("click", () => {
-            copyWhenFinished = !copyWhenFinished;
-            arm.textContent = copyWhenFinished ? "Will copy when finished ✓" : "Copy log when finished";
-        });
-
-        footer.append(copy, arm);
+        footer.append(copy);
     }
+
+    const cancel = textButton("Cancel");
+    cancel.setAttribute("data-flora-work-cancel", "");
+    cancel.title = "Stop this pass — ORE runs again on the next page";
+    cancel.addEventListener("click", () => {
+        cancelled = true;
+        dismissed = true;
+        clearTimers();
+        removeToast();
+    });
+    footer.append(cancel);
     return footer;
 }
 
-/** The row that stands in for the footer once an armed pass has finished. */
+/** Compact row that replaces the toast once a pass ends with the log-copy offer on. */
 function buildFinishRow(): HTMLElement {
     const row = document.createElement("div");
     row.setAttribute("data-flora-work-finish", "");
-    row.style.cssText = "display:none;justify-content:flex-end;gap:6px;";
+    row.style.cssText = "display:none;align-items:center;gap:8px;line-height:1.4;";
+    const label = document.createElement("span");
+    label.setAttribute("data-flora-work-finish-label", "");
+    label.style.cssText = "flex:1;";
     const copy = textButton("Copy log");
     copy.setAttribute("data-flora-work-final-copy", "");
     copy.addEventListener("click", () => {
@@ -365,7 +356,12 @@ function buildFinishRow(): HTMLElement {
             hideTimer = setTimeout(fadeOut, BUTTON_FLASH_MS);
         });
     });
-    row.append(copy);
+    const close = iconButton("Dismiss", CLOSE_SVG);
+    close.addEventListener("click", () => {
+        clearTimers();
+        removeToast();
+    });
+    row.append(label, copy, close);
     return row;
 }
 
@@ -394,6 +390,16 @@ function ensureToast(): HTMLElement {
     label.style.cssText = "flex:1;";
     label.textContent = labelText;
 
+    const pauseRow = buildPauseRow();
+    const pause = iconButton("Pause ORE on this site", PAUSE_SVG);
+    pause.setAttribute("data-flora-work-pause", "");
+    pause.setAttribute("aria-expanded", "false");
+    pause.addEventListener("click", () => {
+        const open = pauseRow.style.display === "flex";
+        pauseRow.style.display = open ? "none" : "flex";
+        pause.setAttribute("aria-expanded", String(!open));
+    });
+
     const chevron = iconButton("Show details", CHEVRON_SVG);
     chevron.setAttribute("data-flora-work-chevron", "");
     chevron.setAttribute("aria-expanded", "false");
@@ -410,7 +416,7 @@ function ensureToast(): HTMLElement {
         removeToast();
     });
 
-    row.append(spinner, label, chevron, close);
+    row.append(spinner, label, chevron, pause, close);
 
     const track = document.createElement("div");
     track.setAttribute("data-flora-work-track", "");
@@ -433,7 +439,7 @@ function ensureToast(): HTMLElement {
         "list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-weight:400;";
     panel.append(list, buildFooter());
 
-    host.append(style, row, track, panel, buildFinishRow());
+    host.append(style, row, track, pauseRow, panel, buildFinishRow());
     document.body.appendChild(host);
     document.addEventListener("keydown", onKeydown, true);
     return host;
@@ -449,7 +455,6 @@ function applyExpanded(host: HTMLElement): void {
         chevron.title = expanded ? "Hide details" : "Show details";
     }
     if (arrow) arrow.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
-    host.style.maxWidth = expanded && items.length ? "360px" : "320px";
     if (expanded) renderStages(host);
 }
 
@@ -597,6 +602,7 @@ function renderNow(): void {
     if (label) label.textContent = labelText;
     paint(host);
     applyExpanded(host);
+    if (finished) showFinishRow(host);
     requestAnimationFrame(() => {
         host.style.opacity = "1";
         host.style.transform = "translateY(0)";
@@ -616,6 +622,19 @@ function render(): void {
         showTimer = null;
         renderNow();
     }, SHOW_DELAY_MS);
+}
+
+/** Collapse the toast to one line: "Done in 2.3 s · Copy log ×". */
+function showFinishRow(host: HTMLElement): void {
+    for (const part of host.children) {
+        const el = part as HTMLElement;
+        if (el.tagName === "STYLE" || el.hasAttribute("data-flora-work-finish")) continue;
+        el.style.display = "none";
+    }
+    const finishRow = host.querySelector<HTMLElement>("[data-flora-work-finish]");
+    const finishLabel = host.querySelector<HTMLElement>("[data-flora-work-finish-label]");
+    if (finishLabel) finishLabel.textContent = labelText;
+    if (finishRow) finishRow.style.display = "flex";
 }
 
 function fadeOut(): void {
@@ -638,9 +657,12 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         progress = 0;
         labelText = DEFAULT_LABEL;
         dismissed = false;
+        cancelled = false;
         expanded = false;
         finished = false;
-        copyWhenFinished = false;
+        void getSettings().then((settings) => {
+            offerLogCopy = settings.offerLogCopyAfterPass;
+        });
         currentStage = null;
         items = [];
         passStartedAt = now();
@@ -713,6 +735,11 @@ export function updateWorkItem(id: string, status: WorkItemStatus, detail?: stri
     if (touched) render();
 }
 
+/** True once the user pressed Cancel on this pass; pipelines stop at their next stage boundary. */
+export function isWorkCancelled(): boolean {
+    return cancelled;
+}
+
 /** Hide the toast once all outstanding work has finished. */
 export function endWorkIndicator(): void {
     if (refCount === 0) return; // unmatched end — nothing to close
@@ -733,18 +760,14 @@ export function endWorkIndicator(): void {
     clearTimers(); // a pass that finished before the toast appeared stays silent
     const wasDismissed = dismissed;
     dismissed = false;
+    cancelled = false;
 
-    if (copyWhenFinished && !wasDismissed) {
+    if (offerLogCopy && isDebugEnabled() && !wasDismissed && !suppressed) {
         finished = true;
         progress = 1;
-        labelText = FINISHED_LABEL;
-        const host = ensureToast();
-        host.querySelector<HTMLElement>("[data-flora-work-spinner]")?.style.setProperty("display", "none");
-        host.querySelector<HTMLElement>("[data-flora-work-chevron]")?.style.setProperty("display", "none");
+        labelText = `Done in ${formatDuration(now() - passStartedAt)}`;
         expanded = false;
         renderNow();
-        const finishRow = host.querySelector<HTMLElement>("[data-flora-work-finish]");
-        if (finishRow) finishRow.style.display = "flex";
         return;
     }
 
@@ -777,9 +800,10 @@ export function _resetWorkIndicatorForTesting(): void {
     labelText = DEFAULT_LABEL;
     suppressed = false;
     dismissed = false;
+    cancelled = false;
     expanded = false;
     finished = false;
-    copyWhenFinished = false;
+    offerLogCopy = false;
     stages = [];
     currentStage = null;
     items = [];

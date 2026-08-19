@@ -21,6 +21,7 @@ import {
     beginWorkIndicator,
     count,
     endWorkIndicator,
+    isWorkCancelled,
     reportWorkStage,
     hideAllFloraUI,
     removeSidePanel,
@@ -394,9 +395,9 @@ async function runScanPass(): Promise<void> {
         }
         pageStateVersion++; // signal that replication data is now available
 
-        // Paused or hidden while the lookup ran — the results stay in pageState
-        // for a later pass, but nothing goes on the page.
-        if (floraHidden) return;
+        // Paused, hidden or cancelled while the lookup ran — the results stay
+        // in pageState for a later pass, but nothing goes on the page.
+        if (floraHidden || isWorkCancelled()) return;
 
         try {
             reportWorkStage("report", "Generating report…");
@@ -464,8 +465,8 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
     beginWorkIndicator();
     return refsPromise
         .then(async (resolvedRefs) => {
-            if (floraHidden) {
-                // Paused or hidden while these were resolving — leave the page alone.
+            if (floraHidden || isWorkCancelled()) {
+                // Paused, hidden or cancelled while these were resolving — leave the page alone.
                 releaseReferenceEntries(resolvedRefs);
                 return [];
             }

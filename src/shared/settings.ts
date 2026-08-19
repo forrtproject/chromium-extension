@@ -20,6 +20,11 @@ export interface FloraSettings {
    * are evicted first, then live entries oldest-first (LRU).
    */
   cacheQuotaMb: number;
+  /**
+   * With debug mode on, keep a one-line "Done in … · Copy log" toast up after
+   * each pass so the log for a slow or wrong pass is one click away.
+   */
+  offerLogCopyAfterPass: boolean;
 }
 
 const STORAGE_KEY = "flora_settings";
@@ -29,6 +34,7 @@ const DEFAULTS: FloraSettings = {
   showDoiPillsOnAllReferences: false,
   citationStyle: "apa",
   cacheQuotaMb: 50,
+  offerLogCopyAfterPass: false,
 };
 
 let cachedSettings: FloraSettings | null = null;

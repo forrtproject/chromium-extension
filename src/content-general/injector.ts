@@ -12,7 +12,7 @@ import {ensureFocusStyle, FLORA_UI_SELECTOR} from "@shared/flora-ui";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
-export {beginWorkIndicator, count, endWorkIndicator, reportWorkStage} from "@shared/progress-toast";
+export {beginWorkIndicator, count, endWorkIndicator, isWorkCancelled, reportWorkStage} from "@shared/progress-toast";
 
 const BANNER_HOST_ID = "flora-banner-host";
 
