@@ -8,6 +8,16 @@ vi.mock("../../src/shared/settings", () => ({
   isSetupComplete: vi.fn().mockResolvedValue(true),
 }));
 
+// The request gate spaces real requests out; these tests exercise matching,
+// not pacing, so route its fetch straight through.
+vi.mock("../../src/shared/request-gate", () => ({
+  RequestGate: class {
+    fetch(url: string, init?: RequestInit) {
+      return fetch(url, init);
+    }
+  },
+}));
+
 import { normalizeTitle, similarity, tokenSetRatio, augmentDOIs, fetchTitleByDoi, _resetAugmentCachesForTesting } from "../../src/shared/doi-augment";
 import { getSettings } from "../../src/shared/settings";
 
@@ -629,6 +639,38 @@ describe("augmentDOIs", () => {
     }]);
 
     expect(results.get(title)).toBe("10.1146/annurev-psych-020821-114157");
+  });
+
+  it("asks one platform per title, alternating, and the other only when the first finds nothing", async () => {
+    // Alpha is on Crossref, Beta on neither platform's first stop: title 0 goes
+    // Crossref-first and stops; title 1 goes OpenAlex-first, misses, then falls
+    // back to Crossref.
+    const asked: string[] = [];
+    const record = (platform: string, url: string) => {
+      const q = decodeURIComponent(new URL(url).search);
+      asked.push(`${platform}:${/Alpha/.test(q) ? "alpha" : /Beta/.test(q) ? "beta" : "?"}`);
+    };
+    server.use(
+      http.get(CROSSREF_URL, ({ request }) => {
+        record("crossref", request.url);
+        const q = decodeURIComponent(request.url);
+        const items = /Alpha/.test(q)
+          ? [{ DOI: "10.1000/alpha", title: ["Alpha Study of Things"], issued: { "date-parts": [[2020]] } }]
+          : /Beta/.test(q)
+            ? [{ DOI: "10.1000/beta", title: ["Beta Study of Things"], issued: { "date-parts": [[2021]] } }]
+            : [];
+        return HttpResponse.json({ message: { items } });
+      }),
+      http.get(OPENALEX_URL, ({ request }) => {
+        record("openalex", request.url);
+        return HttpResponse.json({ results: [] });
+      })
+    );
+
+    const results = await augmentDOIs(["Alpha Study of Things", "Beta Study of Things"]);
+    expect(results.get("Alpha Study of Things")).toBe("10.1000/alpha");
+    expect(results.get("Beta Study of Things")).toBe("10.1000/beta");
+    expect(asked.sort()).toEqual(["crossref:alpha", "crossref:beta", "openalex:beta"]);
   });
 
   it("returns null for ambiguous same-score candidates when metadata cannot break the tie", async () => {

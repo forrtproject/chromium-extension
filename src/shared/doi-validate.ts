@@ -1,6 +1,7 @@
 import type { DoiString } from "./types";
 import { debugLog, debugWarn } from "./debug";
 import { BlobCache } from "./blob-cache";
+import { mapWithLimit } from "./request-gate";
 
 /**
  * Validate DOIs by checking the doi.org Handle System API.
@@ -10,20 +11,6 @@ import { BlobCache } from "./blob-cache";
 
 const HANDLE_API = "https://doi.org/api/handles/";
 const MAX_CONCURRENT_CHECKS = 6;
-
-async function mapWithLimit<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T) => Promise<void>
-): Promise<void> {
-  let next = 0;
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      await worker(items[next++]);
-    }
-  });
-  await Promise.all(runners);
-}
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const VALIDATION_CACHE = new BlobCache<{ valid: boolean }>({

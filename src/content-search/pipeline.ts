@@ -18,7 +18,16 @@ import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
 import {applyPlacement} from "@shared/site-adapters";
 import {fetchOpenAccess} from "@shared/openaccess";
-import {beginWorkIndicator, count, endWorkIndicator, reportWorkStage} from "@shared/progress-toast";
+import {
+    beginWorkIndicator,
+    count,
+    endWorkIndicator,
+    isWorkCancelled,
+    reportWorkStage,
+    setWorkItems,
+    updateWorkItem,
+    type WorkItem,
+} from "@shared/progress-toast";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import type {RowExtraction, SearchSiteAdapter} from "./sites/types";
 
@@ -38,14 +47,30 @@ function refreshBadges(): void {
     updateIndicatorPillBadges(document, lookupState, [...retractions.values()]);
 }
 
+// Set by the popup's hide command and by the work toast's pause control (both
+// handled in index.ts). The pass reads it to stop marking up rows.
+let searchHidden = false;
+
+export function setSearchHidden(hidden: boolean): void {
+    searchHidden = hidden;
+}
+
+export function isSearchHidden(): boolean {
+    return searchHidden;
+}
+
 /** Process every not-yet-processed row under `root`, holding one work
  *  indicator across the batch — extraction through to badges. */
 export async function processSearchResults(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
+    if (searchHidden) {
+        debugLog(`${adapter.label}: paused on this site — skipping the pass`);
+        return;
+    }
     const rows = root.querySelectorAll<HTMLElement>(`${adapter.resultRow}:not([${PROCESSED_ATTR}])`);
     debugLog(`${adapter.label}: ${rows.length} new result row(s) to process`);
     if (rows.length === 0) return;
 
-    beginWorkIndicator();
+    beginWorkIndicator({stages: ["scan", "validate", "augment", "lookup", "report"]});
     try {
         await runPass(adapter, rows);
     } finally {
@@ -59,6 +84,7 @@ interface RowInfo extends RowExtraction {
 
 interface ResolvedRow {
     row: HTMLElement;
+    title: string;
     doi: DoiString;
     source: DoiSource;
 }
@@ -69,7 +95,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
 
     const resolved: ResolvedRow[] = [];
     const place = (info: RowInfo, doi: DoiString, source: DoiSource, isAugmented: boolean, provenanceLabel?: string): void => {
-        resolved.push({row: info.row, doi, source});
+        resolved.push({row: info.row, title: info.title, doi, source});
         void placePanel(adapter, info.row, doi, isAugmented, provenanceLabel);
     };
 
@@ -99,12 +125,18 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     const withSiteId = pending.filter((r) => r.siteId);
     if (withSiteId.length > 0 && adapter.resolveSiteIds) {
         reportWorkStage("validate", `Resolving ${count(withSiteId.length, `${label} record`)} to DOIs…`);
+        setWorkItems(withSiteId.map((r) => workItem(r.siteId!, r.title, rowByline(r))));
         let bySiteId = new Map<string, DoiString | null>();
         try {
             bySiteId = await adapter.resolveSiteIds(withSiteId.map((r) => r.siteId!));
         } catch (err) {
             debugWarn(`${label}: id resolution failed for ${withSiteId.length} row(s) —`, err);
         }
+        for (const info of withSiteId) {
+            const doi = bySiteId.get(info.siteId!) ?? null;
+            updateWorkItem(info.siteId!, doi ? "done" : "failed", doi ?? "no DOI on record");
+        }
+        if (isWorkCancelled()) return;
         pending = pending.filter((info) => {
             const doi = info.siteId ? bySiteId.get(info.siteId) : undefined;
             if (!doi) return true;
@@ -115,15 +147,21 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     }
 
     // Phase 3: DOIs found in the row but not confidently — confirm with doi.org.
-    const doisToValidate = pending.filter((r) => r.doi).map((r) => r.doi!);
+    const withDoi = pending.filter((r) => r.doi);
+    const doisToValidate = withDoi.map((r) => r.doi!);
     let validated = new Map<DoiString, boolean>();
     if (doisToValidate.length > 0) {
         reportWorkStage("validate", `Checking ${count(doisToValidate.length, "DOI")} resolve…`);
+        setWorkItems(withDoi.map((r) => workItem(r.doi!, r.title, r.doi!)));
         try {
             validated = await validateDOIs(doisToValidate);
         } catch (err) {
             debugWarn(`${label}: validation failed for ${doisToValidate.length} DOI(s) —`, err);
         }
+        for (const doi of doisToValidate) {
+            updateWorkItem(doi, validated.get(doi) ? "done" : "failed");
+        }
+        if (isWorkCancelled()) return;
     }
     pending = pending.filter((info) => {
         if (!(info.doi && validated.get(info.doi))) return true;
@@ -134,17 +172,23 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
 
     // Phase 4: title search for whatever is still unresolved.
     if (pending.length > 0) {
-        const requests: DoiAugmentRequest[] = pending
-            .filter((r) => r.title)
+        const titled = pending.filter((r) => r.title);
+        const requests: DoiAugmentRequest[] = titled
             .map((r) => ({title: r.title, firstAuthor: r.firstAuthor, year: r.year, sourceUrl: r.sourceUrl}));
         let augmented = new Map<string, DoiString | null>();
         if (requests.length > 0) {
             reportWorkStage("augment", `Augmenting ${count(requests.length, "result")} without a DOI…`);
+            setWorkItems(titled.map((r) => workItem(r.title, r.title, rowByline(r))));
             try {
                 augmented = await augmentDOIsViaWorker(requests);
             } catch (err) {
                 debugWarn(`${label}: augmentation failed for ${requests.length} row(s) —`, err);
             }
+            for (const info of titled) {
+                const doi = augmented.get(info.title) ?? null;
+                updateWorkItem(info.title, doi ? "done" : "failed", doi ?? "no DOI found");
+            }
+            if (isWorkCancelled()) return;
         }
 
         for (const info of pending) {
@@ -192,6 +236,11 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     const uniqueDois = [...new Set(resolved.map((r) => r.doi))];
     debugLog(`${label}: Sending lookup for`, uniqueDois.length, "unique DOIs:", uniqueDois);
     reportWorkStage("lookup", `Found ${count(uniqueDois.length, "unique DOI")} — looking them up…`);
+    const titleByDoi = new Map<DoiString, string>();
+    for (const {doi, title} of resolved) {
+        if (!titleByDoi.has(doi)) titleByDoi.set(doi, title);
+    }
+    setWorkItems(uniqueDois.map((doi) => workItem(doi, titleByDoi.get(doi) ?? doi, doi)));
     const request: LookupRequest = {type: "FLORA_LOOKUP", dois: uniqueDois};
 
     try {
@@ -205,12 +254,37 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
                 badgedCount++;
             }
         }
+        for (const doi of uniqueDois) {
+            if (response.errors[doi]) updateWorkItem(doi, "failed");
+            else updateWorkItem(doi, response.results[doi] ? "flagged" : "done");
+        }
+
+        // Paused or cancelled while the lookup ran — the results stay in
+        // lookupState for a later pass, but nothing goes on the page.
+        if (searchHidden || isWorkCancelled()) return;
+
         reportWorkStage("report", `Marking up ${count(badgedCount, "result")}…`);
         refreshBadges();
         debugLog(`${label}: Rendered`, badgedCount, "badge(s)");
     } catch (err) {
         debugLog(`${label}: Lookup failed:`, err);
     }
+}
+
+/** Scholar prefixes headings with type tags ("[HTML]", "[PDF]"); the toast shows the title alone. */
+function stripTypeTags(title: string): string {
+    return title.replace(/^(\s*\[[A-Z]+\])+\s*/, "");
+}
+
+/** First author and year of a row, for the item's right-hand detail column. */
+function rowByline(info: {firstAuthor: string | null; year: number | null}): string | undefined {
+    const parts = [info.firstAuthor, info.year?.toString()].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : undefined;
+}
+
+/** One work-toast item, pending until its stage reports back on it. */
+function workItem(id: string, label: string, detail?: string): WorkItem {
+    return {id, label: stripTypeTags(label) || id, detail, status: "pending"};
 }
 
 async function placeNoticeOnly(adapter: SearchSiteAdapter, row: HTMLElement, doi: DoiString): Promise<void> {

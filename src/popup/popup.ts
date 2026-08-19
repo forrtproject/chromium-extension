@@ -1,10 +1,19 @@
-import { getBlockedDomains, saveBlockedDomains, isDomainBlocked } from "../shared/domains";
+import {
+  getBlockedDomains,
+  saveBlockedDomains,
+  isDomainBlocked,
+  getSnooze,
+  clearSnooze,
+} from "../shared/domains";
 import { debugError, debugWarn, isDebugEnabledAsync, setDebug } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
+import { getSettings, saveSettings } from "../shared/settings";
 
 const domainEl = document.getElementById("current-domain")!;
 const blockBtn = document.getElementById("block-btn")!;
 const blockLabel = document.getElementById("block-btn-label")!;
+const snoozeNote = document.getElementById("snooze-note")!;
+const resumeBtn = document.getElementById("resume-btn")!;
 const hideBtn = document.getElementById("hide-btn")!;
 const hideLabel = document.getElementById("hide-btn-label")!;
 const tourBtn = document.getElementById("tour-btn")!;
@@ -13,10 +22,13 @@ const reportBtn = document.getElementById("report-btn")!;
 const reportLabel = document.getElementById("report-btn-label")!;
 const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
 const debugHint = document.getElementById("debug-hint")!;
+const logCopyRow = document.getElementById("log-copy-row")!;
+const logCopyToggle = document.getElementById("log-copy-toggle") as HTMLInputElement;
 const statusEl = document.getElementById("popup-status")!;
 
 let currentDomain = "";
 let blocked = false;
+let snoozedUntil: number | null = null;
 let hidden = false;
 let debugOn = false;
 let activeTabId: number | undefined;
@@ -42,6 +54,22 @@ function updateBlockUI(): void {
   }
 }
 
+/** "14:35", or "tomorrow at 09:00" when the pause runs past midnight. */
+function formatUntil(until: number): string {
+  const end = new Date(until);
+  const time = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return end.toDateString() === new Date().toDateString() ? time : `tomorrow at ${time}`;
+}
+
+function updateSnoozeUI(): void {
+  const paused = snoozedUntil !== null;
+  snoozeNote.hidden = !paused;
+  resumeBtn.hidden = !paused;
+  if (paused) {
+    snoozeNote.textContent = `Paused until ${formatUntil(snoozedUntil!)}`;
+  }
+}
+
 function updateHideUI(): void {
   if (hidden) {
     hideLabel.textContent = "Show on this page";
@@ -60,10 +88,12 @@ function updateDebugUI(): void {
   reportLabel.textContent = debugOn
     ? "Report an issue with debug log"
     : "Report an issue on this domain";
+  logCopyRow.hidden = !debugOn;
 }
 
 async function init(): Promise<void> {
   debugOn = await isDebugEnabledAsync();
+  logCopyToggle.checked = (await getSettings()).offerLogCopyAfterPass;
   updateDebugUI();
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -91,6 +121,8 @@ async function init(): Promise<void> {
 
   blocked = await isDomainBlocked(currentDomain);
   updateBlockUI();
+  snoozedUntil = await getSnooze(currentDomain);
+  updateSnoozeUI();
   reportBtn.style.display = "";
 
   // Ask the content script whether UI is currently hidden
@@ -150,6 +182,16 @@ blockBtn.addEventListener("click", async () => {
   updateBlockUI();
 });
 
+// End a temporary pause on the current domain
+resumeBtn.addEventListener("click", async () => {
+  if (!currentDomain) return;
+
+  await clearSnooze(currentDomain);
+  snoozedUntil = null;
+  updateSnoozeUI();
+  showStatus(`Resumed on ${currentDomain} — reload to apply`, "success");
+});
+
 // Toggle FLoRA UI visibility on the current page (session only)
 hideBtn.addEventListener("click", async () => {
   if (activeTabId == null) return;
@@ -176,6 +218,11 @@ debugToggle.addEventListener("change", () => {
     debugOn ? "Debug mode on — reload the page to record it" : "Debug mode off",
     "success"
   );
+});
+
+// Keep a one-line "Copy log" toast up after each pass (debug mode only)
+logCopyToggle.addEventListener("change", () => {
+  void saveSettings({ offerLogCopyAfterPass: logCopyToggle.checked });
 });
 
 // Report an issue on the current domain. With debug mode on the report is

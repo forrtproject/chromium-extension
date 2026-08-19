@@ -4,10 +4,10 @@
 
 import {resolveSearchSite} from "./sites";
 import {observeSearchResults} from "./observer";
-import {processSearchResults} from "./pipeline";
+import {isSearchHidden, processSearchResults, setSearchHidden} from "./pipeline";
 import {debugError, debugLog} from "@shared/debug";
 import {isSetupComplete} from "@shared/settings";
-import {isDomainBlocked} from "@shared/domains";
+import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 
 const SITE_STYLE_ID = "flora-search-site-style";
@@ -44,6 +44,12 @@ function injectSiteStyle(css: string): void {
             reportActiveState(false);
             return;
         }
+
+        if (await isDomainSnoozed(location.hostname)) {
+            debugLog("Domain is snoozed:", location.hostname);
+            reportActiveState(false);
+            return;
+        }
         reportActiveState(true);
 
         if (!(await isSetupComplete())) {
@@ -66,8 +72,6 @@ function injectSiteStyle(css: string): void {
     }
 })();
 
-let floraHidden = false;
-
 // hideAllFloraUI/showAllFloraUI already sweep the indicator panels, which are
 // the only per-result UI search rows carry.
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
@@ -75,16 +79,25 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     const type = (message as { type?: string }).type;
 
     if (type === "FLORA_HIDE_UI") {
-        floraHidden = true;
+        setSearchHidden(true);
         hideAllFloraUI();
         reportActiveState(false);
         sendResponse({ ok: true });
     } else if (type === "FLORA_SHOW_UI") {
-        floraHidden = false;
+        setSearchHidden(false);
         showAllFloraUI();
         reportActiveState(true);
         sendResponse({ ok: true });
     } else if (type === "FLORA_GET_STATE") {
-        sendResponse({ hidden: floraHidden });
+        sendResponse({ hidden: isSearchHidden() });
     }
+});
+
+// The pause control on the work toast writes the snooze (or block) to storage
+// itself, then announces it here so this page clears immediately instead of
+// waiting for a reload.
+document.addEventListener("flora-pause-site", () => {
+    setSearchHidden(true);
+    hideAllFloraUI();
+    reportActiveState(false);
 });

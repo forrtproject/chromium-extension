@@ -10,13 +10,17 @@ import {resolveOpenAlexIds} from "@shared/openalex-resolve";
 import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
 import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
-import {debugError, debugWarn} from "@shared/debug";
+import {debugError, debugLog, debugWarn, isDebugEnabledAsync} from "@shared/debug";
 
 const cache = new LocalCache<ReplicationResult>("flora");
 
 // The worker owns the debug log: its own entries are stored directly, and
 // every other context ships batches here via FLORA_DEBUG_ENTRIES.
 installDebugLogStore();
+// A wake-up marker: with the log open, gaps between a page's request and this
+// line show how long Chrome took to start the worker. Logged once the debug
+// flag has been read — a top-level debugLog runs before that and is dropped.
+isDebugEnabledAsync().then(() => debugLog("Worker started")).catch(() => {});
 
 // Initialise cache quota from persisted settings (service worker may restart).
 getSettings().then(({ cacheQuotaMb }) => {
@@ -536,6 +540,7 @@ function getRetractionSource(): Promise<RetractionMaps> {
 
 async function loadRetractionSource(): Promise<RetractionMaps> {
     const generation = retractionGeneration;
+    const started = performance.now();
     const storageResult = await chrome.storage.local.get([RET_MAP_KEY]);
     const stored = storageResult[RET_MAP_KEY] as RetractionMaps | undefined;
     const hasStoredData = !!stored && (
@@ -546,17 +551,20 @@ async function loadRetractionSource(): Promise<RetractionMaps> {
     if (hasStoredData) {
         const source = normaliseRetractionMaps(stored!);
         if (generation === retractionGeneration) cachedRetractionSource = source;
+        debugLog(`Retractions: source loaded from storage in ${Math.round(performance.now() - started)} ms`);
         return source;
     }
 
     // Nothing synced yet: kick off a sync for next time and answer from the
     // bundled JSON now. Don't cache the fallback — onChanged will pick up the
     // synced map, but until then we re-read so an in-flight sync is noticed.
+    debugLog("Retractions: nothing synced yet — answering from the bundled map and starting a sync");
     syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
     return loadBundledRetractionMap();
 }
 
 async function handleRetractionCheck(dois: DoiString[]): Promise<RetractionCheckResponse> {
+    const started = performance.now();
     let source: RetractionMaps;
     try {
         source = await getRetractionSource();
@@ -564,6 +572,7 @@ async function handleRetractionCheck(dois: DoiString[]): Promise<RetractionCheck
         debugError(`Retractions: no source available, ${dois.length} DOI(s) unchecked —`, err);
         return {type: "FLORA_RET_CHECK_RESULT", results: [], error: "Retraction data unavailable"};
     }
+    debugLog(`Retractions: checking ${dois.length} DOI(s), source ready after ${Math.round(performance.now() - started)} ms`);
 
     const results: RetractionResponse[] = [];
     for (const doi of dois) {

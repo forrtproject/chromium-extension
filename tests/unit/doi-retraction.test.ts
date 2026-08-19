@@ -77,4 +77,17 @@ describe("doi retraction content helper", () => {
         const {retractionCheck} = await import("../../src/shared/doi-retraction");
         await expect(retractionCheck([doi("10.1038/nature12373")])).resolves.toEqual([]);
     });
+
+    it("gives up on a worker that never answers so the pass can continue", async () => {
+        vi.useFakeTimers();
+        try {
+            (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+            const {retractionCheck, RETRACTION_CHECK_TIMEOUT_MS} = await import("../../src/shared/doi-retraction");
+            const pending = retractionCheck([doi("10.1038/nature12373")]);
+            await vi.advanceTimersByTimeAsync(RETRACTION_CHECK_TIMEOUT_MS + 1);
+            await expect(pending).resolves.toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
