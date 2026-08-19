@@ -63,7 +63,7 @@ function updateSnoozeUI(): void {
   snoozeNote.hidden = !paused;
   resumeBtn.hidden = !paused;
   if (paused) {
-    snoozeNote.textContent = `Paused on ${currentDomain} until ${formatUntil(snoozedUntil!)}`;
+    snoozeNote.textContent = `Paused until ${formatUntil(snoozedUntil!)}`;
   }
 }
 
