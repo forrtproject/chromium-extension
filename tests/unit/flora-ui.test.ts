@@ -34,6 +34,13 @@ describe("isFloraOwnedNode", () => {
     expect(isFloraOwnedNode(el)).toBe(false);
     el.remove();
   });
+
+  it("recognises the marker when the id property is shadowed", () => {
+    const el = document.createElement("div");
+    el.setAttribute("id", "flora-shadowed-id");
+    Object.defineProperty(el, "id", {value: 123, configurable: true});
+    expect(isFloraOwnedNode(el)).toBe(true);
+  });
 });
 
 describe("isExternalMutation", () => {
