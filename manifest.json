@@ -17,6 +17,7 @@
   "host_permissions": [
     "https://rep-api.forrt.org/*",
     "https://api.openalex.org/*",
+    "https://api.semanticscholar.org/*",
     "https://api.crossref.org/*",
     "https://api.unpaywall.org/*",
     "https://doi.org/*",
@@ -68,6 +69,7 @@
         "*://*.google.it/maps*",
         "*://*.google.com.br/maps*",
         "*://*.google.com.au/maps*",
+        "*://pubmed.ncbi.nlm.nih.gov/?*",
         "*://forrt.org/*",
         "*://lukaswallrich.github.io/*"
       ],
@@ -125,7 +127,12 @@
         "*://scholar.google.com.br/*",
         "*://scholar.google.com.au/*",
         "*://openalex.org/*",
-        "*://www.openalex.org/*"
+        "*://www.openalex.org/*",
+        "*://semanticscholar.org/*",
+        "*://www.semanticscholar.org/*",
+        "*://pubmed.ncbi.nlm.nih.gov/*",
+        "*://europepmc.org/*",
+        "*://www.europepmc.org/*"
       ],
       "js": [
         "dist/content-search.js"

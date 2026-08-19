@@ -1,5 +1,6 @@
 import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse} from "./types";
 import type {AugmentSource} from "./doi-augment";
+import type {NcbiIdType} from "./pmc-resolve";
 import {debugLog} from "./debug";
 import type {DebugLogEntry} from "./debug";
 
@@ -122,13 +123,15 @@ export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
     );
 }
 
-/** Content script → service worker: resolve PubMed Central ids to DOIs */
+/** Content script → service worker: resolve PMC ids (or PMIDs) to DOIs */
 export interface PmcResolveRequest {
     type: "FLORA_PMC_RESOLVE";
     pmcids: string[];
+    /** Which id type `pmcids` holds; defaults to "pmcid". */
+    idtype?: NcbiIdType;
 }
 
-/** Service worker → content script: PMC id → DOI (or null when NCBI has none) */
+/** Service worker → content script: id → DOI (or null when NCBI has none) */
 export interface PmcResolveResponse {
     type: "FLORA_PMC_RESOLVE_RESULT";
     results: Record<string, string | null>;
@@ -179,16 +182,54 @@ export async function resolveOpenAlexIdsViaWorker(
     return result;
 }
 
+/** Content script → service worker: resolve Semantic Scholar paper ids to DOIs */
+export interface SemanticScholarResolveRequest {
+    type: "FLORA_S2_RESOLVE";
+    ids: string[];
+}
+
+/** Service worker → content script: paper id → DOI (or null when the paper has none) */
+export interface SemanticScholarResolveResponse {
+    type: "FLORA_S2_RESOLVE_RESULT";
+    results: Record<string, string | null>;
+}
+
+export function isSemanticScholarResolveRequest(msg: unknown): msg is SemanticScholarResolveRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_S2_RESOLVE" &&
+        Array.isArray((msg as Record<string, unknown>).ids)
+    );
+}
+
+/** Ask the service worker to run resolveSemanticScholarIds. */
+export async function resolveSemanticScholarIdsViaWorker(
+    ids: string[]
+): Promise<Map<string, DoiString | null>> {
+    const response = await safeSendMessage<SemanticScholarResolveResponse>({
+        type: "FLORA_S2_RESOLVE",
+        ids,
+    });
+    const result = new Map<string, DoiString | null>();
+    for (const [id, doi] of Object.entries(response?.results ?? {})) {
+        result.set(id, doi as DoiString | null);
+    }
+    return result;
+}
+
 /**
  * Ask the service worker to run resolvePmcIds — NCBI's converter sends no CORS
  * headers, so the fetch has to happen in the background context.
  */
 export async function resolvePmcIdsViaWorker(
-    pmcids: string[]
+    pmcids: string[],
+    idtype: NcbiIdType = "pmcid"
 ): Promise<Map<string, DoiString | null>> {
     const response = await safeSendMessage<PmcResolveResponse>({
         type: "FLORA_PMC_RESOLVE",
         pmcids,
+        idtype,
     });
     const result = new Map<string, DoiString | null>();
     for (const [pmcid, doi] of Object.entries(response?.results ?? {})) {

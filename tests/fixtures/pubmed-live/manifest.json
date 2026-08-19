@@ -1,0 +1,16 @@
+{
+  "snapshotDate": "2026-08-19",
+  "source": "PubMed via Chrome for Testing with the unpacked extension loaded",
+  "note": "Result rows only (article.full-docsum), with data-flora-processed and the injected panels stripped.",
+  "snapshots": [
+    {
+      "query": "ego depletion",
+      "requestedUrl": "https://pubmed.ncbi.nlm.nih.gov/?term=ego+depletion",
+      "file": "tests/fixtures/pubmed-live/pubmed-live-01.html",
+      "title": "ego depletion - Search Results - PubMed",
+      "rowCount": 10,
+      "panelCount": 10,
+      "htmlBytes": 35174
+    }
+  ]
+}

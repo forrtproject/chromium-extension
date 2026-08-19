@@ -1,0 +1,11 @@
+/* Semantic Scholar: the result row is a vertical stack whose last line
+   (.cl-paper-controls) is a flex row holding the citation count and the
+   Save/Cite buttons. The panel is placed at that line's right end, where the
+   row leaves free width. */
+.cl-paper-controls > [data-flora-panel] {
+  flex: 0 0 auto;
+  width: 240px;
+  max-width: 40%;
+  margin-left: auto;
+  margin-top: 0;
+}

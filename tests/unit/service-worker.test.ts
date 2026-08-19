@@ -561,7 +561,7 @@ describe("service-worker", () => {
 
             const response = await sendPmcResolve(["PMC12638941", "PMC99999999"]);
 
-            expect(mockResolvePmcIds).toHaveBeenCalledWith(["PMC12638941", "PMC99999999"]);
+            expect(mockResolvePmcIds).toHaveBeenCalledWith(["PMC12638941", "PMC99999999"], "pmcid");
             expect(response.results).toEqual({
                 PMC12638941: "10.1038/s41531-025-01179-6",
                 PMC99999999: null,

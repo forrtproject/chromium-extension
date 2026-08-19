@@ -1,0 +1,9 @@
+/* Europe PMC: .citation is the row's text column. The panel goes after the
+   Save / Add-to-export-list row (p.citation-labels), narrow enough to sit
+   under the text without stretching the list item. */
+.citation [data-flora-panel] {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 4px 0 8px;
+}

@@ -1,0 +1,9 @@
+/* PubMed: .docsum-content is the row's single text column (title, citation,
+   snippet). The panel is appended below the snippet, kept narrow and aligned
+   with the text so the results list keeps its one-column rhythm. */
+.docsum-content > [data-flora-panel] {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 6px 0 2px;
+}

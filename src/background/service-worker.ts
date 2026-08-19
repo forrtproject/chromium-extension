@@ -2,11 +2,12 @@ import {LocalCache, MONTH_MS} from "@shared/cache";
 import {lookupDOIs} from "@shared/flora-api";
 import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
-import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, type TakeReportResponse} from "@shared/messages";
+import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, type TakeReportResponse} from "@shared/messages";
 import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
-import {resolvePmcIds} from "@shared/pmc-resolve";
+import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
+import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {getSettings, isSetupComplete} from "@shared/settings";
 import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
 import {debugError, debugWarn} from "@shared/debug";
@@ -242,7 +243,7 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (isPmcResolveRequest(message)) {
-            handlePmcResolve(message.pmcids)
+            handlePmcResolve(message.pmcids, message.idtype)
                 .then(sendResponse)
                 .catch(() =>
                     sendResponse({
@@ -261,6 +262,18 @@ chrome.runtime.onMessage.addListener(
                         type: "FLORA_OPENALEX_RESOLVE_RESULT",
                         results: {},
                     } satisfies OpenAlexResolveResponse)
+                );
+            return true;
+        }
+
+        if (isSemanticScholarResolveRequest(message)) {
+            handleSemanticScholarResolve(message.ids)
+                .then(sendResponse)
+                .catch(() =>
+                    sendResponse({
+                        type: "FLORA_S2_RESOLVE_RESULT",
+                        results: {},
+                    } satisfies SemanticScholarResolveResponse)
                 );
             return true;
         }
@@ -404,8 +417,14 @@ async function handleOpenAlexResolve(ids: string[]): Promise<OpenAlexResolveResp
     return {type: "FLORA_OPENALEX_RESOLVE_RESULT", results};
 }
 
-async function handlePmcResolve(pmcids: string[]): Promise<PmcResolveResponse> {
-    const resultMap = await resolvePmcIds(pmcids);
+async function handleSemanticScholarResolve(ids: string[]): Promise<SemanticScholarResolveResponse> {
+    const results: Record<string, string | null> = {};
+    for (const [id, doi] of await resolveSemanticScholarIds(ids)) results[id] = doi;
+    return {type: "FLORA_S2_RESOLVE_RESULT", results};
+}
+
+async function handlePmcResolve(pmcids: string[], idtype: NcbiIdType = "pmcid"): Promise<PmcResolveResponse> {
+    const resultMap = await resolvePmcIds(pmcids, idtype);
     const results: Record<string, string | null> = {};
     for (const [pmcid, doi] of resultMap) results[pmcid] = doi ?? null;
     return {type: "FLORA_PMC_RESOLVE_RESULT", results};

@@ -14,10 +14,13 @@
 import type {SearchSiteAdapter} from "./types";
 import {SCHOLAR} from "./scholar";
 import {OPENALEX} from "./openalex";
+import {PUBMED} from "./pubmed";
+import {EUROPEPMC} from "./europepmc";
+import {SEMANTIC_SCHOLAR} from "./semanticscholar";
 
 export type {RowExtraction, SearchSiteAdapter} from "./types";
 
-export const SEARCH_SITE_ADAPTERS: readonly SearchSiteAdapter[] = [SCHOLAR, OPENALEX];
+export const SEARCH_SITE_ADAPTERS: readonly SearchSiteAdapter[] = [SCHOLAR, OPENALEX, SEMANTIC_SCHOLAR, PUBMED, EUROPEPMC];
 
 function normaliseHost(hostname: string): string {
     return hostname.toLowerCase().replace(/^www\./, "");
