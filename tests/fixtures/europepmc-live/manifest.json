@@ -1,16 +1,17 @@
 {
   "snapshotDate": "2026-08-19",
   "source": "Europe PMC via Chrome for Testing with the unpacked extension loaded",
-  "note": "Result rows only (.citation[id^=search-results--single--block-]), with data-flora-processed and the injected panels stripped.",
+  "note": "Result rows only (.citation[id^=search-results--single--block-]), with data-flora-processed and the injected panels stripped. rowCount is what this file holds.",
   "snapshots": [
     {
       "query": "ego depletion",
       "requestedUrl": "https://europepmc.org/search?query=ego%20depletion",
       "file": "tests/fixtures/europepmc-live/europepmc-live-01.html",
       "title": "ego depletion - Search results - Europe PMC",
-      "rowCount": 25,
-      "panelCount": 20,
-      "htmlBytes": 27805
+      "rowCount": 10,
+      "liveRowCount": 25,
+      "livePanelCount": 20,
+      "htmlBytes": 27946
     }
   ]
 }

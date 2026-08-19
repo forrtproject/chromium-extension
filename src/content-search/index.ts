@@ -87,6 +87,14 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         setSearchHidden(false);
         showAllFloraUI();
         reportActiveState(true);
+        // Rows that loaded while the site was paused were left unprocessed, so
+        // showing the UI again has nothing to show for them until a pass runs.
+        const adapter = resolveSearchSite(location.hostname);
+        if (adapter) {
+            void processSearchResults(adapter, document).catch((err) =>
+                debugError(`${adapter.label}: pass after unhide failed —`, err)
+            );
+        }
         sendResponse({ ok: true });
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({ hidden: isSearchHidden() });

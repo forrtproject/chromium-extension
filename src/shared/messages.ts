@@ -138,11 +138,14 @@ export interface PmcResolveResponse {
 }
 
 export function isPmcResolveRequest(msg: unknown): msg is PmcResolveRequest {
+    if (typeof msg !== "object" || msg === null) return false;
+    const record = msg as Record<string, unknown>;
     return (
-        typeof msg === "object" &&
-        msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_PMC_RESOLVE" &&
-        Array.isArray((msg as Record<string, unknown>).pmcids)
+        record.type === "FLORA_PMC_RESOLVE" &&
+        Array.isArray(record.pmcids) &&
+        // resolvePmcIds looks the id type up in a fixed table, so anything else
+        // would leave it without a normaliser.
+        (record.idtype === undefined || record.idtype === "pmcid" || record.idtype === "pmid")
     );
 }
 

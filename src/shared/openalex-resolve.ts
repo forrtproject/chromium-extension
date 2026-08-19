@@ -6,6 +6,7 @@ import type {DoiString} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {debugLog, debugWarn} from "./debug";
+import {withResolveTimeout} from "./resolve-timeout";
 
 const OPENALEX_WORKS = "https://api.openalex.org/works";
 // OpenAlex caps a `|`-joined filter at 50 values.
@@ -45,7 +46,7 @@ export async function resolveOpenAlexIds(rawIds: string[]): Promise<Map<string, 
     for (let i = 0; i < ids.length; i += MAX_IDS_PER_REQUEST) {
         const batch = ids.slice(i, i + MAX_IDS_PER_REQUEST);
         try {
-            for (const work of await fetchWorks(batch)) {
+            for (const work of await withResolveTimeout(fetchWorks(batch), "OpenAlex resolve")) {
                 const id = normaliseOpenAlexId(work.id);
                 if (!id) continue;
                 results.set(id, work.doi ? normaliseDOI(work.doi) : null);

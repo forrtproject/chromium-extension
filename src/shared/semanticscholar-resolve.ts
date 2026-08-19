@@ -5,6 +5,7 @@
 import type {DoiString} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {debugLog, debugWarn} from "./debug";
+import {withResolveTimeout} from "./resolve-timeout";
 
 const S2_BATCH = "https://api.semanticscholar.org/graph/v1/paper/batch";
 // The batch endpoint accepts at most 500 ids per request.
@@ -49,7 +50,7 @@ export async function resolveSemanticScholarIds(rawIds: string[]): Promise<Map<s
         const batch = ids.slice(i, i + MAX_IDS_PER_REQUEST);
         try {
             // The response array is aligned with the request; unknown ids come back null.
-            const papers = await fetchPapers(batch);
+            const papers = await withResolveTimeout(fetchPapers(batch), "Semantic Scholar resolve");
             papers.forEach((paper, index) => {
                 if (!paper) return;
                 const doi = paper.externalIds?.DOI;

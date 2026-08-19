@@ -9,6 +9,7 @@ import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
 import {debugLog, debugWarn} from "./debug";
+import {withResolveTimeout} from "./resolve-timeout";
 
 const IDCONV_BASE = "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/";
 // NCBI caps one request at 200 ids.
@@ -100,7 +101,7 @@ export async function resolvePmcIds(
         const batch = uncached.slice(i, i + MAX_IDS_PER_REQUEST);
         let records: IdConvRecord[];
         try {
-            records = await fetchIdConv(batch, idtype);
+            records = await withResolveTimeout(fetchIdConv(batch, idtype), `NCBI resolve (${idtype})`);
         } catch (err) {
             debugWarn(`NCBI resolve (${idtype}): batch of ${batch.length} failed, retrying next pass —`, err);
             continue;

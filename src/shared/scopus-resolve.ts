@@ -12,6 +12,7 @@
 import type {DoiString} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {debugLog, debugWarn} from "./debug";
+import {withResolveTimeout} from "./resolve-timeout";
 
 // Relative, so it stays same-origin on both www.scopus.com and scopus.com.
 const SCOPUS_SEARCH = "/gateway/documents/search";
@@ -64,7 +65,7 @@ export async function resolveScopusIds(
     for (let i = 0; i < ids.length; i += MAX_IDS_PER_REQUEST) {
         const batch = ids.slice(i, i + MAX_IDS_PER_REQUEST);
         try {
-            for (const item of await fetchItems(batch, fetchImpl)) {
+            for (const item of await withResolveTimeout(fetchItems(batch, fetchImpl), "Scopus resolve")) {
                 const id = normaliseScopusId(item.scopusId ?? item.eid);
                 if (!id) continue;
                 results.set(id, item.doi ? normaliseDOI(item.doi) : null);

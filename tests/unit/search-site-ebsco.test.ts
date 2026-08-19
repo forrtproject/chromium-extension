@@ -32,6 +32,7 @@ describe("EBSCOhost adapter", () => {
     });
 
     it("reads the profile from the page path and the record id from a details href", () => {
+        document.body.innerHTML = RESULTS;
         expect(ebscoProfileFromPath("/c/abc123/search/results")).toBe("abc123");
         expect(ebscoProfileFromPath("/some/other/path")).toBeNull();
         expect(EBSCO.extractRow(document.querySelectorAll<HTMLElement>(EBSCO.resultRow)[2])).toMatchObject({

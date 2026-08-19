@@ -14,6 +14,7 @@
 import type {DoiString} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {debugLog, debugWarn} from "./debug";
+import {withResolveTimeout} from "./resolve-timeout";
 
 const CITATION_API = "/api/search/v5/citation/records";
 // One request per record, so keep the site's own page load in mind.
@@ -74,7 +75,7 @@ export async function resolveEbscoIds(
         for (let i = next++; i < ids.length; i = next++) {
             const id = ids[i];
             try {
-                results.set(id, await fetchDoi(id, profile, fetchImpl));
+                results.set(id, await withResolveTimeout(fetchDoi(id, profile, fetchImpl), `EBSCO resolve ${id}`));
             } catch (err) {
                 debugWarn(`EBSCO resolve: ${id} failed —`, err);
             }

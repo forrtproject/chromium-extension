@@ -12,7 +12,7 @@ import {augmentDOIsViaWorker} from "@shared/messages";
 // injectRetractionInfo is still used for rows whose DOI failed validation:
 // those get no indicator panel, so there is no badge row to carry the notice.
 import {injectRetractionInfo, retractionCheck} from "@shared/doi-retraction";
-import {validateDOI, validateDOIs} from "@shared/doi-validate";
+import {validateDOIs} from "@shared/doi-validate";
 import type {DoiString, DoiSource, LookupState, RetractionResponse} from "@shared/types";
 import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
@@ -59,9 +59,24 @@ export function isSearchHidden(): boolean {
     return searchHidden;
 }
 
+// The work toast holds one set of stages and items at a time, so two passes
+// running together would overwrite each other's progress. Passes queue here
+// instead; each one reads the page when its turn comes, so it picks up every
+// row the earlier passes left unprocessed.
+let passQueue: Promise<void> = Promise.resolve();
+
 /** Process every not-yet-processed row under `root`, holding one work
- *  indicator across the batch — extraction through to badges. */
-export async function processSearchResults(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
+ *  indicator across the batch — extraction through to badges. Passes run one
+ *  at a time, in call order. */
+export function processSearchResults(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
+    const next = passQueue.then(() => runQueuedPass(adapter, root));
+    // Keep the queue itself clean: a rejected pass is reported to its own
+    // caller, and must not fail every pass scheduled after it.
+    passQueue = next.catch(() => {});
+    return next;
+}
+
+async function runQueuedPass(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
     if (searchHidden) {
         debugLog(`${adapter.label}: paused on this site — skipping the pass`);
         return;
@@ -170,9 +185,15 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         return false;
     });
 
-    // Phase 4: title search for whatever is still unresolved.
+    // Phase 4: title search for whatever is still unresolved. The worker keys
+    // its answers by title, so rows that print the same title share one search:
+    // ask once per distinct title, and give the toast one item for it.
     if (pending.length > 0) {
-        const titled = pending.filter((r) => r.title);
+        const byTitle = new Map<string, RowInfo>();
+        for (const info of pending) {
+            if (info.title && !byTitle.has(info.title)) byTitle.set(info.title, info);
+        }
+        const titled = [...byTitle.values()];
         const requests: DoiAugmentRequest[] = titled
             .map((r) => ({title: r.title, firstAuthor: r.firstAuthor, year: r.year, sourceUrl: r.sourceUrl}));
         let augmented = new Map<string, DoiString | null>();
@@ -191,6 +212,25 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
             if (isWorkCancelled()) return;
         }
 
+        // Rows whose extracted DOI the title search neither matched nor
+        // replaced get one last doi.org check — batched, so a page of them
+        // costs one round of requests rather than one per row.
+        const toRevalidate = [
+            ...new Set(
+                pending
+                    .filter((info) => info.doi && !augmented.get(info.title))
+                    .map((info) => info.doi!)
+            ),
+        ];
+        let revalidated = new Map<DoiString, boolean>();
+        if (toRevalidate.length > 0) {
+            try {
+                revalidated = await validateDOIs(toRevalidate);
+            } catch (err) {
+                debugWarn(`${label}: revalidation failed for ${toRevalidate.length} DOI(s) —`, err);
+            }
+        }
+
         for (const info of pending) {
             const augmentedDoi = augmented.get(info.title) ?? null;
             const extractedDoi = info.doi;
@@ -205,13 +245,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
                 place(info, augmentedDoi, "augmented", true);
             } else if (extractedDoi) {
                 // Extracted but the title search found nothing — last-resort doi.org check
-                let valid = false;
-                try {
-                    valid = await validateDOI(extractedDoi);
-                } catch (err) {
-                    debugWarn(`${label}: revalidation failed for ${extractedDoi} —`, err);
-                }
-                if (valid) {
+                if (revalidated.get(extractedDoi)) {
                     debugLog(`${label} resolve [extracted-revalidated] "${info.title}" → ${extractedDoi} (doi.org confirmed on retry)`);
                     place(info, extractedDoi, "extracted", false);
                 } else {
