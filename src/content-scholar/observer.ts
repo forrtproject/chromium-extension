@@ -340,8 +340,12 @@ async function runScholarPass(rows: NodeListOf<HTMLElement>): Promise<void> {
 }
 
 function rowTitle(row: HTMLElement): string {
-    // The heading starts with Scholar's type tags ("[HTML]", "[PDF]") — not part of the title.
-    return row.querySelector(".gs_rt a, .gs_rt")?.textContent?.replace(/^(\s*\[[A-Z]+\])+\s*/, "").trim() ?? "";
+    return row.querySelector(".gs_rt")?.textContent?.trim() ?? "";
+}
+
+/** Scholar prefixes headings with type tags ("[HTML]", "[PDF]"); the toast shows the title alone. */
+function stripTypeTags(title: string): string {
+    return title.replace(/^(\s*\[[A-Z]+\])+\s*/, "");
 }
 
 /** First author and year of a row, for the item's right-hand detail column. */
@@ -352,7 +356,7 @@ function rowByline(info: {firstAuthor: string | null; year: number | null}): str
 
 /** One work-toast item, pending until its stage reports back on it. */
 function workItem(id: string, label: string, detail?: string): WorkItem {
-    return {id, label: label || id, detail, status: "pending"};
+    return {id, label: stripTypeTags(label) || id, detail, status: "pending"};
 }
 
 async function preInjectLabels(row: HTMLElement, doi: DoiString, color: string, isAugmented = false): Promise<void> {
