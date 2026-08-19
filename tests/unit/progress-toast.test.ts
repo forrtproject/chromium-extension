@@ -3,7 +3,6 @@ import {
     beginWorkIndicator,
     endWorkIndicator,
     hideWorkIndicator,
-    isWorkDismissed,
     reportWorkStage,
     setWorkItems,
     showWorkIndicator,
@@ -22,6 +21,12 @@ vi.mock("../../src/shared/debug-report", () => ({
 vi.mock("../../src/shared/clipboard", () => ({
     writeClipboard: vi.fn(async () => true),
 }));
+
+const domainWrites = vi.hoisted(() => ({
+    snoozeDomain: vi.fn(async () => Date.now() + 3_600_000),
+    blockDomain: vi.fn(async () => undefined),
+}));
+vi.mock("../../src/shared/domains", () => domainWrites);
 
 function toast(): HTMLElement | null {
     return document.getElementById(WORK_TOAST_ID);
@@ -231,14 +236,12 @@ describe("progress toast", () => {
         settle();
         button("close").click();
         expect(toast()).toBeNull();
-        expect(isWorkDismissed()).toBe(true);
 
         reportWorkStage("lookup", "Looking up 10 DOIs in FLoRA…");
         settle();
         expect(toast()).toBeNull();
 
         endWorkIndicator();
-        expect(isWorkDismissed()).toBe(false);
         beginWorkIndicator();
         settle();
         expect(toast()).not.toBeNull();
@@ -305,5 +308,29 @@ describe("progress toast", () => {
         expect(buildDebugReport).toHaveBeenCalled();
         expect(writeClipboard).toHaveBeenCalledWith("REPORT");
         expect(copy.textContent).toBe("Copied ✓");
+    });
+    it("pause menu persists the snooze before telling the page to hide", async () => {
+        let resolveWrite: (until: number) => void = () => {};
+        domainWrites.snoozeDomain.mockImplementationOnce(
+            () => new Promise<number>((resolve) => { resolveWrite = resolve; }),
+        );
+        const paused = vi.fn();
+        document.addEventListener("flora-pause-site", paused);
+
+        beginWorkIndicator();
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+        expand();
+        const menu = toast()!.querySelector<HTMLElement>("[data-flora-work-pause-menu]")!;
+        menu.querySelector<HTMLButtonElement>("button")!.click(); // "Pause here for 1 hour"
+
+        expect(domainWrites.snoozeDomain).toHaveBeenCalledWith(location.hostname, 3_600_000);
+        expect(toast()).toBeNull();
+        expect(paused).not.toHaveBeenCalled();
+
+        resolveWrite(Date.now() + 3_600_000);
+        await vi.advanceTimersByTimeAsync(0);
+        expect(paused).toHaveBeenCalledTimes(1);
+        document.removeEventListener("flora-pause-site", paused);
     });
 });

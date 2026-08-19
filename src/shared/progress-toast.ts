@@ -231,6 +231,7 @@ function textButton(text: string): HTMLButtonElement {
 function menuItem(text: string): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
+    button.setAttribute("role", "menuitem");
     button.textContent = text;
     button.style.cssText = MENU_ITEM_STYLE;
     return button;
@@ -244,11 +245,20 @@ function msUntilTomorrow6am(): number {
     return Math.max(60_000, target.getTime() - Date.now());
 }
 
-function pauseSite(detail: {hostname: string; until?: number; blocked?: boolean}): void {
-    document.dispatchEvent(new CustomEvent("flora-pause-site", {detail}));
+/** Persist the pause first, so a Resume in the popup cannot read storage ahead of it. */
+async function pauseSite(
+    write: Promise<unknown>,
+    detail: {hostname: string; until?: number; blocked?: boolean},
+): Promise<void> {
     clearTimers();
     removeToast();
     dismissed = true;
+    try {
+        await write;
+    } catch (err) {
+        debugLog("Work: pause could not be saved —", err);
+    }
+    document.dispatchEvent(new CustomEvent("flora-pause-site", {detail}));
 }
 
 function buildPauseMenu(): HTMLElement {
@@ -258,6 +268,7 @@ function buildPauseMenu(): HTMLElement {
 
     const menu = document.createElement("div");
     menu.setAttribute("data-flora-work-pause-menu", "");
+    menu.setAttribute("role", "menu");
     menu.style.cssText = MENU_STYLE;
 
     const trigger = textButton("Pause on this site ▾");
@@ -272,23 +283,21 @@ function buildPauseMenu(): HTMLElement {
     const hour = menuItem("Pause here for 1 hour");
     hour.addEventListener("click", () => {
         const hostname = location.hostname;
-        void snoozeDomain(hostname, 60 * 60 * 1000);
-        pauseSite({hostname, until: Date.now() + 60 * 60 * 1000});
+        const until = Date.now() + 60 * 60 * 1000;
+        void pauseSite(snoozeDomain(hostname, 60 * 60 * 1000), {hostname, until});
     });
 
     const tomorrow = menuItem("Pause here until tomorrow");
     tomorrow.addEventListener("click", () => {
         const hostname = location.hostname;
         const duration = msUntilTomorrow6am();
-        void snoozeDomain(hostname, duration);
-        pauseSite({hostname, until: Date.now() + duration});
+        void pauseSite(snoozeDomain(hostname, duration), {hostname, until: Date.now() + duration});
     });
 
     const block = menuItem("Block this site (undo in options)");
     block.addEventListener("click", () => {
         const hostname = location.hostname;
-        void blockDomain(hostname);
-        pauseSite({hostname, blocked: true});
+        void pauseSite(blockDomain(hostname), {hostname, blocked: true});
     });
 
     menu.append(hour, tomorrow, block);
@@ -406,6 +415,7 @@ function ensureToast(): HTMLElement {
     const track = document.createElement("div");
     track.setAttribute("data-flora-work-track", "");
     track.setAttribute("role", "progressbar");
+    track.setAttribute("aria-label", "ORE progress on this page");
     track.setAttribute("aria-valuemin", "0");
     track.setAttribute("aria-valuemax", "100");
     track.style.cssText = TRACK_STYLE;
@@ -676,8 +686,9 @@ export function reportWorkStage(stage: WorkStage, detail: string): void {
 
     record.detail = detail;
     record.skipped = false;
+    // A stage that ran already (a nested pass re-entering it) is timed afresh.
+    if (record.startedAt === undefined || record.endedAt !== undefined) record.startedAt = now();
     record.endedAt = undefined;
-    if (record.startedAt === undefined) record.startedAt = now();
     currentStage = stage;
     items = [];
     debugLog(`Work: ${stage} started — ${detail}`);
@@ -690,23 +701,22 @@ export function setWorkItems(itemList: WorkItem[]): void {
     render();
 }
 
-/** Update one item's status (and optionally its detail); unknown id is a no-op. */
+/** Update every item carrying `id` (two rows can share a DOI); unknown id is a no-op. */
 export function updateWorkItem(id: string, status: WorkItemStatus, detail?: string): void {
-    const item = items.find((entry) => entry.id === id);
-    if (!item) return;
-    item.status = status;
-    if (detail !== undefined) item.detail = detail;
-    render();
-}
-
-/** True once the user dismissed this pass's toast. Cleared when the pass ends. */
-export function isWorkDismissed(): boolean {
-    return dismissed;
+    let touched = false;
+    for (const item of items) {
+        if (item.id !== id) continue;
+        item.status = status;
+        if (detail !== undefined) item.detail = detail;
+        touched = true;
+    }
+    if (touched) render();
 }
 
 /** Hide the toast once all outstanding work has finished. */
 export function endWorkIndicator(): void {
-    refCount = Math.max(0, refCount - 1);
+    if (refCount === 0) return; // unmatched end — nothing to close
+    refCount--;
     if (refCount > 0) return;
 
     const ending = currentStage ? stages.find((entry) => entry.stage === currentStage) : undefined;
