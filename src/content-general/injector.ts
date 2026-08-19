@@ -8,7 +8,7 @@ import {renderReportDocument, reportUrl, type ReportEntry, type ReportPayload} f
 import {writeClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {hideWorkIndicator, showWorkIndicator} from "@shared/progress-toast";
-import {ensureFocusStyle, FLORA_UI_SELECTOR} from "@shared/flora-ui";
+import {ensureFocusStyle, FLORA_OWNED_SELECTOR, FLORA_UI_SELECTOR} from "@shared/flora-ui";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -581,6 +581,14 @@ export function showAllFloraUI(): void {
 // PubPeer panel
 // ──────────────────────────────────────────────
 
+const MASTHEAD_SELECTOR = 'header, nav, [role="banner"], [role="navigation"]';
+
+function headingTextWithoutFloraUi(el: Element): string | null {
+    const clone = el.cloneNode(true) as Element;
+    for (const owned of clone.querySelectorAll(FLORA_OWNED_SELECTOR)) owned.remove();
+    return clone.textContent?.replace(/\s+/g, " ").trim() || null;
+}
+
 /**
  * Best on-page article title. Scholarly meta tags first, then headings, with
  * document.title last — some publishers (e.g. APA PsycNet) set document.title to
@@ -596,8 +604,11 @@ function getPageArticleTitle(): string | null {
         const content = document.querySelector<HTMLMetaElement>(sel)?.content?.trim();
         if (content) return content;
     }
-    const h1 = document.querySelector<HTMLHeadingElement>("h1")?.textContent?.trim();
-    if (h1) return h1;
+    for (const h1 of document.querySelectorAll<HTMLHeadingElement>("h1")) {
+        if (h1.closest(MASTHEAD_SELECTOR)) continue;
+        const text = headingTextWithoutFloraUi(h1);
+        if (text) return text;
+    }
     return document.title?.trim() || null;
 }
 
@@ -817,7 +828,8 @@ function panelSignature(
   articleDois: DoiString[],
   pageState: Map<DoiString, LookupState>,
   refFeedbackByDoi: Map<DoiString, PubPeerFeedback>,
-  retractionByDoi: Map<DoiString, RetractionResponse>
+  retractionByDoi: Map<DoiString, RetractionResponse>,
+  articleTitleText: string
 ): string {
   const statsOf = (doi: DoiString): string => {
     const s = pageState.get(doi);
@@ -828,6 +840,7 @@ function panelSignature(
   const noticeOf = (doi: DoiString): string => retractionByDoi.get(doi)?.kind ?? "";
 
   const parts = [
+    `title:${articleTitleText}`,
     `primary:${primary ? `${primary.url}#${primary.total_comments}` : "none"}`,
     `article:${articleDois.map((d) => `${d}=${statsOf(d)}:${noticeOf(d)}`).sort().join(",")}`,
     `refs:${references
@@ -927,7 +940,8 @@ export function renderSidePanel(
   pageState: Map<DoiString, LookupState>,
   doiContext: Map<DoiString, DoiContext>,
   refFeedbackByDoi: Map<DoiString, PubPeerFeedback> = new Map(),
-  retractions: RetractionResponse[] = []
+  retractions: RetractionResponse[] = [],
+  articleTitle: string | null = null
 ): void {
   const existingHost = document.getElementById(PUBPEER_PANEL_ID);
   // Track open state via a stateful marker on the host — comparing inline
@@ -996,9 +1010,15 @@ export function renderSidePanel(
 
   if (primary && !isSafePubPeerUrl(primary.url)) return;
 
+  const articleTitleText =
+    primary?.title ||
+    articleTitle ||
+    getPageArticleTitle() ||
+    "Article";
+
   // Rebuilding recreates the <iframe>, reloading the embedded PubPeer thread.
   const signature = panelSignature(
-    primary, references, articleDois, pageState, refFeedbackByDoi, retractionByDoi
+    primary, references, articleDois, pageState, refFeedbackByDoi, retractionByDoi, articleTitleText
   );
   if (existingHost && existingHost.dataset.floraPanelSig === signature) {
     debugLog("renderSidePanel: unchanged — kept existing panel");
@@ -1144,11 +1164,6 @@ export function renderSidePanel(
     "border-bottom:1px solid #e8e8e8;background:#f5f8fa;" +
     "font-size:12px;color:#3c4043;line-height:1.6;flex-shrink:0;";
 
-  // Article title — use PubPeer title if available, else h1/document.title
-  const articleTitleText =
-    primary?.title ||
-    getPageArticleTitle() ||
-    "Article";
   const articleFloraUrl = articleDois.length > 0
     ? `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(articleDois[0])}`
     : null;
