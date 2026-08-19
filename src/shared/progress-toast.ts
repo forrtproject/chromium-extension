@@ -146,6 +146,7 @@ let refCount = 0;
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeTimer: ReturnType<typeof setTimeout> | null = null;
+let renderFrame: number | null = null;
 // 0 = nothing reported yet, and the bar runs indeterminate.
 let progress = 0;
 let labelText = DEFAULT_LABEL;
@@ -164,6 +165,10 @@ let passStartedAt = 0;
 function clearTimers(): void {
     for (const timer of [showTimer, hideTimer, removeTimer]) {
         if (timer) clearTimeout(timer);
+    }
+    if (renderFrame !== null) {
+        cancelAnimationFrame(renderFrame);
+        renderFrame = null;
     }
     showTimer = hideTimer = removeTimer = null;
 }
@@ -611,12 +616,22 @@ function renderNow(): void {
     });
 }
 
-/** Update now if the toast is already up, else once the pass proves slow. */
-function render(): void {
+/** Coalesce state changes that arrive in the same frame into one DOM render. */
+function queueRender(): void {
+    if (renderFrame !== null) return;
+    renderFrame = requestAnimationFrame(() => {
+        renderFrame = null;
+        renderNow();
+    });
+}
+
+/** Update now if requested; item bursts can defer to the next animation frame. */
+function render(immediate = true): void {
     if (suppressed || dismissed) return;
     if (refCount === 0 && !finished) return;
     if (document.getElementById(WORK_TOAST_ID)) {
-        renderNow();
+        if (immediate) renderNow();
+        else queueRender();
         return;
     }
     if (showTimer) return;
@@ -734,7 +749,9 @@ export function updateWorkItem(id: string, status: WorkItemStatus, detail?: stri
         if (detail !== undefined) item.detail = detail;
         touched = true;
     }
-    if (touched) render();
+    // A fast batch completes many items in one synchronous loop. Keep the
+    // state changes immediate, but coalesce the expensive DOM rebuild.
+    if (touched) render(false);
 }
 
 /** True once the user pressed Cancel on this pass; pipelines stop at their next stage boundary. */

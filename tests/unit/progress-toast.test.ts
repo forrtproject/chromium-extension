@@ -226,7 +226,13 @@ describe("progress toast", () => {
         expect(itemRows()).toHaveLength(6);
         expect(toast()!.querySelector("[data-flora-work-more]")?.textContent).toBe("2 more…");
 
+        const frames: FrameRequestCallback[] = [];
+        vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+            frames.push(callback);
+            return frames.length;
+        });
         updateWorkItem("i0", "done", "10.1234/x");
+        frames[0](0);
         const first = toast()!.querySelector<HTMLElement>('[data-flora-work-item="i0"]')!;
         expect(first.textContent).toContain("✓");
         expect(first.textContent).toContain("10.1234/x");
@@ -234,6 +240,25 @@ describe("progress toast", () => {
         // Items belong to the stage that reported them.
         reportWorkStage("lookup", "Looking up 14 DOIs…");
         expect(itemRows()).toHaveLength(0);
+    });
+
+    it("coalesces a synchronous burst of item updates into one render frame", () => {
+        beginWorkIndicator({stages: ["lookup"]});
+        reportWorkStage("lookup", "Looking up 8 DOIs…");
+        settle();
+        expand();
+        const requestFrame = vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+        setWorkItems(
+            Array.from({length: 8}, (_, i) => ({id: `i${i}`, label: `Paper ${i}`, status: "pending" as const}))
+        );
+        requestFrame.mockClear();
+
+        for (let i = 0; i < 8; i++) updateWorkItem(`i${i}`, "done");
+
+        expect(requestFrame).toHaveBeenCalledTimes(1);
+        const render = requestFrame.mock.calls[0][0];
+        render(0);
+        expect(itemRows().every((row) => row.textContent?.includes("✓"))).toBe(true);
     });
 
     it("dismisses the toast for the pass and shows it again on the next one", () => {
