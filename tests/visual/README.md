@@ -10,6 +10,10 @@ fixture pages over `http://127.0.0.1`, waits for FLoRA to finish injecting, and
 captures the page. Everything the extension would fetch is mocked, so pass/fail
 never depends on the network.
 
+The browser runs **headless** (`headless: true`), which loads MV3 extensions and
+renders pixel-for-pixel the same as a headful window — no window opens while the
+tests run.
+
 ## Running
 
 ```bash
@@ -94,7 +98,7 @@ insurance against a stray install-time sync.
 
 ## Determinism
 
-- **One raster path.** Headful macOS Chrome flaps between GPU and software
+- **One raster path.** macOS Chrome flaps between GPU and software
   rasterisation across page loads, which shifts the anti-aliasing of *every
   glyph* on the page — runs would pass or fail different fixtures at random
   with whole-page text diffs (~0.2–2 % of pixels). The launch flags pin a

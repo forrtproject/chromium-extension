@@ -328,7 +328,8 @@ async function main(): Promise<void> {
 
   const browser = await puppeteer.launch({
     executablePath: execPath,
-    headless: false, // MV3 extensions need a headful / new-headless context.
+    // Chrome's current headless mode loads MV3 extensions, so no window opens.
+    headless: true,
     args: [
       `--disable-extensions-except=${REPO_ROOT}`,
       `--load-extension=${REPO_ROOT}`,
@@ -336,8 +337,8 @@ async function main(): Promise<void> {
       "--hide-scrollbars",
       "--disable-lcd-text",
       "--font-render-hinting=none",
-      // One deterministic raster path. Without --disable-gpu, macOS headful
-      // Chrome flaps between GPU and software rasterisation across page loads,
+      // One deterministic raster path. Without --disable-gpu, macOS Chrome
+      // flaps between GPU and software rasterisation across page loads,
       // shifting anti-aliasing on every glyph (whole-page pixel drift).
       "--disable-gpu",
       "--disable-gpu-compositing",
