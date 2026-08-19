@@ -166,11 +166,14 @@ function clearTimers(): void {
     for (const timer of [showTimer, hideTimer, removeTimer]) {
         if (timer) clearTimeout(timer);
     }
-    if (renderFrame !== null) {
-        cancelAnimationFrame(renderFrame);
-        renderFrame = null;
-    }
+    cancelQueuedRender();
     showTimer = hideTimer = removeTimer = null;
+}
+
+function cancelQueuedRender(): void {
+    if (renderFrame === null) return;
+    cancelAnimationFrame(renderFrame);
+    renderFrame = null;
 }
 
 function now(): number {
@@ -604,6 +607,8 @@ function paint(host: HTMLElement): void {
 function renderNow(): void {
     if (suppressed || dismissed) return;
     if (refCount === 0 && !finished) return;
+    // An immediate stage update supersedes any deferred item update.
+    cancelQueuedRender();
     const host = ensureToast();
     const label = host.querySelector<HTMLElement>("[data-flora-work-label]");
     if (label) label.textContent = labelText;
