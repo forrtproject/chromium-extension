@@ -25,8 +25,20 @@ import {showToast} from "@shared/toast";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
-export function removeIndicatorPills(root: ParentNode = document): void {
-    for (const pill of root.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)) pill.remove();
+// Two scripts can share a page: content-general owns the title pills, the
+// search content script owns the per-result panels (on Europe PMC, Scopus,
+// EBSCOhost, …). Each removes and re-badges only its own kind, or one script's
+// SPA reset would wipe the other's work.
+export type IndicatorScope = "pills" | "panels";
+
+function indicatorSelector(scope: IndicatorScope): string {
+    return scope === "panels"
+        ? `.${INDICATOR_PILL_CLASS}[data-flora-panel]`
+        : `.${INDICATOR_PILL_CLASS}:not([data-flora-panel])`;
+}
+
+export function removeIndicatorPills(root: ParentNode = document, scope: IndicatorScope = "pills"): void {
+    for (const pill of root.querySelectorAll(indicatorSelector(scope))) pill.remove();
 }
 
 export const PAGE_PROVENANCE = "Found on this page";
@@ -1121,10 +1133,11 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
 export function updateIndicatorPillBadges(
     root: ParentNode,
     pageState: ReadonlyMap<DoiString, LookupState>,
-    redacts: readonly RetractionResponse[]
+    redacts: readonly RetractionResponse[],
+    scope: IndicatorScope = "pills"
 ): void {
     const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
-    for (const wrapper of root.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
+    for (const wrapper of root.querySelectorAll<HTMLElement>(indicatorSelector(scope))) {
         const doi = wrapper.getAttribute("data-flora-doi") as DoiString | null;
         if (!doi) continue;
         const badgeSegment = wrapper.querySelector<HTMLElement>("[data-flora-badge-segment]");

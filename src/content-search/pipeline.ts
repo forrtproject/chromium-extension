@@ -44,7 +44,7 @@ const lookupState = new Map<DoiString, LookupState>();
 const retractions = new Map<DoiString, RetractionResponse>();
 
 function refreshBadges(): void {
-    updateIndicatorPillBadges(document, lookupState, [...retractions.values()]);
+    updateIndicatorPillBadges(document, lookupState, [...retractions.values()], "panels");
 }
 
 // Set by the popup's hide command and by the work toast's pause control (both
