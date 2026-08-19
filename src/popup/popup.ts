@@ -25,6 +25,11 @@ const debugHint = document.getElementById("debug-hint")!;
 const logCopyRow = document.getElementById("log-copy-row")!;
 const logCopyToggle = document.getElementById("log-copy-toggle") as HTMLInputElement;
 const statusEl = document.getElementById("popup-status")!;
+const versionEl = document.getElementById("popup-version")!;
+
+const extensionVersion = chrome.runtime.getManifest().version;
+versionEl.textContent = `v${extensionVersion}`;
+versionEl.title = `Extension version ${extensionVersion}`;
 
 let currentDomain = "";
 let blocked = false;

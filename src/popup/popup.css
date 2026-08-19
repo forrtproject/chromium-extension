@@ -68,6 +68,16 @@ body {
   text-transform: uppercase;
 }
 
+.popup-version {
+  margin-left: auto;
+  align-self: flex-end;
+  padding-bottom: 1px;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  opacity: 0.4;
+}
+
 /* ─── Body ─── */
 .popup-body {
   padding: 12px 14px;
