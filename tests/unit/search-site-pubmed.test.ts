@@ -59,11 +59,11 @@ describe("PubMed adapter", () => {
         });
     });
 
-    it("keeps a doubled slash in the DOI and drops the trailing full stop", () => {
+    it("collapses PubMed's doubled slash in legacy APA DOIs and drops the trailing full stop", () => {
         const row = firstRow(ROW_WITH_DOI);
         row.querySelector(".full-journal-citation")!.textContent =
             "J Pers Soc Psychol. 1998 May;74(5):1252-65. doi: 10.1037//0022-3514.74.5.1252.";
-        expect(PUBMED.extractRow(row)).toMatchObject({doi: "10.1037//0022-3514.74.5.1252", year: 1998});
+        expect(PUBMED.extractRow(row)).toMatchObject({doi: "10.1037/0022-3514.74.5.1252", year: 1998});
     });
 });
 
