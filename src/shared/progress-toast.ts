@@ -209,6 +209,8 @@ function formatDuration(ms: number): string {
 }
 
 function removeToast(): void {
+    // A frame queued before removal must not rebuild the toast afterwards.
+    cancelQueuedRender();
     const host = document.getElementById(WORK_TOAST_ID);
     if (!host) return;
     document.removeEventListener("keydown", onKeydown, true);

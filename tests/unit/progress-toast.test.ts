@@ -261,6 +261,42 @@ describe("progress toast", () => {
         expect(itemRows().every((row) => row.textContent?.includes("✓"))).toBe(true);
     });
 
+    it("drops a render queued just before the toast is removed", async () => {
+        setDebug(true);
+        settings.offerLogCopyAfterPass = true;
+        beginWorkIndicator({stages: ["lookup"]});
+        await vi.advanceTimersByTimeAsync(0); // the setting is read asynchronously
+        reportWorkStage("lookup", "Looking up 1 DOI…");
+        settle();
+        setWorkItems([{id: "i0", label: "Paper 0", status: "pending"}]);
+        endWorkIndicator(); // leaves the one-line copy offer up
+        settings.offerLogCopyAfterPass = false;
+
+        const pending = new Map<number, FrameRequestCallback>();
+        let nextFrame = 0;
+        vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+            pending.set(++nextFrame, callback);
+            return nextFrame;
+        });
+        const cancelFrame = vi
+            .spyOn(window, "cancelAnimationFrame")
+            .mockImplementation((id) => void pending.delete(id));
+
+        updateWorkItem("i0", "done"); // a straggler queues a render
+        const queued = nextFrame;
+        expect(pending.has(queued)).toBe(true);
+
+        button("final-copy").click(); // fades the toast out, then removes it
+        await vi.advanceTimersByTimeAsync(6000);
+        expect(toast()).toBeNull();
+        expect(cancelFrame).toHaveBeenCalledWith(queued);
+        expect(pending.has(queued)).toBe(false);
+
+        // Nothing left to rebuild the removed toast.
+        for (const callback of [...pending.values()]) callback(0);
+        expect(toast()).toBeNull();
+    });
+
     it("dismisses the toast for the pass and shows it again on the next one", () => {
         beginWorkIndicator();
         reportWorkStage("scan", "Scanning this page for DOIs…");
