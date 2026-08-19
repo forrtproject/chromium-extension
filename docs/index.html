@@ -145,7 +145,7 @@
 
           <div class="feature">
             <div>
-              <h3>Google Scholar and OpenAlex</h3>
+              <h3>Search results: Google Scholar, Scopus, PubMed and more</h3>
               <p>
                 Each search result gets a panel with its DOI, a one-click citation in
                 the style you chose, open-access status, PubPeer comment count
@@ -159,9 +159,15 @@
                 “Matched by search” — a match to check rather than trust.
               </p>
               <p>
-                On OpenAlex, results carry no DOI on the page; ORE takes it
-                from OpenAlex's own record of the work, so panels appear without
-                a title search.
+                ORE annotates results on Google Scholar, OpenAlex, Semantic
+                Scholar, PubMed, Europe PMC, Scopus and EBSCOhost (the
+                research.ebsco.com interface, e.g. PsycINFO). Where results
+                carry no DOI on the page, ORE takes it from the site's own
+                record of the work — OpenAlex and Semantic Scholar through their
+                public APIs, PubMed and Europe PMC through NCBI's ID converter,
+                and Scopus and EBSCOhost through the same requests the page
+                itself makes to that site — so panels appear without a title
+                search.
               </p>
             </div>
             <figure class="shot">
