@@ -21,6 +21,7 @@ import {
     beginWorkIndicator,
     count,
     endWorkIndicator,
+    isWorkCancelled,
     reportWorkStage,
     hideAllFloraUI,
     removeSidePanel,
@@ -35,7 +36,7 @@ import {
 import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {isSetupComplete} from "@shared/settings";
-import {isDomainBlocked} from "@shared/domains";
+import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
 import {injectInlineRetractionPills, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
@@ -119,6 +120,15 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     }
 });
 
+// The pause control on the work toast writes the snooze (or block) to storage
+// itself, then announces it here so this page clears immediately instead of
+// waiting for a reload.
+document.addEventListener("flora-pause-site", () => {
+    floraHidden = true;
+    hideAllFloraUI();
+    reportActiveState(false);
+});
+
 async function primaryDoiFastPath(): Promise<void> {
     const primary = extractPrimaryDOI(document);
     if (!primary) return;
@@ -134,7 +144,7 @@ async function primaryDoiFastPath(): Promise<void> {
         doiContext.delete(primary);
     };
 
-    beginWorkIndicator();
+    beginWorkIndicator({stages: ["scan"]});
     try {
         // "scan", not "lookup": the bar only moves forward, and the full page
         // pass runs alongside this one.
@@ -183,7 +193,9 @@ const runScanPasses = serializeWithRerun(() => runScanPass());
 
 /** Holds one work indicator across the pass so the bar doesn't restart mid-pipeline. */
 async function scanWholePage(): Promise<void> {
-    beginWorkIndicator();
+    // "augment" comes from references.ts, which resolves DOI-less references
+    // inside this pass.
+    beginWorkIndicator({stages: ["scan", "validate", "augment", "notices", "lookup", "report"]});
     try {
         await runScanPasses();
     } finally {
@@ -383,6 +395,10 @@ async function runScanPass(): Promise<void> {
         }
         pageStateVersion++; // signal that replication data is now available
 
+        // Paused, hidden or cancelled while the lookup ran — the results stay
+        // in pageState for a later pass, but nothing goes on the page.
+        if (floraHidden || isWorkCancelled()) return;
+
         try {
             reportWorkStage("report", "Generating report…");
             // Collect matched DOIs for display
@@ -449,6 +465,11 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
     beginWorkIndicator();
     return refsPromise
         .then(async (resolvedRefs) => {
+            if (floraHidden || isWorkCancelled()) {
+                // Paused, hidden or cancelled while these were resolving — leave the page alone.
+                releaseReferenceEntries(resolvedRefs);
+                return [];
+            }
             if (location.href !== passUrl) {
                 // Navigated away while resolving — these entries belong to the old page.
                 releaseReferenceEntries(resolvedRefs);
@@ -834,6 +855,12 @@ async function fetchSheetDois(): Promise<void> {
     if (await isDomainBlocked(location.hostname)) {
         debugLog("Domain is blocked:", location.hostname);
         reportActiveState(false); // gray toolbar icon — disabled on this domain
+        return;
+    }
+
+    if (await isDomainSnoozed(location.hostname)) {
+        debugLog("Domain is snoozed:", location.hostname);
+        reportActiveState(false); // gray toolbar icon — paused on this domain
         return;
     }
     // Applicable page — mark the toolbar icon active for this tab.

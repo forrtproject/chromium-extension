@@ -8,6 +8,7 @@ const FULL_SETTINGS = {
   showDoiPillsOnAllReferences: false,
   citationStyle: "apa",
   cacheQuotaMb: 50,
+  offerLogCopyAfterPass: false,
 };
 
 describe("settings/domain storage caches", () => {
