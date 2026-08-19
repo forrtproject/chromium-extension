@@ -4,8 +4,8 @@
 // `a.docsum-title[data-article-id=<pmid>]`, a `.docsum-citation` block with
 // `.docsum-authors.full-authors` ("Hagger MS, Wood C, …") and
 // `.docsum-journal-citation.full-journal-citation`
-// ("Psychol Bull. 2010 Jul;136(4):495-525. doi: 10.1037/a0019486."), then an
-// optional `.docsum-snippet`.
+// ("Psychol Bull. 2010 Jul;136(4):495-525. doi: 10.1037/a0019486.") and the
+// "PMID: 20565167" line, then an optional `.docsum-snippet`.
 //
 // Most rows carry that explicit `doi:` field, which needs no doi.org check.
 // Rows without one fall back to the PMID, resolved through NCBI's ID
@@ -30,8 +30,9 @@ export const PUBMED: SearchSiteAdapter = {
     resultRow: "article.full-docsum",
     css,
     extractRow,
-    // Last block of the row's single text column, under the snippet.
-    panelPlacement: [{selector: ".docsum-content", position: "append"}],
+    // Beside the citation block, in the right column of the grid pubmed.css
+    // turns `.docsum-content` into for rows that carry a panel.
+    panelPlacement: [{selector: ".docsum-citation", position: "after"}],
     noticeTarget: (row) => row.querySelector<HTMLElement>(".docsum-title"),
     resolveSiteIds: (ids) => resolvePmcIdsViaWorker(ids, "pmid"),
 };

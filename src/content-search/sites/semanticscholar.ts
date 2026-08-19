@@ -4,7 +4,11 @@
 // their citation and reference lists. Inside a row, `a[data-test-id=title-link]`
 // wraps the `h2.cl-paper-title` and points at /paper/<slug>/<40-hex id>; each
 // author is a `[data-test-id=author-list]` span; `.cl-paper-pubdates` holds the
-// publication date ("1 May 1998" or "2025"). Rows print no DOI, so the paper id
+// publication date ("1 May 1998" or "2025"). Below those comes either a TLDR
+// summary (`.tldr-abstract-replacement`), a plain abstract snippet
+// (`.cl-paper-abstract`) or neither, then the controls line
+// (`.cl-paper-controls`) — all of them direct children of the row.
+// Rows print no DOI, so the paper id
 // is resolved to one through the Semantic Scholar API in one batched call.
 // The site is a single-page app: rows arrive after load and are replaced on
 // paging and re-sorting (checked live), which the observer's "new rows" trigger
@@ -27,9 +31,14 @@ export const SEMANTIC_SCHOLAR: SearchSiteAdapter = {
     resultRow: ".cl-paper-row.serp-papers__paper-row",
     css,
     extractRow,
-    // The row's last flex line (citations on the left, Save/Cite on the right)
-    // has spare width; the panel goes at its right end.
-    panelPlacement: [{selector: ".cl-paper-controls__actions", position: "after"}],
+    // The panel goes beside the TLDR/abstract block: the site CSS turns the row
+    // into a two-column grid, so a panel placed right after that block lands in
+    // its right-hand column. Rows without a TLDR/abstract put it beside the
+    // author/venue line instead.
+    panelPlacement: [
+        {selector: ".tldr-abstract-replacement, .cl-paper-abstract", position: "after"},
+        {selector: "ul.cl-paper__bulleted-row:not(.cl-paper-controls)", position: "after"},
+    ],
     resolveSiteIds: resolveSemanticScholarIdsViaWorker,
 };
 

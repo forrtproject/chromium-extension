@@ -237,7 +237,7 @@ never included.
 3. Found DOIs are sent to the **background service worker** via `chrome.runtime.sendMessage`.
 4. The service worker checks its **session cache**, deduplicates in-flight requests, and calls the **FORRT Replication API** for any uncached DOIs.
 5. Results are sent back to the content script, which renders **banners** and **inline badges** using Shadow DOM.
-6. On **search-results sites** (Google Scholar, OpenAlex, Semantic Scholar, PubMed, Europe PMC, Scopus, EBSCOhost), an indicator panel is injected into each result row where the site adapter's stylesheet places it (Scholar: the right-side `.gs_ggs` column, created if absent; OpenAlex: a right-hand column beside the result text; Semantic Scholar: the right end of each row's Save/Cite line; PubMed, Europe PMC and EBSCOhost: below each row's text column; Scopus: under the source line in list view and in the title cell in table view).
+6. On **search-results sites** (Google Scholar, OpenAlex, Semantic Scholar, PubMed, Europe PMC, Scopus, EBSCOhost), an indicator panel is injected into each result row where the site adapter's stylesheet places it (Scholar: the right-side `.gs_ggs` column, created if absent; OpenAlex: a right-hand column beside the result text; Semantic Scholar: beside the TLDR/abstract; PubMed: beside the authors/journal/PMID block; Europe PMC: a right-hand column below the title; EBSCOhost: beside the By/In metadata line, above the abstract; Scopus: the right end of the result's columns row in list view and in the title cell in table view).
 7. The content-general script detects **SPA navigations** (URL changes) and re-scans the page automatically.
 
 ## Data sources & credits

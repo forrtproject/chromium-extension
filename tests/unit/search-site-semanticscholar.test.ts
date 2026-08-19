@@ -22,6 +22,7 @@ const S2_ROW = `
         </span>
         <li class="cl-paper__bulleted-row__item"><span class="cl-paper-pubdates"><span><span>1 May 1998</span></span></span></li>
       </ul>
+      <div class="tldr-abstract-replacement text-truncator">TLDR The results suggest…</div>
       <div class="cl-paper__bulleted-row cl-paper-controls">
         <div class="cl-paper-controls__stats"></div>
         <div class="cl-paper-controls__actions"></div>
@@ -90,7 +91,7 @@ describe("search pipeline on Semantic Scholar rows", () => {
         document.body.innerHTML = S2_ROW;
     });
 
-    it("resolves the paper id to a DOI and places the panel at the end of the controls row", async () => {
+    it("resolves the paper id to a DOI and places the panel next to the TLDR/abstract", async () => {
         const send = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
         send.mockImplementation(async (msg: {type: string}) => {
             if (msg.type === "FLORA_S2_RESOLVE") {
@@ -105,9 +106,23 @@ describe("search pipeline on Semantic Scholar rows", () => {
         expect(send).toHaveBeenCalledWith(expect.objectContaining({type: "FLORA_S2_RESOLVE", ids: [PAPER_ID]}));
         expect(send).not.toHaveBeenCalledWith(expect.objectContaining({type: "FLORA_AUGMENT"}));
 
-        const panel = document.querySelector<HTMLElement>(".cl-paper-controls > [data-flora-panel]");
+        const panel = document.querySelector<HTMLElement>(".cl-paper-row > [data-flora-panel]");
         expect(panel).not.toBeNull();
-        expect(panel!.previousElementSibling?.classList.contains("cl-paper-controls__actions")).toBe(true);
+        expect(panel!.previousElementSibling?.classList.contains("tldr-abstract-replacement")).toBe(true);
         expect(panel!.getAttribute("data-flora-doi")).toBe("10.1037/0022-3514.74.5.1252");
+    });
+
+    it("falls back to the author/venue line when the row has no TLDR or abstract", async () => {
+        document.querySelector(".tldr-abstract-replacement")!.remove();
+        const send = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+        send.mockImplementation(async (msg: {type: string}) => (msg.type === "FLORA_S2_RESOLVE"
+            ? {type: "FLORA_S2_RESOLVE_RESULT", results: {[PAPER_ID]: "10.1037/0022-3514.74.5.1252"}}
+            : {type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}}));
+        const {processSearchResults} = await import("../../src/content-search/pipeline");
+        const {SEMANTIC_SCHOLAR: adapter} = await import("../../src/content-search/sites/semanticscholar");
+        await processSearchResults(adapter, document);
+
+        const panel = document.querySelector<HTMLElement>(".cl-paper-row > [data-flora-panel]");
+        expect(panel!.previousElementSibling?.tagName).toBe("UL");
     });
 });

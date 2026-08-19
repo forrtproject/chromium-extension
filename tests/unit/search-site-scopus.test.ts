@@ -101,7 +101,7 @@ describe("search pipeline on Scopus rows", () => {
     });
     afterEach(() => vi.unstubAllGlobals());
 
-    it("places the list-view panel after the source line and the table-view panel in the title cell", async () => {
+    it("places the list-view panel at the end of the columns row and the table-view panel in the title cell", async () => {
         const send = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
         send.mockImplementation(async (msg: {type: string}) =>
             msg.type === "FLORA_LOOKUP"
@@ -120,7 +120,7 @@ describe("search pipeline on Scopus rows", () => {
         document.body.innerHTML = LIST_VIEW;
         await processSearchResults(adapter, document);
         const listPanel = document.querySelector<HTMLElement>(
-            '[data-testid="author-list"] + * + [data-flora-panel]'
+            'li > div > div:has([data-testid="author-list"]) > [data-flora-panel]:last-child'
         );
         expect(listPanel?.getAttribute("data-flora-doi")).toBe("10.1000/scopus.105046159914");
 

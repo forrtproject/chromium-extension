@@ -5,8 +5,10 @@
 // `/article/<source>/<id>` (MED for PubMed records, PPR for preprints, also
 // PMC/AGR), `p.citation-author-list` with one link per author ("Wang B"),
 // a journal paragraph ending in `span[id^="citation--id--pub-date"]`
-// ("15 Jul 2026"), and `p.citation-labels` last. Paging and re-sorting replace
-// the row elements, which the observer's "new rows" trigger picks up.
+// ("15 Jul 2026"), a snippet paragraph, a "Cited by: N articles | PMID: …"
+// paragraph and `p.citation-labels` (Save / Add to export list) last. Paging and
+// re-sorting replace the row elements, which the observer's "new rows" trigger
+// picks up.
 //
 // Rows print no DOI. MED rows carry a PMID, resolved through NCBI's ID
 // converter; every other source falls through to a title search. content-general
@@ -25,8 +27,9 @@ export const EUROPEPMC: SearchSiteAdapter = {
     resultRow: '.citation[id^="search-results--single--block-"]',
     css,
     extractRow,
-    // Below the row's action links, the last block of the citation.
-    panelPlacement: [{selector: ".citation-labels", position: "after"}],
+    // Right after the title, which puts the panel in the grid's right column
+    // (see europepmc.css) beside the rest of the citation.
+    panelPlacement: [{selector: ".citation-title", position: "after"}],
     noticeTarget: (row) => row.querySelector<HTMLElement>(".citation-title"),
     resolveSiteIds: (ids) => resolvePmcIdsViaWorker(ids, "pmid"),
 };

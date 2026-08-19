@@ -2,10 +2,13 @@
 // /pages/search/publications?searchId=…, which render the same components).
 // DOM checked 2026-08. The page offers two layouts, both covered here:
 //
-//   List view  — `ul > li` per result; inside it a text column holding
-//     `a[href^="/pages/publications/<scopusId>"]` (title),
-//     `div[data-testid="author-list"]` ("Huang X., Teng L., …") and a source
-//     line ("<journal>, 2027, 94, 105005") as that list's next sibling.
+//   List view  — `ul > li` per result; `li > div.content` holds two flex rows
+//     of columns: the first with the checkbox, a text column (title
+//     `a[href^="/pages/publications/<scopusId>"]`, `div[data-testid="author-list"]`
+//     "Huang X., Teng L., …", and a source line "<journal>, 2027, 94, 105005"
+//     as the author list's next sibling), an empty spacer column and the
+//     citation count; the second with the Show abstract / View at Publisher
+//     footer.
 //   Table view — three consecutive `tr` per result; the middle one carries the
 //     title link in its own `td`, the author list, and
 //     `div[data-testid="document-publication-year"]`.
@@ -38,8 +41,9 @@ export const SCOPUS: SearchSiteAdapter = {
     css,
     extractRow,
     panelPlacement: [
-        // List view: under the source line, at the foot of the text column.
-        {selector: '[data-testid="author-list"] + *', position: "after"},
+        // List view: the result's first row of columns (the one holding the
+        // text column); the stylesheet floats the panel to its right edge.
+        {selector: ':scope > div > div:has([data-testid="author-list"])', position: "append"},
         // Table view: the foot of the title cell.
         {selector: `td:has(> * ${TITLE_LINK}), td:has(> ${TITLE_LINK})`, position: "append"},
     ],

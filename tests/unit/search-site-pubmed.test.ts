@@ -93,7 +93,7 @@ describe("search pipeline on PubMed rows", () => {
         );
         expect(send).not.toHaveBeenCalledWith(expect.objectContaining({type: "FLORA_AUGMENT"}));
 
-        const panels = document.querySelectorAll<HTMLElement>(".docsum-content > [data-flora-panel]");
+        const panels = document.querySelectorAll<HTMLElement>(".docsum-citation + [data-flora-panel]");
         expect(panels.length).toBe(2);
         expect([...panels].map((p) => p.getAttribute("data-flora-doi"))).toEqual([
             "10.1037/a0019486",

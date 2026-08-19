@@ -85,7 +85,7 @@ describe("search pipeline on Europe PMC rows", () => {
 
         const panels = document.querySelectorAll<HTMLElement>(".citation [data-flora-panel]");
         expect(panels.length).toBe(1);
-        expect(panels[0]!.previousElementSibling?.classList.contains("citation-labels")).toBe(true);
+        expect(panels[0]!.previousElementSibling?.classList.contains("citation-title")).toBe(true);
         expect(panels[0]!.getAttribute("data-flora-doi")).toBe("10.3389/fpsyg.2026.1748888");
     });
 });
