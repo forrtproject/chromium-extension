@@ -34,6 +34,20 @@ describe("isFloraOwnedNode", () => {
     expect(isFloraOwnedNode(el)).toBe(false);
     el.remove();
   });
+
+  it("survives a form whose field named 'id' shadows form.id", () => {
+    // In browsers a <form> exposes its controls as named properties, so a
+    // field called "id" makes form.id an element. jsdom doesn't model this;
+    // shadow the property the same way.
+    const form = document.createElement("form");
+    const field = document.createElement("input");
+    field.name = "id";
+    form.appendChild(field);
+    Object.defineProperty(form, "id", {value: field, configurable: true});
+    document.body.appendChild(form);
+    expect(isFloraOwnedNode(form)).toBe(false);
+    form.remove();
+  });
 });
 
 describe("isExternalMutation", () => {
