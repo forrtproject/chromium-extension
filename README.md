@@ -164,6 +164,14 @@ their entries and message them to the service worker, which is the only writer o
 the `flora_debug_log` storage key — so there is no read-modify-write race between
 contexts. The log is a ring buffer capped at 800 entries.
 
+With debug mode on, the progress toast (bottom right while a page is worked)
+also offers **Copy log** and **Copy log when finished** in its expanded panel, and
+every stage transition is logged with its duration (`Work: augment done in 2310 ms`),
+so a slow pass shows which stage took the time. The same panel lists the stages of
+the current pass — and on Google Scholar the DOIs and titles being resolved — and
+holds **Pause on this site** (an hour, until tomorrow, or block outright; resume
+from the popup).
+
 To report a bug: turn debug mode on, reload the page, reproduce, then hit
 **Report an issue** in the popup. The diagnostic report — build, user agent,
 behaviour-changing settings and the log — is written into the GitHub issue body
