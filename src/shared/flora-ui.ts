@@ -35,8 +35,9 @@ export function owningElement(node: Node): Element | null {
 export function isFloraOwnedNode(node: Node): boolean {
     const el = owningElement(node);
     if (!el) return true;
-    // getAttribute, not el.id: a <form> with a field named "id" exposes that
-    // field as el.id, and calling startsWith on it throws.
+    // getAttribute, not el.id: a page can shadow that convenience property —
+    // a <form> with a field named "id" exposes the field as el.id, and calling
+    // startsWith on it throws. The attribute is what FLORA_OWNED_SELECTOR reads.
     if ((el.getAttribute("id") ?? "").startsWith("flora-")) return true;
     for (const c of el.classList) {
         if (c.startsWith("flora-")) return true;

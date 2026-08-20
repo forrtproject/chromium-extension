@@ -39,6 +39,10 @@ function entry(msg: string, t = 0): DebugLogEntry {
 
 beforeEach(() => {
   localStore = {};
+  chrome.runtime.getManifest = vi.fn(() => ({
+    name: "FORRT ORE",
+    version: "9.8.7",
+  }) as chrome.runtime.Manifest);
   chrome.storage.local.get = vi.fn((keys: string | string[]) => {
     const names = typeof keys === "string" ? [keys] : keys;
     const out: Record<string, unknown> = {};
@@ -283,6 +287,24 @@ describe("debug report", () => {
     const body = bodyOf(issueUrl({ domain: "example.com" }));
     expect(body).toContain("debug mode");
     expect(body).not.toContain(REPORT_START);
+  });
+
+  it("always includes the installed extension version in the issue body", () => {
+    const links = [
+      issueUrl({ domain: "example.com" }),
+      issueUrl({ report: { environment: [], settings: [], entries: [] } }),
+      issueUrl({
+        report: {
+          environment: [],
+          settings: [],
+          entries: [entry("one logged event")],
+        },
+      }),
+    ];
+
+    for (const link of links) {
+      expect(bodyOf(link)).toContain("**Extension version:** 9.8.7");
+    }
   });
 });
 

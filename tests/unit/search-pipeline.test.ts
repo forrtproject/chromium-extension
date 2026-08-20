@@ -7,7 +7,7 @@ import {mockResult} from "../helpers";
 
 const MOCK_RESULT = mockResult();
 
-describe("scholar observer", () => {
+describe("search pipeline on Scholar rows", () => {
     beforeEach(async () => {
         vi.resetModules();
         const html = readFileSync(
@@ -26,10 +26,9 @@ describe("scholar observer", () => {
         (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue(
             mockResponse
         );
-        const {processScholarResults} = await import(
-            "../../src/content-scholar/observer"
-            );
-        await processScholarResults(document);
+        const {processSearchResults} = await import("../../src/content-search/pipeline");
+        const {SCHOLAR} = await import("../../src/content-search/sites/scholar");
+        await processSearchResults(SCHOLAR, document);
     });
 
     it("processes Scholar result rows and sends lookup request", async () => {
@@ -42,11 +41,12 @@ describe("scholar observer", () => {
     });
 
     it("marks rows as processed to avoid re-processing", async () => {
-        const {processScholarResults} = await import("../../src/content-scholar/observer");
+        const {processSearchResults} = await import("../../src/content-search/pipeline");
+        const {SCHOLAR} = await import("../../src/content-search/sites/scholar");
         const processedRows = document.querySelectorAll("[data-flora-processed]");
         expect(processedRows.length).toBeGreaterThan(0);
         (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockClear();
-        await processScholarResults(document);
+        await processSearchResults(SCHOLAR, document);
         expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
     });
 
@@ -75,7 +75,7 @@ describe("Scholar row metadata extraction", () => {
             </div>
           </div>
         `);
-        const {extractScholarRowMetadata} = await import("../../src/content-scholar/observer");
+        const {extractScholarRowMetadata} = await import("../../src/content-search/sites/scholar");
         const row = dom.window.document.querySelector<HTMLElement>(".gs_r")!;
 
         expect(extractScholarRowMetadata(row)).toEqual({

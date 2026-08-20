@@ -1,0 +1,32 @@
+/* PubMed: .docsum-content is the row's text column (title, citation block,
+   optional snippet). A row that carries a panel becomes a two-column grid: the
+   citation block (authors, green journal line, PMID) keeps the left column and
+   the panel sits to its right, top-aligned, directly under the title. Title and
+   snippet stay full width. Rows without a panel keep PubMed's own layout. */
+.docsum-content:has(> [data-flora-panel]) {
+  display: grid;
+  /* The right track grows to the panel's natural width (its DOI line is the
+     widest part) up to the max-width below, so DOIs stay unelided. */
+  grid-template-columns: minmax(0, 1fr) minmax(260px, max-content);
+  column-gap: 16px;
+  grid-auto-flow: dense;
+  align-items: start;
+}
+
+.docsum-content:has(> [data-flora-panel]) > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.docsum-content:has(> [data-flora-panel]) > .docsum-citation {
+  grid-column: 1;
+}
+
+.docsum-content > [data-flora-panel] {
+  grid-column: 2;
+  justify-self: end;
+  display: block;
+  width: fit-content;
+  max-width: 320px;
+  margin: 0;
+}

@@ -149,7 +149,7 @@ describe("createIndicatorPanel", () => {
     expect(panel.querySelector("[data-flora-badge-row] [data-flora-row-sub]")!.textContent)
       .toBe("None");
 
-    updateIndicatorPillBadges(document, matchedState(3), []);
+    updateIndicatorPillBadges(document, matchedState(3), [], "panels");
 
     const badgeRow = panel.querySelector<HTMLElement>("[data-flora-badge-row]")!;
     expect(badgeRow.textContent).toContain("Replications");
@@ -163,11 +163,11 @@ describe("createIndicatorPanel", () => {
     document.body.appendChild(panel);
     const notice = { originDoi: DOI, doi: "10.9/n" as DoiString, kind: "retraction" } as never;
 
-    updateIndicatorPillBadges(document, new Map(), [notice]);
+    updateIndicatorPillBadges(document, new Map(), [notice], "panels");
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
       .toContain("retract");
 
-    updateIndicatorPillBadges(document, matchedState(3), [notice]);
+    updateIndicatorPillBadges(document, matchedState(3), [notice], "panels");
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
       .toContain("retract");
   });

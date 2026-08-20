@@ -1,0 +1,3 @@
+/* Google Scholar needs no panel overrides: the panel sits in the right-hand
+   PDF column (.gs_ggs) that Scholar itself floats beside each result, at the
+   shared [data-flora-panel] defaults. */

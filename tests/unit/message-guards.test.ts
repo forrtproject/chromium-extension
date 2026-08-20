@@ -32,4 +32,10 @@ describe("message guards reject malformed payloads", () => {
         expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE" })).toBe(false);
         expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE", pmcids: [] })).toBe(true);
     });
+
+    it("rejects a PMC resolve asking for an id type the resolver has no normaliser for", () => {
+        expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE", pmcids: [], idtype: "doi" })).toBe(false);
+        expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE", pmcids: [], idtype: "pmid" })).toBe(true);
+        expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE", pmcids: [], idtype: "pmcid" })).toBe(true);
+    });
 });

@@ -70,6 +70,11 @@ describe("normaliseDOI", () => {
     expect(normaliseDOI("https://doi.org/")).toBeNull();
   });
 
+  it("collapses a doubled slash after the registrant (PubMed's legacy APA form)", () => {
+    expect(normaliseDOI("10.1037//0022-3514.74.5.1252")).toBe("10.1037/0022-3514.74.5.1252");
+    expect(normaliseDOI("https://doi.org/10.1037//0022-3514.74.5.1252")).toBe("10.1037/0022-3514.74.5.1252");
+  });
+
   it("strips a publisher tracking query string", () => {
     expect(normaliseDOI("https://doi.org/10.1002/job.2278?af=R")).toBe(
       "10.1002/job.2278"

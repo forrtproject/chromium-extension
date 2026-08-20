@@ -63,7 +63,15 @@ export function formatDebugEntry(entry: DebugLogEntry): string {
   return `${formatTimestamp(entry.t)}  [${entry.ctx}] ${level.padEnd(5)}  ${entry.msg}`;
 }
 
-function extensionVersion(): string {
+export function extensionVersion(): string {
+  try {
+    return chrome.runtime.getManifest().version || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function extensionIdentity(): string {
   try {
     const manifest = chrome.runtime.getManifest();
     return `${manifest.name} ${manifest.version}`;
@@ -143,7 +151,7 @@ export async function collectDebugReport(
   ]);
 
   const environment = [
-    `Extension: ${extensionVersion()}`,
+    `Extension: ${extensionIdentity()}`,
     `User agent: ${userAgent()}`,
     `Report generated: ${new Date().toISOString()}`,
   ];
@@ -241,6 +249,8 @@ function issueBody(domain: string | null | undefined, reportSection: string): st
     "",
     "",
     ...(domain ? [`**Domain:** ${domain}`, ""] : []),
+    `**Extension version:** ${extensionVersion()}`,
+    "",
     "**Debug report**",
     "",
     reportSection,

@@ -1,0 +1,19 @@
+/* Scopus list view: the result's first row of columns (checkbox, text,
+   spacer, citation count) uses about three quarters of the row's width; the
+   panel becomes one more flex item in that row, pushed to the right edge
+   and top-aligned with the citation count. Table view: appended to the title
+   cell, the widest of the six columns, capped so it keeps to its own line. */
+li > div > div:has([data-testid="author-list"]) > [data-flora-panel] {
+  flex: 0 1 240px;
+  max-width: 24%;
+  min-width: 0;
+  margin-left: auto;
+  margin-top: 0;
+  align-self: flex-start;
+}
+td > [data-flora-panel] {
+  display: block;
+  width: fit-content;
+  max-width: 260px;
+  margin: 6px 0 2px;
+}

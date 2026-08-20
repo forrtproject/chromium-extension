@@ -1,5 +1,6 @@
 import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse} from "./types";
 import type {AugmentSource} from "./doi-augment";
+import type {NcbiIdType} from "./pmc-resolve";
 import {debugLog} from "./debug";
 import type {DebugLogEntry} from "./debug";
 
@@ -122,25 +123,102 @@ export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
     );
 }
 
-/** Content script → service worker: resolve PubMed Central ids to DOIs */
+/** Content script → service worker: resolve PMC ids (or PMIDs) to DOIs */
 export interface PmcResolveRequest {
     type: "FLORA_PMC_RESOLVE";
     pmcids: string[];
+    /** Which id type `pmcids` holds; defaults to "pmcid". */
+    idtype?: NcbiIdType;
 }
 
-/** Service worker → content script: PMC id → DOI (or null when NCBI has none) */
+/** Service worker → content script: id → DOI (or null when NCBI has none) */
 export interface PmcResolveResponse {
     type: "FLORA_PMC_RESOLVE_RESULT";
     results: Record<string, string | null>;
 }
 
 export function isPmcResolveRequest(msg: unknown): msg is PmcResolveRequest {
+    if (typeof msg !== "object" || msg === null) return false;
+    const record = msg as Record<string, unknown>;
+    return (
+        record.type === "FLORA_PMC_RESOLVE" &&
+        Array.isArray(record.pmcids) &&
+        // resolvePmcIds looks the id type up in a fixed table, so anything else
+        // would leave it without a normaliser.
+        (record.idtype === undefined || record.idtype === "pmcid" || record.idtype === "pmid")
+    );
+}
+
+/** Content script → service worker: resolve OpenAlex work ids to DOIs */
+export interface OpenAlexResolveRequest {
+    type: "FLORA_OPENALEX_RESOLVE";
+    ids: string[];
+}
+
+/** Service worker → content script: OpenAlex id → DOI (or null when the work has none) */
+export interface OpenAlexResolveResponse {
+    type: "FLORA_OPENALEX_RESOLVE_RESULT";
+    results: Record<string, string | null>;
+}
+
+export function isOpenAlexResolveRequest(msg: unknown): msg is OpenAlexResolveRequest {
     return (
         typeof msg === "object" &&
         msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_PMC_RESOLVE" &&
-        Array.isArray((msg as Record<string, unknown>).pmcids)
+        (msg as Record<string, unknown>).type === "FLORA_OPENALEX_RESOLVE" &&
+        Array.isArray((msg as Record<string, unknown>).ids)
     );
+}
+
+/** Ask the service worker to run resolveOpenAlexIds. */
+export async function resolveOpenAlexIdsViaWorker(
+    ids: string[]
+): Promise<Map<string, DoiString | null>> {
+    const response = await safeSendMessage<OpenAlexResolveResponse>({
+        type: "FLORA_OPENALEX_RESOLVE",
+        ids,
+    });
+    const result = new Map<string, DoiString | null>();
+    for (const [id, doi] of Object.entries(response?.results ?? {})) {
+        result.set(id, doi as DoiString | null);
+    }
+    return result;
+}
+
+/** Content script → service worker: resolve Semantic Scholar paper ids to DOIs */
+export interface SemanticScholarResolveRequest {
+    type: "FLORA_S2_RESOLVE";
+    ids: string[];
+}
+
+/** Service worker → content script: paper id → DOI (or null when the paper has none) */
+export interface SemanticScholarResolveResponse {
+    type: "FLORA_S2_RESOLVE_RESULT";
+    results: Record<string, string | null>;
+}
+
+export function isSemanticScholarResolveRequest(msg: unknown): msg is SemanticScholarResolveRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_S2_RESOLVE" &&
+        Array.isArray((msg as Record<string, unknown>).ids)
+    );
+}
+
+/** Ask the service worker to run resolveSemanticScholarIds. */
+export async function resolveSemanticScholarIdsViaWorker(
+    ids: string[]
+): Promise<Map<string, DoiString | null>> {
+    const response = await safeSendMessage<SemanticScholarResolveResponse>({
+        type: "FLORA_S2_RESOLVE",
+        ids,
+    });
+    const result = new Map<string, DoiString | null>();
+    for (const [id, doi] of Object.entries(response?.results ?? {})) {
+        result.set(id, doi as DoiString | null);
+    }
+    return result;
 }
 
 /**
@@ -148,11 +226,13 @@ export function isPmcResolveRequest(msg: unknown): msg is PmcResolveRequest {
  * headers, so the fetch has to happen in the background context.
  */
 export async function resolvePmcIdsViaWorker(
-    pmcids: string[]
+    pmcids: string[],
+    idtype: NcbiIdType = "pmcid"
 ): Promise<Map<string, DoiString | null>> {
     const response = await safeSendMessage<PmcResolveResponse>({
         type: "FLORA_PMC_RESOLVE",
         pmcids,
+        idtype,
     });
     const result = new Map<string, DoiString | null>();
     for (const [pmcid, doi] of Object.entries(response?.results ?? {})) {

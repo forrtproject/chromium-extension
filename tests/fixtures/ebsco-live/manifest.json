@@ -1,0 +1,85 @@
+{
+  "snapshotDate": "2026-08-19",
+  "source": "research.ebsco.com search results (APA PsycInfo, query \"ego depletion replication\"), captured from a signed-in browser session. Query strings were stripped from every href, the institution profile segment was replaced with \"abc123\", and per-render UUIDs were replaced with stable placeholders.",
+  "snapshots": [
+    {
+      "query": "ego depletion replication",
+      "requestedUrl": "https://research.ebsco.com/c/abc123/search/results",
+      "file": "tests/fixtures/ebsco-live/ebsco-live-01.html",
+      "note": "outerHTML of the #results-page container with all ten article[data-auto=\"search-result-item\"] rows, followed by a <style data-captured> block holding the page rules that match them, so the fixture renders as the live page does.",
+      "resultCount": 10,
+      "rows": [
+        {
+          "index": 1,
+          "title": "Does willpower mindset really moderate the ego-depletion effect? A preregistered replication of Job, Dweck, and Walton (2010).",
+          "recordId": "l3xto7keqv",
+          "firstAuthor": "Carruth",
+          "published": "PLoS ONE, Jun 29, 2023, volume 18, issue 6"
+        },
+        {
+          "index": 2,
+          "title": "From ego depletion to self-control fatigue: A review of criticisms along with new perspectives for the investigation and replication of a multicomponent phenomenon.",
+          "recordId": "sfo5ehwb3b",
+          "firstAuthor": "Forestier",
+          "published": "Motivation Science, Mar 2022, volume 8, issue 1, pages 19-32 (14p)"
+        },
+        {
+          "index": 3,
+          "title": "A multilab replication of the ego depletion effect.",
+          "recordId": "oadywwnglf",
+          "firstAuthor": "Dang",
+          "published": "Social Psychological and Personality Science, Jan 2021, volume 12, issue 1, pages 14-24 (11p)"
+        },
+        {
+          "index": 4,
+          "title": "Self-reports from behind the scenes: Questionable research practices and rates of replication in ego depletion research.",
+          "recordId": "535ryexooz",
+          "firstAuthor": "Wolff",
+          "published": "PLoS ONE, Jun 25, 2018, volume 13, issue 6"
+        },
+        {
+          "index": 5,
+          "title": "The interaction between measurement and individual difference in ego depletion: Task type, trait self-control and action orientation.",
+          "recordId": "m3n2fnnoqn",
+          "firstAuthor": "Zhang",
+          "published": "Psychological Reports, Oct 2025, volume 128, issue 5, pages 3796-3824 (29p)"
+        },
+        {
+          "index": 6,
+          "title": "The role of task similarity for ego depletion: A registered report.",
+          "recordId": "gtzp4gvqtf",
+          "firstAuthor": "Primoceri",
+          "published": "Journal of Experimental Social Psychology, Jul 2021, volume 95"
+        },
+        {
+          "index": 7,
+          "title": "Extending a multilab preregistered replication of the ego-depletion effect to a research program.",
+          "recordId": "q2qz376nej",
+          "firstAuthor": "Witte",
+          "published": "Basic and Applied Social Psychology, Jan 2017, volume 39, issue 1, pages 74-80 (7p)"
+        },
+        {
+          "index": 8,
+          "title": "Challenges to ego-depletion research go beyond the replication crisis: A need for tackling the conceptual crisis.",
+          "recordId": "obnmrc4b2j",
+          "firstAuthor": "Lurquin",
+          "published": "Frontiers in Psychology, Apr 18, 2017, volume 8"
+        },
+        {
+          "index": 9,
+          "title": "Commentary: “Misguided effort with elusive implications” and “a multi-lab pre-registered replication of the ego depletion effect”.",
+          "recordId": "ahz2o4qhqz",
+          "firstAuthor": "Drummond",
+          "published": "Frontiers in Psychology, Feb 28, 2017, volume 8"
+        },
+        {
+          "index": 10,
+          "title": "The past, present, and future of ego depletion.",
+          "recordId": "7ih5mr3xyb",
+          "firstAuthor": "Inzlicht",
+          "published": "Social Psychology, 2019, volume 50, issue 5-6, pages 370-378 (9p)"
+        }
+      ]
+    }
+  ]
+}

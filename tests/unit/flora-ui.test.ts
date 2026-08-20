@@ -35,6 +35,13 @@ describe("isFloraOwnedNode", () => {
     el.remove();
   });
 
+  it("recognises the marker when the id property is shadowed", () => {
+    const el = document.createElement("div");
+    el.setAttribute("id", "flora-shadowed-id");
+    Object.defineProperty(el, "id", {value: 123, configurable: true});
+    expect(isFloraOwnedNode(el)).toBe(true);
+  });
+
   it("survives a form whose field named 'id' shadows form.id", () => {
     // In browsers a <form> exposes its controls as named properties, so a
     // field called "id" makes form.id an element. jsdom doesn't model this;
