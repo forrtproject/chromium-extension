@@ -33,7 +33,7 @@ describe("injectInlineRetractionPills", () => {
         resetRetractionPills();
     });
 
-    it("skips only the DOI the title pill will carry", () => {
+    it("pills every noticed DOI, including the page's own", () => {
         const primaryAnchor = anchorFor("primary");
         const secondAnchor = anchorFor("second");
         const map = new Map([[PRIMARY, notice(PRIMARY)], [SECOND_ARTICLE, notice(SECOND_ARTICLE)]]);
@@ -41,23 +41,23 @@ describe("injectInlineRetractionPills", () => {
         injectInlineRetractionPills(
             [{ doi: PRIMARY, anchor: primaryAnchor }, { doi: SECOND_ARTICLE, anchor: secondAnchor }],
             map,
-            PRIMARY
-        );
-
-        expect(isPilled(primaryAnchor)).toBe(false);
-        expect(isPilled(secondAnchor)).toBe(true);
-    });
-
-    it("pills the primary DOI when no title pill will be placed", () => {
-        const primaryAnchor = anchorFor("primary");
-
-        injectInlineRetractionPills(
-            [{ doi: PRIMARY, anchor: primaryAnchor }],
-            new Map([[PRIMARY, notice(PRIMARY)]]),
-            null
         );
 
         expect(isPilled(primaryAnchor)).toBe(true);
+        expect(isPilled(secondAnchor)).toBe(true);
+    });
+
+    it("pills a noticed DOI once, at its first occurrence", () => {
+        const first = anchorFor("first");
+        const later = anchorFor("later");
+
+        injectInlineRetractionPills(
+            [{ doi: PRIMARY, anchor: first }, { doi: PRIMARY, anchor: later }],
+            new Map([[PRIMARY, notice(PRIMARY)]]),
+        );
+
+        expect(isPilled(first)).toBe(true);
+        expect(isPilled(later)).toBe(false);
     });
 
     it("pills reference occurrences", () => {
@@ -66,7 +66,6 @@ describe("injectInlineRetractionPills", () => {
         injectInlineRetractionPills(
             [{ doi: REFERENCE, anchor: refAnchor }],
             new Map([[REFERENCE, notice(REFERENCE)]]),
-            PRIMARY
         );
 
         expect(isPilled(refAnchor)).toBe(true);
@@ -78,7 +77,6 @@ describe("injectInlineRetractionPills", () => {
         injectInlineRetractionPills(
             [{ doi: REFERENCE, anchor: cleanAnchor }],
             new Map(),
-            PRIMARY
         );
 
         expect(isPilled(cleanAnchor)).toBe(false);

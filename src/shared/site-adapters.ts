@@ -591,21 +591,19 @@ function toKebab(prop: string): string {
     return prop.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 }
 
-const DEFAULT_PILL_STYLE: PillStyle = {
-    verticalAlign: "middle",
-    top: "0",
-    marginInlineStart: "6px !important",
-};
-
-/** Apply the slot's CSS overrides; anything unnamed keeps the pill's default. */
+/**
+ * Apply the slot's CSS overrides; anything unnamed keeps the pill's default.
+ *
+ * Alignment and spacing are not overridden here: PILL_WRAPPER_STYLE in
+ * indicator-pill.ts carries them, so every pill gets them on every site
+ * rather than only on pages with no adapter.
+ */
 export function applyPillStyle(
     pill: HTMLElement,
     adapter: SiteAdapter | null,
     slot: "reference" | "title"
 ): void {
-    const style = adapter
-        ? (slot === "reference" ? adapter.referencePillStyle : adapter.titlePillStyle)
-        : DEFAULT_PILL_STYLE;
+    const style = slot === "reference" ? adapter?.referencePillStyle : adapter?.titlePillStyle;
     if (!style) return;
     for (const [prop, raw] of Object.entries(style)) {
         // setProperty silently ignores camelCase names and an inline "!important",

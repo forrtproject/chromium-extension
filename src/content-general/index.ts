@@ -41,7 +41,7 @@ import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
-import {injectInlineRetractionPills, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
+import {injectInlineRetractionPills, injectRetractionInfo, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 
@@ -312,11 +312,17 @@ async function runScanPass(): Promise<void> {
         reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
         pageNotices = await retractionCheck(dois);
         refreshRedacts();
-        const titleEl = document.querySelector<HTMLHeadingElement>("h1");
+        // A noticed DOI gets one labelled pill, at its most prominent
+        // occurrence. The title outranks any mention in the body, so the
+        // title claims its notice before the occurrence pass runs — the
+        // per-DOI guard in injectRetractionInfo then skips the body mentions.
+        if (!isSheets) {
+            placeTitleIndicatorPill();
+            placeTitleNoticePill();
+        }
         injectInlineRetractionPills(
             pageOccurrences,
             new Map(redacts.map((r) => [r.originDoi, r] as const)),
-            titleEl ? extractPrimaryDOI(document) : null,
         );
     }
     const refsDone = finishReferences(refsPromise);
@@ -509,6 +515,22 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
             refsPending--;
             endWorkIndicator();
         });
+}
+
+/**
+ * Give the article's own retraction or expression of concern its labelled
+ * pill, beside the title pill. Separate from placeTitleIndicatorPill because
+ * the title pill is often placed before the retraction check has answered.
+ * Idempotent: injectRetractionInfo shows one pill per DOI per page.
+ */
+function placeTitleNoticePill(): void {
+    const titlePill = document.querySelector<HTMLElement>(
+        `.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`
+    );
+    const doi = titlePill?.getAttribute("data-flora-doi");
+    if (!titlePill || !doi) return;
+    const notice = redacts.find((r) => r.originDoi === doi);
+    if (notice) injectRetractionInfo(titlePill, notice, {afterend: true});
 }
 
 /**

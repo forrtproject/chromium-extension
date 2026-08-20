@@ -566,11 +566,15 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   );
   const pGroup = findLargestSiblingGroup(container, "p");
   const divGroup = findLargestSiblingGroup(container, "div");
+  // A tabular bibliography: one citation per body row. Without this the only
+  // children of the <table> are <thead>/<tbody>, so the whole table counts as
+  // a single entry — one DOI gets a pill and every later row is skipped.
+  const rowGroup = Array.from(container.querySelectorAll<HTMLElement>("tbody > tr, table > tr"));
 
   // Largest group wins, not just the first past the threshold: Oxford
   // Academic's per-reference <div> group otherwise loses to a single
   // reference's own 2-3 <p> link buttons.
-  const best = [lis, pGroup, divGroup].reduce((a, b) => (b.length > a.length ? b : a));
+  const best = [lis, pGroup, divGroup, rowGroup].reduce((a, b) => (b.length > a.length ? b : a));
   if (best.length >= 2) return best;
 
   let scope: Element = container;

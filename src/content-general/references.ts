@@ -14,7 +14,7 @@
 import {findReferenceEntries, extractDoiFromHref, type ReferenceEntry} from "@shared/doi-extractor";
 import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
 import {validateDOIs} from "@shared/doi-validate";
-import type {RetractionResponse} from "@shared/doi-retraction";
+import {alignNoticePillWith, type RetractionResponse} from "@shared/doi-retraction";
 import {createIndicatorPill} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {getSettings} from "@shared/settings";
@@ -317,6 +317,7 @@ export function renderResolvedReferences(
         });
         applyPillStyle(pill, adapter, "reference");
         placeReferencePill(entry.element, doi, mode, pill, adapter);
+        alignNoticePillWith(pill, doi, entry.element);
         debugLog(`References: surfaced "${entry.text.slice(0, 60)}" → ${doi} (${mode})`);
     }
     debugLog(`References: rendered ${resolved.length} inline indicator pill(s)`);

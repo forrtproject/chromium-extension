@@ -9,9 +9,7 @@
 
 import type {DoiAugmentRequest} from "@shared/doi-augment";
 import {augmentDOIsViaWorker, safeSendMessage} from "@shared/messages";
-// injectRetractionInfo is still used for rows whose DOI failed validation:
-// those get no indicator panel, so there is no badge row to carry the notice.
-import {injectRetractionInfo, retractionCheck} from "@shared/doi-retraction";
+import {retractionCheck} from "@shared/doi-retraction";
 import {validateDOIs} from "@shared/doi-validate";
 import type {DoiString, DoiSource, LookupState, RetractionResponse} from "@shared/types";
 import type {LookupRequest, LookupResponse} from "@shared/messages";
@@ -253,10 +251,11 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
                     debugLog(`${label} resolve [extracted-revalidated] "${info.title}" → ${extractedDoi} (doi.org confirmed on retry)`);
                     place(info, extractedDoi, "extracted", false);
                 } else if (validity === false) {
-                    // Invalid DOI — no panel, but still surface a retraction/concern
-                    // notice (the static map is keyed independently of doi.org validity).
+                    // The handle does not exist, so the DOI was never registered
+                    // and this row's identity is unknown — no FLoRA UI at all.
+                    // Not even a retraction notice: a notice must never outlive
+                    // the identity check that produced it.
                     debugLog(`${label} resolve [extracted-invalid] "${info.title}" → ${extractedDoi} rejected (doi.org says invalid)`);
-                    await placeNoticeOnly(adapter, info.row, extractedDoi);
                 } else {
                     // doi.org never answered. Hand the row back unprocessed so
                     // the next pass can try it, rather than calling a DOI
@@ -330,18 +329,6 @@ function rowByline(info: {firstAuthor: string | null; year: number | null}): str
 /** One work-toast item, pending until its stage reports back on it. */
 function workItem(id: string, label: string, detail?: string): WorkItem {
     return {id, label: stripTypeTags(label) || id, detail, status: "pending"};
-}
-
-async function placeNoticeOnly(adapter: SearchSiteAdapter, row: HTMLElement, doi: DoiString): Promise<void> {
-    try {
-        const notices = await retractionCheck([doi]);
-        if (notices.length === 0) return;
-        const target = adapter.noticeTarget?.(row) ?? null;
-        if (target) injectRetractionInfo(target, notices[0], {afterend: true});
-        else injectRetractionInfo(row, notices[0]);
-    } catch (err) {
-        debugWarn(`${adapter.label}: notice check failed for ${doi} —`, err);
-    }
 }
 
 /** Build the row's panel, place it per the adapter, then fetch its retraction status. */

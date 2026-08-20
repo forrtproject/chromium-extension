@@ -99,6 +99,30 @@ const ICON_BTN_STYLE = `
     flex: 0 0 auto;
   `;
 
+// Shared by the indicator pill and the retraction/concern notice pill so the
+// two align with each other wherever they land beside the same citation.
+//
+// Two things keep the pill centred on the text it annotates, at any size:
+//
+// `line-height: 0` — the wrapper is an inline-block, so without it the
+// wrapper's strut inherits the host's line-height and the box grows taller
+// than the pill drawn inside it (38px of box around a 22px pill in a heading
+// with `line-height: 1.55`). `vertical-align` then centres that inflated box
+// while the visible pill hangs low inside it, by an amount that follows the
+// host's line-height rather than anything we control.
+//
+// `top: -0.1em` — `vertical-align: middle` centres on the parent's x-height
+// (0.52em in a typical sans) rather than its cap height (0.71em), leaving the
+// pill low by half the difference. In `em` so it tracks the host's font size.
+// `top` and not `transform`: a transform would make this wrapper the
+// containing block for the position:fixed popover, throwing its viewport
+// coordinates far off.
+export const PILL_WRAPPER_STYLE =
+    "position: relative; display: inline-block; vertical-align: middle;"
+    + " line-height: 0 !important; top: -0.1em;"
+    + " margin-left: 0 !important; margin-right: 0 !important;"
+    + " margin-inline-start: 6px !important;";
+
 const BOX_SIDES = ["top", "right", "bottom", "left"] as const;
 
 function shieldFromPageCss<T extends Element>(root: T): T {
@@ -833,10 +857,12 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     // The popover prints the DOI and links it to doi.org; without this marker
     // the extractor rescans that as a page occurrence and pills it again.
     wrapper.setAttribute("data-flora-ui", "");
-    // Nudge up 1px with relative `top`, NOT `transform` — a transform would make
-    // this wrapper the containing block for the position:fixed popover below,
-    // throwing its viewport-based coordinates far off from the pill.
-    wrapper.style.cssText = "position: relative; display: inline-block; vertical-align: baseline; top: 5px;";
+    // Centred on the text it annotates, with a gap before it. The gap is
+    // `margin-inline-start` so it mirrors on RTL pages, declared after the
+    // physical margins so it wins the cascade on either side; the physical
+    // zeroes are declared here (rather than left to shieldFromPageCss) so
+    // that the gap survives. See PILL_WRAPPER_STYLE for the alignment.
+    wrapper.style.cssText = PILL_WRAPPER_STYLE;
 
     const pill = document.createElement("span");
     pill.setAttribute("role", "button");

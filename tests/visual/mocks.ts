@@ -56,7 +56,7 @@ export const REUSED_DOIS = {
   plosone: "10.1371/journal.pone.0012345", // doi-in-text / article-with-dois -> replications
   nature: "10.1038/nature12373", // article-with-dois article DOI -> replications
   scienceFake: "10.1126/science.9999999", // article-with-dois ref -> no data
-  redactedArticle: "10.1007/s00500-023-07906-6", // redacted -> retracted (article)
+  retractedArticle: "10.1007/s00500-023-07906-6", // retracted article page
 } as const;
 
 /** Every fixture DOI (values), for bulk seeding. */
@@ -154,7 +154,7 @@ export const REPLICATION_DATA: Record<string, unknown> = {
   // Zero-stats (cache hit, no badge) for the remaining reused DOIs.
   [REUSED_DOIS.psci]: replicationResult(REUSED_DOIS.psci, "Psychological Science Study", 0, 0),
   [REUSED_DOIS.scienceFake]: replicationResult(REUSED_DOIS.scienceFake, "Placeholder Study", 0, 0),
-  [REUSED_DOIS.redactedArticle]: replicationResult(REUSED_DOIS.redactedArticle, "Retracted ML Study", 0, 0),
+  [REUSED_DOIS.retractedArticle]: replicationResult(REUSED_DOIS.retractedArticle, "Retracted ML Study", 0, 0),
 };
 
 // ── Retraction map (src/shared/data-extract.ts RetractionMaps) ──────────────
@@ -163,7 +163,7 @@ export const RET_MAP_KEY = "RetractionLookupLocal";
 export const RETRACTION_MAP = {
   retractions: {
     [DOIS.retracted]: "10.9999/retraction.notice.0003",
-    [REUSED_DOIS.redactedArticle]: "10.9999/retraction.notice.redacted",
+    [REUSED_DOIS.retractedArticle]: "10.9999/retraction.notice.retracted",
   },
   concerns: {
     [DOIS.concern]: "10.9999/concern.notice.0004",

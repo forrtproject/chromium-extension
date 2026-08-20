@@ -25,7 +25,6 @@ export const OPENALEX: SearchSiteAdapter = {
     extractRow,
     // A sibling of the text column, so the flex row shows the panel on the right.
     panelPlacement: [{selector: ".result-content", position: "after"}],
-    noticeTarget: (row) => row.querySelector<HTMLElement>(".result-title-wrap"),
     resolveSiteIds: resolveOpenAlexIdsViaWorker,
 };
 

@@ -96,7 +96,7 @@ const FIXTURES: Fixture[] = [
   { name: "doi-in-href", urlPath: "doi-in-href.html" },
   { name: "doi-in-table", urlPath: "doi-in-table.html" },
   { name: "doi-in-text", urlPath: "doi-in-text.html" },
-  { name: "redacted", urlPath: "redacted.html" },
+  { name: "retracted", urlPath: "retracted.html" },
 ];
 
 // FLoRA-injected elements we wait to settle before capturing.
@@ -239,6 +239,16 @@ async function captureFixture(
     }
     const resp = await page.goto(`${origin}/${fixture.urlPath}`, { waitUntil: "load", timeout: 30000 });
     if (process.env.VR_DEBUG) console.log(`   goto ${fixture.urlPath}: status=${resp?.status()} ok=${resp?.ok()}`);
+    // A fixture registered without its HTML serves a 404 page. Refuse it
+    // rather than blessing "Not found" as a baseline, which would turn the
+    // missing fixture permanently green.
+    if (resp && !resp.ok()) {
+      return {
+        name: fixture.name,
+        status: "fail",
+        detail: `${fixture.urlPath} returned ${resp.status()} — fixture file missing`,
+      };
+    }
     await page.bringToFront();
     // Determinism CSS injected as a plain string (no function serialization):
     // kills animations/transitions/carets and hides the transient scanning toast.
@@ -261,7 +271,16 @@ async function captureFixture(
       console.log(`   dbg ${fixture.name}: ${JSON.stringify(dbg)}`);
     }
 
-    const shot = await page.screenshot({ fullPage: true, type: "png" });
+    // `fullPage` on a dir="rtl" document captures from the wrong horizontal
+    // origin: content comes out shifted right and clipped at the right edge,
+    // even though nothing overflows the viewport. Capture the viewport
+    // directly whenever the page already fits in it, which is every fixture
+    // but `long-article-sticky`.
+    const fitsViewport = await page.evaluate(
+      (h) => document.documentElement.scrollHeight <= h,
+      VIEWPORT.height,
+    );
+    const shot = await page.screenshot({ fullPage: !fitsViewport, type: "png" });
     const actual = PNG.sync.read(Buffer.from(shot));
     const baselinePath = path.join(BASELINE_DIR, `${fixture.name}.png`);
 
