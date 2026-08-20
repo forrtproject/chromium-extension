@@ -40,6 +40,7 @@ import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
+import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
@@ -857,6 +858,12 @@ async function fetchSheetDois(): Promise<void> {
 
     if (isBotCheckPage()) {
         debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
+        reportActiveState(false);
+        return;
+    }
+
+    if (isAuthGatewayPage()) {
+        debugLog("Sign-in step — FLoRA renders nothing on this page");
         reportActiveState(false);
         return;
     }
