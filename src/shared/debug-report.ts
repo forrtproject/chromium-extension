@@ -263,7 +263,8 @@ const MAX_TITLE_CHARS = 80;
 function issueTitle(domain: string | null | undefined, error?: RuntimeErrorInfo | null): string {
   if (error) {
     const summary = error.message.replace(/\s+/g, " ").trim();
-    return `Error: ${summary.length > MAX_TITLE_CHARS ? `${summary.slice(0, MAX_TITLE_CHARS)}…` : summary}`;
+    const named = /^[A-Za-z]*(?:Error|Exception):/.test(summary) ? summary : `Error: ${summary}`;
+    return named.length > MAX_TITLE_CHARS ? `${named.slice(0, MAX_TITLE_CHARS)}…` : named;
   }
   return domain ? `Issue on domain: ${domain}` : "Issue report";
 }
@@ -370,6 +371,16 @@ export function issueUrl(options: {
     embedded: true,
     embeddedEntries: best,
   };
+}
+
+export function isOwnRepoUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return /(^|\.)github\.com$/.test(parsed.hostname)
+      && parsed.pathname.startsWith("/forrtproject/chromium-extension");
+  } catch {
+    return false;
+  }
 }
 
 /** True when a URL is the new-issue form on the extension's own repository. */

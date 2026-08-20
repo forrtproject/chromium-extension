@@ -36,6 +36,7 @@ import {
 import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
+import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
@@ -849,6 +850,11 @@ async function fetchSheetDois(): Promise<void> {
     // that URL resolves and FLoRA would pill an interstitial. Render nothing
     // and stop — clearing the challenge loads the real document, and the
     // content script starts over there.
+    if (isOwnRepoUrl(location.href)) {
+        reportActiveState(false);
+        return;
+    }
+
     if (isBotCheckPage()) {
         debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
         reportActiveState(false);

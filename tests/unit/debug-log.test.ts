@@ -93,7 +93,9 @@ describe("debug capture", () => {
     const entries = sink.mock.calls[0][0] as DebugLogEntry[];
     expect(entries).toHaveLength(2);
     expect(entries[0]).toMatchObject({ level: "log", msg: "looked up 3 DOIs" });
-    expect(entries[1]).toMatchObject({ level: "error", msg: "Error: lookup failed" });
+    expect(entries[1].level).toBe("error");
+    expect(entries[1].msg).toMatch(/^Error: lookup failed/);
+    expect(entries[1].msg).toMatch(/\n\s*at /);
   });
 
   it("flushes on its own once the batch grows past the threshold", () => {
@@ -140,7 +142,7 @@ describe("debug capture", () => {
     flushDebugLog();
 
     const [captured] = sink.mock.calls[0][0] as DebugLogEntry[];
-    expect(captured.msg.length).toBeLessThan(1100);
+    expect(captured.msg.length).toBeLessThan(2100);
     expect(captured.msg).toMatch(/truncated/);
   });
 });

@@ -100,8 +100,16 @@ describe("the report a crash carries", () => {
         const link = issueUrl({ error: { message: "TypeError: x is not a function" } });
         const params = new URL(link.url).searchParams;
 
-        expect(params.get("title")).toBe("Error: TypeError: x is not a function");
+        expect(params.get("title")).toBe("TypeError: x is not a function");
         expect(params.get("labels")).toBe("bug");
+    });
+
+    it("says Error only when the message does not name one", () => {
+        const named = issueUrl({ error: { message: "Error: boom" } });
+        const bare = issueUrl({ error: { message: "the pass gave up" } });
+
+        expect(new URL(named.url).searchParams.get("title")).toBe("Error: boom");
+        expect(new URL(bare.url).searchParams.get("title")).toBe("Error: the pass gave up");
     });
 
     it("trims a stack-length message out of the title", () => {

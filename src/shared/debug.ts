@@ -37,13 +37,24 @@ export type RuntimeErrorListener = (info: RuntimeErrorInfo) => void;
 export const DEBUG_FLAG_KEY = "flora_debug";
 
 /** Longest single captured message; anything beyond this is truncated. */
-const MAX_MESSAGE_CHARS = 1000;
+const MAX_MESSAGE_CHARS = 2000;
 /** Entries are shipped once the batch reaches this size… */
 const FLUSH_AT_ENTRIES = 25;
 /** …or after this long, whichever comes first. */
 const FLUSH_DELAY_MS = 800;
 
 const RECENT_LIMIT = 60;
+
+const OWN_REPO_PATH = "/forrtproject/chromium-extension";
+
+function isOwnIssueTracker(): boolean {
+  try {
+    if (typeof location === "undefined") return false;
+    return /(^|\.)github\.com$/.test(location.hostname) && location.pathname.startsWith(OWN_REPO_PATH);
+  } catch {
+    return false;
+  }
+}
 
 let _enabled = false;
 let _initialized = false;
@@ -75,9 +86,22 @@ function detectContext(): string {
   }
 }
 
+const MAX_STACK_FRAMES = 8;
+
+function formatError(err: Error): string {
+  const head = `${err.name}: ${err.message}`;
+  const frames = (err.stack ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("at "))
+    .slice(0, MAX_STACK_FRAMES);
+  const cause = err.cause instanceof Error ? `\ncaused by ${err.cause.name}: ${err.cause.message}` : "";
+  return frames.length > 0 ? `${head}\n${frames.join("\n")}${cause}` : `${head}${cause}`;
+}
+
 function stringifyArg(arg: unknown): string {
   if (typeof arg === "string") return arg;
-  if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+  if (arg instanceof Error) return formatError(arg);
   if (arg === null) return "null";
   if (arg === undefined) return "undefined";
   try {
@@ -125,6 +149,7 @@ function flush(): void {
 }
 
 function capture(level: DebugLevel, args: unknown[]): void {
+  if (isOwnIssueTracker()) return;
   if (context === null) context = detectContext();
   const entry: DebugLogEntry = { t: Date.now(), level, ctx: context, msg: formatMessage(args) };
 
