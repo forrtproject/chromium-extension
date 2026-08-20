@@ -232,16 +232,22 @@ export function injectRetractionInfo(
     info: RetractionResponse,
     options: InjectRetractionOptions = {},
 ): void {
-    // Idempotent per anchor (re-runs from DOM mutations must not stack pills)
-    // and shown once per DOI — the first occurrence wins, later mentions of
-    // the same retracted DOI are skipped.
-    if (target.getAttribute(FLORA_RET_CHECK_KEY) === '1') return;
-    // The per-DOI guard is reconciled against the live DOM: a hydrating SPA
-    // can wipe a placed notice, and the DOI would otherwise stay in the set
-    // and block every later attempt to put it back.
-    if (pilledRetractionDois.has(info.originDoi) && hasNoticePill(info.originDoi)) return;
+    // The marker names the DOI whose pill this anchor hosts. An anchor takes
+    // one notice and no more: two noticed DOIs cited in the same paragraph
+    // would otherwise stack their pills there, and the second is better
+    // served by its own reference entry, which a later pass reaches.
+    const hosted = target.getAttribute(FLORA_RET_CHECK_KEY);
+    if (hosted !== null && hosted !== info.originDoi) return;
+    // Shown once per DOI — the first occurrence wins, later mentions of the
+    // same DOI are skipped. Both guards are reconciled against the live DOM:
+    // a hydrating SPA can wipe a placed pill while leaving the anchor that
+    // carries the marker, and the anchor and the DOI would then block every
+    // later attempt to put the pill back.
+    const noticePresent = hasNoticePill(info.originDoi);
+    if (hosted === info.originDoi && noticePresent) return;
+    if (pilledRetractionDois.has(info.originDoi) && noticePresent) return;
     pilledRetractionDois.add(info.originDoi);
-    target.setAttribute(FLORA_RET_CHECK_KEY, '1');
+    target.setAttribute(FLORA_RET_CHECK_KEY, info.originDoi);
 
     const wrapper = document.createElement("span");
     wrapper.className = FLORA_NOTICE_PILL_CLASS;
