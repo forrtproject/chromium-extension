@@ -10,6 +10,10 @@ fixture pages over `http://127.0.0.1`, waits for FLoRA to finish injecting, and
 captures the page. Everything the extension would fetch is mocked, so pass/fail
 never depends on the network.
 
+The browser runs **headless** (`headless: true`), which loads MV3 extensions and
+renders pixel-for-pixel the same as a headful window — no window opens while the
+tests run.
+
 ## Running
 
 ```bash
@@ -84,17 +88,19 @@ Two mechanisms, both in `mocks.ts`, guarantee no real network dependence:
    - **Page context** (`page.setRequestInterception`): localhost is allowed; the
      doi.org Handle API, PubPeer POST, and Unpaywall are served canned JSON; any
      other external request is aborted.
-   - **Worker context**: the service worker's own fetches (FORRT rep-api,
-     Crossref, OpenAlex, the GitHub retraction sync, Google Docs) are failed via
-     a CDP `Fetch` session attached to the `service_worker` target — page-level
-     interception does not cover worker requests.
+   - **Worker context**: every http(s) request the service worker makes to
+     anything but the local fixture server (FORRT rep-api, Crossref, OpenAlex,
+     the GitHub retraction sync, Google Docs, PMC, …) is failed via a CDP
+     `Fetch` session attached to the `service_worker` target — page-level
+     interception does not cover worker requests. The extension's own packaged
+     resources pass through.
 
 The retraction map + settings are re-seeded immediately before each fixture as
 insurance against a stray install-time sync.
 
 ## Determinism
 
-- **One raster path.** Headful macOS Chrome flaps between GPU and software
+- **One raster path.** macOS Chrome flaps between GPU and software
   rasterisation across page loads, which shifts the anti-aliasing of *every
   glyph* on the page — runs would pass or fail different fixtures at random
   with whole-page text diffs (~0.2–2 % of pixels). The launch flags pin a
@@ -118,8 +124,10 @@ Stability bar: after regenerating baselines, `npm run test:visual` must report
 baselines are committed.
 
 Comparison uses `pixelmatch` at a per-pixel threshold of `0.1`; a fixture fails
-if more than **0.1 %** of pixels differ. On failure the actual and diff images
-are written to `output/` (gitignored).
+if more than **100 pixels** differ. The budget is an absolute count so that it
+stays meaningful on a tall full-page shot, where a percentage would leave room
+for a whole pill to move. On failure the actual and diff images are written to
+`output/` (gitignored).
 
 ## Baselines are platform-specific
 

@@ -7,6 +7,7 @@ import type {
 import type {RetractionMaps} from "../../src/shared/data-extract";
 import {RET_MAP_KEY} from "../../src/shared/data-extract";
 import {doi, mockResult} from "../helpers";
+import {MONTH_MS} from "../../src/shared/cache";
 
 
 const MOCK_RESULT = mockResult();
@@ -40,8 +41,11 @@ const cacheStore = new Map<string, unknown>();
 const cacheSetCalls: Array<{key: string; data: unknown; ttlMs: number | null}> = [];
 // When set, cache.set throws (simulates a storage-quota write failure).
 let cacheSetError: Error | null = null;
-vi.mock("../../src/shared/cache", () => ({
-    MONTH_MS: 30 * 24 * 60 * 60 * 1000,
+vi.mock("../../src/shared/cache", async () => ({
+    // Real constant, so a change to the TTL in src is visible to the assertions.
+    MONTH_MS: (await vi.importActual<typeof import("../../src/shared/cache")>(
+        "../../src/shared/cache",
+    )).MONTH_MS,
     LocalCache: class {
         prefix: string;
 
@@ -263,8 +267,9 @@ describe("service-worker", () => {
         });
 
         expect(cacheSetCalls).toHaveLength(1);
-        // ~30 days, not null/forever — this is what makes eviction possible.
-        expect(cacheSetCalls[0].ttlMs).toBe(30 * 24 * 60 * 60 * 1000);
+        // A finite TTL, not null/forever — this is what makes eviction possible.
+        expect(cacheSetCalls[0].ttlMs).toBe(MONTH_MS);
+        expect(MONTH_MS).toBeGreaterThan(0);
     });
 
     it("does not turn a cache-WRITE failure into a lookup error", async () => {

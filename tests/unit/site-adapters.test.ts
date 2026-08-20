@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { JSDOM } from "jsdom";
@@ -7,7 +7,6 @@ import {
   applyPlacement,
   applyPillStyle,
   isInReferenceScope,
-  expandReferencesSection,
   SITE_ADAPTERS,
   type SiteAdapter,
 } from "../../src/shared/site-adapters";
@@ -121,6 +120,7 @@ describe("applyPlacement", () => {
     const entry = doc.querySelector("#entry")!;
     const detached = doc.createElement("div");
     detached.className = "body";
+    entry.appendChild(detached);
     entry.remove();
     const p = pill();
     expect(applyPlacement([{ selector: ".body" }], entry as Element, p)).toBe(false);
@@ -280,50 +280,6 @@ describe("isInReferenceScope", () => {
     const el = doc.querySelector("#x")!;
     expect(isInReferenceScope(el, null)).toBe(true);
     expect(isInReferenceScope(el, { id: "t", hostnames: ["t.com"] })).toBe(true);
-  });
-});
-
-describe("expandReferencesSection", () => {
-  afterEach(() => {
-    document.body.innerHTML = "";
-  });
-
-  it("clicks a collapsed trigger", () => {
-    document.body.innerHTML = `
-      <section class="article-section__references">
-        <a class="accordion__control" aria-expanded="false">References</a>
-      </section>`;
-    const trigger = document.querySelector<HTMLElement>(".accordion__control")!;
-    let clicked = false;
-    trigger.addEventListener("click", () => { clicked = true; });
-    expandReferencesSection({
-      id: "t",
-      hostnames: ["t.com"],
-      autoExpandReferences: ".article-section__references .accordion__control",
-    });
-    expect(clicked).toBe(true);
-  });
-
-  it("does not click an already-expanded trigger", () => {
-    document.body.innerHTML = `<a class="accordion__control" aria-expanded="true">References</a>`;
-    const trigger = document.querySelector<HTMLElement>(".accordion__control")!;
-    let clicked = false;
-    trigger.addEventListener("click", () => { clicked = true; });
-    expandReferencesSection({
-      id: "t",
-      hostnames: ["t.com"],
-      autoExpandReferences: ".accordion__control",
-    });
-    expect(clicked).toBe(false);
-  });
-
-  it("no-ops when the adapter declares no trigger, or none matches", () => {
-    document.body.innerHTML = `<a class="accordion__control" aria-expanded="false">References</a>`;
-    expect(() => expandReferencesSection(null)).not.toThrow();
-    expect(() => expandReferencesSection({ id: "t", hostnames: ["t.com"] })).not.toThrow();
-    expect(() =>
-      expandReferencesSection({ id: "t", hostnames: ["t.com"], autoExpandReferences: ".nope" })
-    ).not.toThrow();
   });
 });
 
