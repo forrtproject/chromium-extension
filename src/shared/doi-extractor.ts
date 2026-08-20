@@ -569,7 +569,7 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   // A tabular bibliography: one citation per body row. Without this the only
   // children of the <table> are <thead>/<tbody>, so the whole table counts as
   // a single entry — one DOI gets a pill and every later row is skipped.
-  const rowGroup = Array.from(container.querySelectorAll<HTMLElement>("tbody > tr, table > tr"));
+  const rowGroup = findLargestSiblingGroup(container, "tbody > tr, table > tr");
 
   // Largest group wins, not just the first past the threshold: Oxford
   // Academic's per-reference <div> group otherwise loses to a single

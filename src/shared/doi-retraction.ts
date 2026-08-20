@@ -236,7 +236,10 @@ export function injectRetractionInfo(
     // and shown once per DOI — the first occurrence wins, later mentions of
     // the same retracted DOI are skipped.
     if (target.getAttribute(FLORA_RET_CHECK_KEY) === '1') return;
-    if (pilledRetractionDois.has(info.originDoi)) return;
+    // The per-DOI guard is reconciled against the live DOM: a hydrating SPA
+    // can wipe a placed notice, and the DOI would otherwise stay in the set
+    // and block every later attempt to put it back.
+    if (pilledRetractionDois.has(info.originDoi) && hasNoticePill(info.originDoi)) return;
     pilledRetractionDois.add(info.originDoi);
     target.setAttribute(FLORA_RET_CHECK_KEY, '1');
 
@@ -278,6 +281,14 @@ export function injectRetractionInfo(
 
 /** The retracted/concerned DOI a notice pill speaks for. */
 const NOTICE_DOI_ATTR = "data-flora-notice-doi";
+
+/** Whether this DOI's notice pill is currently in the document. */
+function hasNoticePill(doi: DoiString): boolean {
+    for (const pill of document.querySelectorAll<HTMLElement>(`.${FLORA_NOTICE_PILL_CLASS}`)) {
+        if (pill.getAttribute(NOTICE_DOI_ATTR) === doi) return true;
+    }
+    return false;
+}
 
 /**
  * Move an already-placed notice pill to sit right after this DOI's indicator

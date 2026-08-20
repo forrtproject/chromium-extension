@@ -60,6 +60,22 @@ describe("injectInlineRetractionPills", () => {
         expect(isPilled(later)).toBe(false);
     });
 
+    it("re-places a notice its page wiped, without a reset", () => {
+        const anchor = anchorFor("first");
+        const occurrences = [{ doi: PRIMARY, anchor }];
+        const map = new Map([[PRIMARY, notice(PRIMARY)]]);
+
+        injectInlineRetractionPills(occurrences, map);
+        // A hydrating SPA re-renders the region and takes the pill with it.
+        for (const pill of document.querySelectorAll(".flora-notice-pill")) pill.remove();
+        const restored = anchorFor("restored");
+
+        injectInlineRetractionPills([{ doi: PRIMARY, anchor: restored }], map);
+
+        expect(isPilled(restored)).toBe(true);
+        expect(document.querySelectorAll(".flora-notice-pill")).toHaveLength(1);
+    });
+
     it("pills reference occurrences", () => {
         const refAnchor = anchorFor("reference");
 

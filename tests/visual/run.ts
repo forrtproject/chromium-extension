@@ -239,14 +239,15 @@ async function captureFixture(
     }
     const resp = await page.goto(`${origin}/${fixture.urlPath}`, { waitUntil: "load", timeout: 30000 });
     if (process.env.VR_DEBUG) console.log(`   goto ${fixture.urlPath}: status=${resp?.status()} ok=${resp?.ok()}`);
-    // A fixture registered without its HTML serves a 404 page. Refuse it
-    // rather than blessing "Not found" as a baseline, which would turn the
-    // missing fixture permanently green.
+    // A fixture registered without its HTML serves a 404 page. Refuse any
+    // non-OK response rather than blessing an error screen as a baseline,
+    // which would turn a broken fixture permanently green.
     if (resp && !resp.ok()) {
+      const why = resp.status() === 404 ? "fixture file missing" : "non-OK fixture response";
       return {
         name: fixture.name,
         status: "fail",
-        detail: `${fixture.urlPath} returned ${resp.status()} — fixture file missing`,
+        detail: `${fixture.urlPath} returned ${resp.status()} — ${why}`,
       };
     }
     await page.bringToFront();
@@ -275,10 +276,13 @@ async function captureFixture(
     // origin: content comes out shifted right and clipped at the right edge,
     // even though nothing overflows the viewport. Capture the viewport
     // directly whenever the page already fits in it, which is every fixture
-    // but `long-article-sticky`.
+    // but `long-article-sticky`. Both dimensions must fit — a viewport
+    // capture of a horizontally overflowing page clips the overflow away.
     const fitsViewport = await page.evaluate(
-      (h) => document.documentElement.scrollHeight <= h,
-      VIEWPORT.height,
+      ({ width, height }) =>
+        document.documentElement.scrollWidth <= width &&
+        document.documentElement.scrollHeight <= height,
+      VIEWPORT,
     );
     const shot = await page.screenshot({ fullPage: !fitsViewport, type: "png" });
     const actual = PNG.sync.read(Buffer.from(shot));

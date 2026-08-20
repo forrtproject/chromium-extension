@@ -41,10 +41,7 @@ ditto -x -k *.zip mac_arm-<version>/
 
 ## What gets tested
 
-12 fixtures (viewport 1280×900, `deviceScaleFactor` 1). A 13th,
-`publisher-styled-link-row`, is registered in `run.ts` but its HTML was never
-committed, so the suite fails on it until that fixture and its baseline land
-(issue #197):
+13 fixtures (viewport 1280×900, `deviceScaleFactor` 1):
 
 | Fixture | Exercises |
 | --- | --- |
@@ -59,7 +56,8 @@ committed, so the suite fails on it until that fixture and its baseline land
 | `doi-in-href` | Reused — DOI only in a link href |
 | `doi-in-table` | Reused — DOI in a cell / prose inside a table |
 | `doi-in-text` | Reused — DOI in running prose |
-| `retracted` | Reused — retracted article, notice beside the DOI link |
+| `retracted` | Reused — Springer article page, notice beside the DOI-bearing masthead link |
+| `publisher-styled-link-row` | Reference row whose publisher styling (separator borders) must stay off the pill |
 
 Each fixture uses DOIs seeded to a known state (has replications, reproductions,
 retracted, expression of concern, or no data) so the injected UI is fully
