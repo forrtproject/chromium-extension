@@ -29,6 +29,12 @@ vi.mock("../../src/shared/doi-validate", () => ({
 
 const PROCESSED_ATTR = "data-flora-ref-processed";
 
+type AugmentInput = string | { title: string };
+
+function titlesOf(inputs: AugmentInput[]): string[] {
+  return inputs.map((input) => (typeof input === "string" ? input : input.title));
+}
+
 function loadFixture(): void {
   const html = readFileSync(join(__dirname, "..", "fixtures", "science-org-article.html"), "utf-8");
   document.documentElement.innerHTML = html
@@ -67,8 +73,8 @@ describe("reference entries are retried when a lookup never answered", () => {
 
   it("keeps the entry marked when the lookup answered 'no match'", async () => {
     const { resolveReferenceDois } = await import("../../src/content-general/references");
-    augmentMock.mockImplementation(async (titles: string[]) =>
-      new Map(titles.map((t) => [t, null]))
+    augmentMock.mockImplementation(async (inputs: AugmentInput[]) =>
+      new Map(titlesOf(inputs).map((t) => [t, null]))
     );
 
     const target = augmentTargetElement();
@@ -85,8 +91,8 @@ describe("reference entries are retried when a lookup never answered", () => {
       expect.arrayContaining([expect.objectContaining({ mode: "hidden" })])
     );
 
-    augmentMock.mockImplementation(async (titles: string[]) =>
-      new Map(titles.map((t) => [t, "10.1234/recovered" as DoiString]))
+    augmentMock.mockImplementation(async (inputs: AugmentInput[]) =>
+      new Map(titlesOf(inputs).map((t) => [t, "10.1234/recovered" as DoiString]))
     );
     const second = await resolveReferenceDois();
 
@@ -95,8 +101,8 @@ describe("reference entries are retried when a lookup never answered", () => {
 
   it("does not re-augment entries that already resolved", async () => {
     const { resolveReferenceDois } = await import("../../src/content-general/references");
-    augmentMock.mockImplementation(async (titles: string[]) =>
-      new Map(titles.map((t) => [t, "10.1234/found" as DoiString]))
+    augmentMock.mockImplementation(async (inputs: AugmentInput[]) =>
+      new Map(titlesOf(inputs).map((t) => [t, "10.1234/found" as DoiString]))
     );
 
     await resolveReferenceDois();

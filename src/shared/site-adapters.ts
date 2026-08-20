@@ -344,14 +344,16 @@ const TANDFONLINE: SiteAdapter = {
     id: "tandfonline",
     hostnames: ["tandfonline.com"],
     titlePill: [
+        { selector: "h1 .NLM_article-title.hlFld-title", position: "after" },
         { selector: ".article-header__title", position: "after" },
     ],
     referencePill: [
-        { selector: ":self", position: "after" },
+        { selector: ".extra-links", position: "after" },
+        { selector: ":self", position: "append" },
     ],
     referenceScope: "#references-Section1",
     titlePillStyle: { top: "-5px" },
-    referencePillStyle: { top: "-20px", left: "20px" },
+    referencePillStyle: { top: "10px" },
 };
 
 const HOGREFE: SiteAdapter = {

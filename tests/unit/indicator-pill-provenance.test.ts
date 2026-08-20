@@ -30,6 +30,14 @@ describe("indicator pill provenance", () => {
     expect(seg.textContent).toContain("DOI");
   });
 
+  it("labels the popover's DOI row with the link glyph, as the panel does", () => {
+    const row = build(false).querySelector("[data-flora-doi-text]")!.parentElement!;
+    const icon = row.firstElementChild as HTMLElement;
+
+    expect(icon.querySelector("svg")).not.toBeNull();
+    expect(row.style.padding).toBe("5px 4px");
+  });
+
   it("shows a check and no underline on a confirmed DOI", () => {
     const seg = build(false).querySelector("[data-flora-doi-segment]") as HTMLElement;
     expect(seg.style.textDecoration).not.toContain("underline");

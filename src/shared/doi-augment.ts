@@ -21,6 +21,8 @@ const MATCH_THRESHOLD_TSR = 88; // token_set_ratio threshold (0–100)
 // share of the *queried* title the candidate accounts for, which that ratio
 // cannot express. Set below 100 so a candidate missing a subtitle still passes.
 const MATCH_THRESHOLD_COVERAGE = 75;
+const MIN_CITATION_TITLE_TOKENS = 4;
+const CITATION_OVERLAP_TOKENS = 6;
 // When page metadata (author/year) is available we accept candidates within this
 // many points of the top title score, then let the metadata break the tie.
 const METADATA_TITLE_BAND = 5;
@@ -102,6 +104,7 @@ function normalizeRequest(input: string | DoiAugmentRequest): DoiAugmentRequest 
         firstAuthor: input.firstAuthor ?? null,
         year: input.year ?? null,
         sourceUrl: input.sourceUrl ?? null,
+        titleIsFullCitation: input.titleIsFullCitation ?? false,
     };
 }
 
@@ -163,10 +166,17 @@ function selectBestCandidate(request: DoiAugmentRequest, candidates: DoiCandidat
         return null;
     }
 
-    const highestScore = Math.max(...eligible.map((candidate) => candidate.score));
+    let contenders = eligible;
+    if (request.titleIsFullCitation) {
+        const overlaps = eligible.map((candidate) => citationTokenOverlap(request.title, candidate.title));
+        const widest = Math.max(...overlaps);
+        contenders = eligible.filter((_, index) => overlaps[index] === widest);
+    }
+
+    const highestScore = Math.max(...contenders.map((candidate) => candidate.score));
     const titleBand = request.firstAuthor || request.year
-        ? eligible.filter((candidate) => candidate.score >= highestScore - METADATA_TITLE_BAND)
-        : eligible.filter((candidate) => candidate.score === highestScore);
+        ? contenders.filter((candidate) => candidate.score >= highestScore - METADATA_TITLE_BAND)
+        : contenders.filter((candidate) => candidate.score === highestScore);
 
     let narrowed = titleBand;
     if (request.sourceUrl && narrowed.some((candidate) => candidateMatchesSourceUrl(request, candidate))) {
@@ -293,6 +303,36 @@ export function titleCoverage(query: string, candidate: string): number {
     return (covered / queryTokens.size) * 100;
 }
 
+function coverageFor(request: DoiAugmentRequest, candidateTitle: string): number {
+    return request.titleIsFullCitation
+        ? titleCoverage(candidateTitle, request.title)
+        : titleCoverage(request.title, candidateTitle);
+}
+
+function titleTokens(title: string): string[] {
+    return normalizeTitle(title).split(/\s+/).filter(Boolean);
+}
+
+function citationTokenOverlap(citation: string, candidateTitle: string): number {
+    const citationTokens = new Set(titleTokens(citation));
+    let matched = 0;
+    for (const token of new Set(titleTokens(candidateTitle))) if (citationTokens.has(token)) matched++;
+    return matched;
+}
+
+function runsThroughCitation(citation: string, candidateTitle: string): boolean {
+    return ` ${titleTokens(citation).join(" ")} `.includes(` ${titleTokens(candidateTitle).join(" ")} `);
+}
+
+function candidateClears(request: DoiAugmentRequest, candidateTitle: string, tsr: number): boolean {
+    if (tsr < MATCH_THRESHOLD_TSR) return false;
+    if (coverageFor(request, candidateTitle) < MATCH_THRESHOLD_COVERAGE) return false;
+    if (!request.titleIsFullCitation) return true;
+    if (titleTokens(candidateTitle).length < MIN_CITATION_TITLE_TOKENS) return false;
+    return runsThroughCitation(request.title, candidateTitle)
+        || citationTokenOverlap(request.title, candidateTitle) >= CITATION_OVERLAP_TOKENS;
+}
+
 function logQueryOutcome(
     source: "crossref" | "openalex",
     title: string,
@@ -353,11 +393,10 @@ async function queryCrossref(request: DoiAugmentRequest, email: string): Promise
         if (!item.DOI || !item.title?.[0]) continue;
 
         const tsr = tokenSetRatio(title, item.title[0]);
-        const coverage = titleCoverage(title, item.title[0]);
-        if (tsr < MATCH_THRESHOLD_TSR || coverage < MATCH_THRESHOLD_COVERAGE) {
+        const coverage = coverageFor(request, item.title[0]);
+        if (!candidateClears(request, item.title[0], tsr)) {
             rejected.push({score: tsr, coverage, title: item.title[0]});
-        }
-        if (tsr >= MATCH_THRESHOLD_TSR && coverage >= MATCH_THRESHOLD_COVERAGE) {
+        } else {
             const doi = normaliseDOI(item.DOI);
             if (doi) {
                 candidates.push({
@@ -409,11 +448,10 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string): Promise
         if (!work.doi || !work.title) continue;
 
         const tsr = tokenSetRatio(title, work.title);
-        const coverage = titleCoverage(title, work.title);
-        if (tsr < MATCH_THRESHOLD_TSR || coverage < MATCH_THRESHOLD_COVERAGE) {
+        const coverage = coverageFor(request, work.title);
+        if (!candidateClears(request, work.title, tsr)) {
             rejected.push({score: tsr, coverage, title: work.title});
-        }
-        if (tsr >= MATCH_THRESHOLD_TSR && coverage >= MATCH_THRESHOLD_COVERAGE) {
+        } else {
             const doi = normaliseDOI(work.doi);
             if (doi) {
                 candidates.push({

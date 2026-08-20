@@ -68,6 +68,8 @@ function cleanDoiTrailing(raw: string): string {
   return cleaned;
 }
 
+const CITED_DOI_PARAMS = new Set(["refdoi", "doioflink"]);
+
 // Reference-list links are often publisher landing pages, not doi.org, so the
 // DOI has to be dug out of a query param or the URL path.
 export function extractDoiFromHref(href: string): DoiString | null {
@@ -79,6 +81,12 @@ export function extractDoiFromHref(href: string): DoiString | null {
   try {
     const url = new URL(href);
     const params = url.searchParams;
+    for (const key of params.keys()) {
+      if (CITED_DOI_PARAMS.has(key.toLowerCase())) {
+        const fromCitedParam = normaliseDOI(params.get(key) ?? "");
+        if (fromCitedParam) return fromCitedParam;
+      }
+    }
     for (const key of params.keys()) {
       if (key.toLowerCase() === "doi") {
         const fromParam = normaliseDOI(params.get(key) ?? "");
@@ -462,10 +470,12 @@ export interface ReferenceEntry {
 // PubMed | Google Scholar | ...) — stripped so they don't pollute augmentation
 // queries or the rendered panel.
 const REFERENCE_BUTTON_LABEL_RE =
-  /[\s|·•,]+(?:Cross\s?Ref|PubMed(?:\s+Central)?|Web\s+of\s+Science|Google\s+Scholar|ISI|Medline|Scopus|CAS|View\s+(?:Article|in\s+Article|on\s+Publisher\s+Site)|Full[\s-]?Text|PDF|Free\s+Article|Open\s+Access|Find\s+in\s+Worldcat|ChemPort|Bing(?:\s+Scholar)?|OpenURL|DOI|Direct\s+Link|ADS|ProQuest|Show\s+Abstract|Read\s+(?:Article|Abstract))\b[\s.,;|·•]*$/i;
+  /[\s|·•,]+(?:Cross\s?Ref|PubMed(?:\s+Central)?|Web\s+of\s+Science|Google\s+Scholar|ISI|Medline|Scopus|CAS|View\s+(?:Article|in\s+Article|on\s+Publisher\s+Site)|Full[\s-]?Text|PDF|Free\s+Article|Open\s+Access|Find\s+in\s+Worldcat|ChemPort|Bing(?:\s+Scholar)?|OpenURL|DOI|Direct\s+Link|ADS|ProQuest|Show\s+Abstract|Read\s+(?:Article|Abstract))\b[\s.,;|·•®™]*$/i;
+
+const LINK_ANNOTATION_RE = /\(\s*Open(?:s)?\s+in\s+a\s+new\s+(?:window|tab)\s*\)/gi;
 
 function cleanReferenceText(text: string): string {
-  let cleaned = text.trim();
+  let cleaned = text.replace(LINK_ANNOTATION_RE, " ").replace(/[^\S\n]+/g, " ").trim();
   let prev: string;
   do {
     prev = cleaned;
