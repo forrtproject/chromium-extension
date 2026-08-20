@@ -19,7 +19,10 @@ function patternToRegExp(pattern: string): RegExp {
         : host.startsWith("*.")
             ? `(?:[^/]+\\.)?${host.slice(2).replace(/\./g, "\\.")}`
             : host.replace(/\./g, "\\.");
-    const pathRe = pathPart.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+    // `?` is a literal in match patterns, and Chrome matches the pattern's path
+    // against path + query string — that is what makes `/?*` mean "the site root
+    // with a query" (PubMed search results) but not the bare root.
+    const pathRe = pathPart.replace(/[.+^${}()|[\]\\?]/g, "\\$&").replace(/\*/g, ".*");
     return new RegExp(`^${schemeRe}://${hostRe}${pathRe}$`);
 }
 
@@ -35,6 +38,11 @@ describe("content-general exclusions", () => {
         "https://maps.google.com/",
         "https://www.google.co.uk/maps/@51.5,-0.1,12z",
         "https://scholar.google.com/scholar?q=replication",
+        // PubMed search results — content-search annotates these rows, and the
+        // rows print DOIs content-general would otherwise annotate a second time.
+        "https://pubmed.ncbi.nlm.nih.gov/?term=ego+depletion",
+        "https://pubmed.ncbi.nlm.nih.gov/?sort=date&term=ego+depletion",
+        "https://pubmed.ncbi.nlm.nih.gov/?linkname=pubmed_pubmed&from_uid=20565167",
     ])("skips %s", (url) => {
         expect(isExcluded(url)).toBe(true);
     });
@@ -45,7 +53,10 @@ describe("content-general exclusions", () => {
         "https://docs.google.com/spreadsheets/d/abc123/edit#gid=0",
         "https://www.google.com/search?q=doi",
         "https://www.nature.com/articles/sdata201618",
+        // Article pages and the bare homepage carry no result rows, so they stay
+        // with content-general and keep their title pill.
         "https://pubmed.ncbi.nlm.nih.gov/12345678/",
+        "https://pubmed.ncbi.nlm.nih.gov/",
     ])("still runs on %s", (url) => {
         expect(isExcluded(url)).toBe(false);
     });

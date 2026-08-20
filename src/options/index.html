@@ -397,16 +397,16 @@
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                Report an issue with this log
+                <span id="debug-report-label">Report an issue</span>
               </button>
-              <button type="button" id="debug-copy-btn" class="ab-btn">
+              <button type="button" id="debug-copy-btn" class="ab-btn debug-log-control" hidden>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
                 Copy report
               </button>
-              <button type="button" id="debug-download-btn" class="ab-btn">
+              <button type="button" id="debug-download-btn" class="ab-btn debug-log-control" hidden>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
@@ -414,14 +414,14 @@
                 </svg>
                 Download
               </button>
-              <button type="button" id="debug-refresh-btn" class="ab-btn">
+              <button type="button" id="debug-refresh-btn" class="ab-btn debug-log-control" hidden>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="23 4 23 10 17 10" />
                   <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                 </svg>
                 Refresh
               </button>
-              <button type="button" id="debug-clear-btn" class="ab-btn">
+              <button type="button" id="debug-clear-btn" class="ab-btn debug-log-control" hidden>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -432,7 +432,7 @@
 
             <p id="debug-status" class="status domain-status" hidden></p>
 
-            <pre id="debug-preview" class="debug-preview" aria-label="Debug report preview"></pre>
+            <pre id="debug-preview" class="debug-preview" aria-label="Debug report preview" hidden></pre>
           </div>
         </div>
       </div>

@@ -1,0 +1,40 @@
+/* Europe PMC: inside each row, one unnamed div holds the whole citation stack
+   (title, authors, journal, snippet, cited-by, Save / Add-to-export-list). That
+   div becomes a two-column grid: the title spans both columns, the stack keeps
+   the left column, and the panel sits in the right column, top-aligned with the
+   authors line. Vue keeps patching its own nodes in place — the grid only
+   restyles them, nothing is moved or wrapped. Rows whose DOI never resolved
+   carry no panel and keep Europe PMC's own full-width layout. */
+.citation[id^="search-results--single--block-"] div:has(> .citation-title):has(> [data-flora-panel]) {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  column-gap: 16px;
+  grid-auto-flow: dense;
+  align-items: start;
+  justify-items: stretch;
+  min-width: 0;
+}
+
+.citation[id^="search-results--single--block-"] div:has(> .citation-title):has(> [data-flora-panel]) > * {
+  grid-column: 1;
+  min-width: 0;
+  /* Europe PMC centres its paragraphs with `margin: 0 auto`; as grid items
+     those auto margins would shrink-wrap and centre each line. */
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.citation[id^="search-results--single--block-"] div:has(> .citation-title):has(> [data-flora-panel]) > .citation-title {
+  grid-column: 1 / -1;
+}
+
+/* Spans the whole left stack so the rows it crosses keep their own heights. */
+.citation[id^="search-results--single--block-"] div:has(> .citation-title):has(> [data-flora-panel]) > [data-flora-panel] {
+  grid-column: 2;
+  grid-row: 2 / span 100;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}

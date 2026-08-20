@@ -336,6 +336,7 @@ const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
 const debugPreview = document.getElementById("debug-preview") as HTMLPreElement;
 const debugStatus = document.getElementById("debug-status") as HTMLParagraphElement;
 const debugReportBtn = document.getElementById("debug-report-btn") as HTMLButtonElement;
+const debugReportLabel = document.getElementById("debug-report-label")!;
 const debugCopyBtn = document.getElementById("debug-copy-btn") as HTMLButtonElement;
 const debugDownloadBtn = document.getElementById("debug-download-btn") as HTMLButtonElement;
 const debugRefreshBtn = document.getElementById("debug-refresh-btn") as HTMLButtonElement;
@@ -343,6 +344,15 @@ const debugClearBtn = document.getElementById("debug-clear-btn") as HTMLButtonEl
 
 /** Latest rendered report — what the copy/download/issue buttons act on. */
 let debugReport = "";
+
+function updateDebugUI(enabled: boolean): void {
+  debugToggle.checked = enabled;
+  debugPreview.hidden = !enabled;
+  for (const control of [debugCopyBtn, debugDownloadBtn, debugRefreshBtn, debugClearBtn]) {
+    control.hidden = !enabled;
+  }
+  debugReportLabel.textContent = enabled ? "Report an issue with this log" : "Report an issue";
+}
 
 function showDebugStatus(msg: string, type: "success" | "error"): void {
   debugStatus.textContent = msg;
@@ -373,13 +383,14 @@ async function copyDebugReport(): Promise<boolean> {
 }
 
 isDebugEnabledAsync().then((enabled) => {
-  debugToggle.checked = enabled;
+  updateDebugUI(enabled);
+  if (enabled) void refreshDebugReport();
 });
-
-void refreshDebugReport();
 
 debugToggle.addEventListener("change", () => {
   setDebug(debugToggle.checked);
+  updateDebugUI(debugToggle.checked);
+  if (debugToggle.checked) void refreshDebugReport();
   showDebugStatus(
     debugToggle.checked
       ? "Debug mode on — reload the page that misbehaves, reproduce the problem, then come back and refresh the report."
@@ -416,6 +427,12 @@ debugDownloadBtn.addEventListener("click", async () => {
 });
 
 debugReportBtn.addEventListener("click", async () => {
+  if (!debugToggle.checked) {
+    chrome.tabs.create({ url: issueUrl({}).url });
+    showDebugStatus("Opening a GitHub issue.", "success");
+    return;
+  }
+
   const data = await refreshDebugReport();
   const link = issueUrl({ report: data });
   const stashed = await stashIssueReport(debugReport);

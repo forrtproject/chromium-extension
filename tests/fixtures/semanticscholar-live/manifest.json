@@ -1,0 +1,87 @@
+{
+  "snapshotDate": "2026-08-19",
+  "source": "Semantic Scholar via headless Chrome for Testing (--disable-blink-features=AutomationControlled, normal Chrome UA)",
+  "snapshots": [
+    {
+      "query": "ego depletion",
+      "requestedUrl": "https://www.semanticscholar.org/search?q=ego%20depletion&sort=relevance",
+      "file": "tests/fixtures/semanticscholar-live/semanticscholar-live-01.html",
+      "note": "outerHTML of the [data-test-id=results] container, with the extension’s injected panels and markers removed.",
+      "blocked": false,
+      "htmlBytes": 68062,
+      "resultCount": 10,
+      "rows": [
+        {
+          "index": 1,
+          "title": "Ego depletion: is the active self a limited resource?",
+          "href": "/paper/Ego-depletion%3A-is-the-active-self-a-limited-Baumeister-Bratslavsky/516c2035d29bb711be2e027be4ad38224419065a",
+          "firstAuthor": "R. Baumeister",
+          "pubdate": "1 May 1998"
+        },
+        {
+          "index": 2,
+          "title": "Exploitative Leadership and Employees’ Unethical Behavior from the Perspective of ego Depletion Theory: The Moderating Effect of Microbreaks",
+          "href": "/paper/Exploitative-Leadership-and-Employees%E2%80%99-Unethical-of-Nie-Wang/e94e574a4c158cabc32ed1f592ab519ac9a2928b",
+          "firstAuthor": "Qi Nie",
+          "pubdate": "7 January 2025"
+        },
+        {
+          "index": 3,
+          "title": "Self-control and limited willpower: Current status of ego depletion theory and research.",
+          "href": "/paper/Self-control-and-limited-willpower%3A-Current-status-Baumeister-Andr%C3%A9/01e27939e93cfafd17ae9a73d78c9d6a9c2212f4",
+          "firstAuthor": "Roy F. Baumeister",
+          "pubdate": "1 September 2024"
+        },
+        {
+          "index": 4,
+          "title": "Family Function and Self-Management of Patients With Early Chronic Kidney Disease: The Mediating Roles of Self-Perceived Burden and Ego Depletion",
+          "href": "/paper/Family-Function-and-Self-Management-of-Patients-The-Cui-Liu/fd5804448d4c1ec99859bc59836e8e37fa9a2e6a",
+          "firstAuthor": "Yi Cui",
+          "pubdate": "1 January 2025"
+        },
+        {
+          "index": 5,
+          "title": "Revisiting Ego Depletion: Evidence from Multi-Lab Collaborations",
+          "href": "/paper/Revisiting-Ego-Depletion%3A-Evidence-from-Multi-Lab-Dang-Xiao/372b50bd7bfa6cd75153d727c061545340ea5d64",
+          "firstAuthor": "J. Dang",
+          "pubdate": "1 October 2025"
+        },
+        {
+          "index": 6,
+          "title": "From Multitasking to Mastering: How Polychronicity‐Monochronicity Flexibility and Work Conditions Shape the Effects of COVID‐19 Stress on Ego Depletion and Job Performance",
+          "href": "/paper/From-Multitasking-to-Mastering%3A-How-Flexibility-and-Lin/e53a34cf6786b4d954e59350662dd0c7f48ce54d",
+          "firstAuthor": "Tzu-Ting Lin",
+          "pubdate": "1 June 2025"
+        },
+        {
+          "index": 7,
+          "title": "Leader aggressive humor and hospitality employees’ time theft: The roles of ego depletion and self-compassion",
+          "href": "/paper/Leader-aggressive-humor-and-hospitality-employees%E2%80%99-Zhao-Su/ed5a0af8b5d1470486dbc9cd127256ec43f795ca",
+          "firstAuthor": "Lijing Zhao",
+          "pubdate": "2025"
+        },
+        {
+          "index": 8,
+          "title": "Cyberloafing has a recovery effect: reducing ego depletion at a cost",
+          "href": "/paper/Cyberloafing-has-a-recovery-effect%3A-reducing-ego-at-Wu-Chen/cf53d462a351532c769966daf16fda429474b6e5",
+          "firstAuthor": "Xuyao Wu",
+          "pubdate": "14 April 2025"
+        },
+        {
+          "index": 9,
+          "title": "Social Exclusion and Online Aggressive Behavior: Mediation Through Ego Depletion and Moderation Through Mindfulness",
+          "href": "/paper/Social-Exclusion-and-Online-Aggressive-Behavior%3A-Zhao-Chen/5814471580b6a3bf7f3138550dab425399cc720b",
+          "firstAuthor": "Jing-Jing Zhao",
+          "pubdate": "1 March 2025"
+        },
+        {
+          "index": 10,
+          "title": "Network intervention analysis to assess the trajectory of change and intervention effects associated with the use of self-control training for ego depletion aftereffects",
+          "href": "/paper/Network-intervention-analysis-to-assess-the-of-and-Ying-Zhang/77f84ff0cd4d899c83c2ed82fdfccc984527c4c2",
+          "firstAuthor": "J. Ying",
+          "pubdate": "3 January 2025"
+        }
+      ]
+    }
+  ]
+}

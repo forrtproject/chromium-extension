@@ -20,8 +20,8 @@ const configs: esbuild.BuildOptions[] = [
   },
   {
     ...sharedOptions,
-    entryPoints: ["src/content-scholar/index.ts"],
-    outfile: "dist/content-scholar.js",
+    entryPoints: ["src/content-search/index.ts"],
+    outfile: "dist/content-search.js",
   },
   {
     ...sharedOptions,

@@ -45,5 +45,10 @@ export function normaliseDOI(raw: unknown): DoiString | null {
     return null;
   }
 
+  // PubMed prints some legacy APA DOIs with a doubled slash after the
+  // registrant ("10.1037//0022-3514.74.5.1252"); doi.org resolves both forms
+  // to the same work, and every lookup keys the single-slash one.
+  doi = doi.replace(/^(10\.\d{4,})\/{2,}/, "$1/");
+
   return doi.toLowerCase() as DoiString;
 }

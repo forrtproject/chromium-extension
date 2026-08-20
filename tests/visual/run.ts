@@ -49,10 +49,13 @@ const OUTPUT_DIR = path.join(VISUAL_DIR, "output");
 
 // ── Determinism knobs ───────────────────────────────────────────────────────
 const VIEWPORT = { width: 1280, height: 900, deviceScaleFactor: 1 };
-// pixelmatch per-pixel colour threshold, and the fraction of pixels allowed to
-// differ before a fixture counts as a regression.
+// pixelmatch per-pixel colour threshold, and the number of pixels allowed to
+// differ before a fixture counts as a regression. The budget is an absolute
+// count rather than a fraction of the page: 0.1 % of a 1280×1465 full-page shot
+// is ~1,900 pixels, enough for a whole pill to move without failing. Renders
+// are byte-identical run to run, so a real change always clears this bar.
 const PIXEL_THRESHOLD = 0.1;
-const MAX_DIFF_FRACTION = 0.001; // 0.1% of pixels
+const MAX_DIFF_PIXELS = 100;
 
 // CSS injected before any page script runs: kill animations/transitions/
 // carets/smooth-scroll and remove the transient "scanning" toast, so a
@@ -289,25 +292,18 @@ async function captureFixture(
     const diffPixels = pixelmatch(baseline.data, actual.data, diff.data, width, height, {
       threshold: PIXEL_THRESHOLD,
     });
-    const total = width * height;
-    const fraction = diffPixels / total;
-
-    if (fraction > MAX_DIFF_FRACTION) {
+    if (diffPixels > MAX_DIFF_PIXELS) {
       mkdirSync(OUTPUT_DIR, { recursive: true });
       writeFileSync(path.join(OUTPUT_DIR, `${fixture.name}.actual.png`), PNG.sync.write(actual));
       writeFileSync(path.join(OUTPUT_DIR, `${fixture.name}.diff.png`), PNG.sync.write(diff));
       return {
         name: fixture.name,
         status: "fail",
-        detail: `${diffPixels} px differ (${(fraction * 100).toFixed(3)}% > ${(MAX_DIFF_FRACTION * 100).toFixed(1)}%)`,
+        detail: `${diffPixels} px differ (budget ${MAX_DIFF_PIXELS})`,
       };
     }
 
-    return {
-      name: fixture.name,
-      status: "pass",
-      detail: `${diffPixels} px differ (${(fraction * 100).toFixed(3)}%)`,
-    };
+    return { name: fixture.name, status: "pass", detail: `${diffPixels} px differ` };
   } finally {
     await page.close().catch(() => {});
   }
@@ -328,7 +324,8 @@ async function main(): Promise<void> {
 
   const browser = await puppeteer.launch({
     executablePath: execPath,
-    headless: false, // MV3 extensions need a headful / new-headless context.
+    // Chrome's current headless mode loads MV3 extensions, so no window opens.
+    headless: true,
     args: [
       `--disable-extensions-except=${REPO_ROOT}`,
       `--load-extension=${REPO_ROOT}`,
@@ -336,8 +333,8 @@ async function main(): Promise<void> {
       "--hide-scrollbars",
       "--disable-lcd-text",
       "--font-render-hinting=none",
-      // One deterministic raster path. Without --disable-gpu, macOS headful
-      // Chrome flaps between GPU and software rasterisation across page loads,
+      // One deterministic raster path. Without --disable-gpu, macOS Chrome
+      // flaps between GPU and software rasterisation across page loads,
       // shifting anti-aliasing on every glyph (whole-page pixel drift).
       "--disable-gpu",
       "--disable-gpu-compositing",

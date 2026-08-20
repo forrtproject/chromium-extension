@@ -12,6 +12,7 @@
         <strong>FORRT ORE</strong>
         <span>Open Research Extension</span>
       </div>
+      <span class="popup-version" id="popup-version" aria-label="Extension version"></span>
     </div>
 
     <div class="popup-body">
@@ -104,6 +105,9 @@
 
     <div id="popup-status" class="popup-status" hidden></div>
 
-    <script src="popup.js"></script>
+    <!-- Let Chrome finish parsing and size the action popup before the bundle
+         starts its async tab/storage initialisation.  Running synchronously
+         here can make the first toolbar click disappear during a cold start. -->
+    <script src="popup.js" defer></script>
   </body>
 </html>

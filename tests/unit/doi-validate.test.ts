@@ -19,6 +19,14 @@ const doi = (s: string) => s as DoiString;
 // Use a wildcard to match all handle API requests regardless of segment count.
 const HANDLE_PATTERN = "https://doi.org/api/handles/*";
 
+/** Every DOI written into the validation blob so far, across all cache flushes. */
+function cachedDois(): string[] {
+  const calls = (chrome.storage.local.set as ReturnType<typeof vi.fn>).mock.calls;
+  return calls.flatMap(([arg]) =>
+    Object.keys((arg as Record<string, object>)?.flora_doival_blob ?? {}),
+  );
+}
+
 function handleFromRequest(request: Request): string {
   const url = new URL(request.url);
   return decodeURIComponent(url.pathname.replace("/api/handles/", ""));
@@ -28,6 +36,7 @@ describe("validateDOI", () => {
   beforeEach(() => {
     (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockClear();
     _resetValidationCacheForTesting();
   });
 
@@ -53,26 +62,41 @@ describe("validateDOI", () => {
     expect(result).toBe(false);
   });
 
-  it("returns false on HTTP error", async () => {
+  // A transient failure must leave the DOI *out* of the map (unknown) rather
+  // than mark it invalid: processReferenceDois has already set the DOI's
+  // processed marker, so a falsely-invalid verdict strands the reference, and
+  // caching it strands the DOI for the whole 7-day TTL.
+  it("leaves a DOI unknown and uncached on HTTP 5xx", async () => {
     server.use(
       http.get(HANDLE_PATTERN, () =>
         new HttpResponse(null, { status: 500 })
       )
     );
 
-    const result = await validateDOI(doi("10.1038/nature12373"));
-    expect(result).toBe(false);
+    const result = await validateDOIs([doi("10.1038/nature12373")]);
+    expect(result.has(doi("10.1038/nature12373"))).toBe(false);
+    expect(cachedDois()).not.toContain("10.1038/nature12373");
   });
 
-  it("returns false on network error", async () => {
+  it("leaves a DOI unknown and uncached on network error", async () => {
     server.use(
       http.get(HANDLE_PATTERN, () =>
         HttpResponse.error()
       )
     );
 
-    const result = await validateDOI(doi("10.1038/nature12373"));
-    expect(result).toBe(false);
+    const result = await validateDOIs([doi("10.1038/nature12373")]);
+    expect(result.has(doi("10.1038/nature12373"))).toBe(false);
+    expect(cachedDois()).not.toContain("10.1038/nature12373");
+  });
+
+  it("records a DOI invalid on HTTP 404", async () => {
+    server.use(
+      http.get(HANDLE_PATTERN, () => new HttpResponse(null, { status: 404 }))
+    );
+
+    const result = await validateDOIs([doi("10.1038/doesnotexist")]);
+    expect(result.get(doi("10.1038/doesnotexist"))).toBe(false);
   });
 
   it("caches valid results", async () => {
@@ -162,6 +186,7 @@ describe("validateDOIs", () => {
   beforeEach(() => {
     (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockClear();
     _resetValidationCacheForTesting();
   });
 

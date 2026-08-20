@@ -1,0 +1,35 @@
+/* Semantic Scholar: a result row is a vertical stack of direct children —
+   title, author/venue line, TLDR or abstract snippet, controls line. A row that
+   carries a panel becomes a two-column grid so the panel can sit beside the
+   TLDR/abstract: every other child keeps the full width, the abstract takes the
+   left column and the panel the right one. `grid-auto-flow: dense` lets the
+   panel, which follows the abstract in DOM order, back-fill the abstract's own
+   grid row. Rows that print no TLDR/abstract put the author/venue line in the
+   left column instead, so the panel still sits at the top right of the row.
+   Rows without a panel (no DOI found) keep the site's own layout. */
+.cl-paper-row.serp-papers__paper-row:has(> [data-flora-panel]) {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(262px, 3fr);
+  column-gap: 16px;
+  grid-auto-flow: dense;
+  align-items: start;
+}
+
+.cl-paper-row.serp-papers__paper-row:has(> [data-flora-panel]) > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.cl-paper-row.serp-papers__paper-row:has(> [data-flora-panel]) > .tldr-abstract-replacement,
+.cl-paper-row.serp-papers__paper-row:has(> [data-flora-panel]) > .cl-paper-abstract,
+.cl-paper-row.serp-papers__paper-row:has(> [data-flora-panel]):not(:has(> .tldr-abstract-replacement, > .cl-paper-abstract))
+  > ul.cl-paper__bulleted-row:not(.cl-paper-controls) {
+  grid-column: 1;
+}
+
+.cl-paper-row.serp-papers__paper-row > [data-flora-panel] {
+  grid-column: 2;
+  width: auto;
+  max-width: none;
+  margin-top: 0;
+}

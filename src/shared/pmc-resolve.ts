@@ -1,11 +1,15 @@
-// PubMed Central id → DOI via NCBI's ID Converter. NCBI sends no CORS headers,
-// so this only runs in the service worker (see resolvePmcIdsViaWorker).
+// PMC id / PMID → DOI via NCBI's ID Converter. NCBI sends no CORS headers, so
+// this only runs in the service worker (see resolvePmcIdsViaWorker).
+//
+// The converter only knows articles that have a PMC record: an id it cannot
+// place maps to null, and callers fall back to a title search.
 
 import type {DoiString} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
 import {debugLog, debugWarn} from "./debug";
+import {withResolveTimeout} from "./resolve-timeout";
 
 const IDCONV_BASE = "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/";
 // NCBI caps one request at 200 ids.
@@ -19,10 +23,15 @@ const PMC_CACHE = new BlobCache<{doi: string | null}>({
 interface IdConvRecord {
     doi?: string;
     pmcid?: string;
+    /** JSON number in the converter's response. */
+    pmid?: number | string;
     "requested-id"?: string;
     status?: string;
     errmsg?: string;
 }
+
+/** The id types this module asks the converter about. */
+export type NcbiIdType = "pmcid" | "pmid";
 
 /** Canonical `PMC…` form, or null when the input isn't a PMC id. */
 export function normalisePmcId(raw: unknown): string | null {
@@ -31,11 +40,24 @@ export function normalisePmcId(raw: unknown): string | null {
     return match ? `PMC${match[1]}` : null;
 }
 
-async function fetchIdConv(pmcids: string[]): Promise<IdConvRecord[]> {
+/** Bare digits, or null when the input isn't a PubMed id. The converter
+ *  returns PMIDs as JSON numbers, so numeric input is accepted too. */
+export function normalisePmid(raw: unknown): string | null {
+    if (typeof raw !== "string" && typeof raw !== "number") return null;
+    const match = /^\s*(?:pmid:?\s*)?(\d{1,9})\s*$/i.exec(String(raw));
+    return match ? match[1] : null;
+}
+
+const NORMALISERS: Record<NcbiIdType, (raw: unknown) => string | null> = {
+    pmcid: normalisePmcId,
+    pmid: normalisePmid,
+};
+
+async function fetchIdConv(ids: string[], idtype: NcbiIdType): Promise<IdConvRecord[]> {
     const {email} = await getSettings();
     const params = new URLSearchParams({
-        ids: pmcids.join(","),
-        idtype: "pmcid",
+        ids: ids.join(","),
+        idtype,
         format: "json",
         versions: "no",
         tool: "flora",
@@ -49,13 +71,17 @@ async function fetchIdConv(pmcids: string[]): Promise<IdConvRecord[]> {
 }
 
 /**
- * Resolve PMC ids to DOIs, keyed by canonical `PMC…` form. An id NCBI has no
- * DOI for maps to null; an id absent from the map failed to resolve and is
- * worth retrying.
+ * Resolve NCBI ids of one type to DOIs, keyed by their canonical form
+ * (`PMC…` for PMC ids, bare digits for PMIDs). An id NCBI has no DOI for maps
+ * to null; an id absent from the map failed to resolve and is worth retrying.
  */
-export async function resolvePmcIds(rawIds: string[]): Promise<Map<string, DoiString | null>> {
+export async function resolvePmcIds(
+    rawIds: string[],
+    idtype: NcbiIdType = "pmcid"
+): Promise<Map<string, DoiString | null>> {
+    const normalise = NORMALISERS[idtype];
     const results = new Map<string, DoiString | null>();
-    const ids = [...new Set(rawIds.map(normalisePmcId).filter((id): id is string => id !== null))];
+    const ids = [...new Set(rawIds.map(normalise).filter((id): id is string => id !== null))];
     if (ids.length === 0) return results;
 
     const cached = await PMC_CACHE.getMany(ids);
@@ -66,7 +92,7 @@ export async function resolvePmcIds(rawIds: string[]): Promise<Map<string, DoiSt
         else uncached.push(id);
     }
     if (uncached.length === 0) {
-        debugLog(`PMC resolve: ${ids.length} id(s) all cached`);
+        debugLog(`NCBI resolve (${idtype}): ${ids.length} id(s) all cached`);
         return results;
     }
 
@@ -75,13 +101,13 @@ export async function resolvePmcIds(rawIds: string[]): Promise<Map<string, DoiSt
         const batch = uncached.slice(i, i + MAX_IDS_PER_REQUEST);
         let records: IdConvRecord[];
         try {
-            records = await fetchIdConv(batch);
+            records = await withResolveTimeout(fetchIdConv(batch, idtype), `NCBI resolve (${idtype})`);
         } catch (err) {
-            debugWarn(`PMC resolve: batch of ${batch.length} failed, retrying next pass —`, err);
+            debugWarn(`NCBI resolve (${idtype}): batch of ${batch.length} failed, retrying next pass —`, err);
             continue;
         }
         for (const record of records) {
-            const id = normalisePmcId(record["requested-id"]) ?? normalisePmcId(record.pmcid);
+            const id = normalise(record["requested-id"]) ?? normalise(record[idtype === "pmid" ? "pmid" : "pmcid"]);
             if (!id) continue;
             const doi = record.status === "error" ? null : normaliseDOI(record.doi);
             results.set(id, doi);
@@ -90,7 +116,7 @@ export async function resolvePmcIds(rawIds: string[]): Promise<Map<string, DoiSt
     }
 
     if (updates.length > 0) await PMC_CACHE.setMany(updates);
-    debugLog(`PMC resolve: ${[...results.values()].filter(Boolean).length}/${ids.length} id(s) mapped to a DOI`);
+    debugLog(`NCBI resolve (${idtype}): ${[...results.values()].filter(Boolean).length}/${ids.length} id(s) mapped to a DOI`);
     return results;
 }
 

@@ -1,0 +1,25 @@
+/* EBSCOhost: the card's text body (the unnamed div holding the metadata list,
+   the abstract snippet and the subjects list) becomes a two-column grid. The
+   "By: … In: …" metadata list takes the left column with the panel beside it
+   on the right, flush with the card's right edge; the abstract and subjects
+   keep the full width below. EBSCO's own nodes are not moved. */
+section[data-auto="card"] div:has(> dl[data-auto="result-item-metadata"]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 36%);
+  column-gap: 16px;
+  grid-auto-flow: dense;
+  align-items: start;
+}
+section[data-auto="card"] div:has(> dl[data-auto="result-item-metadata"]) > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+section[data-auto="card"] div:has(> dl[data-auto="result-item-metadata"]) > dl[data-auto="result-item-metadata"] {
+  grid-column: 1;
+}
+section[data-auto="card"] div:has(> dl[data-auto="result-item-metadata"]) > [data-flora-panel] {
+  grid-column: 2;
+  justify-self: end;
+  max-width: 100%;
+  margin: 12px 0 8px;
+}

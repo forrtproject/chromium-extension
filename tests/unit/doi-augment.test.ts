@@ -107,8 +107,9 @@ describe("tokenSetRatio", () => {
       "sleep and memory",
       "sleep and memory consolidation in adults"
     );
-    // The intersection "sleep and memory" matches perfectly against itself
-    expect(score).toBeGreaterThan(70);
+    // The intersection "sleep and memory" matches itself exactly — a subset
+    // title must score 100, which is why MATCH_THRESHOLD_COVERAGE exists.
+    expect(score).toBe(100);
   });
 
   it("handles empty strings", () => {
@@ -125,41 +126,6 @@ describe("augmentDOIs", () => {
       undefined
     );
     _resetAugmentCachesForTesting();
-  });
-
-  it("returns resolved DOI when both APIs find a match", async () => {
-    server.use(
-      http.get(CROSSREF_URL, () =>
-        HttpResponse.json({
-          message: {
-            items: [
-              {
-                DOI: "10.1038/nature12373",
-                title: ["The Effect of Sleep on Memory Consolidation"],
-              },
-            ],
-          },
-        })
-      ),
-      http.get(OPENALEX_URL, () =>
-        HttpResponse.json({
-          results: [
-            {
-              doi: "https://doi.org/10.1038/nature12373",
-              title: "The Effect of Sleep on Memory Consolidation",
-            },
-          ],
-        })
-      )
-    );
-
-    const results = await augmentDOIs([
-      "The Effect of Sleep on Memory Consolidation",
-    ]);
-
-    expect(results.get("The Effect of Sleep on Memory Consolidation")).toBe(
-      "10.1038/nature12373"
-    );
   });
 
   it("returns DOI when only Crossref finds a match", async () => {

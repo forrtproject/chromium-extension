@@ -7,7 +7,7 @@ vi.mock("../../src/shared/settings", () => ({
   isSetupComplete: vi.fn().mockResolvedValue(true),
 }));
 
-import { normalisePmcId, resolvePmcIds, _resetPmcCacheForTesting } from "../../src/shared/pmc-resolve";
+import { normalisePmcId, normalisePmid, resolvePmcIds, _resetPmcCacheForTesting } from "../../src/shared/pmc-resolve";
 
 const IDCONV_URL = "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/";
 
@@ -20,6 +20,7 @@ afterAll(() => server.close());
 interface Record {
   doi?: string;
   pmcid?: string;
+  pmid?: number;
   "requested-id"?: string;
   status?: string;
 }
@@ -43,6 +44,20 @@ describe("normalisePmcId", () => {
     expect(normalisePmcId("PMID: 41271795")).toBeNull();
     expect(normalisePmcId("10.1234/x")).toBeNull();
     expect(normalisePmcId(null)).toBeNull();
+  });
+});
+
+describe("normalisePmid", () => {
+  it("accepts bare digits, a PMID: prefix and the numbers NCBI returns", () => {
+    expect(normalisePmid("41271795")).toBe("41271795");
+    expect(normalisePmid("PMID: 41271795")).toBe("41271795");
+    expect(normalisePmid(41271795)).toBe("41271795");
+  });
+
+  it("rejects non-PMID input", () => {
+    expect(normalisePmid("PMC12638941")).toBeNull();
+    expect(normalisePmid("10.1234/x")).toBeNull();
+    expect(normalisePmid(null)).toBeNull();
   });
 });
 
@@ -148,6 +163,24 @@ describe("resolvePmcIds", () => {
     const cached = await resolvePmcIds(["PMC1234567"]);
     expect(cached.get("PMC1234567")).toBe("10.1234/a");
     expect(requests).toBe(1);
+  });
+
+  it("asks the converter with idtype=pmid and keys results by the bare PMID", async () => {
+    let params: URLSearchParams | null = null;
+    server.use(http.get(IDCONV_URL, ({ request }) => {
+      params = new URL(request.url).searchParams;
+      return HttpResponse.json({
+        records: [
+          { doi: "10.3389/FPSYG.2026.1748888", pmcid: "PMC13414199", pmid: 42528595, "requested-id": "42528595" },
+          { pmid: 9599441, "requested-id": "9599441", status: "error" },
+        ],
+      });
+    }));
+
+    const result = await resolvePmcIds(["42528595", "9599441"], "pmid");
+    expect(params!.get("idtype")).toBe("pmid");
+    expect(result.get("42528595")).toBe("10.3389/fpsyg.2026.1748888");
+    expect(result.get("9599441")).toBeNull();
   });
 
   it("sends the configured email and tool for NCBI's usage policy", async () => {

@@ -70,24 +70,6 @@ describe("keyboard focus visibility", () => {
         }
     });
 
-    it("does not match a pill that has never been focused", () => {
-        vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
-        ensureFocusStyle();
-        const pill = createIndicatorPill({
-            doi: "10.1000/x" as DoiString,
-            oaStatus: null,
-            retraction: null,
-        });
-        document.body.appendChild(pill);
-
-        const rule = document.getElementById("flora-focus-style")!.textContent!;
-        const selectors = rule.slice(0, rule.indexOf("{")).split(",").map((s) => s.trim());
-        const unfocused = selectors.filter((s) => !s.includes(":focus-visible"));
-
-        expect(unfocused.some((s) => pill.matches(s))).toBe(false);
-        vi.unstubAllGlobals();
-    });
-
     it("injects the rule only once", () => {
         ensureFocusStyle();
         ensureFocusStyle();

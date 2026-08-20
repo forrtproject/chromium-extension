@@ -49,6 +49,22 @@ describe("SPA navigation reset", () => {
         expect(document.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)).toHaveLength(0);
     });
 
+    it("leaves the search script's result panels alone", () => {
+        // Europe PMC, Scopus and EBSCOhost run both content scripts; the
+        // search panels on a results page belong to the other one.
+        const panel = document.createElement("div");
+        panel.className = INDICATOR_PILL_CLASS;
+        panel.setAttribute("data-flora-panel", "");
+        const pill = document.createElement("span");
+        pill.className = INDICATOR_PILL_CLASS;
+        document.body.append(panel, pill);
+
+        removeIndicatorPills();
+
+        expect(document.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)).toHaveLength(1);
+        expect(document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-panel]`)).toBe(panel);
+    });
+
     it("removes the previous article's retraction pill", () => {
         const anchor = document.createElement("a");
         document.body.appendChild(anchor);
