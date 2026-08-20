@@ -14,7 +14,7 @@
  * only ever upgrades a trimmed log to a complete one.
  */
 
-import type { DebugLogEntry } from "./debug";
+import { recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
 import { readDebugLog } from "./debug-log";
 import { safeSendMessage } from "./messages";
 import { getSettings } from "./settings";
@@ -42,6 +42,7 @@ const ISSUE_URL = "https://github.com/forrtproject/chromium-extension/issues/new
 export interface DebugReportContext {
   /** Page the user was on when they hit the problem, if known. */
   pageUrl?: string | null;
+  error?: RuntimeErrorInfo | null;
 }
 
 /** The report's parts, kept separate so the log can be re-rendered shorter. */
@@ -49,6 +50,18 @@ export interface DebugReportData {
   environment: string[];
   settings: string[];
   entries: DebugLogEntry[];
+  error?: RuntimeErrorInfo | null;
+}
+
+const MAX_STACK_CHARS = 2_000;
+
+function errorSection(error: RuntimeErrorInfo): string[] {
+  const lines = ["### Error", "", `**${error.message}**`, ""];
+  if (error.where) lines.push(`Raised in: \`${error.where}\``, "");
+  if (error.stack) {
+    lines.push("```", error.stack.slice(0, MAX_STACK_CHARS), "```", "");
+  }
+  return lines;
 }
 
 function formatTimestamp(t: number): string {
@@ -110,6 +123,7 @@ export function renderDebugReport(
       : `### Debug log (${total} ${total === 1 ? "entry" : "entries"})`;
 
   const lines: string[] = [
+    ...(data.error ? errorSection(data.error) : []),
     "### Environment",
     "",
     ...data.environment.map((line) => `- ${line}`),
@@ -143,17 +157,21 @@ export function renderDebugReport(
 export async function collectDebugReport(
   context: DebugReportContext = {}
 ): Promise<DebugReportData> {
-  const [entries, settings, blockedDomains, mutedCommenters] = await Promise.all([
+  const [stored, settings, blockedDomains, mutedCommenters] = await Promise.all([
     readDebugLog(),
     getSettings(),
     getBlockedDomains(),
     getHiddenCommenters(),
   ]);
 
+  const inMemory = recentDebugEntries();
+  const entries = stored.length > 0 ? stored : inMemory;
+
   const environment = [
     `Extension: ${extensionIdentity()}`,
     `User agent: ${userAgent()}`,
     `Report generated: ${new Date().toISOString()}`,
+    `Log source: ${stored.length > 0 ? "debug mode (full)" : "in-memory tail (debug mode off)"}`,
   ];
   if (context.pageUrl) environment.push(`Page: ${context.pageUrl}`);
 
@@ -168,7 +186,7 @@ export async function collectDebugReport(
     `Muted PubPeer commenters: ${mutedCommenters.length}`,
   ];
 
-  return { environment, settings: settingsLines, entries };
+  return { environment, settings: settingsLines, entries, error: context.error ?? null };
 }
 
 /** Collect and render the full report the user can copy, save or attach. */
@@ -240,8 +258,30 @@ export function insertReportIntoIssueBody(
   return `${body.trimEnd()}\n\n${block}\n`;
 }
 
-function issueBody(domain: string | null | undefined, reportSection: string): string {
+const MAX_TITLE_CHARS = 80;
+
+function issueTitle(domain: string | null | undefined, error?: RuntimeErrorInfo | null): string {
+  if (error) {
+    const summary = error.message.replace(/\s+/g, " ").trim();
+    return `Error: ${summary.length > MAX_TITLE_CHARS ? `${summary.slice(0, MAX_TITLE_CHARS)}…` : summary}`;
+  }
+  return domain ? `Issue on domain: ${domain}` : "Issue report";
+}
+
+function issueBody(
+  domain: string | null | undefined,
+  reportSection: string,
+  error?: RuntimeErrorInfo | null
+): string {
   return [
+    ...(error
+      ? [
+        "**ORE hit an error.**",
+        "",
+        `\`${error.message}\`${error.where ? ` — in \`${error.where}\`` : ""}`,
+        "",
+      ]
+      : []),
     "**What happened?**",
     "",
     "",
@@ -258,11 +298,15 @@ function issueBody(domain: string | null | undefined, reportSection: string): st
   ].join("\n");
 }
 
-function linkFor(domain: string | null | undefined, reportSection: string): string {
+function linkFor(
+  domain: string | null | undefined,
+  reportSection: string,
+  error?: RuntimeErrorInfo | null
+): string {
   const params = new URLSearchParams({
-    title: domain ? `Issue on domain: ${domain}` : "Issue report",
-    body: issueBody(domain, reportSection),
-    labels: domain ? "domain-issue" : "bug",
+    title: issueTitle(domain, error),
+    body: issueBody(domain, reportSection, error),
+    labels: error ? "bug" : domain ? "domain-issue" : "bug",
   });
   return `${ISSUE_URL}?${params.toString()}`;
 }
@@ -283,19 +327,23 @@ export interface IssueLink {
 export function issueUrl(options: {
   domain?: string | null;
   report?: DebugReportData | null;
+  error?: RuntimeErrorInfo | null;
 }): IssueLink {
   const { domain, report } = options;
+  const error = options.error ?? report?.error ?? null;
 
   if (!report || report.entries.length === 0) {
     const hint = report
       ? REPORT_PLACEHOLDER
       : "<!-- Optional: turn on debug mode from the ORE toolbar menu, reproduce the problem, then report it again — the log comes with it. -->";
-    return { url: linkFor(domain, hint), embedded: false, embeddedEntries: 0 };
+    return { url: linkFor(domain, hint, error), embedded: false, embeddedEntries: 0 };
   }
 
-  const total = report.entries.length;
+  const data = error && !report.error ? { ...report, error } : report;
+
+  const total = data.entries.length;
   const fits = (count: number): boolean =>
-    linkFor(domain, fenced(renderDebugReport(report, count))).length <= MAX_ISSUE_URL_CHARS;
+    linkFor(domain, fenced(renderDebugReport(data, count)), error).length <= MAX_ISSUE_URL_CHARS;
 
   // Binary search the entry count rather than slicing the rendered string:
   // trimming whole entries keeps the markdown (and its code fence) intact.
@@ -314,11 +362,11 @@ export function issueUrl(options: {
 
   if (best < Math.min(MIN_USEFUL_ENTRIES, total)) {
     // Not even a useful tail fits — leave it to the content script entirely.
-    return { url: linkFor(domain, REPORT_PLACEHOLDER), embedded: false, embeddedEntries: 0 };
+    return { url: linkFor(domain, REPORT_PLACEHOLDER, error), embedded: false, embeddedEntries: 0 };
   }
 
   return {
-    url: linkFor(domain, fenced(renderDebugReport(report, best))),
+    url: linkFor(domain, fenced(renderDebugReport(data, best)), error),
     embedded: true,
     embeddedEntries: best,
   };

@@ -26,6 +26,14 @@ export interface DebugLogEntry {
 /** Receives batches of captured entries. Installed by the service worker. */
 export type DebugSink = (entries: DebugLogEntry[]) => void;
 
+export interface RuntimeErrorInfo {
+  message: string;
+  stack?: string;
+  where?: string;
+}
+
+export type RuntimeErrorListener = (info: RuntimeErrorInfo) => void;
+
 export const DEBUG_FLAG_KEY = "flora_debug";
 
 /** Longest single captured message; anything beyond this is truncated. */
@@ -35,13 +43,17 @@ const FLUSH_AT_ENTRIES = 25;
 /** …or after this long, whichever comes first. */
 const FLUSH_DELAY_MS = 800;
 
+const RECENT_LIMIT = 60;
+
 let _enabled = false;
 let _initialized = false;
 
 let sink: DebugSink | null = null;
 let pending: DebugLogEntry[] = [];
+let recent: DebugLogEntry[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let context: string | null = null;
+let onRuntimeError: RuntimeErrorListener | null = null;
 
 /** MV3 service workers have no `window`; every other extension context does. */
 function isServiceWorker(): boolean {
@@ -113,15 +125,35 @@ function flush(): void {
 }
 
 function capture(level: DebugLevel, args: unknown[]): void {
-  if (!_enabled) return;
   if (context === null) context = detectContext();
+  const entry: DebugLogEntry = { t: Date.now(), level, ctx: context, msg: formatMessage(args) };
 
-  pending.push({ t: Date.now(), level, ctx: context, msg: formatMessage(args) });
+  recent.push(entry);
+  if (recent.length > RECENT_LIMIT) recent.shift();
+
+  if (!_enabled) return;
+  pending.push(entry);
 
   if (pending.length >= FLUSH_AT_ENTRIES) {
     flush();
   } else if (flushTimer === null) {
     flushTimer = setTimeout(flush, FLUSH_DELAY_MS);
+  }
+}
+
+export function recentDebugEntries(): DebugLogEntry[] {
+  return [...recent];
+}
+
+export function setRuntimeErrorListener(listener: RuntimeErrorListener | null): void {
+  onRuntimeError = listener;
+}
+
+function notifyRuntimeError(info: RuntimeErrorInfo): void {
+  try {
+    onRuntimeError?.(info);
+  } catch {
+    onRuntimeError = null;
   }
 }
 
@@ -149,22 +181,25 @@ function installErrorCapture(): void {
   if (!target) return;
 
   target.addEventListener("error", (event) => {
-    if (!_enabled) return;
     const e = event as ErrorEvent;
     const origin = e.filename || (e.error instanceof Error ? e.error.stack ?? "" : "");
     if (!isOwnCode(origin)) return;
     const where = e.filename ? ` (${e.filename}:${e.lineno}:${e.colno})` : "";
     capture("error", [`Uncaught ${e.message}${where}`]);
+    notifyRuntimeError({
+      message: e.message,
+      stack: e.error instanceof Error ? e.error.stack : undefined,
+      where: e.filename ? `${e.filename}:${e.lineno}:${e.colno}` : undefined,
+    });
   });
 
   target.addEventListener("unhandledrejection", (event) => {
-    if (!_enabled) return;
     const reason = (event as PromiseRejectionEvent).reason;
     const stack = reason instanceof Error ? reason.stack ?? "" : "";
     if (!isOwnCode(stack)) return;
-    capture("error", [
-      `Unhandled rejection: ${reason instanceof Error ? `${reason.name}: ${reason.message}` : stringifyArg(reason)}`,
-    ]);
+    const message = reason instanceof Error ? `${reason.name}: ${reason.message}` : stringifyArg(reason);
+    capture("error", [`Unhandled rejection: ${message}`]);
+    notifyRuntimeError({ message, stack: stack || undefined });
   });
 }
 
@@ -247,14 +282,14 @@ export function debugLog(...args: unknown[]): void {
 }
 
 export function debugWarn(...args: unknown[]): void {
-  if (!_enabled) return;
   capture("warn", args);
+  if (!_enabled) return;
   console.warn("[FLoRA]", ...args);
 }
 
 export function debugError(...args: unknown[]): void {
-  if (!_enabled) return;
   capture("error", args);
+  if (!_enabled) return;
   console.error("[FLoRA]", ...args);
 }
 
@@ -263,6 +298,8 @@ export function _resetDebugForTesting(): void {
   _enabled = false;
   sink = null;
   pending = [];
+  recent = [];
+  onRuntimeError = null;
   context = null;
   if (flushTimer !== null) {
     clearTimeout(flushTimer);

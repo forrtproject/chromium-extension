@@ -11,6 +11,7 @@
 import {WORK_TOAST_ID} from "./progress-toast";
 
 const TOAST_ID = "flora-action-toast";
+const ALERT_TOAST_ID = "flora-alert-toast";
 
 export type ToastTone = "success" | "error" | "pending";
 
@@ -34,8 +35,30 @@ const ALERT_SVG =
 
 const SPIN_KEYFRAMES = "@keyframes flora-toast-spin{to{transform:rotate(360deg)}}";
 
+const ACTION_STYLE =
+    "all:unset;box-sizing:border-box;border:1px solid rgba(255,255,255,0.45);color:#fff;" +
+    "font-family:inherit;font-size:11px;font-weight:600;line-height:1.3;padding:3px 9px;" +
+    "border-radius:5px;cursor:pointer;pointer-events:auto;white-space:nowrap;flex-shrink:0;";
+
+const CLOSE_STYLE =
+    "all:unset;box-sizing:border-box;color:rgba(255,255,255,0.75);font-family:inherit;" +
+    "font-size:13px;line-height:1;padding:2px 4px;border-radius:4px;cursor:pointer;" +
+    "pointer-events:auto;flex-shrink:0;";
+
 let dismissTimer: ReturnType<typeof setTimeout> | null = null;
 let removeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function hostId(action: ToastAction | undefined): string {
+    return action ? ALERT_TOAST_ID : TOAST_ID;
+}
+
+function positionAlert(): void {
+    const alert = document.getElementById(ALERT_TOAST_ID);
+    if (!alert) return;
+    const routine = document.getElementById(TOAST_ID);
+    const base = parseInt(bottomOffset(), 10);
+    alert.style.bottom = routine ? `${base + (routine.offsetHeight || 34) + 10}px` : `${base}px`;
+}
 
 function clearTimers(): void {
     if (dismissTimer) {
@@ -60,12 +83,12 @@ function bottomOffset(): string {
     return `${18 + (working.offsetHeight || 46) + 10}px`;
 }
 
-function ensureToast(): HTMLElement {
-    const existing = document.getElementById(TOAST_ID);
+function ensureToast(id: string): HTMLElement {
+    const existing = document.getElementById(id);
     if (existing) return existing;
 
     const host = document.createElement("div");
-    host.id = TOAST_ID;
+    host.id = id;
     // Marks the toast as FLoRA's own so the DOI extractor doesn't rescan its
     // text and the DOM listener doesn't treat it as a page change.
     host.setAttribute("data-flora-ui", "");
@@ -94,10 +117,16 @@ function iconFor(tone: ToastTone): HTMLElement {
     return icon;
 }
 
+export interface ToastAction {
+    label: string;
+    onClick: () => void | Promise<void>;
+}
+
 export interface ToastOptions {
     tone?: ToastTone;
     /** Milliseconds before the toast fades. 0 keeps it up until it is replaced. */
     duration?: number;
+    action?: ToastAction;
 }
 
 /**
@@ -107,10 +136,11 @@ export interface ToastOptions {
  */
 export function showToast(message: string, options: ToastOptions = {}): HTMLElement {
     const tone = options.tone ?? "success";
-    const duration = options.duration ?? (tone === "error" ? 2600 : 2000);
+    const action = options.action;
+    const duration = options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
 
-    clearTimers();
-    const host = ensureToast();
+    if (!action) clearTimers();
+    const host = ensureToast(hostId(action));
 
     // Keep the <style> child (the spinner keyframes) and rebuild the content.
     for (const child of [...host.children]) {
@@ -119,7 +149,7 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
 
     host.style.cssText =
         `position:fixed;bottom:${bottomOffset()};right:18px;z-index:2147483647;` +
-        "display:flex;align-items:center;gap:8px;pointer-events:none;" +
+        `display:flex;align-items:center;gap:8px;pointer-events:${action ? "auto" : "none"};` +
         `background:${TONE_BACKGROUND[tone]};color:#fff;` +
         "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
         "font-size:12px;font-weight:500;line-height:1.4;padding:8px 12px;border-radius:8px;" +
@@ -132,6 +162,27 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
     label.textContent = message;
     host.appendChild(label);
 
+    if (action) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = action.label;
+        button.style.cssText = ACTION_STYLE;
+        button.addEventListener("click", () => {
+            void action.onClick();
+            dismissAlertToast();
+        });
+        host.appendChild(button);
+
+        const close = document.createElement("button");
+        close.type = "button";
+        close.textContent = "\u00d7";
+        close.title = "Dismiss";
+        close.setAttribute("aria-label", "Dismiss");
+        close.style.cssText = CLOSE_STYLE;
+        close.addEventListener("click", () => dismissAlertToast());
+        host.appendChild(close);
+    }
+
     requestAnimationFrame(() => {
         host.style.opacity = "1";
         host.style.transform = "translateY(0)";
@@ -141,10 +192,14 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
         dismissTimer = setTimeout(() => {
             host.style.opacity = "0";
             host.style.transform = "translateY(6px)";
-            removeTimer = setTimeout(() => host.remove(), 200);
+            removeTimer = setTimeout(() => {
+                host.remove();
+                positionAlert();
+            }, 200);
         }, duration);
     }
 
+    positionAlert();
     return host;
 }
 
@@ -152,4 +207,9 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
 export function dismissToast(): void {
     clearTimers();
     document.getElementById(TOAST_ID)?.remove();
+    document.getElementById(ALERT_TOAST_ID)?.remove();
+}
+
+export function dismissAlertToast(): void {
+    document.getElementById(ALERT_TOAST_ID)?.remove();
 }
