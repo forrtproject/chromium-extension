@@ -146,6 +146,7 @@ let refCount = 0;
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeTimer: ReturnType<typeof setTimeout> | null = null;
+let renderFrame: number | null = null;
 // 0 = nothing reported yet, and the bar runs indeterminate.
 let progress = 0;
 let labelText = DEFAULT_LABEL;
@@ -165,7 +166,14 @@ function clearTimers(): void {
     for (const timer of [showTimer, hideTimer, removeTimer]) {
         if (timer) clearTimeout(timer);
     }
+    cancelQueuedRender();
     showTimer = hideTimer = removeTimer = null;
+}
+
+function cancelQueuedRender(): void {
+    if (renderFrame === null) return;
+    cancelAnimationFrame(renderFrame);
+    renderFrame = null;
 }
 
 function now(): number {
@@ -201,6 +209,8 @@ function formatDuration(ms: number): string {
 }
 
 function removeToast(): void {
+    // A frame queued before removal must not rebuild the toast afterwards.
+    cancelQueuedRender();
     const host = document.getElementById(WORK_TOAST_ID);
     if (!host) return;
     document.removeEventListener("keydown", onKeydown, true);
@@ -599,6 +609,8 @@ function paint(host: HTMLElement): void {
 function renderNow(): void {
     if (suppressed || dismissed) return;
     if (refCount === 0 && !finished) return;
+    // An immediate stage update supersedes any deferred item update.
+    cancelQueuedRender();
     const host = ensureToast();
     const label = host.querySelector<HTMLElement>("[data-flora-work-label]");
     if (label) label.textContent = labelText;
@@ -611,14 +623,27 @@ function renderNow(): void {
     });
 }
 
-/** Update now if the toast is already up, else once the pass proves slow. */
-function render(): void {
+/** Coalesce state changes that arrive in the same frame into one DOM render. */
+function queueRender(): void {
+    if (renderFrame !== null) return;
+    renderFrame = requestAnimationFrame(() => {
+        renderFrame = null;
+        renderNow();
+    });
+}
+
+/** Update now if requested; item bursts can defer to the next animation frame. */
+function render(immediate = true): void {
     if (suppressed || dismissed) return;
     if (refCount === 0 && !finished) return;
     if (document.getElementById(WORK_TOAST_ID)) {
-        renderNow();
+        if (immediate) renderNow();
+        else queueRender();
         return;
     }
+    // The toast is gone. A straggler from a pass that already ended must not
+    // bring it back — only a running pass gets a fresh one.
+    if (refCount === 0) return;
     if (showTimer) return;
     showTimer = setTimeout(() => {
         showTimer = null;
@@ -734,7 +759,9 @@ export function updateWorkItem(id: string, status: WorkItemStatus, detail?: stri
         if (detail !== undefined) item.detail = detail;
         touched = true;
     }
-    if (touched) render();
+    // A fast batch completes many items in one synchronous loop. Keep the
+    // state changes immediate, but coalesce the expensive DOM rebuild.
+    if (touched) render(false);
 }
 
 /** True once the user pressed Cancel on this pass; pipelines stop at their next stage boundary. */
