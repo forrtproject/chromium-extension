@@ -99,6 +99,22 @@ const ICON_BTN_STYLE = `
     flex: 0 0 auto;
   `;
 
+const BOX_SIDES = ["top", "right", "bottom", "left"] as const;
+
+function shieldFromPageCss<T extends Element>(root: T): T {
+    const nodes = [root, ...root.querySelectorAll("*")] as Iterable<Partial<ElementCSSInlineStyle>>;
+    for (const node of nodes) {
+        const style = node.style;
+        if (!style) continue;
+        for (const side of BOX_SIDES) {
+            for (const prop of [`padding-${side}`, `margin-${side}`, `border-${side}-width`]) {
+                if (!style.getPropertyValue(prop)) style.setProperty(prop, "0", "important");
+            }
+        }
+    }
+    return root;
+}
+
 function makeDivider(): HTMLElement {
     const d = document.createElement("span");
     d.style.cssText = DIVIDER_STYLE;
@@ -116,7 +132,7 @@ function buildOaSegment(oa: OpenAccessStatus | null): HTMLElement {
     el.style.cssText = `display:inline-flex;align-items:center;line-height:0;color:#fff;opacity:${available ? "1" : "0.35"};`;
     el.innerHTML = OA_UNLOCK_SVG;
     el.title = available ? "Open Access — free full text available" : "Open Access status unavailable";
-    return el;
+    return shieldFromPageCss(el);
 }
 
 function buildPubPeerSegment(feedback: PubPeerFeedback | null): HTMLElement {
@@ -128,7 +144,7 @@ function buildPubPeerSegment(feedback: PubPeerFeedback | null): HTMLElement {
     el.title = available && feedback
         ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"} on PubPeer`
         : "No PubPeer discussion found";
-    return el;
+    return shieldFromPageCss(el);
 }
 
 interface BadgeSignal {
@@ -218,7 +234,7 @@ function buildBadgeSegment(signal: BadgeSignal): HTMLElement {
   `;
     el.textContent = signal.glyph;
     el.title = signal.available ? `${signal.rowTitle} — ${signal.rowSubtitle}` : signal.rowSubtitle;
-    return el;
+    return shieldFromPageCss(el);
 }
 
 // ──────────────────────────────────────────────
@@ -514,22 +530,13 @@ function buildDoiRow(
     compact = false,
     provenanceLabel?: string
 ): HTMLElement {
-    // The rows below start their headings past a 16px icon column, so the
-    // popover's DOI is indented to that same edge — left flush against the
-    // panel border it reads as floating free of the rows under it.
-    const doiIndent = 4 + 16 + 8;
     const contentRow = document.createElement("div");
-    contentRow.style.cssText = `display: flex; align-items: center; gap: ${compact ? "5px" : "8px"}; padding: ${compact ? "1px 3px" : `5px 4px 5px ${doiIndent}px`};`;
+    contentRow.style.cssText = `display: flex; align-items: center; gap: ${compact ? "5px" : "8px"}; padding: ${compact ? "1px 3px" : "5px 4px"};`;
 
-    // The panel rides on a Scholar result rather than opening on hover, so it
-    // keeps the link glyph that labels the row; the popover's DOI stands on
-    // its own line.
-    if (compact) {
-        const doiIcon = document.createElement("span");
-        doiIcon.style.cssText = rowIconWrapStyle(color, true, compact);
-        doiIcon.innerHTML = DOI_LINK_SVG;
-        contentRow.appendChild(doiIcon);
-    }
+    const doiIcon = document.createElement("span");
+    doiIcon.style.cssText = rowIconWrapStyle(color, true, compact);
+    doiIcon.innerHTML = DOI_LINK_SVG;
+    contentRow.appendChild(doiIcon);
 
     const doiText = document.createElement("span");
     doiText.setAttribute("data-flora-doi-text", "");
@@ -762,7 +769,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     let oaRow = buildOaRow(opts.oaStatus ? "pending" : null, compact);
     rows.appendChild(oaRow);
     const settleOa = (state: OaState, oa: OpenAccessStatus | null): void => {
-        const resolved = buildOaRow(state, compact);
+        const resolved = shieldFromPageCss(buildOaRow(state, compact));
         oaRow.replaceWith(resolved);
         oaRow = resolved;
         opts.onOa?.(oa);
@@ -778,7 +785,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     let pubpeerRow = buildPubPeerRow("pending", compact);
     rows.appendChild(pubpeerRow);
     const settlePubPeer = (feedback: PubPeerFeedback | null): void => {
-        const resolved = buildPubPeerRow(feedback, compact);
+        const resolved = shieldFromPageCss(buildPubPeerRow(feedback, compact));
         pubpeerRow.replaceWith(resolved);
         pubpeerRow = resolved;
         opts.onPubPeer?.(feedback);
@@ -790,7 +797,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
         opts.doi, opts.retraction, opts.replicationsCount, opts.reproductionsCount
     ), compact));
-    return rows;
+    return shieldFromPageCss(rows);
 }
 
 /**
@@ -948,6 +955,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
             hideTimeout = null;
         }
         // Reveal first so the popover has measurable dimensions.
+        shieldFromPageCss(popover);
         popover.style.display = "flex";
         pill.setAttribute("aria-expanded", "true");
 
@@ -1060,7 +1068,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     wrapper.appendChild(pill);
     wrapper.appendChild(popover);
-    return wrapper;
+    return shieldFromPageCss(wrapper);
 }
 
 /**
@@ -1151,6 +1159,8 @@ export function updateIndicatorPillBadges(
         const signal = resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount);
 
         if (badgeSegment) badgeSegment.replaceWith(buildBadgeSegment(signal));
-        if (badgeRow) badgeRow.replaceWith(buildBadgeRow(signal, wrapper.hasAttribute("data-flora-panel")));
+        if (badgeRow) {
+            badgeRow.replaceWith(shieldFromPageCss(buildBadgeRow(signal, wrapper.hasAttribute("data-flora-panel"))));
+        }
     }
 }

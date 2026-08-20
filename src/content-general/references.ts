@@ -139,6 +139,11 @@ const MIN_CITATION_LENGTH = 16;
 // hallucinate a DOI and surface a stray pill on the section header.
 const YEAR_RE = /\b(?:18|19|20)\d{2}\b/;
 
+function citationYear(text: string): number | null {
+    const match = YEAR_RE.exec(text);
+    return match ? Number(match[0]) : null;
+}
+
 /** Provenance of a resolved DOI; only "augment" (fuzzy title match) is unconfirmed. */
 export type ReferenceMode = "augment" | "hidden" | "pmc";
 
@@ -222,7 +227,11 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const empty = new Map<string, DoiString | null>();
     const [augmentSettled, pmcSettled] = await Promise.allSettled([
         augmentTargets.length > 0
-            ? augmentDOIsViaWorker(augmentTargets.map((p) => p.entry.text))
+            ? augmentDOIsViaWorker(augmentTargets.map((p) => ({
+                title: p.entry.text,
+                titleIsFullCitation: true,
+                year: citationYear(p.entry.text),
+            })))
             : Promise.resolve(empty),
         pmcTargets.length > 0
             ? resolvePmcIdsViaWorker(pmcTargets.map((p) => p.pmcid))

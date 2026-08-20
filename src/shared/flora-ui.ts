@@ -20,8 +20,12 @@ export function ensureFocusStyle(): void {
         `${part}:focus-visible`,
         `${part} :focus-visible`,
     ]);
+    const suppressed = FLORA_OWNED_PARTS.map(
+        (part) => `${part} :where(button, a):not(:focus-visible)`
+    );
     style.textContent =
-        `${focused.join(", ")} { outline: 2px solid #853953; outline-offset: 2px; }`;
+        `${focused.join(", ")} { outline: 2px solid #853953; outline-offset: 2px; }`
+        + `${suppressed.join(", ")} { outline: none !important; }`;
     (document.head ?? document.documentElement).appendChild(style);
 }
 

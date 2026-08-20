@@ -70,6 +70,17 @@ describe("keyboard focus visibility", () => {
         }
     });
 
+    it("drops a page's own button outline everywhere but the focus ring", () => {
+        ensureFocusStyle();
+
+        const rule = document.getElementById("flora-focus-style")!.textContent!;
+        const suppression = rule.slice(rule.indexOf("}") + 1);
+
+        expect(suppression).toContain(":not(:focus-visible)");
+        expect(suppression).toContain("outline: none !important");
+        expect(suppression).toContain("button");
+    });
+
     it("injects the rule only once", () => {
         ensureFocusStyle();
         ensureFocusStyle();

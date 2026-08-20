@@ -560,6 +560,44 @@ describe("findReferenceContainers", () => {
 });
 
 describe("findReferenceEntries", () => {
+  it("drops the screen-reader text and label of each action link", () => {
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <div id="references-Section1">
+          <ul class="references">
+            <li>
+              <span>Adams, G. A., and J. R. Webster. 2013. Emotional regulation as a mediator.
+                <div class="extra-links">
+                  <a href="/servlet/linkout?refDoi=10.1080%2F1359432X.2012.698057">
+                    <span>(Open in a new window)</span>Web of Science ®</a>
+                  <a href="/action/getFTRLinkout?doiOfLink=10.1080%2F1359432X.2012.698057">
+                    <span>(Open in a new window)</span>Google Scholar</a>
+                </div>
+              </span>
+            </li>
+            <li>
+              <span>Alias, M., and B. Abu Samah. 2013. Predictors of workplace deviant behaviour.
+                <div class="extra-links">
+                  <a href="/action/getFTRLinkout?doiOfLink=10.1108%2F03090591311301671">
+                    <span>(Open in a new window)</span>Google Scholar</a>
+                </div>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+    const entries = findReferenceEntries(doc);
+
+    expect(entries).toHaveLength(2);
+    for (const entry of entries) {
+      expect(entry.text).not.toMatch(/Open in a new window|Web of Science|Google Scholar/);
+    }
+    expect(entries[0].text).toBe(
+      "Adams, G. A., and J. R. Webster. 2013. Emotional regulation as a mediator."
+    );
+  });
+
   it("prefers DOI written in entry text over a link href", () => {
     // Wiley cited-by rows write the citing paper's DOI in plain text but
     // their single link is a redirect URL containing the *host* article's
@@ -1021,4 +1059,17 @@ describe("extractDoiFromHref", () => {
       extractDoiFromHref("https://example.com/article?doi=10.1002/job.2278&src=feed")
     ).toBe("10.1002/job.2278");
   });
+
+  it.each(["refDoi", "doiOfLink"])(
+    "prefers the cited work in %s over the citing article's doi param",
+    (key) => {
+      expect(
+        extractDoiFromHref(
+          `https://www.tandfonline.com/servlet/linkout?doi=10.1080%2F13678868.2017.1336692`
+          + `&doiForPubOfPage=10.1080%2F13678868.2017.1336692`
+          + `&${key}=10.1080%2F1359432X.2012.698057&linkType=ISI`
+        )
+      ).toBe("10.1080/1359432x.2012.698057");
+    }
+  );
 });

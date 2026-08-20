@@ -119,6 +119,7 @@ export interface DoiAugmentRequest {
     firstAuthor?: string | null;
     year?: number | null;
     sourceUrl?: string | null;
+    titleIsFullCitation?: boolean;
 }
 
 /** What kind of page we're on */
