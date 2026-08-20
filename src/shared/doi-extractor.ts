@@ -169,8 +169,23 @@ export function extractDOIs(doc: Document): DoiString[] {
   return result;
 }
 
+function withoutNestedUrls(href: string): string {
+  try {
+    const url = new URL(href);
+    const kept = new URLSearchParams();
+    for (const [key, value] of url.searchParams) {
+      if (/^https?:\/\//i.test(value)) continue;
+      kept.append(key, value);
+    }
+    const query = kept.toString();
+    return `${url.origin}${url.pathname}${query ? `?${query}` : ""}${url.hash}`;
+  } catch {
+    return href;
+  }
+}
+
 function extractFromUrl(doc: Document, found: Set<DoiString>): void {
-  const url = decodeEncodedDois(doc.location?.href ?? "");
+  const url = decodeEncodedDois(withoutNestedUrls(doc.location?.href ?? ""));
   const matches = url.matchAll(DOI_REGEX);
   for (const match of matches) {
     const cleaned = cleanDoiTrailing(match[1]);

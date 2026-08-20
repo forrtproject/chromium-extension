@@ -35,9 +35,12 @@ import {
 } from "./injector";
 import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
+import {installErrorReporting, reportCodeError} from "@shared/error-report";
+import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
+import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
@@ -445,7 +448,7 @@ async function runScanPass(): Promise<void> {
         } catch (err) {
             // Rendering failed after a successful lookup: log it for a bug
             // report rather than blaming the service the reader can't fix.
-            debugError("Rendering replication results failed:", err);
+            reportCodeError("Rendering replication results failed", err);
         }
     } finally {
         endWorkIndicator();
@@ -487,7 +490,7 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
                     if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
                 } catch (err) {
                     releaseReferenceEntries(resolvedRefs);
-                    debugError(`References: marking up ${resolvedRefs.length} resolved reference(s) failed —`, err);
+                    reportCodeError(`References: marking up ${resolvedRefs.length} resolved reference(s) failed`, err);
                     return [];
                 }
             }
@@ -842,13 +845,25 @@ async function fetchSheetDois(): Promise<void> {
 (async () => {
   try {
     if (window !== window.top) return;
+    installErrorReporting();
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
     // that URL resolves and FLoRA would pill an interstitial. Render nothing
     // and stop — clearing the challenge loads the real document, and the
     // content script starts over there.
+    if (isOwnRepoUrl(location.href)) {
+        reportActiveState(false);
+        return;
+    }
+
     if (isBotCheckPage()) {
         debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
+        reportActiveState(false);
+        return;
+    }
+
+    if (isAuthGatewayPage()) {
+        debugLog("Sign-in step — FLoRA renders nothing on this page");
         reportActiveState(false);
         return;
     }
@@ -918,7 +933,7 @@ async function fetchSheetDois(): Promise<void> {
         });
     }
   } catch (err) {
-    debugError(`ORE failed to start on ${location.hostname} —`, err);
+    reportCodeError(`ORE failed to start on ${location.hostname}`, err);
     reportActiveState(false);
   }
 })();

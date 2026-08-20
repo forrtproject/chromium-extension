@@ -6,6 +6,7 @@ import {resolveSearchSite} from "./sites";
 import {observeSearchResults} from "./observer";
 import {isSearchHidden, processSearchResults, setSearchHidden} from "./pipeline";
 import {debugError, debugLog} from "@shared/debug";
+import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
@@ -32,6 +33,7 @@ function injectSiteStyle(css: string): void {
 (async () => {
     try {
         if (window !== window.top) return;
+        installErrorReporting();
 
         const adapter = resolveSearchSite(location.hostname);
         if (!adapter) {
@@ -67,7 +69,7 @@ function injectSiteStyle(css: string): void {
         // Start observing for dynamically loaded results
         observeSearchResults(adapter);
     } catch (err) {
-        debugError("ORE failed to start on search page —", err);
+        reportCodeError("ORE failed to start on search page", err);
         reportActiveState(false);
     }
 })();

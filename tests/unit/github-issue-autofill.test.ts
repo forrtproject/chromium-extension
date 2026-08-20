@@ -131,6 +131,7 @@ describe("GitHub issue autofill", () => {
   });
 
   it("says so on the page when the form reverts the insertion", async () => {
+    vi.useFakeTimers();
     const field = renderForm(issueBody());
     // Stand in for a React re-render discarding an uncontrolled write.
     field.addEventListener("input", () => {
@@ -140,9 +141,47 @@ describe("GitHub issue autofill", () => {
     });
 
     await import("../../src/content-github/index");
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await vi.advanceTimersByTimeAsync(12_000);
 
     expect(document.body.textContent).toContain("couldn't fill in the full debug log");
+  });
+
+  it("follows the field when a re-render swaps the textarea out", async () => {
+    vi.useFakeTimers();
+    const first = renderForm(issueBody());
+    first.addEventListener("input", () => {
+      setTimeout(() => {
+        const replacement = first.cloneNode() as HTMLTextAreaElement;
+        replacement.value = issueBody();
+        first.replaceWith(replacement);
+      }, 0);
+    });
+
+    await import("../../src/content-github/index");
+    await vi.advanceTimersByTimeAsync(12_000);
+
+    const live = document.querySelector("textarea")!;
+    expect(live).not.toBe(first);
+    expect(live.value).toContain(REPORT);
+    expect(document.body.textContent).toContain("attached the debug log");
+  });
+
+  it("puts the report back when the form reverts it once", async () => {
+    vi.useFakeTimers();
+    const field = renderForm(issueBody());
+    let reverts = 1;
+    field.addEventListener("input", () => {
+      if (reverts-- <= 0) return;
+      setTimeout(() => {
+        field.value = issueBody();
+      }, 0);
+    });
+
+    await import("../../src/content-github/index");
+    await vi.advanceTimersByTimeAsync(12_000);
+
+    expect(field.value).toContain(REPORT);
+    expect(document.body.textContent).toContain("attached the debug log");
   });
 
   it("says so on the page when the form never appears", async () => {

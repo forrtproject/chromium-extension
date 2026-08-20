@@ -207,9 +207,20 @@ describe("applyPillStyle", () => {
   const el = () => new JSDOM(`<span style="top:5px;"></span>`).window.document.querySelector("span")!;
   const base = { id: "t", hostnames: ["t.com"] };
 
-  it("leaves the pill untouched with no adapter", () => {
+  it("centres the pill on the line and spaces it off the text with no adapter", () => {
     const p = el();
     applyPillStyle(p as HTMLElement, null, "reference");
+    expect(p.style.verticalAlign).toBe("middle");
+    expect(p.style.getPropertyValue("margin-inline-start")).toBe("6px");
+    expect(p.style.getPropertyPriority("margin-inline-start")).toBe("important");
+    expect(p.style.top).toBe("0px");
+  });
+
+  it("leaves an adapter's own slot alone rather than adding the default", () => {
+    const p = el();
+    applyPillStyle(p as HTMLElement, { ...base, titlePillStyle: { top: "-5px" } }, "reference");
+    expect(p.style.verticalAlign).toBe("");
+    expect(p.style.getPropertyValue("margin-inline-start")).toBe("");
     expect(p.style.top).toBe("5px");
   });
 
