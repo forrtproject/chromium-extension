@@ -92,7 +92,7 @@ describe("SPA navigation reset", () => {
 
         injectInlineRetractionPills(occurrences, notices, null);
 
-        expect(anchor.getAttribute(FLORA_RET_CHECK_KEY)).toBe("1");
+        expect(anchor.getAttribute(FLORA_RET_CHECK_KEY)).toBe(ARTICLE_ONE);
         expect(document.querySelectorAll(`.${FLORA_NOTICE_PILL_CLASS}`)).toHaveLength(1);
     });
 

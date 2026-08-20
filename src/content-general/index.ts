@@ -342,10 +342,11 @@ async function runScanPass(): Promise<void> {
 
     if (newDois.length === 0) {
         debugLog("No new DOIs (all already processed)");
-        // Re-place the title pill against the live DOM — hydrating SPAs (e.g.
-        // Sage) re-render and wipe a previously placed pill, and this pass
-        // (triggered by that mutation) would otherwise return without restoring it.
+        // Re-place the title pills against the live DOM — hydrating SPAs (e.g.
+        // Sage) re-render and wipe previously placed pills, and this pass
+        // (triggered by that mutation) would otherwise return without restoring them.
         if (!isSheets) placeTitleIndicatorPill();
+        if (!isSheets) placeTitleNoticePill();
         if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
         if (!isSheets) void checkPubPeer(refsDone);
         return;

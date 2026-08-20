@@ -23,8 +23,8 @@ function anchorFor(id: string): Element {
     return el;
 }
 
-function isPilled(anchor: Element): boolean {
-    return anchor.getAttribute(FLORA_RET_CHECK_KEY) === "1";
+function isPilled(anchor: Element, doi: DoiString): boolean {
+    return anchor.getAttribute(FLORA_RET_CHECK_KEY) === doi;
 }
 
 describe("injectInlineRetractionPills", () => {
@@ -43,8 +43,8 @@ describe("injectInlineRetractionPills", () => {
             map,
         );
 
-        expect(isPilled(primaryAnchor)).toBe(true);
-        expect(isPilled(secondAnchor)).toBe(true);
+        expect(isPilled(primaryAnchor, PRIMARY)).toBe(true);
+        expect(isPilled(secondAnchor, SECOND_ARTICLE)).toBe(true);
     });
 
     it("pills a noticed DOI once, at its first occurrence", () => {
@@ -56,8 +56,50 @@ describe("injectInlineRetractionPills", () => {
             new Map([[PRIMARY, notice(PRIMARY)]]),
         );
 
-        expect(isPilled(first)).toBe(true);
-        expect(isPilled(later)).toBe(false);
+        expect(isPilled(first, PRIMARY)).toBe(true);
+        expect(isPilled(later, PRIMARY)).toBe(false);
+    });
+
+    it("re-places a notice its page wiped, without a reset", () => {
+        const anchor = anchorFor("first");
+        const occurrences = [{ doi: PRIMARY, anchor }];
+        const map = new Map([[PRIMARY, notice(PRIMARY)]]);
+
+        injectInlineRetractionPills(occurrences, map);
+        // A hydrating SPA re-renders the region and takes the pill with it.
+        for (const pill of document.querySelectorAll(".flora-notice-pill")) pill.remove();
+        const restored = anchorFor("restored");
+
+        injectInlineRetractionPills([{ doi: PRIMARY, anchor: restored }], map);
+
+        expect(isPilled(restored, PRIMARY)).toBe(true);
+        expect(document.querySelectorAll(".flora-notice-pill")).toHaveLength(1);
+    });
+
+    it("re-places a notice its page wiped, on the same anchor", () => {
+        const anchor = anchorFor("first");
+        const occurrences = [{ doi: PRIMARY, anchor }];
+        const map = new Map([[PRIMARY, notice(PRIMARY)]]);
+
+        injectInlineRetractionPills(occurrences, map);
+        // Only the pill goes; the anchor carrying the marker survives.
+        for (const pill of document.querySelectorAll(".flora-notice-pill")) pill.remove();
+
+        injectInlineRetractionPills(occurrences, map);
+
+        expect(document.querySelectorAll(".flora-notice-pill")).toHaveLength(1);
+    });
+
+    it("gives a shared anchor one notice, leaving the second DOI to its entry", () => {
+        const shared = anchorFor("paragraph");
+
+        injectInlineRetractionPills(
+            [{ doi: PRIMARY, anchor: shared }, { doi: SECOND_ARTICLE, anchor: shared }],
+            new Map([[PRIMARY, notice(PRIMARY)], [SECOND_ARTICLE, notice(SECOND_ARTICLE)]]),
+        );
+
+        expect(isPilled(shared, PRIMARY)).toBe(true);
+        expect(document.querySelectorAll(".flora-notice-pill")).toHaveLength(1);
     });
 
     it("pills reference occurrences", () => {
@@ -68,7 +110,7 @@ describe("injectInlineRetractionPills", () => {
             new Map([[REFERENCE, notice(REFERENCE)]]),
         );
 
-        expect(isPilled(refAnchor)).toBe(true);
+        expect(isPilled(refAnchor, REFERENCE)).toBe(true);
     });
 
     it("leaves occurrences with no notice alone", () => {
@@ -79,6 +121,6 @@ describe("injectInlineRetractionPills", () => {
             new Map(),
         );
 
-        expect(isPilled(cleanAnchor)).toBe(false);
+        expect(isPilled(cleanAnchor, REFERENCE)).toBe(false);
     });
 });

@@ -586,6 +586,32 @@ describe("findReferenceEntries", () => {
     ]);
   });
 
+  it("keeps every body row when a table is split across <tbody> sections", () => {
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <table class="references">
+          <thead><tr><th>#</th><th>Citation</th><th>DOI</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Author, A. (2015). A replicated finding.</td>
+                <td>10.5555/flora.repl.0001</td></tr>
+            <tr><td>2</td><td>Author, C. (2016). A reproduced analysis.</td>
+                <td>10.5555/flora.repro.0002</td></tr>
+          </tbody>
+          <tbody>
+            <tr><td>3</td><td>Author, D. (2017). A retracted study.</td>
+                <td>10.5555/flora.retr.0003</td></tr>
+          </tbody>
+        </table>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+
+    expect(findReferenceEntries(doc).map((e) => e.doi)).toEqual([
+      "10.5555/flora.repl.0001",
+      "10.5555/flora.repro.0002",
+      "10.5555/flora.retr.0003",
+    ]);
+  });
+
   it("drops the screen-reader text and label of each action link", () => {
     const html = `<!DOCTYPE html>
       <html><body>

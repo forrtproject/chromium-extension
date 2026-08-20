@@ -539,18 +539,24 @@ function extractPmcIdFromEntry(entry: HTMLElement, text: string): string | null 
 }
 
 // Reference lists almost always render as a sibling group of one tag
-// (<li>, <p>, or <div>); the biggest such group is the entry list.
-function findLargestSiblingGroup(container: Element, tag: string): HTMLElement[] {
-  const byParent = new Map<Element, HTMLElement[]>();
-  for (const node of container.querySelectorAll<HTMLElement>(tag)) {
-    const parent = node.parentElement;
-    if (!parent) continue;
-    const group = byParent.get(parent) ?? [];
+// (<li>, <p>, or <div>); the biggest such group is the entry list. `owner`
+// says which element a node belongs to — its parent for ordinary siblings,
+// its table for rows, whose entries are split across <tbody> sections.
+function findLargestGroup(
+  container: Element,
+  selector: string,
+  owner: (node: HTMLElement) => Element | null = (node) => node.parentElement,
+): HTMLElement[] {
+  const byOwner = new Map<Element, HTMLElement[]>();
+  for (const node of container.querySelectorAll<HTMLElement>(selector)) {
+    const key = owner(node);
+    if (!key) continue;
+    const group = byOwner.get(key) ?? [];
     group.push(node);
-    byParent.set(parent, group);
+    byOwner.set(key, group);
   }
   let best: HTMLElement[] = [];
-  for (const group of byParent.values()) {
+  for (const group of byOwner.values()) {
     if (group.length > best.length) best = group;
   }
   return best;
@@ -564,12 +570,16 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   const lis = allLis.filter(
     (li) => !allLis.some((other) => other !== li && other.contains(li))
   );
-  const pGroup = findLargestSiblingGroup(container, "p");
-  const divGroup = findLargestSiblingGroup(container, "div");
+  const pGroup = findLargestGroup(container, "p");
+  const divGroup = findLargestGroup(container, "div");
   // A tabular bibliography: one citation per body row. Without this the only
   // children of the <table> are <thead>/<tbody>, so the whole table counts as
   // a single entry — one DOI gets a pill and every later row is skipped.
-  const rowGroup = Array.from(container.querySelectorAll<HTMLElement>("tbody > tr, table > tr"));
+  // Rows group by their own table, so a table split across several <tbody>
+  // sections keeps all its entries and a nested table stays separate.
+  const rowGroup = findLargestGroup(container, "tbody > tr, table > tr", (row) =>
+    row.closest("table")
+  );
 
   // Largest group wins, not just the first past the threshold: Oxford
   // Academic's per-reference <div> group otherwise loses to a single
