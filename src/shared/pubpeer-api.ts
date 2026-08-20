@@ -1,5 +1,6 @@
 import { debugLog } from "./debug";
 import { BlobCache } from "./blob-cache";
+import { getHiddenCommenters, isHiddenCommenter } from "./pubpeer-filter";
 
 export interface PubPeerFeedback {
   id: string;
@@ -11,13 +12,36 @@ export interface PubPeerFeedback {
   url: string;
 }
 
+export function commentersOf(feedback: PubPeerFeedback): string[] {
+  return (feedback.users ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+export function applyCommenterMutes(
+  feedback: PubPeerFeedback,
+  hidden: readonly string[]
+): PubPeerFeedback {
+  if (hidden.length === 0) return feedback;
+  const names = commentersOf(feedback);
+  const muted = names.filter((name) => isHiddenCommenter(name, hidden));
+  if (muted.length === 0) return feedback;
+
+  return {
+    ...feedback,
+    total_comments: Math.max(0, feedback.total_comments - muted.length),
+    users: names.filter((name) => !isHiddenCommenter(name, hidden)).join(", "),
+  };
+}
+
 export class PubPeerRateLimitError extends Error {
   constructor(public retryAfterMs: number) {
     super(`PubPeer rate limited (retry after ${retryAfterMs}ms)`);
   }
 }
 
-export async function lookupPubPeer(
+async function fetchPubPeer(
   dois: string[],
   urls: string[]
 ): Promise<PubPeerFeedback[]> {
@@ -43,6 +67,15 @@ export async function lookupPubPeer(
   }
   const data = (await response.json()) as { status: string; feedbacks?: PubPeerFeedback[] };
   return data.feedbacks ?? [];
+}
+
+export async function lookupPubPeer(
+  dois: string[],
+  urls: string[]
+): Promise<PubPeerFeedback[]> {
+  const feedbacks = await fetchPubPeer(dois, urls);
+  const hidden = await getHiddenCommenters();
+  return feedbacks.map((feedback) => applyCommenterMutes(feedback, hidden));
 }
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
@@ -76,6 +109,9 @@ export async function lookupPubPeerForDois<T extends string>(
 ): Promise<Map<T, PubPeerFeedback>> {
   const result = new Map<T, PubPeerFeedback>();
   if (dois.length === 0) return result;
+  const hidden = await getHiddenCommenters();
+  const visible = (feedback: PubPeerFeedback): PubPeerFeedback =>
+    applyCommenterMutes(feedback, hidden);
 
   // 1. Serve from cache; collect DOIs that need a network call.
   const uncached: T[] = [];
@@ -84,7 +120,7 @@ export async function lookupPubPeerForDois<T extends string>(
   for (const doi of dois) {
     const entry = cached.get(cacheKey(doi));
     if (entry) {
-      if (entry.feedback) result.set(doi, entry.feedback);
+      if (entry.feedback) result.set(doi, visible(entry.feedback));
     } else {
       uncached.push(doi);
     }
@@ -103,7 +139,7 @@ export async function lookupPubPeerForDois<T extends string>(
   // 2. One batch call for all uncached DOIs.
   let feedbacks: PubPeerFeedback[] = [];
   try {
-    feedbacks = await lookupPubPeer(uncached.map(cacheKey), []);
+    feedbacks = await fetchPubPeer(uncached.map(cacheKey), []);
   } catch (err) {
     if (err instanceof PubPeerRateLimitError) {
       rateLimitedUntil = now + err.retryAfterMs;
@@ -123,7 +159,7 @@ export async function lookupPubPeerForDois<T extends string>(
   for (const doi of uncached) {
     const feedback = hitByDoi.get(cacheKey(doi)) ?? null;
     writes.push([cacheKey(doi), { feedback }]);
-    if (feedback) result.set(doi, feedback);
+    if (feedback) result.set(doi, visible(feedback));
   }
   void PUBPEER_CACHE.setMany(writes);
 

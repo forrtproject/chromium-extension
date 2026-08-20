@@ -207,9 +207,21 @@ describe("applyPillStyle", () => {
   const el = () => new JSDOM(`<span style="top:5px;"></span>`).window.document.querySelector("span")!;
   const base = { id: "t", hostnames: ["t.com"] };
 
+  // Alignment and spacing live in PILL_WRAPPER_STYLE, so this hook only ever
+  // applies a site's own overrides.
   it("leaves the pill untouched with no adapter", () => {
     const p = el();
     applyPillStyle(p as HTMLElement, null, "reference");
+    expect(p.style.verticalAlign).toBe("");
+    expect(p.style.getPropertyValue("margin-inline-start")).toBe("");
+    expect(p.style.top).toBe("5px");
+  });
+
+  it("leaves a slot the adapter does not style alone", () => {
+    const p = el();
+    applyPillStyle(p as HTMLElement, { ...base, titlePillStyle: { top: "-5px" } }, "reference");
+    expect(p.style.verticalAlign).toBe("");
+    expect(p.style.getPropertyValue("margin-inline-start")).toBe("");
     expect(p.style.top).toBe("5px");
   });
 

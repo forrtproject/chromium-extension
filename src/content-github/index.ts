@@ -119,6 +119,23 @@ function waitForBodyField(): Promise<HTMLTextAreaElement | null> {
   });
 }
 
+const HOLD_CHECKS_MS = [250, 1000, 2500, 5000];
+
+async function insertAndHold(report: string): Promise<boolean> {
+  let held = false;
+  for (const wait of HOLD_CHECKS_MS) {
+    const field = findBodyField();
+    if (field && !field.value.includes(report)) {
+      const next = insertReportIntoIssueBody(field.value, report);
+      if (next !== null) setFieldValue(field, next);
+    }
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    const live = findBodyField();
+    held = !!live && live.value.includes(report);
+  }
+  return held;
+}
+
 async function fillIssueForm(): Promise<void> {
   if (!isIssueFormUrl(location.href)) return;
 
@@ -144,16 +161,10 @@ async function fillIssueForm(): Promise<void> {
   const report = response?.report;
   if (!report) return;
 
-  const next = insertReportIntoIssueBody(field.value, report);
-  if (next === null) return;
-
-  setFieldValue(field, next);
-
   // Confirm it landed. Assigning to a React-controlled field can be reverted on
   // the next render, and a silently-reverted log is exactly the failure the
   // user can't see coming.
-  await new Promise((resolve) => setTimeout(resolve, 250));
-  if (field.value.includes(report)) {
+  if (await insertAndHold(report)) {
     debugLog("GitHub: debug report inserted into the issue form");
     showToast("ORE attached the debug log to this issue.", { duration: 4000 });
     return;

@@ -591,7 +591,13 @@ function toKebab(prop: string): string {
     return prop.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 }
 
-/** Apply the slot's CSS overrides; anything unnamed keeps the pill's default. */
+/**
+ * Apply the slot's CSS overrides; anything unnamed keeps the pill's default.
+ *
+ * Alignment and spacing are not overridden here: PILL_WRAPPER_STYLE in
+ * indicator-pill.ts carries them, so every pill gets them on every site
+ * rather than only on pages with no adapter.
+ */
 export function applyPillStyle(
     pill: HTMLElement,
     adapter: SiteAdapter | null,
