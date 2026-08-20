@@ -33,7 +33,6 @@ export const SCHOLAR: SearchSiteAdapter = {
         target.className = "gs_ggs gs_fl";
         row.insertBefore(target, row.querySelector(".gs_ri"));
     },
-    noticeTarget: (row) => row.querySelector<HTMLElement>(".gs_rt"),
 };
 
 function extractRow(row: HTMLElement): RowExtraction | null {

@@ -45,10 +45,6 @@ export interface SearchSiteAdapter {
     /** Optional hook run before placement, for rows that lack the target
      *  container (Scholar rows without a PDF column). */
     preparePanelTarget?(row: HTMLElement): void;
-    /** Element after which a retraction/concern notice goes for a row whose
-     *  DOI turned out invalid (no panel exists to carry it). Defaults to
-     *  appending the notice to the row. */
-    noticeTarget?(row: HTMLElement): HTMLElement | null;
     /** Batch-resolve site-native ids (RowExtraction.siteId) to DOIs. Ids the
      *  site has no DOI for map to null; ids missing from the map failed. */
     resolveSiteIds?(ids: string[]): Promise<Map<string, DoiString | null>>;

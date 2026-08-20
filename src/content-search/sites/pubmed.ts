@@ -33,7 +33,6 @@ export const PUBMED: SearchSiteAdapter = {
     // Beside the citation block, in the right column of the grid pubmed.css
     // turns `.docsum-content` into for rows that carry a panel.
     panelPlacement: [{selector: ".docsum-citation", position: "after"}],
-    noticeTarget: (row) => row.querySelector<HTMLElement>(".docsum-title"),
     resolveSiteIds: (ids) => resolvePmcIdsViaWorker(ids, "pmid"),
 };
 

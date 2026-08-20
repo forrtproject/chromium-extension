@@ -41,7 +41,10 @@ ditto -x -k *.zip mac_arm-<version>/
 
 ## What gets tested
 
-12 fixtures (viewport 1280×900, `deviceScaleFactor` 1):
+12 fixtures (viewport 1280×900, `deviceScaleFactor` 1). A 13th,
+`publisher-styled-link-row`, is registered in `run.ts` but its HTML was never
+committed, so the suite fails on it until that fixture and its baseline land
+(issue #197):
 
 | Fixture | Exercises |
 | --- | --- |
@@ -56,7 +59,7 @@ ditto -x -k *.zip mac_arm-<version>/
 | `doi-in-href` | Reused — DOI only in a link href |
 | `doi-in-table` | Reused — DOI in a cell / prose inside a table |
 | `doi-in-text` | Reused — DOI in running prose |
-| `redacted` | Reused — retracted article, notice pinned to the title |
+| `retracted` | Reused — retracted article, notice beside the DOI link |
 
 Each fixture uses DOIs seeded to a known state (has replications, reproductions,
 retracted, expression of concern, or no data) so the injected UI is fully
@@ -108,6 +111,12 @@ insurance against a stray install-time sync.
   `--disable-gpu-compositing --force-device-scale-factor=1
   --disable-font-subpixel-positioning --disable-partial-raster
   --disable-skia-runtime-opts`.
+- **Viewport capture where the page fits.** `fullPage` on a `dir="rtl"`
+  document captures from the wrong horizontal origin — content comes out
+  shifted right and clipped at the right edge even though nothing overflows
+  the viewport, which hid every RTL placement the fixture exists to check.
+  The harness captures the viewport directly whenever the page already fits
+  in it, and falls back to `fullPage` only for the taller fixtures.
 - Rendering flags: `--force-color-profile=srgb --hide-scrollbars
   --disable-lcd-text --font-render-hinting=none`.
 - A stylesheet injected after load disables all animations/transitions, hides the

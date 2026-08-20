@@ -30,7 +30,6 @@ export const EUROPEPMC: SearchSiteAdapter = {
     // Right after the title, which puts the panel in the grid's right column
     // (see europepmc.css) beside the rest of the citation.
     panelPlacement: [{selector: ".citation-title", position: "after"}],
-    noticeTarget: (row) => row.querySelector<HTMLElement>(".citation-title"),
     resolveSiteIds: (ids) => resolvePmcIdsViaWorker(ids, "pmid"),
 };
 

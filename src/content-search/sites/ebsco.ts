@@ -32,7 +32,6 @@ export const EBSCO: SearchSiteAdapter = {
     // Right after the metadata list; the stylesheet lays the two out side by
     // side, above the abstract snippet.
     panelPlacement: [{selector: 'dl[data-auto="result-item-metadata"]', position: "after"}],
-    noticeTarget: (row) => row.querySelector<HTMLElement>('[data-auto="result-item-title"]'),
     resolveSiteIds: (ids) => resolveEbscoIds(ids),
 };
 
