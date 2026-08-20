@@ -184,6 +184,18 @@ describe("GitHub issue autofill", () => {
     expect(document.body.textContent).toContain("attached the debug log");
   });
 
+  it("gives up quietly when the form leaves the page mid-insert", async () => {
+    vi.useFakeTimers();
+    renderForm(issueBody());
+
+    await import("../../src/content-github/index");
+    await vi.advanceTimersByTimeAsync(300);
+    document.body.innerHTML = "";
+    await vi.advanceTimersByTimeAsync(12_000);
+
+    expect(document.body.textContent).toBe("");
+  });
+
   it("says so on the page when the form never appears", async () => {
     vi.useFakeTimers();
 
