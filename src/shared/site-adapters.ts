@@ -456,6 +456,20 @@ const OSF_IO: SiteAdapter = {
     referencePillStyle: { top: "0px" },
 };
 
+const PSYCNET_APA: SiteAdapter = {
+    id: "psycnet-apa",
+    hostnames: ["psycnet.apa.org"],
+    titlePill: [
+        { selector: "span.f-s-7-1", position: "after" },
+    ],
+    referencePill: [
+        { selector: ":self", position: "after" },
+    ],
+    referenceScope: ".references",
+    titlePillStyle: { top: "0px" },
+    referencePillStyle: { top: "0px" },
+};
+
 export const SITE_ADAPTERS: SiteAdapter[] = [
     SCIENCE_ORG,
     SAGEPUB,
@@ -485,6 +499,7 @@ export const SITE_ADAPTERS: SiteAdapter[] = [
     F1000RESEARCH,
     PMC_NCBI,
     OSF_IO,
+    PSYCNET_APA,
 ];
 
 function normaliseHost(hostname: string): string {

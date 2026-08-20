@@ -8,7 +8,7 @@ export const FLORA_UI_SELECTOR = "[data-flora-ui]";
 
 const FLORA_OWNED_PARTS = [FLORA_UI_SELECTOR, '[id^="flora-"]'];
 
-const FLORA_OWNED_SELECTOR = FLORA_OWNED_PARTS.join(", ");
+export const FLORA_OWNED_SELECTOR = FLORA_OWNED_PARTS.join(", ");
 
 const FOCUS_STYLE_ID = "flora-focus-style";
 

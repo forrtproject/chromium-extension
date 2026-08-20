@@ -733,9 +733,10 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
         const articlePromise = articleFeedbacksFetched
             ? Promise.resolve(lastArticleFeedbacks)
             : lookupPubPeer([primaryDoi], [location.href]);
-        const [articleFeedbacks, refFeedbackByDoi] = await Promise.all([
+        const [articleFeedbacks, refFeedbackByDoi, articleTitle] = await Promise.all([
             articlePromise,
             lookupPubPeerForDois(referenceDois),
+            fetchTitleByDoi(primaryDoi),
         ]);
         articleFeedbacksFetched = true;
         lastArticleFeedbacks = articleFeedbacks;
@@ -764,7 +765,7 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
         }));
 
         lastRenderedPageStateVersion = pageStateVersion;
-        renderSidePanel(articleFeedbacks, panelRefs, pageState, doiContext, refFeedbackByDoi, redacts);
+        renderSidePanel(articleFeedbacks, panelRefs, pageState, doiContext, refFeedbackByDoi, redacts, articleTitle);
     } catch (err) {
         debugWarn("PubPeer panel: lookup or render failed —", err);
     }
