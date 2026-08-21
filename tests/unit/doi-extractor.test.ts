@@ -732,13 +732,9 @@ describe("findReferenceEntries", () => {
     expect(entries).toHaveLength(2);
     expect(entries[0].doi).toBe("10.1234/found.via.button");
     expect(entries[1].doi).toBe("10.5678/also.found");
-    // DOI came from the link href, not visible text — flagged so the pill
-    // surfaces even when "show on all references" is off.
-    expect(entries[0].doiInText).toBe(false);
-    expect(entries[1].doiInText).toBe(false);
   });
 
-  it("flags a DOI written in entry text as in-text", () => {
+  it("reads a DOI written in entry text", () => {
     const html = `<!DOCTYPE html>
       <html><body>
         <ol class="references">
@@ -749,8 +745,8 @@ describe("findReferenceEntries", () => {
     const doc = new JSDOM(html).window.document;
     const entries = findReferenceEntries(doc);
     expect(entries).toHaveLength(2);
-    expect(entries[0].doiInText).toBe(true);
-    expect(entries[1].doiInText).toBe(true);
+    expect(entries[0].doi).toBe("10.1234/in.the.text");
+    expect(entries[1].doi).toBe("10.5678/also.text");
   });
 
   it("treats a Frontiers-style entry with a nested action-link <li> list as one entry", () => {

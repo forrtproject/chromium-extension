@@ -33,15 +33,22 @@ function renderForm(value: string): HTMLTextAreaElement {
   return field;
 }
 
+async function advanceUntil(done: () => boolean, budgetMs = 30_000): Promise<void> {
+  for (let elapsed = 0; elapsed < budgetMs && !done(); elapsed += 500) {
+    await vi.advanceTimersByTimeAsync(500);
+  }
+}
+
 /** Let the module's promise chain and any MutationObserver callbacks settle. */
 async function settle(): Promise<void> {
   for (let i = 0; i < 5; i++) await Promise.resolve();
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await vi.advanceTimersByTimeAsync(0);
 }
 
 let sendMessage: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+  vi.useFakeTimers();
   vi.resetModules();
   document.body.innerHTML = "";
   sendMessage = vi.fn().mockResolvedValue({
@@ -52,6 +59,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  document.body.innerHTML = "";
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -158,7 +166,7 @@ describe("GitHub issue autofill", () => {
     });
 
     await import("../../src/content-github/index");
-    await vi.advanceTimersByTimeAsync(12_000);
+    await advanceUntil(() => (document.body.textContent ?? "").includes("attached the debug log"));
 
     const live = document.querySelector("textarea")!;
     expect(live).not.toBe(first);
@@ -178,7 +186,7 @@ describe("GitHub issue autofill", () => {
     });
 
     await import("../../src/content-github/index");
-    await vi.advanceTimersByTimeAsync(12_000);
+    await advanceUntil(() => (document.body.textContent ?? "").includes("attached the debug log"));
 
     expect(field.value).toContain(REPORT);
     expect(document.body.textContent).toContain("attached the debug log");
@@ -189,7 +197,7 @@ describe("GitHub issue autofill", () => {
     renderForm(issueBody());
 
     await import("../../src/content-github/index");
-    await vi.advanceTimersByTimeAsync(300);
+    await advanceUntil(() => (document.querySelector("textarea")?.value ?? "").includes(REPORT));
     document.body.innerHTML = "";
     await vi.advanceTimersByTimeAsync(12_000);
 

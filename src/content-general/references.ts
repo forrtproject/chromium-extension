@@ -5,11 +5,6 @@
 // signals provenance: pink = DOI found directly on the page (in text or a
 // link href), gray dotted = DOI resolved via Crossref/OpenAlex augmentation
 // for entries that exposed no DOI of their own.
-//
-// Entries with no DOI (augmented) and entries whose DOI is hidden in a link
-// href (not rendered as text) always get a pill. Entries that already show
-// their DOI as visible text only get one when the user opts into
-// `showDoiPillsOnAllReferences`.
 
 import {findReferenceEntries, extractDoiFromHref, type ReferenceEntry} from "@shared/doi-extractor";
 import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
@@ -17,7 +12,6 @@ import {validateDOIs} from "@shared/doi-validate";
 import {alignNoticePillWith, type RetractionResponse} from "@shared/doi-retraction";
 import {createIndicatorPill} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
-import {getSettings} from "@shared/settings";
 import {count, reportWorkStage} from "@shared/progress-toast";
 import {debugLog, debugWarn} from "@shared/debug";
 import type {DoiString, LookupState} from "@shared/types";
@@ -31,8 +25,9 @@ import {
 } from "@shared/site-adapters";
 
 /**
- * Place a DOI pill inline. For a "hidden" DOI (tucked into a link href) the
- * pill goes right after that link so it reads as part of the citation.
+ * Place a DOI pill inline. For a DOI the page itself carries, the pill goes
+ * right after the link or text that holds it, so it reads as part of the
+ * citation.
  *
  * An augmented DOI has no element on the page to anchor to. Appending it to
  * the entry root drops it onto its own line below the publisher action row
@@ -82,7 +77,7 @@ function placeReferencePill(
     // A stale adapter selector falls through to the heuristics below.
     if (applyPlacement(adapter?.referencePill, entry, pill, `reference pill for ${doi}`)) return;
 
-    if (mode === "hidden") {
+    if (mode === "page") {
         for (const link of entry.querySelectorAll<HTMLAnchorElement>("a[href]")) {
             if (extractDoiFromHref(link.href) === doi) {
                 link.insertAdjacentElement("afterend", pill);
@@ -145,12 +140,12 @@ function citationYear(text: string): number | null {
 }
 
 /** Provenance of a resolved DOI; only "augment" (fuzzy title match) is unconfirmed. */
-export type ReferenceMode = "augment" | "hidden" | "pmc";
+export type ReferenceMode = "augment" | "page" | "pmc";
 
 type PendingEntry =
   | { entry: ReferenceEntry; mode: "augment"; doi: null }
   | { entry: ReferenceEntry; mode: "pmc"; doi: null; pmcid: string }
-  | { entry: ReferenceEntry; mode: "hidden"; doi: DoiString };
+  | { entry: ReferenceEntry; mode: "page"; doi: DoiString };
 
 export interface ResolvedReference {
     entry: ReferenceEntry;
@@ -159,9 +154,9 @@ export interface ResolvedReference {
 }
 
 /**
- * Find reference entries with no on-page DOI (and entries with hidden DOIs,
- * when the user has opted in), resolve a DOI for each via Crossref/OpenAlex
- * augmentation, and validate augmented results. Returns the resolved list
+ * Resolve a DOI for every reference entry — read off the page where the
+ * citation carries one, mapped from a PMC id, or matched by title via
+ * Crossref/OpenAlex — and validate the matched ones. Returns the resolved list
  * without writing anything to the DOM.
  *
  * Idempotent: each entry is marked processed inside this function, so repeated
@@ -173,7 +168,6 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     // pills don't render into a section the reader never opens.
     expandReferencesSection(adapter);
     const entries = findReferenceEntries(document);
-    const {showDoiPillsOnAllReferences} = await getSettings();
 
     const pending: PendingEntry[] = [];
     for (const entry of entries) {
@@ -191,13 +185,8 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
             }
             if (!YEAR_RE.test(entry.text)) continue;
             pending.push({entry, mode: "augment", doi: null});
-        } else if (!entry.doiInText) {
-            // DOI is tucked into a link href and not rendered as text — always
-            // surface a pill so the reference isn't silently skipped.
-            pending.push({entry, mode: "hidden", doi: entry.doi});
-        } else if (showDoiPillsOnAllReferences) {
-            // DOI is visible in the citation text — only pill it when opted in.
-            pending.push({entry, mode: "hidden", doi: entry.doi});
+        } else {
+            pending.push({entry, mode: "page", doi: entry.doi});
         }
     }
     if (pending.length === 0) return [];
@@ -213,9 +202,9 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
 
     for (const p of queued) p.entry.element.setAttribute(PROCESSED_ATTR, "true");
 
-    const hiddenCount = queued.length - augmentTargets.length - pmcTargets.length;
+    const onPageCount = queued.length - augmentTargets.length - pmcTargets.length;
     debugLog(
-        `References: surfacing ${hiddenCount} hidden DOI(s), resolving ${pmcTargets.length} PMC id(s),`
+        `References: surfacing ${onPageCount} on-page DOI(s), resolving ${pmcTargets.length} PMC id(s),`
         + ` augmenting ${augmentTargets.length}`
     );
 
@@ -248,8 +237,8 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
 
     const resolved: ResolvedReference[] = [];
     for (const p of queued) {
-        if (p.mode === "hidden") {
-            resolved.push({entry: p.entry, doi: p.doi, mode: "hidden"});
+        if (p.mode === "page") {
+            resolved.push({entry: p.entry, doi: p.doi, mode: "page"});
         } else if (p.mode === "pmc") {
             if (!byPmcId.has(p.pmcid)) releaseReferenceEntry(p.entry);
             const doi = byPmcId.get(p.pmcid) ?? null;
@@ -266,7 +255,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     }
 
     // Augmented DOIs are fuzzy title matches — validate them against doi.org.
-    // Hidden DOIs were read off the page and PMC-mapped ones came from NCBI's
+    // On-page DOIs were read off the page and PMC-mapped ones came from NCBI's
     // exact id record; trust both and skip validation so doi.org doesn't
     // rate-limit the whole batch.
     const augmentResolved = resolved.filter((r) => r.mode === "augment");
@@ -280,7 +269,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         }
     }
     const confirmed = resolved.filter(
-        (r) => r.mode === "hidden" || validated.get(r.doi) !== false
+        (r) => r.mode === "page" || validated.get(r.doi) !== false
     );
     if (confirmed.length === 0) {
         debugLog("References: resolved DOIs all failed doi.org validation");

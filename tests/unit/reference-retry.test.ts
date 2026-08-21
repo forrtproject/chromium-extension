@@ -16,7 +16,6 @@ vi.mock("../../src/shared/messages", async (importOriginal) => ({
 vi.mock("../../src/shared/settings", () => ({
   getSettings: vi.fn().mockResolvedValue({
     email: "test@example.com",
-    showDoiPillsOnAllReferences: false,
     citationStyle: "apa",
     cacheQuotaMb: 50,
   }),
@@ -88,7 +87,7 @@ describe("reference entries are retried when a lookup never answered", () => {
     augmentMock.mockRejectedValueOnce(new Error("worker gone"));
 
     expect(await resolveReferenceDois()).toEqual(
-      expect.arrayContaining([expect.objectContaining({ mode: "hidden" })])
+      expect.arrayContaining([expect.objectContaining({ mode: "page" })])
     );
 
     augmentMock.mockImplementation(async (inputs: AugmentInput[]) =>

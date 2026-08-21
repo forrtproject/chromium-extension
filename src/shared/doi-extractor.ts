@@ -474,8 +474,6 @@ export interface ReferenceEntry {
   element: HTMLElement;
   /** null when the entry needs DOI augmentation. */
   doi: DoiString | null;
-  /** True when `doi` came from visible text rather than only a link href. */
-  doiInText: boolean;
   /** Canonical `PMC…` id, set only when the entry cites one and has no DOI. */
   pmcid: string | null;
   text: string;
@@ -502,7 +500,7 @@ function cleanReferenceText(text: string): string {
 function extractDoiFromEntry(
   entry: HTMLElement,
   hostDoi: DoiString | null
-): { doi: DoiString | null; inText: boolean } {
+): DoiString | null {
   // Text wins over links: an entry's links are often "View"/"Cite" buttons
   // pointing at the *host* article, not the cited paper — using them first
   // made every Wiley cited-by row resolve to the host's own DOI.
@@ -512,13 +510,13 @@ function extractDoiFromEntry(
     const raw = cleanDoiTrailing(match[1]);
     if (!isValidDoiSuffix(raw)) continue;
     const doi = normaliseDOI(raw);
-    if (doi) return { doi, inText: true };
+    if (doi) return doi;
   }
   for (const link of entry.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     const doi = extractDoiFromHref(link.href);
-    if (doi && doi !== hostDoi) return { doi, inText: false };
+    if (doi && doi !== hostDoi) return doi;
   }
-  return { doi: null, inText: false };
+  return null;
 }
 
 // Entries that cite a PubMed Central id and no DOI — either spelled out
@@ -670,12 +668,11 @@ export function findReferenceEntries(doc: Document): ReferenceEntry[] {
 
   const hostDoi = extractPrimaryDOI(doc);
   return elements.map((element) => {
-    const { doi, inText } = extractDoiFromEntry(element, hostDoi);
+    const doi = extractDoiFromEntry(element, hostDoi);
     const text = cleanReferenceText(element.innerText ?? element.textContent ?? "");
     return {
       element,
       doi,
-      doiInText: inText,
       pmcid: doi === null ? extractPmcIdFromEntry(element, text) : null,
       text,
     };

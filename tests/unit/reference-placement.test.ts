@@ -57,7 +57,7 @@ describe("reference pill placement (integration)", () => {
 
       const entry = entriesFromDocument()[0];
       const resolved: ResolvedReference[] = [
-        { entry: { element: entry, doi: "10.1/a" as DoiString, doiInText: false, text: "ref" }, doi: "10.1/a" as DoiString, mode: "hidden" },
+        { entry: { element: entry, doi: "10.1/a" as DoiString, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
       ];
 
       renderResolvedReferences(resolved, new Map(), new Map());
@@ -75,7 +75,7 @@ describe("reference pill placement (integration)", () => {
 
     const entry = entriesFromDocument()[0];
     const resolved: ResolvedReference[] = [
-      { entry: { element: entry, doi: "10.1/a" as DoiString, doiInText: false, text: "ref" }, doi: "10.1/a" as DoiString, mode: "hidden" },
+      { entry: { element: entry, doi: "10.1/a" as DoiString, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
     ];
 
     renderResolvedReferences(resolved, new Map(), new Map());
@@ -102,7 +102,7 @@ describe("reference pill placement (integration)", () => {
     }
 
     const resolved: ResolvedReference[] = [
-      { entry: { element: entry, doi: "10.1/a" as DoiString, doiInText: false, text: "ref" }, doi: "10.1/a" as DoiString, mode: "hidden" },
+      { entry: { element: entry, doi: "10.1/a" as DoiString, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
     ];
 
     renderResolvedReferences(resolved, new Map(), new Map());
