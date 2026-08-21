@@ -226,9 +226,6 @@ export function buildSyncSeed(): Record<string, unknown> {
   return {
     flora_settings: {
       email: "visual-test@example.com",
-      // Pill on every reference (even ones already showing a DOI) so the
-      // DOI-pill widget is exercised across the fixtures.
-      showDoiPillsOnAllReferences: true,
       cacheQuotaMb: 500,
     },
   };

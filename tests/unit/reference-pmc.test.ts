@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("../../src/shared/settings", () => ({
   getSettings: vi.fn().mockResolvedValue({
     email: "test@example.com",
-    showDoiPillsOnAllReferences: false,
     cacheQuotaMb: 50,
   }),
   isSetupComplete: vi.fn().mockResolvedValue(true),

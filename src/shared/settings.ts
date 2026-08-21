@@ -5,12 +5,6 @@ import { debugError } from "./debug";
 export interface FloraSettings {
   /** Contact email for Crossref/OpenAlex polite pool (required). */
   email: string;
-  /**
-   * When true, a DOI pill is shown on every reference (including ones that
-   * already carry a DOI). When false (default), only references with no
-   * visible DOI of their own get a pill.
-   */
-  showDoiPillsOnAllReferences: boolean;
   /** Citation format id used by the pill's Copy citation row (see citation.ts). */
   citationStyle: string;
   /**
@@ -31,7 +25,6 @@ const STORAGE_KEY = "flora_settings";
 
 const DEFAULTS: FloraSettings = {
   email: "",
-  showDoiPillsOnAllReferences: false,
   citationStyle: "apa",
   cacheQuotaMb: 50,
   offerLogCopyAfterPass: false,

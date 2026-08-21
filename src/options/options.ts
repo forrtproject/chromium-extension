@@ -51,18 +51,6 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-// ── DOI pill display ────────────────────────────────────────────────
-
-const allRefsToggle = document.getElementById("all-refs-toggle") as HTMLInputElement;
-
-getSettings().then(({ showDoiPillsOnAllReferences }) => {
-  allRefsToggle.checked = showDoiPillsOnAllReferences;
-});
-
-allRefsToggle.addEventListener("change", () => {
-  void saveSettings({ showDoiPillsOnAllReferences: allRefsToggle.checked });
-});
-
 // ── Citation style ──────────────────────────────────────────────────
 
 const citationStyleSelect = document.getElementById("citation-style-select") as HTMLSelectElement;

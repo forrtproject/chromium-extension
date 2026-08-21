@@ -5,7 +5,6 @@ import {afterEach, describe, expect, it, vi} from "vitest";
 // and per-row Scholar checks) don't hit chrome.storage every time.
 const FULL_SETTINGS = {
   email: "test@example.com",
-  showDoiPillsOnAllReferences: false,
   citationStyle: "apa",
   cacheQuotaMb: 50,
   offerLogCopyAfterPass: false,
