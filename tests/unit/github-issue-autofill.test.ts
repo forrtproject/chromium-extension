@@ -198,6 +198,8 @@ describe("GitHub issue autofill", () => {
 
     await import("../../src/content-github/index");
     await advanceUntil(() => (document.querySelector("textarea")?.value ?? "").includes(REPORT));
+    expect(document.querySelector("textarea")!.value).toContain(REPORT);
+
     document.body.innerHTML = "";
     await vi.advanceTimersByTimeAsync(12_000);
 
