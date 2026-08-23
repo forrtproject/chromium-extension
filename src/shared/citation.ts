@@ -99,10 +99,11 @@ interface CitationRange {
     end: number;
 }
 
+/** Add a CSL capture group's final occurrence to the ranges to italicise. */
 function addMatchRange(ranges: CitationRange[], match: RegExpExecArray, group: number): void {
     const value = match[group];
     if (!value || match.index === undefined) return;
-    const offset = match[0].indexOf(value);
+    const offset = match[0].lastIndexOf(value);
     if (offset < 0) return;
     ranges.push({start: match.index + offset, end: match.index + offset + value.length});
 }
@@ -136,7 +137,7 @@ function plainCitationRanges(text: string, format: CitationFormat): CitationRang
             break;
         case "elsevier-vancouver":
         case "american-medical-association":
-            journalMatch = /^(.+)\.\s+(.+?)\s+\d{4}[.;]/.exec(text);
+            journalMatch = /^(.+)\.\s+(.+?)(?:\.)?\s+\d{4}[.;]/.exec(text);
             break;
         case "american-sociological-association":
             journalMatch = /^(.+?[”"](?:\s*,)?\s+)(.+?)\s+\d+(?:\(\d+\))?:/.exec(text);
@@ -162,15 +163,22 @@ function plainCitationRanges(text: string, format: CitationFormat): CitationRang
         "nature",
     ]);
     if (volumeStyles.has(format.id)) {
-        const journalEnd = journalMatch.index! + journalMatch[0].indexOf(journalMatch[2]) + journalMatch[2].length;
-        const volume = /\b\d+(?=\(\d+\)|\s*\(|[,;:]|\s*,)/.exec(text.slice(journalEnd));
+        const journalEnd = journalMatch.index! + journalMatch[0].lastIndexOf(journalMatch[2]) + journalMatch[2].length;
+        const volumePattern = format.id === "elsevier-vancouver" || format.id === "american-medical-association"
+            ? /\b\d{4}[.;]\s*(\d+)(?=\(\d+\)|\s*\(|[,;:]|\s*,)/
+            : /\b\d+(?=\(\d+\)|\s*\(|[,;:]|\s*,)/;
+        const volume = volumePattern.exec(text.slice(journalEnd));
         if (volume && volume.index !== undefined) {
-            ranges.push({start: journalEnd + volume.index, end: journalEnd + volume.index + volume[0].length});
+            const volumeText = volume[1] ?? volume[0];
+            const volumeOffset = volume[1] ? volume[0].lastIndexOf(volume[1]) : 0;
+            const volumeStart = journalEnd + volume.index + volumeOffset;
+            ranges.push({start: volumeStart, end: volumeStart + volumeText.length});
         }
     }
     return ranges;
 }
 
+/** Escape a plain-text citation before inserting it into clipboard HTML. */
 function escapeHtml(text: string): string {
     return text.replace(/[&<>"']/g, (character) => ({
         "&": "&amp;",
@@ -181,6 +189,7 @@ function escapeHtml(text: string): string {
     }[character] ?? character));
 }
 
+/** Reconstruct the inline emphasis omitted by plain text/x-bibliography output. */
 function formatPlainCitationHtml(text: string, format: CitationFormat): string {
     const ranges = plainCitationRanges(text, format)
         .sort((a, b) => a.start - b.start)
