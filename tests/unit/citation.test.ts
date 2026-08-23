@@ -85,6 +85,30 @@ describe("tidyCitationHtml", () => {
       .toBe("Pelletier, A. <i>pathseq</i> &amp; friends.");
   });
 
+  it("restores journal and volume italics when the resolver returns plain text", () => {
+    expect(tidyCitationHtml(
+      "Ray, O. (2004). How the Mind Hurts and Heals the Body. American Psychologist, 59(1), 29–40.",
+      apa
+    )).toBe(
+      "Ray, O. (2004). How the Mind Hurts and Heals the Body. " +
+      "<i>American Psychologist</i>, <i>59</i>(1), 29–40."
+    );
+  });
+
+  it("uses the selected style's journal punctuation to preserve its emphasis", () => {
+    expect(tidyCitationHtml(
+      "[1]O. Ray, “How the Mind Hurts and Heals the Body.,” American Psychologist, vol. 59, no. 1, pp. 29–40, 2004, doi: x.",
+      citationFormat("ieee")
+    )).toContain("<i>American Psychologist</i>");
+    expect(tidyCitationHtml(
+      "Ray, Oakley. “How the Mind Hurts and Heals the Body.” American Psychologist, vol. 59, no. 1, 2004, pp. 29–40.",
+      citationFormat("modern-language-association")
+    )).toBe(
+      "Ray, Oakley. “How the Mind Hurts and Heals the Body.” " +
+      "<i>American Psychologist</i>, vol. 59, no. 1, 2004, pp. 29–40."
+    );
+  });
+
   it("drops the bibliography number, wrapper and all", () => {
     expect(tidyCitationHtml(`<div class="csl-entry">[1]O. Ray, "Title," 2004.</div>`, citationFormat("ieee")))
       .toBe(`O. Ray, "Title," 2004.`);
