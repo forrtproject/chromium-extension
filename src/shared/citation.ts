@@ -94,6 +94,118 @@ function keepInlineMarkup(raw: string): string {
     });
 }
 
+interface CitationRange {
+    start: number;
+    end: number;
+}
+
+/** Add a CSL capture group's final occurrence to the ranges to italicise. */
+function addMatchRange(ranges: CitationRange[], match: RegExpExecArray, group: number): void {
+    const value = match[group];
+    if (!value || match.index === undefined) return;
+    const offset = match[0].lastIndexOf(value);
+    if (offset < 0) return;
+    ranges.push({start: match.index + offset, end: match.index + offset + value.length});
+}
+
+/**
+ * Crossref's text/x-bibliography response is deliberately plain text. That is
+ * useful for a terminal, but it means a rich clipboard write would otherwise
+ * lose the italics required by journal styles. Recover the journal and volume
+ * spans from the stable punctuation emitted by the CSL styles. This is only a
+ * fallback: markup supplied by a resolver remains authoritative.
+ */
+function plainCitationRanges(text: string, format: CitationFormat): CitationRange[] {
+    const ranges: CitationRange[] = [];
+    let journalMatch: RegExpExecArray | null = null;
+
+    switch (format.id) {
+        case "apa":
+            journalMatch = /^(.*\(\d{4}[a-z]?\)\.\s+).+\.\s+(.+?),\s+\d+(?=\(\d+\)|,|\s|\.|$)/.exec(text);
+            break;
+        case "modern-language-association":
+            journalMatch = /^(.+?[”"](?:\s*,)?\s+)(.+?),\s+(?=vol\.)/.exec(text);
+            break;
+        case "chicago-author-date":
+            journalMatch = /^(.+?[”"]\s+)(.+?)\s+\d+(?:\s+\(\d+\))?\s*:/.exec(text);
+            break;
+        case "harvard-cite-them-right":
+            journalMatch = /^(.+?[”"](?:,|\.)?\s+)(.+?)\.\s+(?=\d+\(|\d{4})/.exec(text);
+            break;
+        case "ieee":
+            journalMatch = /^(.+?[”"](?:\s*,)?\s+)(.+?),\s+vol\./.exec(text);
+            break;
+        case "elsevier-vancouver":
+        case "american-medical-association":
+            journalMatch = /^(.+)\.\s+(.+?)(?:\.)?\s+\d{4}[.;]/.exec(text);
+            break;
+        case "american-sociological-association":
+            journalMatch = /^(.+?[”"](?:\s*,)?\s+)(.+?)\s+\d+(?:\(\d+\))?:/.exec(text);
+            break;
+        case "nature":
+            journalMatch = /^(.+)\.\s+(.+?)\s+\d+,/.exec(text);
+            break;
+    }
+
+    if (!journalMatch) return ranges;
+    addMatchRange(ranges, journalMatch, 2);
+
+    // APA, Chicago, Harvard, IEEE, Vancouver, AMA, ASA and Nature italicise
+    // the volume alongside the journal. MLA is the exception in this list.
+    const volumeStyles = new Set([
+        "apa",
+        "chicago-author-date",
+        "harvard-cite-them-right",
+        "elsevier-vancouver",
+        "ieee",
+        "american-medical-association",
+        "american-sociological-association",
+        "nature",
+    ]);
+    if (volumeStyles.has(format.id)) {
+        const journalEnd = journalMatch.index! + journalMatch[0].lastIndexOf(journalMatch[2]) + journalMatch[2].length;
+        const volumePattern = format.id === "elsevier-vancouver" || format.id === "american-medical-association"
+            ? /\b\d{4}[.;]\s*(\d+)(?=\(\d+\)|\s*\(|[,;:]|\s*,)/
+            : /\b\d+(?=\(\d+\)|\s*\(|[,;:]|\s*,)/;
+        const volume = volumePattern.exec(text.slice(journalEnd));
+        if (volume && volume.index !== undefined) {
+            const volumeText = volume[1] ?? volume[0];
+            const volumeOffset = volume[1] ? volume[0].lastIndexOf(volume[1]) : 0;
+            const volumeStart = journalEnd + volume.index + volumeOffset;
+            ranges.push({start: volumeStart, end: volumeStart + volumeText.length});
+        }
+    }
+    return ranges;
+}
+
+/** Escape a plain-text citation before inserting it into clipboard HTML. */
+function escapeHtml(text: string): string {
+    return text.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+    }[character] ?? character));
+}
+
+/** Reconstruct the inline emphasis omitted by plain text/x-bibliography output. */
+function formatPlainCitationHtml(text: string, format: CitationFormat): string {
+    const ranges = plainCitationRanges(text, format)
+        .sort((a, b) => a.start - b.start)
+        .filter((range, index, all) => index === 0 || range.start >= all[index - 1].end);
+    if (ranges.length === 0) return escapeHtml(text);
+
+    let html = "";
+    let cursor = 0;
+    for (const range of ranges) {
+        html += escapeHtml(text.slice(cursor, range.start));
+        html += `<i>${escapeHtml(text.slice(range.start, range.end))}</i>`;
+        cursor = range.end;
+    }
+    return html + escapeHtml(text.slice(cursor));
+}
+
 /**
  * Crossref stores an empty editor list on many journal articles, which citeproc
  * renders as a dangling "edited by ," / ", ed." in the styles that name editors.
@@ -122,7 +234,11 @@ export function tidyCitation(raw: string, format: CitationFormat): string {
 /** The same entry with its emphasis intact, or null where the format has none. */
 export function tidyCitationHtml(raw: string, format: CitationFormat): string | null {
     if (format.verbatim) return null;
-    const html = polish(keepInlineMarkup(raw).trim());
+    const hasInlineMarkup = /<(?:\/?)(?:i|em|b|strong|sub|sup)\b/i.test(raw);
+    const hasMarkup = /<[^>]+>/i.test(raw);
+    const html = hasInlineMarkup || hasMarkup
+        ? polish(keepInlineMarkup(raw).trim())
+        : formatPlainCitationHtml(polish(stripMarkup(raw)), format);
     return html || null;
 }
 
