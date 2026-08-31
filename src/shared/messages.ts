@@ -72,6 +72,38 @@ export interface LookupResponse {
     errors: Record<string, string>;
 }
 
+export interface CreateSetRequest {
+    type: "FLORA_CREATE_SET";
+    dois: DoiString[];
+}
+
+export interface CreateSetResponse {
+    type: "FLORA_CREATE_SET_RESULT";
+    setId: string | null;
+}
+
+export function isCreateSetRequest(msg: unknown): msg is CreateSetRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_CREATE_SET" &&
+        Array.isArray((msg as Record<string, unknown>).dois)
+    );
+}
+
+export async function createDoiSetViaWorker(dois: DoiString[]): Promise<string | null> {
+    try {
+        const response = await safeSendMessage<CreateSetResponse>({
+            type: "FLORA_CREATE_SET",
+            dois,
+        });
+        return response?.setId ?? null;
+    } catch (err) {
+        debugLog("Atlas set request failed:", err);
+        return null;
+    }
+}
+
 /** Content script → service worker: request retraction status for DOI(s) */
 export interface RetractionCheckRequest {
     type: "FLORA_RET_CHECK";

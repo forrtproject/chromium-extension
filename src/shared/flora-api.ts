@@ -9,6 +9,10 @@ const ResponseEnvelopeSchema = z.object({
   results: z.record(z.string(), z.unknown()),
 });
 
+const SetSchema = z.object({
+  id: z.string().min(1),
+});
+
 const API_BASE = "https://rep-api.forrt.org";
 const BATCH_SIZE = 50;
 
@@ -45,6 +49,29 @@ export async function lookupDOIs(
 
   debugLog(`Total results across all batches: ${results.size}`);
   return results;
+}
+
+export async function createDoiSet(dois: DoiString[]): Promise<string | null> {
+  if (dois.length === 0) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/v1/sets`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dois }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`FLoRA API error: ${response.status}`);
+    }
+
+    const { id } = SetSchema.parse(await response.json());
+    debugLog(`Created DOI set ${id} for ${dois.length} DOIs`);
+    return id;
+  } catch (err) {
+    debugError(`Could not create a DOI set for ${dois.length} DOIs:`, err);
+    return null;
+  }
 }
 
 async function lookupBatch(
