@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { lookupDOIs } from "../../src/shared/flora-api";
+import { createDoiSet, lookupDOIs } from "../../src/shared/flora-api";
 import { doi, mockResult, mockEntry } from "../helpers";
 
 const API_URL = "https://rep-api.forrt.org/v1/original-lookup";
+const SETS_URL = "https://rep-api.forrt.org/v1/sets";
 
 const server = setupServer();
 
@@ -141,5 +142,44 @@ describe("lookupDOIs", () => {
 
     const results = await lookupDOIs([doi("10.1038/nature12373")]);
     expect(results.size).toBe(0);
+  });
+});
+
+describe("createDoiSet", () => {
+  it("posts the DOIs and returns the set id", async () => {
+    let body: unknown;
+    server.use(
+      http.post(SETS_URL, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ id: "d7dbaac1", count: 2 });
+      })
+    );
+
+    const setId = await createDoiSet([doi("10.1038/a"), doi("10.1038/b")]);
+
+    expect(setId).toBe("d7dbaac1");
+    expect(body).toEqual({ dois: ["10.1038/a", "10.1038/b"] });
+  });
+
+  it("returns null without calling the API for an empty list", async () => {
+    expect(await createDoiSet([])).toBeNull();
+  });
+
+  it("returns null on a server error", async () => {
+    server.use(http.post(SETS_URL, () => new HttpResponse(null, { status: 500 })));
+
+    expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
+  });
+
+  it("returns null on a network error", async () => {
+    server.use(http.post(SETS_URL, () => HttpResponse.error()));
+
+    expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
+  });
+
+  it("returns null when the response carries no id", async () => {
+    server.use(http.post(SETS_URL, () => HttpResponse.json({ count: 1 })));
+
+    expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
   });
 });

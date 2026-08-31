@@ -15,6 +15,7 @@ import type {OpenAccessLocation, OpenAccessStatus} from "@shared/openaccess";
 import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation} from "@shared/doi-retraction";
+import {atlasDoiUrl} from "@shared/flora-atlas";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
 import {fetchCitationDetailed, preferredCitationFormat, type CitationFormat} from "@shared/citation";
 import {debugWarn} from "@shared/debug";
@@ -208,7 +209,7 @@ function resolveBadgeSignal(
     if (replicationsCount && replicationsCount > 0) {
         return {
             available: true,
-            href: `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doi)}`,
+            href: atlasDoiUrl([doi]),
             glyph: `${replicationsCount} Reps`,
             background: "rgba(255,255,255,0.25)",
             accent: "#0369a1",
@@ -221,7 +222,7 @@ function resolveBadgeSignal(
     if (reproductionsCount && reproductionsCount > 0) {
         return {
             available: true,
-            href: `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doi)}`,
+            href: atlasDoiUrl([doi]),
             glyph: `${reproductionsCount} Reprod`,
             background: "rgba(255,255,255,0.25)",
             accent: "#6d28d9",

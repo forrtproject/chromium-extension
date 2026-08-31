@@ -1,9 +1,9 @@
 import {LocalCache, MONTH_MS} from "@shared/cache";
-import {lookupDOIs} from "@shared/flora-api";
+import {createDoiSet, lookupDOIs} from "@shared/flora-api";
 import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
-import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, type TakeReportResponse} from "@shared/messages";
+import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, type TakeReportResponse} from "@shared/messages";
 import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
@@ -164,6 +164,17 @@ chrome.runtime.onMessage.addListener(
                             dois.map((d) => [d, "Service worker error"])
                         ),
                     } satisfies LookupResponse)
+                );
+            return true;
+        }
+
+        if (isCreateSetRequest(message)) {
+            createDoiSet(message.dois)
+                .then((setId) =>
+                    sendResponse({type: "FLORA_CREATE_SET_RESULT", setId} satisfies CreateSetResponse)
+                )
+                .catch(() =>
+                    sendResponse({type: "FLORA_CREATE_SET_RESULT", setId: null} satisfies CreateSetResponse)
                 );
             return true;
         }

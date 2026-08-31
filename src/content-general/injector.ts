@@ -9,6 +9,7 @@ import {writeClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {hideWorkIndicator, showWorkIndicator} from "@shared/progress-toast";
 import {ensureFocusStyle, FLORA_OWNED_SELECTOR, FLORA_UI_SELECTOR} from "@shared/flora-ui";
+import {atlasDoiUrl, bindAtlasLink} from "@shared/flora-atlas";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -226,15 +227,16 @@ export function renderMatchedBanner(
         ? countsText
         : `Replication/reproduction data found for ${doiCount} DOIs (${countsText})`;
 
-    const doisParam = matched.map((m) => m.doi).join(",");
+    const matchedDois = matched.map((m) => m.doi as DoiString);
 
     host.innerHTML = `
     <div style="${BANNER_BASE_STYLE}${BG.success}">
       <span style="${LOGO_STYLE}">FORRT ORE</span>
       <span style="${TEXT_STYLE}">${summary}</span>
-      <a style="${LINK_STYLE}" href="https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doisParam)}" target="_blank" rel="noopener">View details</a>
+      <a data-flora-details-link style="${LINK_STYLE}" target="_blank" rel="noopener">View details</a>
       <button style="${CLOSE_STYLE}" aria-label="Close">\u00d7</button>
     </div>`;
+    bindAtlasLink(host.querySelector<HTMLAnchorElement>("[data-flora-details-link]"), matchedDois);
     host.querySelector("button")?.addEventListener("click", () => removeBanner());
     requestAnimationFrame(() => adjustPageForBanner());
 }
@@ -419,7 +421,7 @@ export function renderSheetsModal(
     const retracted = notices.filter((n) => n.kind === "retraction").length;
     const concerned = notices.length - retracted;
     const doiCount = matched.length;
-    const doisParam = matched.map((m) => m.doi).join(",");
+    const matchedDois = matched.map((m) => m.doi as DoiString);
 
     const signature = [
         doiCount, totalRepl, totalRepro,
@@ -453,7 +455,7 @@ export function renderSheetsModal(
         </div>` : "";
 
     const detailsLink = hasReplicationData ? `
-        <a data-flora-details-link href="https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doisParam)}" target="_blank" rel="noopener" style="
+        <a data-flora-details-link target="_blank" rel="noopener" style="
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
         ">View details</a>` : "";
@@ -512,6 +514,8 @@ export function renderSheetsModal(
     </style>`;
 
     document.body.appendChild(host);
+
+    bindAtlasLink(host.querySelector<HTMLAnchorElement>("[data-flora-details-link]"), matchedDois);
 
     // Wire up close / dismiss
     for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
@@ -1165,7 +1169,7 @@ export function renderSidePanel(
     "font-size:12px;color:#3c4043;line-height:1.6;flex-shrink:0;";
 
   const articleFloraUrl = articleDois.length > 0
-    ? `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(articleDois[0])}`
+    ? atlasDoiUrl([articleDois[0]])
     : null;
 
   const articleTitleEl = document.createElement("div");
@@ -1484,7 +1488,7 @@ export function renderSidePanel(
     const s = pageState.get(doi);
     if (s?.status === "matched") {
       const { n_replications_total, n_reproductions_total, n_originals_total } = s.result.record.stats;
-      const floraUrl = `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(doi)}`;
+      const floraUrl = atlasDoiUrl([doi]);
       const makeTag = (label: string, bg: string, fg: string, border: string): HTMLAnchorElement => {
         const tag = document.createElement("a");
         tag.href = floraUrl;
@@ -1762,7 +1766,7 @@ export function renderSidePanel(
     footer.style.cssText =
       "padding:10px 16px;display:flex;justify-content:flex-end;border-top:1px solid #e8e8e8;flex-shrink:0;";
     const openLink = document.createElement("a");
-    openLink.href = `https://forrt.org/flora-replication-atlas/?doi=${encodeURIComponent(articleDois[0])}`;
+    openLink.href = atlasDoiUrl([articleDois[0]]);
     openLink.target = "_blank";
     openLink.rel = "noopener";
     openLink.style.cssText =
