@@ -100,8 +100,9 @@ describe("atlas links for long DOI lists", () => {
         expect(el.href).toBe("https://forrt.org/flora-replication-atlas/?sets=abc123");
     });
 
-    it("holds a click made before the set id arrives, then opens the set URL", async () => {
-        const open = vi.fn();
+    it("reserves a tab on a click made before the set id arrives, then navigates it", async () => {
+        const reserved = { opener: {} as unknown, location: { replace: vi.fn() } };
+        const open = vi.fn().mockReturnValue(reserved);
         vi.stubGlobal("open", open);
         let release: (value: unknown) => void = () => {};
         vi.mocked(chrome.runtime.sendMessage).mockReturnValue(
@@ -112,16 +113,52 @@ describe("atlas links for long DOI lists", () => {
 
         const click = new MouseEvent("click", { cancelable: true });
         el.dispatchEvent(click);
+
         expect(click.defaultPrevented).toBe(true);
+        expect(open).toHaveBeenCalledWith("", "_blank");
+        expect(reserved.opener).toBeNull();
+        expect(reserved.location.replace).not.toHaveBeenCalled();
 
         release({ type: "FLORA_CREATE_SET_RESULT", setId: "abc123" });
         await flush();
 
-        expect(open).toHaveBeenCalledWith(
-            "https://forrt.org/flora-replication-atlas/?sets=abc123",
-            "_blank",
-            "noopener"
+        expect(reserved.location.replace).toHaveBeenCalledWith(
+            "https://forrt.org/flora-replication-atlas/?sets=abc123"
         );
+    });
+
+    it("navigates the reserved tab to the ?doi= URL when the set fails", async () => {
+        const reserved = { opener: {} as unknown, location: { replace: vi.fn() } };
+        vi.stubGlobal("open", vi.fn().mockReturnValue(reserved));
+        let release: (value: unknown) => void = () => {};
+        vi.mocked(chrome.runtime.sendMessage).mockReturnValue(
+            new Promise((resolve) => { release = resolve; })
+        );
+        const many = dois(100, "click-fails");
+        const el = anchor();
+        bindAtlasLink(el, many);
+
+        el.dispatchEvent(new MouseEvent("click", { cancelable: true }));
+        release({ type: "FLORA_CREATE_SET_RESULT", setId: null });
+        await flush();
+
+        expect(reserved.location.replace).toHaveBeenCalledWith(atlasDoiUrl(many));
+    });
+
+    it("lets the browser follow the link when the tab cannot be reserved", async () => {
+        vi.stubGlobal("open", vi.fn().mockReturnValue(null));
+        vi.mocked(chrome.runtime.sendMessage).mockReturnValue(new Promise(() => {}));
+        const el = anchor();
+        bindAtlasLink(el, dois(100, "blocked"));
+
+        let heldByBinding = true;
+        el.addEventListener("click", (event) => {
+            heldByBinding = event.defaultPrevented;
+            event.preventDefault();
+        });
+        el.dispatchEvent(new MouseEvent("click", { cancelable: true }));
+
+        expect(heldByBinding).toBe(false);
     });
 
     it("gives the matched banner's details link a set URL", async () => {

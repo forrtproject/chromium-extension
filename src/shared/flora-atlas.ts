@@ -50,7 +50,10 @@ export function bindAtlasLink(
 
     anchor.addEventListener("click", (event) => {
         if (settled) return;
+        const reserved = window.open("", "_blank");
+        if (!reserved) return;
         event.preventDefault();
-        void pending.then((url) => window.open(url, "_blank", "noopener"));
+        reserved.opener = null;
+        void pending.then((url) => reserved.location.replace(url));
     });
 }
