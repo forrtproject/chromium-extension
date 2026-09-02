@@ -76,6 +76,8 @@ function copyStaticAssets() {
   copyFileSync("src/walkthrough/index.html", "dist/walkthrough.html");
   copyFileSync("src/walkthrough/walkthrough.css", "dist/walkthrough.css");
   copyFileSync("assets/forrt-logo.svg", "dist/forrt-logo.svg");
+  mkdirSync("dist/icons", { recursive: true });
+  for (const f of readdirSync("assets/icons")) copyFileSync(`assets/icons/${f}`, `dist/icons/${f}`);
   copyFileSync("assets/fonts/fonts.css", "dist/fonts.css");
   mkdirSync("dist/fonts", { recursive: true });
   for (const font of readdirSync("assets/fonts").filter((f) => f.endsWith(".woff2"))) {
