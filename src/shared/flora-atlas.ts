@@ -3,7 +3,7 @@ import { createDoiSetViaWorker } from "./messages";
 
 export const ATLAS_BASE = "https://forrt.org/flora-replication-atlas/";
 
-const MAX_DOI_URL_LENGTH = 1500;
+const MAX_DOI_URL_LENGTH = 2500;
 
 export function atlasDoiUrl(dois: readonly string[]): string {
     return `${ATLAS_BASE}?doi=${encodeURIComponent(dois.join(","))}`;
