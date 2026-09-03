@@ -44,7 +44,7 @@ describe("atlas links for long DOI lists", () => {
         expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
     });
 
-    it("swaps a long list onto the ?sets= URL", async () => {
+    it("swaps a long list onto the ?set= URL", async () => {
         const many = dois(100, "swap");
         expect(needsAtlasSet(many)).toBe(true);
         const el = anchor();
@@ -56,7 +56,7 @@ describe("atlas links for long DOI lists", () => {
         });
 
         await flush();
-        expect(el.href).toBe("https://forrt.org/flora-replication-atlas/?sets=abc123");
+        expect(el.href).toBe("https://forrt.org/flora-replication-atlas/?set=abc123");
     });
 
     it("creates one set for a list rendered twice", async () => {
@@ -97,14 +97,14 @@ describe("atlas links for long DOI lists", () => {
         bindAtlasLink(el, many);
         await flush();
 
-        expect(el.href).toBe("https://forrt.org/flora-replication-atlas/?sets=abc123");
+        expect(el.href).toBe("https://forrt.org/flora-replication-atlas/?set=abc123");
     });
 
     it("reserves a tab on a click made before the set id arrives, then navigates it", async () => {
         const reserved = { opener: {} as unknown, location: { replace: vi.fn() } };
         const open = vi.fn().mockReturnValue(reserved);
         vi.stubGlobal("open", open);
-        let release: (value: unknown) => void = () => {};
+        let release: (value: unknown) => void = () => { };
         vi.mocked(chrome.runtime.sendMessage).mockReturnValue(
             new Promise((resolve) => { release = resolve; })
         );
@@ -123,14 +123,14 @@ describe("atlas links for long DOI lists", () => {
         await flush();
 
         expect(reserved.location.replace).toHaveBeenCalledWith(
-            "https://forrt.org/flora-replication-atlas/?sets=abc123"
+            "https://forrt.org/flora-replication-atlas/?set=abc123"
         );
     });
 
     it("navigates the reserved tab to the ?doi= URL when the set fails", async () => {
         const reserved = { opener: {} as unknown, location: { replace: vi.fn() } };
         vi.stubGlobal("open", vi.fn().mockReturnValue(reserved));
-        let release: (value: unknown) => void = () => {};
+        let release: (value: unknown) => void = () => { };
         vi.mocked(chrome.runtime.sendMessage).mockReturnValue(
             new Promise((resolve) => { release = resolve; })
         );
@@ -147,7 +147,7 @@ describe("atlas links for long DOI lists", () => {
 
     it("lets the browser follow the link when the tab cannot be reserved", async () => {
         vi.stubGlobal("open", vi.fn().mockReturnValue(null));
-        vi.mocked(chrome.runtime.sendMessage).mockReturnValue(new Promise(() => {}));
+        vi.mocked(chrome.runtime.sendMessage).mockReturnValue(new Promise(() => { }));
         const el = anchor();
         bindAtlasLink(el, dois(100, "blocked"));
 
@@ -169,6 +169,6 @@ describe("atlas links for long DOI lists", () => {
         await flush();
 
         const link = document.querySelector<HTMLAnchorElement>("[data-flora-details-link]");
-        expect(link?.href).toBe("https://forrt.org/flora-replication-atlas/?sets=abc123");
+        expect(link?.href).toBe("https://forrt.org/flora-replication-atlas/?set=abc123");
     });
 });
