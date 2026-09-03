@@ -126,6 +126,24 @@ export const PILL_WRAPPER_STYLE =
 
 const BOX_SIDES = ["top", "right", "bottom", "left"] as const;
 
+const INHERITED_TEXT_RESETS = [
+    ["text-indent", "0"],
+    ["text-transform", "none"],
+    ["letter-spacing", "normal"],
+    ["word-spacing", "normal"],
+    ["font-variant", "normal"],
+    ["text-shadow", "none"],
+] as const;
+
+function resetInheritedText<T extends Element>(root: T): T {
+    const style = (root as Partial<ElementCSSInlineStyle>).style;
+    if (!style) return root;
+    for (const [prop, value] of INHERITED_TEXT_RESETS) {
+        if (!style.getPropertyValue(prop)) style.setProperty(prop, value, "important");
+    }
+    return root;
+}
+
 function shieldFromPageCss<T extends Element>(root: T): T {
     const nodes = [root, ...root.querySelectorAll("*")] as Iterable<Partial<ElementCSSInlineStyle>>;
     for (const node of nodes) {
@@ -137,7 +155,7 @@ function shieldFromPageCss<T extends Element>(root: T): T {
             }
         }
     }
-    return root;
+    return resetInheritedText(root);
 }
 
 function makeDivider(): HTMLElement {
@@ -1162,7 +1180,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
         doi, color, isAugmented, provenanceLabel, oaStatus, retraction, replicationsCount, reproductionsCount,
         compact: true,
     }));
-    return wrapper;
+    return resetInheritedText(wrapper);
 }
 
 export function updateIndicatorPillBadges(
