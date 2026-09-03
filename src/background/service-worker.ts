@@ -43,46 +43,23 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
 });
 
-// ── Toolbar icon: maroon "F" when FLoRA is active on a tab, gray when not.
-// Drawn on an OffscreenCanvas so no separate icon assets are needed.
-function drawFloraIcon(size: number, active: boolean): ImageData {
-    const canvas = new OffscreenCanvas(size, size);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("no 2d context");
-    const r = size * 0.22;
-    ctx.fillStyle = active ? "#853953" : "#9aa0a6";
-    ctx.beginPath();
-    ctx.roundRect(0.5, 0.5, size - 1, size - 1, r);
-    ctx.fill();
-    ctx.fillStyle = active ? "#ffffff" : "#eceff1";
-    ctx.font = `bold ${Math.round(size * 0.68)}px -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("F", size / 2, size * 0.56);
-    return ctx.getImageData(0, 0, size, size);
+// ── Toolbar icon: the manifest supplies the gray default. A tab whose content
+// script reports itself active gets the maroon variant; one that reports
+// inactive mid-page (a paused search site) gets gray back. Chrome clears
+// tab-specific icons on navigation, so leaving a site returns to the default
+// on its own. Icons are rendered by scripts/make-icons.ts.
+const ICONS = {
+    active: { 16: "/dist/icons/maroon-16.png", 32: "/dist/icons/maroon-32.png" },
+    inactive: { 16: "/dist/icons/gray-16.png", 32: "/dist/icons/gray-32.png" },
+};
+
+function setTabIcon(tabId: number, active: boolean): void {
+    chrome.action.setIcon({ tabId, path: active ? ICONS.active : ICONS.inactive }).catch(() => {});
+    chrome.action.setTitle({
+        tabId,
+        title: active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
+    }).catch(() => {});
 }
-
-function setActionIcon(active: boolean, tabId?: number): void {
-    let imageData: Record<number, ImageData>;
-    try {
-        imageData = { 16: drawFloraIcon(16, active), 32: drawFloraIcon(32, active) };
-    } catch (err) {
-        debugWarn("Toolbar icon: draw failed, keeping the default icon —", err);
-        return;
-    }
-    const details = tabId != null ? { tabId, imageData } : { imageData };
-    chrome.action.setIcon(details).catch(() => {});
-
-    const title = active
-        ? "FORRT ORE — active on this page"
-        : "FORRT ORE — inactive on this page";
-    chrome.action.setTitle(tabId != null ? { tabId, title } : { title }).catch(() => {});
-}
-
-// Default to inactive; an applicable page's content script flips it to active
-// per tab. Chrome clears a tab-specific icon on navigation, so leaving a site
-// falls back to this default without the worker having to watch tab updates.
-setActionIcon(false);
 
 // Open the walkthrough on first install and seed retraction data immediately.
 chrome.runtime.onInstalled.addListener((details) => {
@@ -127,7 +104,7 @@ chrome.runtime.onMessage.addListener(
         ) {
             const active = (message as { active?: boolean }).active === true;
             const tabId = sender.tab?.id;
-            if (tabId != null) setActionIcon(active, tabId);
+            if (tabId != null) setTabIcon(tabId, active);
             return false;
         }
 

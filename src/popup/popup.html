@@ -105,9 +105,6 @@
 
     <div id="popup-status" class="popup-status" hidden></div>
 
-    <!-- Let Chrome finish parsing and size the action popup before the bundle
-         starts its async tab/storage initialisation.  Running synchronously
-         here can make the first toolbar click disappear during a cold start. -->
-    <script src="popup.js" defer></script>
+    <script src="popup.js"></script>
   </body>
 </html>
