@@ -10,7 +10,7 @@ export function atlasDoiUrl(dois: readonly string[]): string {
 }
 
 export function atlasSetUrl(setId: string): string {
-    return `${ATLAS_BASE}?sets=${encodeURIComponent(setId)}`;
+    return `${ATLAS_BASE}?set=${encodeURIComponent(setId)}`;
 }
 
 export function needsAtlasSet(dois: readonly string[]): boolean {
