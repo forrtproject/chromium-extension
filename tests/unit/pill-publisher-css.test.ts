@@ -48,6 +48,29 @@ describe("a pill dropped into a publisher-styled container", () => {
         expect(popover.style.padding).toBe("8px");
     });
 
+    it("neutralises inherited text properties on the pill root", () => {
+        const pill = createIndicatorPill({ doi: DOI });
+
+        for (const prop of ["text-indent", "text-transform", "letter-spacing", "word-spacing", "font-variant", "text-shadow"]) {
+            expect(pill.style.getPropertyPriority(prop), prop).toBe("important");
+        }
+        expect(pill.style.getPropertyValue("text-indent")).toBe("0");
+    });
+
+    it("neutralises inherited text properties on the panel too", () => {
+        const panel = createIndicatorPanel({ doi: DOI });
+
+        expect(panel.style.getPropertyValue("text-indent")).toBe("0");
+        expect(panel.style.getPropertyPriority("text-indent")).toBe("important");
+    });
+
+    it("leaves the pill's own letter-spacing alone", () => {
+        const pill = createIndicatorPill({ doi: DOI });
+        const body = pill.querySelector<HTMLElement>('[role="button"]')!;
+
+        expect(body.style.letterSpacing).toBe("0.02em");
+    });
+
     it("does not pin the panel, whose margins come from each site's stylesheet", () => {
         const panel = createIndicatorPanel({ doi: DOI });
 
