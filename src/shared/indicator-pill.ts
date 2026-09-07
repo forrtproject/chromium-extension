@@ -1,3 +1,6 @@
+import {safeSendMessage, type LookupResponse} from "@shared/messages";
+import {fetchOpenAccess} from "@shared/openaccess";
+import {isAbortError} from "@shared/work-cancellation";
 // Merged FLoRA indicator pill — combines the DOI badge, Open Access padlock,
 // PubPeer discussion marker, and retraction/replication badge into a single
 // pill (mockup: a rounded maroon pill with icon segments split by dividers).
@@ -282,26 +285,34 @@ function buildDoiSegment(isAugmented: boolean, provenanceLabel?: string, color =
     }, color);
 }
 
-function buildOaSegment(oa: OpenAccessStatus | null, color = "#853953"): HTMLElement {
-    const available = !!oa?.isOa;
+function buildOaSegment(state: OaState, color = "#853953"): HTMLElement {
+    const available = typeof state === "object" && !!state?.isOa;
     return buildSegment({
         attr: "data-flora-oa-segment",
         iconHtml: OA_UNLOCK_SVG.replace('width="12" height="12"', 'width="11" height="11"'),
         label: "OA",
-        title: available ? "Open Access — free full text available" : "Open Access status unavailable",
+        title: `Open Access — ${oaSubtitle(state, available)}`,
         exists: available,
     }, color);
 }
 
-function buildPubPeerSegment(feedback: PubPeerFeedback | null, color = "#853953"): HTMLElement {
+/** Whether a PubPeer lookup landed, is still running, or was cancelled. */
+type PubPeerAnswered = boolean | "pending" | "cancelled";
+
+function buildPubPeerSegment(
+    feedback: PubPeerFeedback | null,
+    answered: PubPeerAnswered = "pending",
+    color = "#853953"
+): HTMLElement {
     const available = !!feedback && feedback.total_comments > 0;
+    const title = answered === "pending" ? "Checking PubPeer…" : answered === "cancelled" ? "PubPeer not checked" : available && feedback
+        ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"} on PubPeer`
+        : answered ? "No PubPeer discussion found" : "PubPeer status unavailable";
     return buildSegment({
         attr: "data-flora-pubpeer-segment",
         iconHtml: PUBPEER_HUB_SVG.replace('width="11" height="15"', 'width="8" height="11"'),
         label: "PubPeer",
-        title: available && feedback
-            ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"} on PubPeer`
-            : "No PubPeer discussion found",
+        title,
         exists: available,
         count: available && feedback ? feedback.total_comments : undefined,
     }, color);
@@ -411,7 +422,7 @@ function rowIconWrapStyle(color: string, available: boolean, compact = false): s
     return `display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;flex-shrink:0;color:${color};opacity:${available ? "1" : "0.4"};`;
 }
 
-function rowSubStyle(available: boolean, compact = false): string {
+function rowSubStyle(compact = false): string {
     return `font-size:${compact ? "10px" : "10.5px"};color:#57606a;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
 }
 
@@ -456,14 +467,14 @@ function buildRow(opts: {
     <span style="${rowIconWrapStyle(opts.accent, opts.available, opts.compact)}">${opts.iconHtml}</span>
     <span style="${opts.compact ? ROW_LABEL_WRAP_COMPACT : ROW_LABEL_WRAP}">
       <span style="${opts.compact ? ROW_TITLE_STYLE_COMPACT : ROW_TITLE_STYLE}">${opts.title}</span>
-      <span data-flora-row-sub style="${rowSubStyle(opts.available, opts.compact)}">${subtitle}</span>
+      <span data-flora-row-sub style="${rowSubStyle(opts.compact)}">${subtitle}</span>
     </span>
     ${useLink ? `<span style="${rowActionStyle(opts.accent, opts.compact)}">${action}</span>` : ""}
   `;
     if (!useLink && opts.onAction) {
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = opts.compact ? "Settings" : "Settings ↗";
+        button.textContent = opts.actionLabel ?? "Settings";
         button.style.cssText =
             `all:unset;cursor:pointer;${rowActionStyle(opts.accent, opts.compact)}`;
         button.addEventListener("click", (e) => {
@@ -474,6 +485,17 @@ function buildRow(opts: {
         row.style.cursor = "default";
     }
     return row;
+}
+
+/** Keep keyboard position when an async provider row replaces its focused control. */
+function replaceIndicatorRow(previous: HTMLElement, next: HTMLElement): void {
+    const focused = previous.contains(document.activeElement);
+    previous.replaceWith(next);
+    if (focused) {
+        const target = next.matches("a,button") ? next : next.querySelector<HTMLElement>("a,button") ?? next;
+        if (target === next && !next.matches("a,button")) next.tabIndex = -1;
+        target.focus({preventScroll: true});
+    }
 }
 
 async function hasContactEmail(): Promise<boolean> {
@@ -525,16 +547,20 @@ function buildOaChoice(loc: OpenAccessLocation, compact: boolean): HTMLElement {
     return item;
 }
 
-type OaState = OpenAccessStatus | null | "pending" | "no-email";
+/** "cancelled": the reader stopped the pass before the lookup landed. */
+type OaState = OpenAccessStatus | null | "pending" | "no-email" | "cancelled";
 
 function oaSubtitle(state: OaState, available: boolean): string {
     if (state === "pending") return "Checking…";
+    if (state === "cancelled") return "Not checked";
     if (state === "no-email") return "Add your email in Settings to check open access";
+    if (state === null) return "Unavailable";
+    if (state.notIndexed) return "Not indexed by Unpaywall";
     return available ? "Free full text available" : "Not confirmed open access";
 }
 
-function buildOaRow(state: OaState, compact = false): HTMLElement {
-    const oa = state === "pending" || state === "no-email" ? null : state;
+function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLElement {
+    const oa = typeof state === "string" ? null : state;
     const available = !!oa?.isOa;
     const locations = oaLocations(oa);
 
@@ -545,10 +571,10 @@ function buildOaRow(state: OaState, compact = false): HTMLElement {
             available: available && locations.length === 1,
             title: "Open Access",
             subtitle: oaSubtitle(state, available),
-            onAction: state === "no-email" ? openFloraOptions : undefined,
-            subtitleShort: available ? "Free" : "—",
+            onAction: state === "no-email" ? openFloraOptions : state === null || state === "cancelled" ? retry : undefined,
+            subtitleShort: state === null ? "Unavailable" : state === "cancelled" ? "Not checked" : state === "pending" ? "…" : oa?.notIndexed ? "Not indexed" : available ? "Free" : "—",
             href: locations[0]?.url,
-            actionLabel: "View PDF",
+            actionLabel: state === "no-email" ? "Settings" : state === null || state === "cancelled" ? "Retry" : "View PDF",
             attr: "data-flora-oa-row",
             compact,
         });
@@ -625,12 +651,16 @@ function buildOaRow(state: OaState, compact = false): HTMLElement {
     return wrapper;
 }
 
-function buildPubPeerRow(state: PubPeerFeedback | null | "pending", compact = false): HTMLElement {
-    const feedback = state === "pending" ? null : state;
+/** "cancelled": the reader stopped the pass before the lookup landed. */
+type PubPeerState = PubPeerFeedback | null | "pending" | "unavailable" | "cancelled";
+
+function buildPubPeerRow(state: PubPeerState, compact = false, retry?: () => void): HTMLElement {
+    const feedback = typeof state === "string" ? null : state;
     const available = !!feedback && feedback.total_comments > 0;
+    const retryable = state === "unavailable" || state === "cancelled";
     const subtitle = state === "pending"
         ? "Checking…"
-        : available && feedback
+        : state === "cancelled" ? "Not checked" : state === "unavailable" ? "Unavailable" : available && feedback
             ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"}`
             : "No discussion found";
     return buildRow({
@@ -639,9 +669,10 @@ function buildPubPeerRow(state: PubPeerFeedback | null | "pending", compact = fa
         available,
         title: "PubPeer",
         subtitle,
-        subtitleShort: state === "pending" ? "…" : available && feedback ? `${feedback.total_comments}` : "—",
+        subtitleShort: state === "pending" ? "…" : state === "cancelled" ? "Not checked" : state === "unavailable" ? "Unavailable" : available && feedback ? `${feedback.total_comments}` : "—",
         href: feedback?.url,
-        actionLabel: "View thread",
+        onAction: retryable ? retry : undefined,
+        actionLabel: retryable ? "Retry" : "View thread",
         attr: "data-flora-pubpeer-row",
         compact,
     });
@@ -901,8 +932,8 @@ interface IndicatorRowsOptions {
     replicationsCount: number | null;
     reproductionsCount: number | null;
     /** Called when the async lookup lands, so a caller can mirror it elsewhere. */
-    onOa?: (oa: OpenAccessStatus | null) => void;
-    onPubPeer?: (feedback: PubPeerFeedback | null) => void;
+    onOa?: (state: OaState) => void;
+    onPubPeer?: (feedback: PubPeerFeedback | null, answered: PubPeerAnswered) => void;
     /** Single-line rows and tighter metrics, for the always-visible panel. */
     compact?: boolean;
 }
@@ -924,33 +955,48 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     sectionDivider.style.cssText = `height:1px;background:#eaeef2;margin:${compact ? "2px 0" : "0 0 2px"};`;
     rows.appendChild(sectionDivider);
 
-    let oaRow = buildOaRow(opts.oaStatus ? "pending" : null, compact);
+    let oaRow = buildOaRow(opts.oaStatus ? "pending" : null, compact, () => retryOa());
     rows.appendChild(oaRow);
-    const settleOa = (state: OaState, oa: OpenAccessStatus | null): void => {
-        const resolved = shieldFromPageCss(buildOaRow(state, compact));
-        oaRow.replaceWith(resolved);
+    const settleOa = (state: OaState): void => {
+        const resolved = shieldFromPageCss(buildOaRow(state, compact, retryOa));
+        replaceIndicatorRow(oaRow, resolved);
         oaRow = resolved;
-        opts.onOa?.(oa);
+        opts.onOa?.(state);
     };
-    if (opts.oaStatus) {
-        void opts.oaStatus
-            .then(async (oa) => {
-                settleOa(oa ?? (await hasContactEmail() ? null : "no-email"), oa);
-            })
-            .catch(() => settleOa(null, null));
-    }
+    const loadOa = (request: Promise<OpenAccessStatus | null>): void => {
+        // A cancelled pass settles the row to "Not checked", which carries the
+        // Retry action; nothing re-fetches it otherwise.
+        void request.then(async oa => settleOa(oa ?? (await hasContactEmail() ? null : "no-email")))
+            .catch(err => settleOa(isAbortError(err) ? "cancelled" : null));
+    };
+    const retryOa = (): void => {
+        settleOa("pending");
+        loadOa(fetchOpenAccess(opts.doi));
+    };
+    if (opts.oaStatus) loadOa(opts.oaStatus);
 
     let pubpeerRow = buildPubPeerRow("pending", compact);
     rows.appendChild(pubpeerRow);
-    const settlePubPeer = (feedback: PubPeerFeedback | null): void => {
-        const resolved = shieldFromPageCss(buildPubPeerRow(feedback, compact));
-        pubpeerRow.replaceWith(resolved);
+    const settlePubPeer = (feedback: PubPeerState): void => {
+        const resolved = shieldFromPageCss(buildPubPeerRow(feedback, compact, retryPubPeer));
+        replaceIndicatorRow(pubpeerRow, resolved);
         pubpeerRow = resolved;
-        opts.onPubPeer?.(feedback);
+        const answered: PubPeerAnswered = feedback === "pending" || feedback === "cancelled" ? feedback : typeof feedback !== "string";
+        opts.onPubPeer?.(typeof feedback === "string" ? null : feedback, answered);
     };
-    void lookupPubPeerForDoi(opts.doi)
-        .then(settlePubPeer)
-        .catch(() => settlePubPeer(null));
+    const retryPubPeer = (): void => {
+        settlePubPeer("pending");
+        void lookupPubPeerForDoi(opts.doi).then(settlePubPeer).catch(error => {
+            // A cancelled pass settles the row to "Not checked", which carries
+            // the Retry action; nothing re-fetches it otherwise.
+            settlePubPeer(isAbortError(error) ? "cancelled" : "unavailable");
+            if (typeof error?.retryAfterMs === "number") {
+                const subtitle = pubpeerRow.querySelector("[data-flora-row-sub]");
+                if (subtitle) subtitle.textContent = compact ? "Rate limited" : `Rate limited — try again in ${Math.ceil(error.retryAfterMs / 1000)} seconds`;
+            }
+        });
+    };
+    retryPubPeer();
 
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
         opts.doi, opts.retraction, opts.replicationsCount, opts.reproductionsCount
@@ -1035,13 +1081,13 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     pill.appendChild(buildDoiSegment(isAugmented, provenanceLabel, color));
 
     // Segment 2 — Open Access padlock (async).
-    let oaSegment = buildOaSegment(null, color);
+    let oaSegment = buildOaSegment(oaStatus ? "pending" : null, color);
     pill.appendChild(oaSegment);
 
     // Segment 3 — PubPeer marker (async, fetched internally so callers don't
     // each need to import pubpeer-api.ts; per-pill lookups are coalesced into
     // one batch request and cached).
-    let pubpeerSegment = buildPubPeerSegment(null, color);
+    let pubpeerSegment = buildPubPeerSegment(null, "pending", color);
     pill.appendChild(pubpeerSegment);
 
     // Segment 4 — retraction/replication badge (already-resolved inputs).
@@ -1086,8 +1132,8 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
             oaSegment = resolved;
             refreshSegmentStrip(pill);
         },
-        onPubPeer: (feedback) => {
-            const resolved = buildPubPeerSegment(feedback, color);
+        onPubPeer: (feedback, answered) => {
+            const resolved = buildPubPeerSegment(feedback, answered, color);
             pubpeerSegment.replaceWith(resolved);
             pubpeerSegment = resolved;
             refreshSegmentStrip(pill);
@@ -1287,16 +1333,26 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
     return resetInheritedText(wrapper);
 }
 
+export interface BadgeRetryHooks {
+    /** Owning page's identity, read when a retry starts and again when it lands. */
+    generation: () => unknown;
+    /** Runs after a retry writes its result, so the owner can rerender dependent UI. */
+    onResolved?: () => void;
+}
+
+/** `getRedacts` is read on every repaint, so a notice found after a row failed still lands on it. */
 export function updateIndicatorPillBadges(
     root: ParentNode,
-    pageState: ReadonlyMap<DoiString, LookupState>,
-    redacts: readonly RetractionResponse[],
-    scope: IndicatorScope = "pills"
+    pageState: Map<DoiString, LookupState>,
+    getRedacts: () => readonly RetractionResponse[],
+    scope: IndicatorScope,
+    onlyDoi: DoiString | undefined,
+    hooks: BadgeRetryHooks
 ): void {
-    const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
+    const retractionByDoi = new Map(getRedacts().map((r) => [r.originDoi, r] as const));
     for (const wrapper of root.querySelectorAll<HTMLElement>(indicatorSelector(scope))) {
         const doi = wrapper.getAttribute("data-flora-doi") as DoiString | null;
-        if (!doi) continue;
+        if (!doi || (onlyDoi && doi !== onlyDoi)) continue;
         const badgeSegment = wrapper.querySelector<HTMLElement>("[data-flora-badge-segment]");
         const badgeRow = wrapper.querySelector<HTMLElement>("[data-flora-badge-row]");
         if (!badgeSegment && !badgeRow) continue;
@@ -1307,14 +1363,45 @@ export function updateIndicatorPillBadges(
         const reproductionsCount = state?.status === "matched" ? state.result.record.stats.n_reproductions_total : null;
         const signal = resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount);
 
+        if (!retraction && (state?.status === "error" || state?.status === "loading")) {
+            signal.rowSubtitle = state.status === "loading" ? "Checking FORRT…" : "FORRT unavailable";
+        }
         if (badgeSegment) {
             const strip = badgeSegment.closest<HTMLElement>(`[${SEGMENT_STRIP_ATTR}]`);
             badgeSegment.replaceWith(buildBadgeSegment(
                 signal, strip?.getAttribute(SEGMENT_ACCENT_ATTR) ?? undefined));
             if (strip) refreshSegmentStrip(strip);
         }
-        if (badgeRow) {
-            badgeRow.replaceWith(shieldFromPageCss(buildBadgeRow(signal, wrapper.hasAttribute("data-flora-panel"))));
+        if (badgeRow && !retraction && (state?.status === "error" || state?.status === "loading")) {
+            const pending = state.status === "loading";
+            const retry = async () => {
+                const next = pageState;
+                const startedOn = hooks.generation();
+                next.set(doi, {status: "loading"});
+                updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
+                let resolved: LookupState;
+                try {
+                    const response = await safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: [doi]});
+                    if (!response || response.errors?.[doi]) throw new Error("FORRT unavailable");
+                    const result = response.results[doi];
+                    resolved = result ? {status: "matched", result, source: "extracted"} : {status: "no-match"};
+                } catch {
+                    resolved = {status: "error", message: "FORRT unavailable"};
+                }
+                // The page this retry belongs to is gone; its state and pills are another page's now.
+                if (hooks.generation() !== startedOn) return;
+                next.set(doi, resolved);
+                updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
+                hooks.onResolved?.();
+            };
+            replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
+                iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,
+                title: "FORRT", subtitle: pending ? "Checking…" : "Unavailable",
+                actionLabel: "Retry", onAction: pending ? undefined : () => { void retry(); },
+                attr: "data-flora-badge-row", compact: wrapper.hasAttribute("data-flora-panel"),
+            })));
+        } else if (badgeRow) {
+            replaceIndicatorRow(badgeRow, shieldFromPageCss(buildBadgeRow(signal, wrapper.hasAttribute("data-flora-panel"))));
         }
     }
 }

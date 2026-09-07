@@ -1,4 +1,4 @@
-import { getSettings, saveSettings } from "../shared/settings";
+import { effectiveCacheQuotaMb, getSettings, MIN_CACHE_QUOTA_MB, saveSettings } from "../shared/settings";
 import { getBlockedDomains, saveBlockedDomains } from "../shared/domains";
 import { CITATION_FORMATS, citationFormat, fetchCitation } from "../shared/citation";
 import {
@@ -31,16 +31,17 @@ getSettings().then(({ email }) => {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = emailInput.value.trim();
-  if (!email) return;
 
   saveBtn.disabled = true;
   try {
     await saveSettings({ email });
     statusMsg.textContent =
-      "Saved! ORE is now active — reload any open tabs to start tracking.";
+      email
+        ? "Email saved. Reload open tabs to use it for lookups."
+        : "Email removed. Reload open tabs. Title matching and open-access lookups need an email; other checks still work.";
     statusMsg.className = "status success";
     statusMsg.hidden = false;
-    saveBtn.textContent = "Save";
+    saveBtn.textContent = email ? "Save" : "Save contact email";
   } catch (err) {
     debugError("Settings: save failed —", err);
     statusMsg.textContent = "Failed to save — please try again.";
@@ -103,19 +104,22 @@ const cacheQuotaSaveBtn = document.getElementById("cache-quota-save-btn") as HTM
 const cacheQuotaStatus = document.getElementById("cache-quota-status") as HTMLParagraphElement;
 
 getSettings().then(({ cacheQuotaMb }) => {
-  cacheQuotaInput.value = String(cacheQuotaMb);
+  // Show the floored value, so the displayed limit matches the enforced one.
+  cacheQuotaInput.value = String(effectiveCacheQuotaMb(cacheQuotaMb));
 });
 
 cacheQuotaSaveBtn.addEventListener("click", async () => {
   const raw = parseInt(cacheQuotaInput.value, 10);
-  const cacheQuotaMb = isNaN(raw) || raw < 0 ? 50 : raw;
+  const cacheQuotaMb = effectiveCacheQuotaMb(isNaN(raw) || raw < 0 ? 50 : raw);
   cacheQuotaInput.value = String(cacheQuotaMb);
   cacheQuotaSaveBtn.disabled = true;
   try {
     await saveSettings({ cacheQuotaMb });
     cacheQuotaStatus.textContent = cacheQuotaMb === 0
       ? "Storage limit removed — cache is unlimited."
-      : `Storage limit set to ${cacheQuotaMb} MB.`;
+      : cacheQuotaMb === MIN_CACHE_QUOTA_MB
+        ? `Storage limit set to ${MIN_CACHE_QUOTA_MB} MB (the minimum).`
+        : `Storage limit set to ${cacheQuotaMb} MB.`;
     cacheQuotaStatus.className = "status domain-status success";
     cacheQuotaStatus.hidden = false;
     setTimeout(() => { cacheQuotaStatus.hidden = true; }, 3000);

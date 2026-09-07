@@ -1,0 +1,128 @@
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {enforceCacheBudget, installCacheBudget} from "../../src/shared/cache-budget";
+import {effectiveCacheQuotaMb, MIN_CACHE_QUOTA_MB} from "../../src/shared/settings";
+
+describe("shared provider cache budget", () => {
+  let store: Record<string, unknown>;
+  beforeEach(() => {
+    store = {};
+    chrome.storage.local.get = vi.fn(async () => structuredClone(store));
+    chrome.storage.local.remove = vi.fn(async (keys: string | string[]) => {
+      for (const key of Array.isArray(keys) ? keys : [keys]) delete store[key];
+    });
+    chrome.storage.local.getBytesInUse = vi.fn(async (keys: string | string[] | null) =>
+      (keys === null ? Object.keys(store) : Array.isArray(keys) ? keys : [keys])
+        .reduce((sum, key) => sum + (key in store ? new TextEncoder().encode(key + JSON.stringify(store[key])).length : 0), 0),
+    );
+  });
+
+  it("evicts across provider families while preserving settings and diagnostics", async () => {
+    store = {
+      "flora:old": {data: "x".repeat(200), createdAt: 1, expiresAt: Date.now() - 1},
+      flora_oa_blob: {doi: {v: "x".repeat(200), t: 2}},
+      flora_citation_blob: {doi: {v: "x".repeat(200), t: 3}},
+      flora_settings: {email: "keep@example.org"},
+      flora_debug_log: ["keep"],
+    };
+    await enforceCacheBudget(300);
+    expect(store.flora_settings).toEqual({email: "keep@example.org"});
+    expect(store.flora_debug_log).toEqual(["keep"]);
+    expect(store["flora:old"]).toBeUndefined();
+    expect(store.flora_oa_blob).toBeUndefined();
+    expect(store.flora_citation_blob).toBeDefined();
+    const disposable = Object.keys(store).filter(k => !["flora_settings", "flora_debug_log"].includes(k));
+    expect(await chrome.storage.local.getBytesInUse(disposable)).toBeLessThanOrEqual(300);
+  });
+
+  it("keeps the retraction map when every provider cache is evicted", async () => {
+    store = {
+      flora_oa_blob: {doi: {v: "x".repeat(200), t: 1}},
+      RetractionLookupLocal: {retractions: {doi: "x".repeat(2000)}, concerns: {}},
+      synctime: 2,
+    };
+    await enforceCacheBudget(100);
+    expect(store.flora_oa_blob).toBeUndefined();
+    expect(store.RetractionLookupLocal).toBeDefined();
+    expect(store.synctime).toBe(2);
+  });
+
+  it("does not read stored values when provider usage is under budget", async () => {
+    store = {flora_debug_log: ["x".repeat(10000)], flora_oa_blob: {doi: {v: true, t: 1}}};
+    await enforceCacheBudget(50000);
+    expect(chrome.storage.local.get).not.toHaveBeenCalled();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+
+  it("does not evict provider data just because unrelated local data is large", async () => {
+    store = {flora_debug_log: ["x".repeat(10000)], flora_oa_blob: {doi: {v: true, t: 1}}};
+    await enforceCacheBudget(100);
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+
+  it("treats zero as unlimited", async () => {
+    store = {flora_oa_blob: {doi: {v: "x".repeat(1000), t: 1}}};
+    await enforceCacheBudget(0);
+    expect(chrome.storage.local.getBytesInUse).not.toHaveBeenCalled();
+    expect(chrome.storage.local.get).not.toHaveBeenCalled();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+
+  it("raises a non-zero quota below the floor and leaves 0 unlimited", () => {
+    expect(effectiveCacheQuotaMb(1)).toBe(MIN_CACHE_QUOTA_MB);
+    expect(effectiveCacheQuotaMb(9)).toBe(MIN_CACHE_QUOTA_MB);
+    expect(effectiveCacheQuotaMb(50)).toBe(50);
+    expect(effectiveCacheQuotaMb(0)).toBe(0);
+  });
+});
+
+describe("scheduled cache budget sweeps", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("queues a write that arrives during a sweep instead of overlapping sweeps", async () => {
+    vi.useFakeTimers();
+    chrome.storage.sync.get = vi.fn().mockResolvedValue({flora_settings: {cacheQuotaMb: 50}});
+    let sweeps = 0;
+    let release: () => void = () => {};
+    chrome.storage.local.getBytesInUse = vi.fn(async (keys: string | string[] | null) => {
+      if (keys !== null) return 0;
+      sweeps++;
+      await new Promise<void>(resolve => {release = resolve;});
+      return 0; // under budget: the sweep stops after its usage reads
+    });
+
+    installCacheBudget();
+    // Read the budget's own listener: getSettings installs one of its own later.
+    const onChanged = vi.mocked(chrome.storage.onChanged.addListener).mock.lastCall![0];
+    await vi.advanceTimersByTimeAsync(1000); // the install's own sweep, now held
+    expect(sweeps).toBe(1);
+
+    onChanged({flora_oa_blob: {newValue: {}}}, "local");
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(sweeps).toBe(1); // the follow-up waits for the running sweep
+
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sweeps).toBe(2);
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+  });
+
+  it("ignores a retraction-map write, which is outside the budget", async () => {
+    vi.useFakeTimers();
+    chrome.storage.sync.get = vi.fn().mockResolvedValue({flora_settings: {cacheQuotaMb: 50}});
+    let sweeps = 0;
+    chrome.storage.local.getBytesInUse = vi.fn(async (keys: string | string[] | null) => {
+      if (keys === null) sweeps++;
+      return 0;
+    });
+
+    installCacheBudget();
+    const onChanged = vi.mocked(chrome.storage.onChanged.addListener).mock.lastCall![0];
+    await vi.advanceTimersByTimeAsync(1000); // the install's own sweep
+    expect(sweeps).toBe(1);
+
+    onChanged({RetractionLookupLocal: {newValue: {retractions: {}, concerns: {}}}}, "local");
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(sweeps).toBe(1);
+  });
+});

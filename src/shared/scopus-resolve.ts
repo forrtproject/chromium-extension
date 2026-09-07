@@ -1,3 +1,4 @@
+import {fetchWithDeadline, isAbortError} from "./work-cancellation";
 // Scopus record id → DOI, in one batched call per 50 ids. Runs in the content
 // script: the endpoint is same-origin on www.scopus.com and authenticated by
 // the session cookie, so no host permission and no worker hop are needed.
@@ -56,7 +57,7 @@ async function fetchItems(ids: string[], fetchImpl: typeof fetch): Promise<Scopu
  */
 export async function resolveScopusIds(
     rawIds: string[],
-    fetchImpl: typeof fetch = fetch
+    fetchImpl: typeof fetch = fetchWithDeadline
 ): Promise<Map<string, DoiString | null>> {
     const results = new Map<string, DoiString | null>();
     const ids = [...new Set(rawIds.map(normaliseScopusId).filter((id): id is string => id !== null))];
@@ -71,6 +72,8 @@ export async function resolveScopusIds(
                 results.set(id, item.doi ? normaliseDOI(item.doi) : null);
             }
         } catch (err) {
+            // A cancelled batch is not a provider failure: reject so the caller drops the pass.
+            if (isAbortError(err)) throw err;
             debugWarn(`Scopus resolve: batch of ${batch.length} failed —`, err);
         }
     }

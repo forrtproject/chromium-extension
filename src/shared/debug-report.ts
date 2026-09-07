@@ -14,10 +14,11 @@
  * only ever upgrades a trimmed log to a complete one.
  */
 
+import { redactDebugText } from "./debug-redact";
 import { recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
 import { readDebugLog } from "./debug-log";
 import { safeSendMessage } from "./messages";
-import { getSettings } from "./settings";
+import { effectiveCacheQuotaMb, getSettings } from "./settings";
 import { getBlockedDomains } from "./domains";
 import { getHiddenCommenters } from "./pubpeer-filter";
 
@@ -140,17 +141,17 @@ export function renderDebugReport(
     lines.push(
       "_No entries captured. Turn debug mode on, reproduce the problem, then copy the report again._"
     );
-    return lines.join("\n");
+    return redactDebugText(lines.join("\n"));
   }
 
-  let body = shown.map(formatDebugEntry).join("\n");
+  let body = redactDebugText(shown.map(formatDebugEntry).join("\n"));
   if (omitted > 0) body = `… ${omitted} earlier entries trimmed …\n${body}`;
   if (body.length > MAX_REPORT_CHARS) {
     body = `… earlier entries trimmed …\n${body.slice(body.length - MAX_REPORT_CHARS)}`;
   }
 
   lines.push("```", body, "```");
-  return lines.join("\n");
+  return redactDebugText(lines.join("\n"));
 }
 
 /** Gather the report's parts without rendering them. */
@@ -180,7 +181,7 @@ export async function collectDebugReport(
     // which is what distinguishes "setup incomplete" from a real bug.
     `Contact email configured: ${settings.email.trim() ? "yes" : "no"}`,
     `Citation style: ${settings.citationStyle}`,
-    `Cache limit: ${settings.cacheQuotaMb === 0 ? "unlimited" : `${settings.cacheQuotaMb} MB`}`,
+    `Cache limit: ${settings.cacheQuotaMb === 0 ? "unlimited" : `${effectiveCacheQuotaMb(settings.cacheQuotaMb)} MB`}`,
     `Blocked domains: ${blockedDomains.length}`,
     `Muted PubPeer commenters: ${mutedCommenters.length}`,
   ];
@@ -304,8 +305,8 @@ function linkFor(
   error?: RuntimeErrorInfo | null
 ): string {
   const params = new URLSearchParams({
-    title: issueTitle(domain, error),
-    body: issueBody(domain, reportSection, error),
+    title: redactDebugText(issueTitle(domain, error)),
+    body: redactDebugText(issueBody(domain, reportSection, error)),
     labels: error ? "bug" : domain ? "domain-issue" : "bug",
   });
   return `${ISSUE_URL}?${params.toString()}`;

@@ -39,10 +39,26 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         }
     };
 
+    const navigation = (window as Window & {navigation?: EventTarget & {currentEntry?: {key: string}}}).navigation;
+    let observedUrl = location.href;
+    let observedKey = navigation?.currentEntry?.key;
+    navigation?.addEventListener("currententrychange", () => {
+        const key = navigation.currentEntry?.key;
+        if (observedUrl === location.href && observedKey === key) return;
+        observedUrl = location.href;
+        observedKey = key;
+        pendingFullScan = true;
+        if (document.hidden) { missedWhileHidden = true; return; }
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(flush, DEBOUNCE_MS);
+    });
+
     const observer = new MutationObserver((mutations) => {
-        // Do no work while this tab is in the background.
+        // Do no work while this tab is in the background. The records go
+        // uninspected, so the catch-up on resume can only be a full scan.
         if (document.hidden) {
             missedWhileHidden = true;
+            pendingFullScan = true;
             return;
         }
         let hasExternalChange = false;
@@ -65,9 +81,20 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     });
     observer.observe(document.body, {childList: true, subtree: true});
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden || !missedWhileHidden) return;
+        if (document.hidden) {
+            // A debounce armed while visible would otherwise fire in the
+            // background and scan the page a second time on the catch-up.
+            if (pendingFullScan || pendingNodes.length > 0) missedWhileHidden = true;
+            clearTimeout(debounceTimer);
+            return;
+        }
+        if (!missedWhileHidden) return;
         missedWhileHidden = false;
-        scanWholePage();
+        clearTimeout(debounceTimer);
+        // Run the work the debounce was holding: a full scan when one is
+        // pending, and otherwise only the nodes that arrived, which skip the
+        // scan when they carry no DOI candidates.
+        flush();
     });
     return observer;
 }

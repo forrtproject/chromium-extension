@@ -10,6 +10,8 @@ import { isExternalMutation } from "../../src/shared/flora-ui";
 import type { DoiString, LookupState } from "../../src/shared/types";
 
 const DOI = "10.1234/x" as DoiString;
+/** Hooks for a page that never navigates while the test runs. */
+const SAME_PAGE = {generation: () => 1};
 
 function matchedState(replications: number): Map<DoiString, LookupState> {
   return new Map([[DOI, {
@@ -39,6 +41,56 @@ describe("createIndicatorPanel", () => {
     expect(panel.querySelector("[data-flora-badge-segment]")).toBeNull();
     expect(panel.querySelector("[data-flora-doi-segment]")).toBeNull();
     expect(panel.style.display).not.toBe("none");
+  });
+
+  it("retries unavailable FORRT data and displays the recovered result", async () => {
+    const panel = createIndicatorPanel({doi: DOI});
+    document.body.appendChild(panel);
+    const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
+    updateIndicatorPillBadges(document, states, () => [], "panels", undefined, SAME_PAGE);
+    expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("Unavailable");
+    const state = matchedState(3).get(DOI)!;
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({results: {[DOI]: state.status === "matched" ? state.result : null}, errors: {}});
+    panel.querySelector<HTMLButtonElement>("[data-flora-badge-row] button")!.click();
+    await vi.waitFor(() => expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("3"));
+    expect(panel.querySelector("[data-flora-badge-row] button")).toBeNull();
+    expect(states.get(DOI)?.status).toBe("matched");
+    updateIndicatorPillBadges(document, states, () => [], "panels", undefined, SAME_PAGE);
+    expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("3");
+  });
+
+  it("reports a recovered retry so the owning page rerenders its panel", async () => {
+    const panel = createIndicatorPanel({doi: DOI});
+    document.body.appendChild(panel);
+    const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
+    const onResolved = vi.fn();
+    updateIndicatorPillBadges(document, states, () => [], "panels", undefined,
+      {generation: () => 1, onResolved});
+    const recovered = matchedState(3).get(DOI) as unknown as {result: unknown};
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({results: {[DOI]: recovered.result}, errors: {}});
+    panel.querySelector<HTMLButtonElement>("[data-flora-badge-row] button")!.click();
+    await vi.waitFor(() => expect(onResolved).toHaveBeenCalledTimes(1));
+    expect(states.get(DOI)?.status).toBe("matched");
+  });
+
+  it("discards a retry that lands after the page it belongs to is gone", async () => {
+    const panel = createIndicatorPanel({doi: DOI});
+    document.body.appendChild(panel);
+    const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
+    const onResolved = vi.fn();
+    let generation = 1;
+    updateIndicatorPillBadges(document, states, () => [], "panels", undefined,
+      {generation: () => generation, onResolved});
+    let land: (value: unknown) => void = () => {};
+    vi.mocked(chrome.runtime.sendMessage).mockReturnValue(new Promise((resolve) => { land = resolve; }));
+    panel.querySelector<HTMLButtonElement>("[data-flora-badge-row] button")!.click();
+    await vi.waitFor(() => expect(states.get(DOI)?.status).toBe("loading"));
+    generation = 2;
+    land({results: {[DOI]: null}, errors: {}});
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(states.get(DOI)?.status).toBe("loading");
+    expect(onResolved).not.toHaveBeenCalled();
   });
 
   it("is identifiable as FLoRA's own UI", () => {
@@ -149,7 +201,7 @@ describe("createIndicatorPanel", () => {
     expect(panel.querySelector("[data-flora-badge-row] [data-flora-row-sub]")!.textContent)
       .toBe("None");
 
-    updateIndicatorPillBadges(document, matchedState(3), [], "panels");
+    updateIndicatorPillBadges(document, matchedState(3), () => [], "panels", undefined, SAME_PAGE);
 
     const badgeRow = panel.querySelector<HTMLElement>("[data-flora-badge-row]")!;
     expect(badgeRow.textContent).toContain("Replications");
@@ -163,11 +215,11 @@ describe("createIndicatorPanel", () => {
     document.body.appendChild(panel);
     const notice = { originDoi: DOI, doi: "10.9/n" as DoiString, kind: "retraction" } as never;
 
-    updateIndicatorPillBadges(document, new Map(), [notice], "panels");
+    updateIndicatorPillBadges(document, new Map(), () => [notice], "panels", undefined, SAME_PAGE);
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
       .toContain("retract");
 
-    updateIndicatorPillBadges(document, matchedState(3), [notice], "panels");
+    updateIndicatorPillBadges(document, matchedState(3), () => [notice], "panels", undefined, SAME_PAGE);
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
       .toContain("retract");
   });

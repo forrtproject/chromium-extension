@@ -11,6 +11,7 @@ import {
     WORK_TOAST_ID,
     _resetWorkIndicatorForTesting,
 } from "../../src/shared/progress-toast";
+import {canStartAutomaticWork, resumeAutomaticWork} from "../../src/shared/work-cancellation";
 import {setDebug, _resetDebugForTesting} from "../../src/shared/debug";
 import {buildDebugReport} from "../../src/shared/debug-report";
 import {writeClipboard} from "../../src/shared/clipboard";
@@ -407,6 +408,29 @@ describe("progress toast", () => {
         expect(isWorkCancelled()).toBe(true);
         expect(toast()).toBeNull();
         endWorkIndicator();
+        expect(isWorkCancelled()).toBe(true);
+        beginWorkIndicator();
+        expect(isWorkCancelled()).toBe(false);
+    });
+
+    it("runs again after a cancel once the reader retries or switches page", () => {
+        const cancelPass = (): void => {
+            beginWorkIndicator();
+            reportWorkStage("scan", "Scanning this page for DOIs…");
+            settle();
+            button("cancel").click();
+            endWorkIndicator();
+        };
+
+        cancelPass();
+        expect(isWorkCancelled()).toBe(true);
+        resumeAutomaticWork(); // an explicit Retry action
+        expect(isWorkCancelled()).toBe(false);
+        expect(canStartAutomaticWork()).toBe(true);
+
+        cancelPass();
+        history.replaceState(null, "", "#gid=2"); // a Sheets tab switch
+        expect(canStartAutomaticWork()).toBe(true);
         expect(isWorkCancelled()).toBe(false);
     });
 

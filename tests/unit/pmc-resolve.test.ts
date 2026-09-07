@@ -14,7 +14,10 @@ const IDCONV_URL = "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/";
 const server = setupServer();
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  vi.unstubAllGlobals();
+});
 afterAll(() => server.close());
 
 interface Record {
@@ -181,6 +184,23 @@ describe("resolvePmcIds", () => {
     expect(params!.get("idtype")).toBe("pmid");
     expect(result.get("42528595")).toBe("10.3389/fpsyg.2026.1748888");
     expect(result.get("9599441")).toBeNull();
+  });
+
+  it("rejects a cancelled batch instead of answering without it", async () => {
+    // The transport is stubbed rather than mocked through msw: this case is
+    // about the abort reaching a request that is still open.
+    const fetchStub = vi.fn((_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) =>
+        init.signal!.addEventListener("abort", () => reject(init.signal!.reason), { once: true })));
+    vi.stubGlobal("fetch", fetchStub);
+    const controller = new AbortController();
+    const pending = resolvePmcIds(["PMC1234567"], "pmcid", controller.signal);
+    const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    // Cancel the request while it is in flight.
+    await vi.waitFor(() => expect(fetchStub).toHaveBeenCalled());
+    controller.abort(new DOMException("Work cancelled", "AbortError"));
+    await outcome;
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
   it("sends the configured email and tool for NCBI's usage policy", async () => {

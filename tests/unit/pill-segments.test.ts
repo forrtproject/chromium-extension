@@ -9,6 +9,7 @@ import type { DoiString, LookupState } from "../../src/shared/types";
 
 const DOI = "10.1234/x" as DoiString;
 const ACCENT_FILL = "rgba(133, 57, 83, 0.78)";
+const SAME_PAGE = { generation: () => 1 };
 
 function contrastWithWhiteText(css: string): number {
   const parts = css.match(/[\d.]+/g)!.map(Number);
@@ -137,7 +138,7 @@ describe("the pill's segment strip", () => {
     const wrapper = createIndicatorPill({ doi: DOI });
     document.body.appendChild(wrapper);
 
-    updateIndicatorPillBadges(document, matchedState(4), []);
+    updateIndicatorPillBadges(document, matchedState(4), () => [], "pills", undefined, SAME_PAGE);
 
     const badge = segments(wrapper).at(-1)!;
     expect(badge.textContent).toBe("Reps4");

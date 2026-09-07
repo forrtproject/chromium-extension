@@ -3,15 +3,18 @@
 import { debugError } from "./debug";
 
 export interface FloraSettings {
-  /** Contact email for Crossref/OpenAlex polite pool (required). */
+  /** Optional API contact email for Crossref, OpenAlex, Unpaywall and NCBI.
+   * Title matching and Unpaywall lookups require a nonempty value. */
   email: string;
   /** Citation format id used by the pill's Copy citation row (see citation.ts). */
   citationStyle: string;
   /**
-   * Soft cap on chrome.storage.local usage in MB. 0 = unlimited. With the
-   * "unlimitedStorage" permission the browser lifts the ~10 MB hard cap, so
-   * this is a housekeeping bound: when it's approached, expired cache entries
-   * are evicted first, then live entries oldest-first (LRU).
+   * Shared soft cap on disposable provider caches in MB. 0 = unlimited, any
+   * other value is raised to MIN_CACHE_QUOTA_MB. With the "unlimitedStorage"
+   * permission the browser lifts the ~10 MB hard cap, so this is a housekeeping
+   * bound: provider data is evicted in batches by write age. Settings,
+   * diagnostic logs and the retraction map are outside it; blobs are evicted as
+   * a unit.
    */
   cacheQuotaMb: number;
   /**
@@ -19,6 +22,15 @@ export interface FloraSettings {
    * each pass so the log for a slow or wrong pass is one click away.
    */
   offerLogCopyAfterPass: boolean;
+}
+
+/** Floor for a non-zero cache budget, so a sweep can never squeeze out the
+ * working set of provider caches. */
+export const MIN_CACHE_QUOTA_MB = 10;
+
+/** Apply the floor to a stored or entered quota; 0 stays unlimited. */
+export function effectiveCacheQuotaMb(mb: number): number {
+  return mb === 0 ? 0 : Math.max(mb, MIN_CACHE_QUOTA_MB);
 }
 
 const STORAGE_KEY = "flora_settings";

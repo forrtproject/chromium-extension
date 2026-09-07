@@ -1,6 +1,7 @@
+import {fetchWithDeadline} from "@shared/work-cancellation";
 import {debugError} from "./debug";
 
-export const RET_MAP_KEY = "RetractionLookupLocal"
+export const RET_MAP_KEY = "RetractionLookupLocal";
 
 /**
  * Prebuilt retraction data, refreshed daily by the GitHub Action
@@ -28,7 +29,10 @@ export interface RetractionMaps {
 
 export async function fetchRetractionMap(): Promise<RetractionMaps | undefined> {
     try {
-        const response = await fetch(PREBUILT_JSON_URL);
+        // 3.7 MB of JSON: the deadline covers the whole body read, so it has to
+        // suit a slow link. The worker owns this download, so it is never bound
+        // to a page scan's signal.
+        const response = await fetchWithDeadline(PREBUILT_JSON_URL, {signal: null}, 120_000);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data && typeof data === 'object' && data.retractions && data.concerns)
@@ -42,6 +46,6 @@ export async function fetchRetractionMap(): Promise<RetractionMaps | undefined> 
 export async function storageSync(): Promise<boolean> {
     const map = await fetchRetractionMap();
     if (!map) return false;
-    await chrome.storage.local.set({[RET_MAP_KEY]: map});
+    await chrome.storage.local.set({[RET_MAP_KEY]: map, synctime: Date.now()});
     return true;
 }

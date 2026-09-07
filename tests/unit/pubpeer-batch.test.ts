@@ -1,3 +1,4 @@
+import {beginCancellableWork, endCancellableWork, cancelWork} from "../../src/shared/work-cancellation";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   lookupPubPeerForDoi,
@@ -55,8 +56,35 @@ describe("lookupPubPeerForDoi batching", () => {
   });
 
   afterEach(() => {
+    endCancellableWork();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     _resetPubPeerCacheForTesting();
+  });
+
+  it("drops cancelled queued batches after the scan indicator ends", async () => {
+    vi.useFakeTimers();
+    beginCancellableWork();
+    const pending = lookupPubPeerForDoi("10.1234/a");
+    const outcome = expect(pending).rejects.toMatchObject({name: "AbortError"});
+    cancelWork();
+    endCancellableWork();
+    await vi.advanceTimersByTimeAsync(50);
+    await outcome;
+    expect(fetchMock).not.toHaveBeenCalled();
+    const retry = lookupPubPeerForDoi("10.1234/a");
+    await vi.advanceTimersByTimeAsync(50);
+    expect((await retry)?.total_comments).toBe(3);
+  });
+
+  it("does not attach an idle lookup to a scan started during its batching window", async () => {
+    vi.useFakeTimers();
+    const pending = lookupPubPeerForDoi("10.1234/a");
+    beginCancellableWork();
+    cancelWork();
+    await vi.advanceTimersByTimeAsync(50);
+    expect((await pending)?.total_comments).toBe(3);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("coalesces concurrent single-DOI lookups into one request", async () => {
@@ -89,8 +117,55 @@ describe("lookupPubPeerForDoi batching", () => {
     expect(second?.total_comments).toBe(3);
   });
 
-  it("resolves to null rather than rejecting when the request fails", async () => {
-    fetchMock.mockRejectedValue(new Error("network down"));
+  it("rejects a malformed feedback entry instead of caching it as a miss", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true, status: 200, headers: {get: () => null},
+      json: async () => ({status: "success", feedbacks: [{id: "10.1234/a", total_comments: "many"}]}),
+    });
+    await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+    // A blank id names no publication, so the entry is unusable as well.
+    fetchMock.mockResolvedValue({
+      ok: true, status: 200, headers: {get: () => null},
+      json: async () => ({status: "success", feedbacks: [{
+        id: "  ", title: "A", total_comments: 3, total_peeriodical_comments: 0,
+        last_commented_at: "", users: "", url: "https://pubpeer.com/publications/a",
+      }]}),
+    });
+    await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+    fetchMock.mockResolvedValue({ok: true, status: 200, headers: {get: () => null}, json: async () => ({feedbacks: []})});
     await expect(lookupPubPeerForDoi("10.1234/a")).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(["javascript:alert(1)", "data:text/html,<script></script>"])(
+    "rejects a feedback whose url is %s instead of caching it", async (url) => {
+      fetchMock.mockResolvedValue({
+        ok: true, status: 200, headers: {get: () => null},
+        json: async () => ({status: "success", feedbacks: [{
+          id: "10.1234/a", title: "A", total_comments: 3, total_peeriodical_comments: 0,
+          last_commented_at: "", users: "", url,
+        }]}),
+      });
+      await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+      fetchMock.mockResolvedValue({ok: true, status: 200, headers: {get: () => null}, json: async () => ({feedbacks: []})});
+      await expect(lookupPubPeerForDoi("10.1234/a")).resolves.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+  it("refetches a cached feedback whose url is not usable", async () => {
+    store["flora_pubpeer_blob"] = {"10.1234/a": {t: Date.now(), v: {feedback: {
+      id: "10.1234/a", title: "A", total_comments: 3, total_peeriodical_comments: 0,
+      last_commented_at: "", users: "", url: "javascript:alert(1)",
+    }}}};
+    expect((await lookupPubPeerForDoi("10.1234/a"))?.url).toBe("https://pubpeer.com/publications/a");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects failures without caching them, so a later retry can succeed", async () => {
+    fetchMock.mockRejectedValue(new Error("network down"));
+    await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+    fetchMock.mockResolvedValue({ok: true, status: 200, json: async () => ({feedbacks: []})});
+    await expect(lookupPubPeerForDoi("10.1234/a")).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

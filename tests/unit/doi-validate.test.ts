@@ -2,13 +2,20 @@ import { describe, it, expect, vi, beforeEach, beforeAll, afterAll, afterEach } 
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
-import { validateDOI, validateDOIs, _resetValidationCacheForTesting } from "../../src/shared/doi-validate";
+import { validateDOIs, _resetValidationCacheForTesting } from "../../src/shared/doi-validate";
+import { beginCancellableWork, cancelWork, endCancellableWork } from "../../src/shared/work-cancellation";
 import type { DoiString } from "../../src/shared/types";
 
 const server = setupServer();
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
-afterEach(() => server.resetHandlers());
+// A cancelled pass leaves the module-level work state started and aborted, so
+// every case starts from a clean slate whatever the previous one asserted.
+afterEach(() => {
+  server.resetHandlers();
+  endCancellableWork();
+  vi.unstubAllGlobals();
+});
 afterAll(() => server.close());
 
 const doi = (s: string) => s as DoiString;
@@ -32,7 +39,7 @@ function handleFromRequest(request: Request): string {
   return decodeURIComponent(url.pathname.replace("/api/handles/", ""));
 }
 
-describe("validateDOI", () => {
+describe("DOI validation outcomes and caching", () => {
   beforeEach(() => {
     (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
@@ -47,7 +54,7 @@ describe("validateDOI", () => {
       )
     );
 
-    const result = await validateDOI(doi("10.1038/nature12373"));
+    const result = (await validateDOIs([doi("10.1038/nature12373")])).get(doi("10.1038/nature12373"));
     expect(result).toBe(true);
   });
 
@@ -58,7 +65,7 @@ describe("validateDOI", () => {
       )
     );
 
-    const result = await validateDOI(doi("10.1038/doesnotexist"));
+    const result = (await validateDOIs([doi("10.1038/doesnotexist")])).get(doi("10.1038/doesnotexist"));
     expect(result).toBe(false);
   });
 
@@ -90,6 +97,22 @@ describe("validateDOI", () => {
     expect(cachedDois()).not.toContain("10.1038/nature12373");
   });
 
+  it.each([2, 200, 999, undefined, "1"])(
+    "leaves responseCode %s unknown, uncached, and eligible for retry",
+    async (responseCode) => {
+      let calls = 0;
+      server.use(http.get(HANDLE_PATTERN, () => {
+        calls++;
+        return HttpResponse.json(calls === 1 ? { responseCode } : { responseCode: 1 });
+      }));
+      const target = doi("10.1038/retry");
+      expect((await validateDOIs([target])).has(target)).toBe(false);
+      expect(cachedDois()).not.toContain(target);
+      expect((await validateDOIs([target])).get(target)).toBe(true);
+      expect(calls).toBe(2);
+    },
+  );
+
   it("records a DOI invalid on HTTP 404", async () => {
     server.use(
       http.get(HANDLE_PATTERN, () => new HttpResponse(null, { status: 404 }))
@@ -106,7 +129,7 @@ describe("validateDOI", () => {
       )
     );
 
-    await validateDOI(doi("10.1038/nature12373"));
+    await validateDOIs([doi("10.1038/nature12373")]);
 
     expect(chrome.storage.local.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -127,7 +150,7 @@ describe("validateDOI", () => {
       )
     );
 
-    await validateDOI(doi("10.1038/doesnotexist"));
+    await validateDOIs([doi("10.1038/doesnotexist")]);
 
     expect(chrome.storage.local.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -159,7 +182,7 @@ describe("validateDOI", () => {
       },
     });
 
-    const result = await validateDOI(doi("10.1038/cached"));
+    const result = (await validateDOIs([doi("10.1038/cached")])).get(doi("10.1038/cached"));
     expect(result).toBe(true);
   });
 
@@ -177,7 +200,7 @@ describe("validateDOI", () => {
       )
     );
 
-    const result = await validateDOI(doi("10.1038/expired"));
+    const result = (await validateDOIs([doi("10.1038/expired")])).get(doi("10.1038/expired"));
     expect(result).toBe(true);
   });
 });
@@ -230,6 +253,23 @@ describe("validateDOIs", () => {
 
     const results = await validateDOIs([doi("10.6338/jda.202212/sp_17(4).0000")]);
     expect(results.get(doi("10.6338/jda.202212/sp_17(4).0000"))).toBe(true);
+  });
+
+  it("rejects a cancelled pass instead of reporting the DOIs unresolved", async () => {
+    // The transport is stubbed rather than mocked through msw: this case is
+    // about the abort reaching a request that is still open.
+    const fetchStub = vi.fn((_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) =>
+        init.signal!.addEventListener("abort", () => reject(init.signal!.reason), { once: true })));
+    vi.stubGlobal("fetch", fetchStub);
+    beginCancellableWork();
+    const pending = validateDOIs([doi("10.1038/cancelled")]);
+    const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    // Cancel the request while it is in flight.
+    await vi.waitFor(() => expect(fetchStub).toHaveBeenCalled());
+    cancelWork();
+    await outcome;
+    expect(cachedDois()).toEqual([]);
   });
 
   it("mixes cached and uncached DOIs", async () => {
