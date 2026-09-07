@@ -13,6 +13,8 @@ const CAPTURE_TIME = '2026-09-06T10:00:00Z';
 function evidence({screenshots = false, setup = false, screenshotRequired = true,
   setupRequired = false, head = 'abc', attempt = 1, updatedAt = CAPTURE_TIME} = {}) {
   return `Keep this author paragraph.\n\n<!-- flora-visual:start -->
+### Visual review
+
 <!-- flora-visual:evidence:${head}:123:${attempt}:${updatedAt} -->
 ${screenshotRequired ? `- [${screenshots ? 'x' : ' '}] ${SCREENSHOTS}` : ''}
 ${setupRequired ? `- [${setup ? 'x' : ' '}] ${SETUP}` : ''}
@@ -269,6 +271,20 @@ test('visual publication policy', async t => {
     assert.ok(published.body.includes('Trailing author notes.\n\n<!-- flora-visual:end -->\n\nMore prose.'));
     assert.ok(published.body.includes('### Visual review'));
     assert.equal((published.body.match(/### Visual review/g) ?? []).length,1);
+  });
+
+  await t.test('appends the block after prose that quotes both markers', async () => {
+    const prose = 'Intro.\n\n<!-- flora-visual:start -->\nquoted example\n<!-- flora-visual:end -->\n\nOutro.';
+    const published = await scenario({authorBody: prose});
+    // The quoted pair carries no generated block, so it survives untouched and
+    // the real block is added after it.
+    assert.ok(published.body.startsWith(prose));
+    assert.equal((published.body.match(/### Visual review/g) ?? []).length, 1);
+    assert.ok(published.body.indexOf('### Visual review') > published.body.indexOf('Outro.'));
+    // The appended block, not the quoted pair, is what the next run replaces.
+    const republished = await scenario({authorBody: published.body});
+    assert.ok(republished.body.startsWith(prose));
+    assert.equal((republished.body.match(/### Visual review/g) ?? []).length, 1);
   });
 
   await t.test('escapes parentheses in screenshot URLs', async () => {

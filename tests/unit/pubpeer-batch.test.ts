@@ -128,6 +128,30 @@ describe("lookupPubPeerForDoi batching", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it.each(["javascript:alert(1)", "data:text/html,<script></script>"])(
+    "rejects a feedback whose url is %s instead of caching it", async (url) => {
+      fetchMock.mockResolvedValue({
+        ok: true, status: 200, headers: {get: () => null},
+        json: async () => ({status: "success", feedbacks: [{
+          id: "10.1234/a", title: "A", total_comments: 3, total_peeriodical_comments: 0,
+          last_commented_at: "", users: "", url,
+        }]}),
+      });
+      await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+      fetchMock.mockResolvedValue({ok: true, status: 200, headers: {get: () => null}, json: async () => ({feedbacks: []})});
+      await expect(lookupPubPeerForDoi("10.1234/a")).resolves.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+  it("refetches a cached feedback whose url is not usable", async () => {
+    store["flora_pubpeer_blob"] = {"10.1234/a": {t: Date.now(), v: {feedback: {
+      id: "10.1234/a", title: "A", total_comments: 3, total_peeriodical_comments: 0,
+      last_commented_at: "", users: "", url: "javascript:alert(1)",
+    }}}};
+    expect((await lookupPubPeerForDoi("10.1234/a"))?.url).toBe("https://pubpeer.com/publications/a");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects failures without caching them, so a later retry can succeed", async () => {
     fetchMock.mockRejectedValue(new Error("network down"));
     await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");

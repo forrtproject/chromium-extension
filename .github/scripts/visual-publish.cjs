@@ -44,17 +44,23 @@ module.exports = async ({github, context}) => {
   const artifact = artifacts.data.artifacts.find(a => a.name === 'visual-report' && !a.expired);
   const link = artifact ? `${run.html_url}/artifacts/${artifact.id}` : run.html_url;
   const start = '<!-- flora-visual:start -->', end = '<!-- flora-visual:end -->';
-  const evidence = `<!-- flora-visual:evidence:${pr.head.sha}:${run_id}:${run.run_attempt ?? 1}:${run.updated_at} -->`;
+  const heading = '### Visual review';
+  const evidenceMarker = '<!-- flora-visual:evidence:';
+  const evidence = `${evidenceMarker}${pr.head.sha}:${run_id}:${run.run_attempt ?? 1}:${run.updated_at} -->`;
   const screenshotLabel = 'I checked the changed screenshots and they look right.';
   const setupLabel = 'I checked the screenshot test setup changes.';
-  // The author's own prose may quote either marker, so the managed block is the
-  // first closing marker that has a start before it, paired with the start
-  // nearest to it. Prose outside that pair is never rewritten.
+  // The author's own prose may quote either marker, so a pair is managed only
+  // when its contents carry the generated heading and evidence marker. Marker
+  // pairs are scanned in order and the first signed one is the managed block;
+  // any other prose is never rewritten.
   const managedRange = body => {
     const text = body ?? '';
     for (let to = text.indexOf(end); to >= 0; to = text.indexOf(end, to + end.length)) {
       const from = text.lastIndexOf(start, to);
-      if (from >= 0) return {from, to};
+      if (from >= 0) {
+        const inner = text.slice(from, to);
+        if (inner.includes(heading) && inner.includes(evidenceMarker)) return {from, to};
+      }
     }
     return undefined;
   };
@@ -148,7 +154,7 @@ module.exports = async ({github, context}) => {
   const baselineEvidence = Object.entries(groups).filter(([, entries]) => entries.length)
     .map(([title, entries]) => `#### ${title}\n\n${entries.join('\n')}`).join('\n\n') +
     (omittedPreviews ? `\n${omittedPreviews} additional screenshot previews omitted to keep this description within GitHub's limit. [Review all screenshot files](https://github.com/${owner}/${repo}/pull/${pull_number}/files).` : '');
-  const block = `${start}\n### Visual review\n\n${evidence}\n${summary}\n\n${checklist}\n${baselineEvidence}\n\n${changed.length ? '' : `[Download visual report](${link}) — open index.html after downloading.\n\n`}[Capture logs](${run.html_url})\n${end}`;
+  const block = `${start}\n${heading}\n\n${evidence}\n${summary}\n\n${checklist}\n${baselineEvidence}\n\n${changed.length ? '' : `[Download visual report](${link}) — open index.html after downloading.\n\n`}[Capture logs](${run.html_url})\n${end}`;
   const {data: fresh} = await github.rest.pulls.get({owner, repo, pull_number});
   if (fresh.head.sha !== pr.head.sha || fresh.body !== pr.body) return;
   const body = fresh.body ?? '';

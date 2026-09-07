@@ -36,12 +36,21 @@ export function applyCommenterMutes(
   };
 }
 
+/** The feedback URL becomes an anchor href, so only an https link is usable. */
+function isHttpsUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /** The fields callers read: the DOI key, the comment count, the link, and the commenter list. */
 function isUsableFeedback(feedback: PubPeerFeedback | null | undefined): boolean {
   if (!feedback || typeof feedback !== "object") return false;
   return typeof feedback.id === "string" &&
     typeof feedback.total_comments === "number" &&
-    typeof feedback.url === "string" &&
+    typeof feedback.url === "string" && isHttpsUrl(feedback.url) &&
     (feedback.users == null || typeof feedback.users === "string");
 }
 
@@ -138,7 +147,9 @@ export async function lookupPubPeerForDois<T extends string>(
   const cached = await PUBPEER_CACHE.getMany(dois.map(cacheKey));
   for (const doi of dois) {
     const entry = cached.get(cacheKey(doi));
-    if (entry) {
+    // A confirmed miss stays a miss; a cached hit the callers cannot use is
+    // fetched again.
+    if (entry && (entry.feedback === null || isUsableFeedback(entry.feedback))) {
       if (entry.feedback) result.set(doi, visible(entry.feedback));
     } else {
       uncached.push(doi);
