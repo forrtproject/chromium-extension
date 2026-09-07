@@ -8,7 +8,18 @@ import { createIndicatorPill, updateIndicatorPillBadges } from "../../src/shared
 import type { DoiString, LookupState } from "../../src/shared/types";
 
 const DOI = "10.1234/x" as DoiString;
-const ACCENT_FILL = "rgba(133, 57, 83, 0.75)";
+const ACCENT_FILL = "rgba(133, 57, 83, 0.78)";
+
+function contrastWithWhiteText(css: string): number {
+  const parts = css.match(/[\d.]+/g)!.map(Number);
+  const alpha = parts.length > 3 ? parts[3] : 1;
+  const lin = (c: number) => {
+    const v = (alpha * c + (1 - alpha) * 255) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * lin(parts[0]) + 0.7152 * lin(parts[1]) + 0.0722 * lin(parts[2]);
+  return 1.05 / (luminance + 0.05);
+}
 
 function strip(wrapper: HTMLElement): HTMLElement {
   return wrapper.querySelector<HTMLElement>("[data-flora-segments]")!;
@@ -93,14 +104,33 @@ describe("the pill's segment strip", () => {
     expect(badge.style.borderRadius).toBe("0 9999px 9999px 0");
   });
 
-  it("gives a retraction its own alarm colour and label", () => {
-    const badge = segments(createIndicatorPill({
-      doi: DOI,
-      retraction: { originDoi: DOI, doi: "10.9/n" as DoiString, kind: "retraction" },
-    })).at(-1)!;
+  it("gives a notice its own alarm colour and label", () => {
+    const noticed = (kind: "retraction" | "concern") =>
+      segments(createIndicatorPill({
+        doi: DOI,
+        retraction: { originDoi: DOI, doi: "10.9/n" as DoiString, kind },
+      })).at(-1)!;
 
-    expect(labelOf(badge)).toBe("Retracted");
-    expect(badge.style.background).toBe("rgb(216, 46, 61)");
+    expect(labelOf(noticed("retraction"))).toBe("Retracted");
+    expect(labelOf(noticed("concern"))).toBe("Concern");
+    expect(noticed("retraction").style.background)
+      .not.toBe(noticed("concern").style.background);
+  });
+
+  it("carries its white label at AA contrast on every lit fill", () => {
+    const fills = [
+      segments(createIndicatorPill({ doi: DOI })).at(0)!,
+      segments(createIndicatorPill({
+        doi: DOI, retraction: { originDoi: DOI, doi: "10.9/n" as DoiString, kind: "retraction" },
+      })).at(-1)!,
+      segments(createIndicatorPill({
+        doi: DOI, retraction: { originDoi: DOI, doi: "10.9/n" as DoiString, kind: "concern" },
+      })).at(-1)!,
+    ].map((seg) => seg.style.background);
+
+    for (const fill of fills) {
+      expect(contrastWithWhiteText(fill), fill).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("redraws the strip when a later pass carries replication counts", () => {

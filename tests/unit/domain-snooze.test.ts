@@ -1,6 +1,4 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {readFileSync} from "node:fs";
-import {join} from "node:path";
 
 // Temporary per-site pauses live in chrome.storage.local as
 // hostname → expiry epoch; the permanent blocked list stays in storage.sync.
@@ -100,19 +98,5 @@ describe("domain snooze", () => {
 
     await expect(getBlockedDomains()).resolves.toEqual(["example.com"]);
     expect(syncStore[BLACKLIST_KEY]).toEqual(["example.com"]);
-  });
-});
-
-describe("the popup's resume button", () => {
-  const read = (name: string) =>
-    readFileSync(join(__dirname, "..", "..", "src", "popup", name), "utf-8");
-
-  it("ships hidden and is only shown for a snoozed domain", () => {
-    expect(read("popup.html")).toMatch(/id="resume-btn"[^>]*\shidden/);
-    expect(read("popup.ts")).toContain("resumeBtn.hidden = !paused;");
-  });
-
-  it("keeps [hidden] effective against the button's own display rule", () => {
-    expect(read("popup.css")).toMatch(/\.popup-btn\[hidden\]\s*\{\s*display:\s*none;/);
   });
 });

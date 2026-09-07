@@ -179,7 +179,7 @@ const SEGMENT_DIVIDER_ATTR = "data-flora-segment-divider";
 const SEGMENT_STRIP_ATTR = "data-flora-segments";
 const SEGMENT_ACCENT_ATTR = "data-flora-accent";
 
-const FILL_ALPHA = "bf";
+const FILL_ALPHA = "c7";
 const FILL_HOVER_ALPHA = "e6";
 const BORDER_ALPHA = "4d";
 const ABSENT_ALPHA = "80";
@@ -336,7 +336,7 @@ function resolveBadgeSignal(
             href: `https://doi.org/${retraction.doi}`,
             segmentLabel: presentation.label,
             segmentIcon: PILL_ALERT_SVG,
-            segmentFill: presentation.pillStroke,
+            segmentFill: presentation.pillText,
             accent: presentation.pillStroke,
             rowTitle: presentation.label,
             rowSubtitle: presentation.bannerCopy,
