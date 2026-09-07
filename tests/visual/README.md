@@ -148,7 +148,9 @@ run (`npm run test:visual:update`) and commit them from that platform.
 
 When a FLoRA UI change is intentional, run `npm run test:visual:update`,
 **visually inspect** the regenerated PNGs in `baselines/`, and commit them
-alongside the code change so the diff is reviewable.
+alongside the code change so the diff is reviewable. The renders are staged in a
+temporary directory and copied into `baselines/` only when every fixture
+succeeds, so a failed capture leaves the committed baselines untouched.
 
 ## PR evidence and visual sign-off
 

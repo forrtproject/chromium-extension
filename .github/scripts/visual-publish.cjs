@@ -47,9 +47,17 @@ module.exports = async ({github, context}) => {
   const evidence = `<!-- flora-visual:evidence:${pr.head.sha}:${run_id}:${run.run_attempt ?? 1}:${run.updated_at} -->`;
   const screenshotLabel = 'I checked the changed screenshots and they look right.';
   const setupLabel = 'I checked the screenshot test setup changes.';
+  // The author's own prose may quote a start marker, so the managed block is
+  // the last complete marker pair: the closing marker and the start nearest
+  // before it. Prose outside that pair is never rewritten.
+  const managedRange = body => {
+    const to = (body ?? '').lastIndexOf(end);
+    const from = to >= 0 ? body.lastIndexOf(start, to) : -1;
+    return from >= 0 ? {from, to} : undefined;
+  };
   const managed = body => {
-    const from = (body ?? '').indexOf(start), to = (body ?? '').indexOf(end, from);
-    return from >= 0 && to >= from ? body.slice(from, to) : '';
+    const range = managedRange(body);
+    return range ? body.slice(range.from, range.to) : '';
   };
   const currentEvidence = body => managed(body).includes(evidence);
   const checked = (body, label) => currentEvidence(body) && managed(body).split('\n')
@@ -141,8 +149,8 @@ module.exports = async ({github, context}) => {
   const {data: fresh} = await github.rest.pulls.get({owner, repo, pull_number});
   if (fresh.head.sha !== pr.head.sha || fresh.body !== pr.body) return;
   const body = fresh.body ?? '';
-  const from = body.indexOf(start), to = body.indexOf(end, from);
-  const next = from >= 0 && to >= from ? body.slice(0, from) + block + body.slice(to + end.length) : body + '\n\n' + block;
+  const range = managedRange(body);
+  const next = range ? body.slice(0, range.from) + block + body.slice(range.to + end.length) : body + '\n\n' + block;
   if (next.length <= 65000) await github.rest.pulls.update({owner, repo, pull_number, body: next});
   else console.warn('Visual evidence did not fit the existing PR description; see the status report and Files changed.');
   await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,

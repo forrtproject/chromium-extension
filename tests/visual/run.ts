@@ -20,7 +20,7 @@ import {
 import puppeteer, { type Browser, type CDPSession, type Page, type Target } from "puppeteer-core";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
-import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -107,6 +107,11 @@ const FLORA_SELECTOR =
 
 const UPDATE = process.argv.includes("--update");
 const REVIEW = process.argv.includes("--review");
+
+// A fixture that fails mid-run must not leave a baseline set that mixes old and
+// new renders, so `--update` stages every render outside the repository and
+// copies it into the baseline directory only once all fixtures have succeeded.
+const STAGING_DIR = UPDATE ? mkdtempSync(path.join(os.tmpdir(), "flora-visual-baselines-")) : "";
 
 // ── Chrome for Testing bootstrap ────────────────────────────────────────────
 async function ensureChrome(): Promise<string> {
@@ -322,8 +327,7 @@ async function captureFixture(
     const baselinePath = path.join(BASELINE_DIR, `${fixture.name}.png`);
 
     if (UPDATE) {
-      mkdirSync(BASELINE_DIR, { recursive: true });
-      writeFileSync(baselinePath, PNG.sync.write(actual));
+      writeFileSync(path.join(STAGING_DIR, `${fixture.name}.png`), PNG.sync.write(actual));
       return { name: fixture.name, status: "written", detail: `${actual.width}x${actual.height}` };
     }
 
@@ -453,9 +457,20 @@ async function main(): Promise<void> {
   console.log("");
   mkdirSync(OUTPUT_DIR, { recursive: true });
   writeFileSync(path.join(OUTPUT_DIR, "results.json"), JSON.stringify(results, null, 2));
-  if (UPDATE && failures.length === 0) {
-    console.log(`Baselines written: ${results.length}. Inspect before committing.`);
-    return;
+  if (UPDATE) {
+    if (failures.length === 0) {
+      mkdirSync(BASELINE_DIR, { recursive: true });
+      for (const r of results) {
+        copyFileSync(path.join(STAGING_DIR, `${r.name}.png`), path.join(BASELINE_DIR, `${r.name}.png`));
+      }
+      rmSync(STAGING_DIR, { recursive: true, force: true });
+      console.log(`Baselines written: ${results.length}. Inspect before committing.`);
+      return;
+    }
+    rmSync(STAGING_DIR, { recursive: true, force: true });
+    console.log(`FAILED: ${failures.length}/${results.length} fixture(s) could not be captured. Baselines left unchanged.`);
+    for (const f of failures) console.log(`  ✗ ${f.name}: ${f.detail}`);
+    process.exit(1);
   }
   if (REVIEW && failures.every((r) => r.changed)) {
     console.log(`Visual review: ${results.filter(r => r.changed).length} changed fixture(s).`);

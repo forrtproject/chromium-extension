@@ -240,6 +240,17 @@ test('visual publication policy', async t => {
     assert.equal((result.body.match(/!\[Before\]/g) ?? []).length,4);
   });
 
+  await t.test('keeps author prose that quotes the start marker', async () => {
+    const quoted = body => `Intro.\n\n<!-- flora-visual:start -->\n\nAuthor notes about the managed block.\n\n${body}`;
+    const unchecked = quoted(evidence()), checked = quoted(evidence({screenshots:true}));
+    const published = await scenario({changed:true,edited:edit(unchecked,checked)});
+    // Only the last complete marker pair is managed, so the quoted marker and
+    // the prose after it survive publication.
+    assert.equal(published.state,'success');
+    assert.ok(published.body.startsWith('Intro.\n\n<!-- flora-visual:start -->\n\nAuthor notes about the managed block.\n\nKeep this author paragraph.\n\n'));
+    assert.equal((published.body.match(/<!-- flora-visual:end -->/g) ?? []).length,1);
+  });
+
   await t.test('escapes parentheses in screenshot URLs', async () => {
     const parens = await scenario({files:[{filename:'docs/img/a(b).png',status:'added'}]});
     assert.match(parens.body,/abc\/docs\/img\/a%28b%29\.png/);

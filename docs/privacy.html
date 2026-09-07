@@ -50,8 +50,9 @@
           tracking, no advertising. What leaves your browser is paper
           identifiers (DOIs) and article titles, plus the contact email you
           enter in settings, which is passed to Crossref, OpenAlex, Unpaywall and NCBI
-          because those services ask for one. Retraction checks happen entirely
-          on your own device.
+          because those services ask for one. On an article page, the address of
+          that page goes to PubPeer with the comment lookup for the paper.
+          Retraction checks happen entirely on your own device.
         </p>
       </div>
 
@@ -153,8 +154,11 @@
         <strong>Optional diagnostics:</strong> debug mode stores a bounded local
         log, which can contain paper identifiers, titles and page information.
         The issue-reporting tools let you review, copy, download or clear a
-        report before sharing it on GitHub. Your configured contact email is
-        excluded from reports; nothing is submitted automatically.
+        report before you use it. Your configured contact email is excluded from
+        reports. “Report an issue” opens GitHub's new-issue form with the report
+        prefilled, so GitHub receives the report as the form opens; the issue
+        becomes public only when you press GitHub's own submit button. The
+        report goes nowhere else.
       </p>
 
       <h2>5. Services the Extension contacts</h2>
@@ -223,6 +227,15 @@
               The weekly refresh of the retraction list, which is derived from
               Retraction Watch data released with Crossref
             </td>
+          </tr>
+          <tr>
+            <td>GitHub new-issue form (<code>github.com</code>)</td>
+            <td>
+              The diagnostic report you chose to send — the captured log,
+              your settings and the page or domain you were on, without your
+              contact email — carried in the link when the form opens
+            </td>
+            <td>Reporting a problem with the Extension</td>
           </tr>
           <tr>
             <td>Google Sheets export endpoint</td>
