@@ -27,7 +27,8 @@ vi.mock("../../src/shared/pmc-resolve", () => ({
 }));
 
 // Mock settings
-vi.mock("../../src/shared/settings", () => ({
+vi.mock("../../src/shared/settings", async importOriginal => ({
+    ...await importOriginal<typeof import("../../src/shared/settings")>(),
     isSetupComplete: vi.fn().mockResolvedValue(true),
     getSettings: vi.fn().mockResolvedValue({email: "test@example.com", cacheQuotaMb: 500}),
 }));

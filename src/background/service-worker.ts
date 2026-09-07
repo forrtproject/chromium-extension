@@ -3,7 +3,7 @@ import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
-import {RET_MAP_KEY, RET_BUDGET_EVICTED_SYNC_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
+import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse} from "@shared/messages";
 import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, type TakeReportResponse} from "@shared/messages";
@@ -558,9 +558,9 @@ async function loadRetractionSource(signal: AbortSignal): Promise<RetractionMaps
         return source;
     }
 
-    // The synced map may be absent on first use or after budget eviction.
-    // Answer from the bundled JSON and check whether refresh is due. Don't
-    // cache this source choice, so a newly synced map is noticed on next check.
+    // The synced map is absent on first use and after a failed sync. Answer
+    // from the bundled JSON and check whether refresh is due. Don't cache this
+    // source choice, so a newly synced map is noticed on next check.
     debugLog("Retractions: no stored map — answering from the bundled map and checking refresh schedule");
     syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
     return loadBundledRetractionMap(signal);
@@ -605,11 +605,16 @@ export function syncRetractionsInfo(): Promise<void> {
     return syncInFlight;
 }
 
+// A missing map makes every check ask for a sync, so a download that keeps
+// failing must not be retried on each of them. In-memory: one further attempt
+// per worker lifetime is not a pile-up.
+const RETRY_INTERVAL = 1000 * 60 * 10;
+let lastSyncAttempt = 0;
+
 async function runRetractionSync(): Promise<void> {
     const minInterval = 1000 * 60 * 60 * 24 * 7; // weekly
     const currentTime = Date.now();
-    // One snapshot keeps the map and its eviction metadata consistent.
-    const previous = await chrome.storage.local.get(["synctime", RET_BUDGET_EVICTED_SYNC_KEY, RET_MAP_KEY]);
+    const previous = await chrome.storage.local.get(["synctime", RET_MAP_KEY]);
     const lastSync = previous.synctime || 0;
     const nextUpdate = lastSync + minInterval;
     const map = previous[RET_MAP_KEY] as RetractionMaps | undefined;
@@ -617,9 +622,8 @@ async function runRetractionSync(): Promise<void> {
         Object.keys(map.retractions || {}).length === 0 &&
         Object.keys(map.concerns || {}).length === 0
     );
-    const deliberatelyEvicted = map === undefined && Number.isFinite(lastSync) && lastSync > 0 &&
-        previous[RET_BUDGET_EVICTED_SYNC_KEY] === lastSync;
-    if ((isEmpty && !deliberatelyEvicted) || currentTime > nextUpdate) {
-        await storageSync();
-    }
+    if (!isEmpty && currentTime <= nextUpdate) return;
+    if (currentTime - lastSyncAttempt < RETRY_INTERVAL) return;
+    lastSyncAttempt = currentTime;
+    await storageSync();
 }

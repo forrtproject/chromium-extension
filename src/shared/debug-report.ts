@@ -18,7 +18,7 @@ import { redactDebugText } from "./debug-redact";
 import { recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
 import { readDebugLog } from "./debug-log";
 import { safeSendMessage } from "./messages";
-import { getSettings } from "./settings";
+import { effectiveCacheQuotaMb, getSettings } from "./settings";
 import { getBlockedDomains } from "./domains";
 import { getHiddenCommenters } from "./pubpeer-filter";
 
@@ -181,7 +181,7 @@ export async function collectDebugReport(
     // which is what distinguishes "setup incomplete" from a real bug.
     `Contact email configured: ${settings.email.trim() ? "yes" : "no"}`,
     `Citation style: ${settings.citationStyle}`,
-    `Cache limit: ${settings.cacheQuotaMb === 0 ? "unlimited" : `${settings.cacheQuotaMb} MB`}`,
+    `Cache limit: ${settings.cacheQuotaMb === 0 ? "unlimited" : `${effectiveCacheQuotaMb(settings.cacheQuotaMb)} MB`}`,
     `Blocked domains: ${blockedDomains.length}`,
     `Muted PubPeer commenters: ${mutedCommenters.length}`,
   ];

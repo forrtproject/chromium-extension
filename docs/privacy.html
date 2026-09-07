@@ -140,9 +140,10 @@
           the lookups described above, together with the retraction list, kept
           so that revisiting a paper does not repeat every request. Entries
           expire, and a shared soft limit covers all provider caches
-          (50 MB by default). Expired entries are removed first, then older
-          entries; some provider caches are removed as a whole. Settings and
-          diagnostic reports are outside this limit. The cache
+          (50 MB by default, 10 MB minimum). Expired entries are removed first,
+          then older entries; some provider caches are removed as a whole.
+          Settings, diagnostic reports and the retraction list are outside this
+          limit. The cache
           stays on your device and is never transmitted. Uninstalling the
           Extension, or clearing its storage from your browser, removes it.
         </li>

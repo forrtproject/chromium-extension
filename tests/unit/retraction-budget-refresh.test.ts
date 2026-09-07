@@ -1,7 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {RET_MAP_KEY, RET_BUDGET_EVICTED_SYNC_KEY} from "../../src/shared/data-extract";
+import {RET_MAP_KEY} from "../../src/shared/data-extract";
 
-vi.mock("../../src/shared/settings", () => ({
+vi.mock("../../src/shared/settings", async importOriginal => ({
+    ...await importOriginal<typeof import("../../src/shared/settings")>(),
     isSetupComplete: async () => true,
     getSettings: async () => ({cacheQuotaMb: 0}),
 }));
@@ -11,6 +12,7 @@ const NOW = 1_800_000_000_000;
 const map = {retractions: {"10.1000/paper": "10.1000/notice"}, concerns: {}};
 let store: Record<string, unknown>;
 let remoteRequests: number;
+let failDownloads: boolean;
 
 beforeEach(() => {
     vi.resetModules();
@@ -18,6 +20,7 @@ beforeEach(() => {
     vi.setSystemTime(NOW);
     store = {};
     remoteRequests = 0;
+    failDownloads = false;
     vi.mocked(chrome.runtime.onMessage.addListener).mockClear();
     chrome.storage.local.get = vi.fn(async keys => {
         const wanted = keys === null ? Object.keys(store) : Array.isArray(keys) ? keys :
@@ -32,7 +35,10 @@ beforeEach(() => {
         (keys === null ? Object.keys(store) : Array.isArray(keys) ? keys : [keys])
             .reduce((sum, key) => sum + (key in store ? new TextEncoder().encode(key + JSON.stringify(store[key])).length : 0), 0));
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
-        if (url.startsWith("https://raw.githubusercontent.com/")) remoteRequests++;
+        if (url.startsWith("https://raw.githubusercontent.com/")) {
+            remoteRequests++;
+            if (failDownloads) throw new Error("network down");
+        }
         return new Response(JSON.stringify(map));
     }));
 });
@@ -43,88 +49,47 @@ async function checkRetraction(): Promise<unknown> {
     return new Promise(resolve => listener({type: "FLORA_RET_CHECK", dois: ["10.1000/paper"]}, {}, resolve));
 }
 
-describe("retraction refresh after cache budget eviction", () => {
-    it("answers repeated checks from the bundle without re-downloading until weekly refresh", async () => {
+describe("retraction map and the cache budget", () => {
+    it("keeps the map through an over-budget sweep and refreshes on the weekly schedule", async () => {
         const {syncRetractionsInfo} = await import("../../src/background/service-worker");
         const {enforceCacheBudget} = await import("../../src/shared/cache-budget");
+        store.flora_oa_blob = {doi: {v: "x".repeat(500), t: NOW}};
         await syncRetractionsInfo();
         expect(remoteRequests).toBe(1);
-        await enforceCacheBudget(40); // too small to retain this provider map
-        expect(store[RET_MAP_KEY]).toBeUndefined();
-        expect(store[RET_BUDGET_EVICTED_SYNC_KEY]).toBe(NOW);
+        await enforceCacheBudget(40); // too small to retain any provider cache
+        expect(store[RET_MAP_KEY]).toEqual(map);
+        expect(store.flora_oa_blob).toBeUndefined();
         for (let i = 0; i < 5; i++) {
             expect(await checkRetraction()).toMatchObject({results: [{originDoi: "10.1000/paper", doi: "10.1000/notice"}]});
             await syncRetractionsInfo();
-            await enforceCacheBudget(40);
         }
         expect(remoteRequests).toBe(1);
         vi.setSystemTime(NOW + WEEK + 1);
         await syncRetractionsInfo();
         expect(remoteRequests).toBe(2);
-        expect(store[RET_BUDGET_EVICTED_SYNC_KEY]).toBeUndefined();
-        await enforceCacheBudget(40);
-        expect(store[RET_BUDGET_EVICTED_SYNC_KEY]).toBe(NOW + WEEK + 1);
-        await checkRetraction();
+    });
+
+    it("backs off after a failed download instead of retrying on every check", async () => {
+        failDownloads = true;
+        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
+        await syncRetractionsInfo();
+        expect(remoteRequests).toBe(1);
+        expect(store[RET_MAP_KEY]).toBeUndefined();
+        for (let i = 0; i < 5; i++) {
+            await checkRetraction();
+            await vi.runAllTimersAsync(); // let the check's fire-and-forget sync settle
+        }
+        expect(remoteRequests).toBe(1);
+        vi.setSystemTime(NOW + 10 * 60 * 1000 + 1);
+        failDownloads = false;
         await syncRetractionsInfo();
         expect(remoteRequests).toBe(2);
-    });
-
-    it("uses the current sync generation when refresh lands during budget accounting", async () => {
-        store = {[RET_MAP_KEY]: map, synctime: NOW};
-        const bytes = chrome.storage.local.getBytesInUse;
-        vi.mocked(chrome.storage.local.getBytesInUse).mockImplementationOnce(async keys => {
-            const size = await bytes(keys);
-            store.synctime = NOW + 1; // a successful refresh after the sweep snapshot
-            return size;
-        });
-        const {enforceCacheBudget} = await import("../../src/shared/cache-budget");
-        await enforceCacheBudget(40);
-        expect(store[RET_BUDGET_EVICTED_SYNC_KEY]).toBe(NOW + 1);
-        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
-        await syncRetractionsInfo();
-        expect(remoteRequests).toBe(0);
-    });
-
-    it("serializes publication with an eviction already between marker write and removal", async () => {
-        vi.useRealTimers();
-        const startedAt = Date.now();
-        store = {[RET_MAP_KEY]: map, synctime: startedAt - WEEK - 1};
-        let reachedRemoval!: () => void;
-        let releaseRemoval!: () => void;
-        const reached = new Promise<void>(resolve => {reachedRemoval = resolve;});
-        const released = new Promise<void>(resolve => {releaseRemoval = resolve;});
-        vi.mocked(chrome.storage.local.remove).mockImplementationOnce(async keys => {
-            reachedRemoval();
-            await released;
-            for (const key of Array.isArray(keys) ? keys : [keys]) delete store[key];
-        });
-        const {enforceCacheBudget} = await import("../../src/shared/cache-budget");
-        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
-        const eviction = enforceCacheBudget(40);
-        await reached;
-        let published = false;
-        const refresh = syncRetractionsInfo().then(() => {published = true;});
-        try {
-            // Let the fetch and JSON microtasks complete while removal is held.
-            await new Promise(resolve => setTimeout(resolve, 0));
-            expect(remoteRequests).toBe(1); // network work is outside the storage lock
-            expect(published).toBe(false);
-        } finally {
-            releaseRemoval();
-            await Promise.all([eviction, refresh]);
-        }
         expect(store[RET_MAP_KEY]).toEqual(map);
-        expect(store.synctime).toBeGreaterThanOrEqual(startedAt);
-        expect(store[RET_BUDGET_EVICTED_SYNC_KEY]).toBeUndefined();
     });
 
-    it.each(["missing", "empty", "old-marker"])("still repairs a %s map without matching budget eviction", async kind => {
+    it.each(["missing", "empty"])("repairs a %s map on the next sync", async kind => {
         store.synctime = NOW;
-        if (kind === "empty") {
-            store[RET_MAP_KEY] = {retractions: {}, concerns: {}};
-            store[RET_BUDGET_EVICTED_SYNC_KEY] = NOW;
-        }
-        if (kind === "old-marker") store[RET_BUDGET_EVICTED_SYNC_KEY] = NOW - WEEK;
+        if (kind === "empty") store[RET_MAP_KEY] = {retractions: {}, concerns: {}};
         const {syncRetractionsInfo} = await import("../../src/background/service-worker");
         await syncRetractionsInfo();
         expect(remoteRequests).toBe(1);

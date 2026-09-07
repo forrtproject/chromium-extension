@@ -4,7 +4,8 @@ import { RET_MAP_KEY } from "../../src/shared/data-extract";
 
 vi.mock("../../src/shared/flora-api", () => ({ lookupDOIs: vi.fn() }));
 vi.mock("../../src/shared/pmc-resolve", () => ({ resolvePmcIds: vi.fn() }));
-vi.mock("../../src/shared/settings", () => ({
+vi.mock("../../src/shared/settings", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../../src/shared/settings")>()),
     isSetupComplete: vi.fn().mockResolvedValue(true),
     getSettings: vi.fn().mockResolvedValue({ email: "t@example.com", cacheQuotaMb: 500 }),
 }));

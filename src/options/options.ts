@@ -1,4 +1,4 @@
-import { getSettings, saveSettings } from "../shared/settings";
+import { effectiveCacheQuotaMb, getSettings, MIN_CACHE_QUOTA_MB, saveSettings } from "../shared/settings";
 import { getBlockedDomains, saveBlockedDomains } from "../shared/domains";
 import { CITATION_FORMATS, citationFormat, fetchCitation } from "../shared/citation";
 import {
@@ -109,14 +109,16 @@ getSettings().then(({ cacheQuotaMb }) => {
 
 cacheQuotaSaveBtn.addEventListener("click", async () => {
   const raw = parseInt(cacheQuotaInput.value, 10);
-  const cacheQuotaMb = isNaN(raw) || raw < 0 ? 50 : raw;
+  const cacheQuotaMb = effectiveCacheQuotaMb(isNaN(raw) || raw < 0 ? 50 : raw);
   cacheQuotaInput.value = String(cacheQuotaMb);
   cacheQuotaSaveBtn.disabled = true;
   try {
     await saveSettings({ cacheQuotaMb });
     cacheQuotaStatus.textContent = cacheQuotaMb === 0
       ? "Storage limit removed — cache is unlimited."
-      : `Storage limit set to ${cacheQuotaMb} MB.`;
+      : cacheQuotaMb === MIN_CACHE_QUOTA_MB
+        ? `Storage limit set to ${MIN_CACHE_QUOTA_MB} MB (the minimum).`
+        : `Storage limit set to ${cacheQuotaMb} MB.`;
     cacheQuotaStatus.className = "status domain-status success";
     cacheQuotaStatus.hidden = false;
     setTimeout(() => { cacheQuotaStatus.hidden = true; }, 3000);
