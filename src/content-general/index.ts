@@ -49,7 +49,7 @@ import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {fetchSheetCsv, parseSheetsUrl, sheetTabKey} from "./sheets";
-import {canStartAutomaticWork, resumeAutomaticWork} from "@shared/work-cancellation";
+import {canStartAutomaticWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
@@ -106,6 +106,26 @@ const isSheets = location.href.includes("docs.google.com/spreadsheets");
 // Track whether the popup has hidden FLoRA UI on this page (session only)
 let floraHidden = false;
 
+// A FORRT Retry on a pill or panel row writes into pageState from outside a
+// scan pass, so it carries this page's identity and reports back when it lands.
+const badgeRetryHooks = {
+    generation: () => pageGeneration,
+    onResolved: (): void => {
+        pageStateVersion++;
+        if (isSheets) return;
+        // The indicator mints a fresh work signal, so the panel refresh runs
+        // even when the previous pass was cancelled.
+        beginWorkIndicator({stages: ["lookup"]});
+        void checkPubPeer(Promise.resolve(lastResolvedReferences))
+            .catch((err) => debugError("General: panel refresh after FORRT retry failed —", err))
+            .finally(() => endWorkIndicator());
+    },
+};
+/** Repaint every pill/panel badge against the current lookup state and notices. */
+function repaintBadges(onlyDoi?: DoiString): void {
+    updateIndicatorPillBadges(document, pageState, () => redacts, "pills", onlyDoi, badgeRetryHooks);
+}
+
 // Tell the service worker whether FLoRA is active on this tab so it can swap the
 // toolbar icon (maroon = active, gray = inactive).
 function reportActiveState(active: boolean): void {
@@ -129,7 +149,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     } else if (type === "FLORA_SHOW_UI") {
         floraHidden = false;
         resumeAutomaticWork();
-        updateIndicatorPillBadges(document, pageState, () => redacts);
+        repaintBadges();
         showAllFloraUI();
         void scanWholePage().catch((err) => debugError("General: resumed pass failed —", err));
         reportActiveState(true);
@@ -192,7 +212,7 @@ async function primaryDoiFastPath(): Promise<void> {
         pageStateVersion++;
 
         placeTitleIndicatorPill();
-        updateIndicatorPillBadges(document, pageState, () => redacts);
+        repaintBadges();
     } catch (err) {
         debugError(`Primary DOI fast path failed for ${primary} —`, err);
         rollback();
@@ -239,8 +259,12 @@ function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
     showToast(`Checked ${count(examined, "paper")} — no flags in available results`, {tone: "success"});
 }
 
-/** Preserve unavailable checks for an explicit retry, independently of DOI scan markers. */
-async function checkPageRetractions(dois: DoiString[]): Promise<RetractionResponse[]> {
+/**
+ * Preserve unavailable checks for an explicit retry, independently of DOI scan
+ * markers. Returns null when the check was abandoned (cancelled, hidden or
+ * superseded): those DOIs carry no verdict and must be checked again.
+ */
+async function checkPageRetractions(dois: DoiString[]): Promise<RetractionResponse[] | null> {
     const passUrl = location.href;
     const generation = sheetFetchGen;
     const checkedPageGeneration = pageGeneration;
@@ -252,12 +276,12 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
         || navigated();
     try {
         const notices = await retractionCheck(dois);
-        if (stale()) return [];
+        if (stale()) return null;
         for (const doi of dois) unavailableRetractionDois.delete(doi);
         if (unavailableRetractionDois.size === 0) dismissRetractionRetry();
         return notices;
     } catch (error) {
-        if (stale()) return [];
+        if (stale()) return null;
         for (const doi of dois) unavailableRetractionDois.add(doi);
         if (error instanceof Error && error.message.includes("Extension context invalidated")) {
             showToast("ORE was updated — reload this page to run checks.", {
@@ -283,7 +307,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                     beginWorkIndicator({stages: ["notices"]});
                     try {
                         const recovered = await checkPageRetractions([...unavailableRetractionDois]);
-                        if (floraHidden || isWorkCancelled() || navigated()) return;
+                        if (!recovered || floraHidden || isWorkCancelled() || navigated()) return;
                         for (const notice of recovered) refNotices.set(notice.originDoi, notice);
                         refreshRedacts();
                         if (isSheets) {
@@ -297,7 +321,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                                 if (notice) injectRetractionInfo(pill, notice, {afterend: true});
                             }
                             injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
-                            updateIndicatorPillBadges(document, pageState, () => redacts);
+                            repaintBadges();
                             lastRenderedPageStateVersion = -1;
                             await checkPubPeer(Promise.resolve(lastResolvedReferences));
                         }
@@ -438,6 +462,13 @@ async function runScanPass(): Promise<void> {
         reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
         const notices = await checkPageRetractions(dois);
         if (pageChanged()) { abandonReferences(); return; }
+        if (!notices) {
+            // Abandoned mid-check on this page: give back the scan markers, so
+            // the pass that resumes checks these DOIs instead of skipping them.
+            seenDois.clear();
+            abandonReferences();
+            return;
+        }
         pageNotices = notices;
         refreshRedacts();
         // A noticed DOI gets one labelled pill, at its most prominent
@@ -462,7 +493,7 @@ async function runScanPass(): Promise<void> {
     if (newDois.length === 0 && dois.length === 0) {
         debugLog("No valid DOIs found on page, attempting title augmentation");
         if (!isSheets) placeTitleIndicatorPill();
-        if (!isSheets) updateIndicatorPillBadges(document, pageState, () => redacts);
+        if (!isSheets) repaintBadges();
         if (!isSheets) augmentFromTitle().catch((err) => debugError("Title augmentation failed —", err));
         if (!isSheets) void checkPubPeer(refsDone);
         return;
@@ -475,7 +506,7 @@ async function runScanPass(): Promise<void> {
         // (triggered by that mutation) would otherwise return without restoring them.
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) placeTitleNoticePill();
-        if (!isSheets) updateIndicatorPillBadges(document, pageState, () => redacts);
+        if (!isSheets) repaintBadges();
         if (!isSheets) void checkPubPeer(refsDone);
         return;
     }
@@ -517,7 +548,7 @@ async function runScanPass(): Promise<void> {
             pageStateVersion++;
             if (floraHidden) return;
             if (!isSheets) placeTitleIndicatorPill();
-            updateIndicatorPillBadges(document, pageState, () => redacts);
+            repaintBadges();
             renderErrorBanner("Couldn't load replication data for this page");
             return;
         }
@@ -584,7 +615,7 @@ async function runScanPass(): Promise<void> {
             // Merged indicator pills (skip on Google Sheets — modal only).
             if (!isSheets) {
                 placeTitleIndicatorPill();
-                updateIndicatorPillBadges(document, pageState, () => redacts);
+                repaintBadges();
                 const flagged = matched.length > 0 || redacts.length > 0;
                 if (refsPending > 0) {
                     // Verdict waits for the references still being resolved.
@@ -630,17 +661,19 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
             if (resolvedRefs.length > 0) {
                 try {
                     reportWorkStage("notices", `Checking ${count(resolvedRefs.length, "reference")} for retractions…`);
-                    notices = await checkPageRetractions([...new Set(resolvedRefs.map((r) => r.doi))]);
+                    const checked = await checkPageRetractions([...new Set(resolvedRefs.map((r) => r.doi))]);
                     if (stale()) return [];
-                    if (floraHidden || isWorkCancelled()) {
+                    // No verdict for these references: hand their markers back for a later pass.
+                    if (!checked || floraHidden || isWorkCancelled()) {
                         releaseReferenceEntries(resolvedRefs);
                         return [];
                     }
+                    notices = checked;
                     for (const n of notices) refNotices.set(n.originDoi, n);
                     refreshRedacts();
                     reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
                     renderResolvedReferences(resolvedRefs, new Map(redacts.map((r) => [r.originDoi, r] as const)), pageState);
-                    if (!isSheets) updateIndicatorPillBadges(document, pageState, () => redacts);
+                    if (!isSheets) repaintBadges();
                 } catch (err) {
                     if (stale()) return [];
                     releaseReferenceEntries(resolvedRefs);
@@ -777,7 +810,7 @@ async function augmentFromTitle(): Promise<void> {
             if (titleEl && !document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)) {
                 try {
                     const notices = await checkPageRetractions([resolvedDoi]);
-                    if (stale()) return;
+                    if (!notices || stale()) return;
                     // Same marker as placeTitleIndicatorPill so neither path double-pills.
                     const pill = createIndicatorPill({
                         doi: resolvedDoi,
@@ -797,6 +830,12 @@ async function augmentFromTitle(): Promise<void> {
         }
     } catch (err) {
         debugWarn(`Title augmentation failed for "${pageTitle}" —`, err);
+    } finally {
+        // Abandoned on this page, so the resumed pass gets to try the title again.
+        // A newer generation owns the flag by then and keeps its own attempt.
+        if (generation === pageGeneration && (signal?.aborted || floraHidden || isWorkCancelled())) {
+            augmentAttempted = false;
+        }
     }
 }
 
@@ -1018,16 +1057,21 @@ async function fetchSheetDois(): Promise<void> {
     const isCurrent = () => myGen === sheetFetchGen &&
         sheetTabKey(parsed) === sheetTabKey(parseSheetsUrl(location.href));
     let unavailable = false;
+    // The export runs inside a work indicator so Cancel reaches the worker request.
+    beginWorkIndicator({stages: ["scan"]});
     try {
+        reportWorkStage("scan", "Exporting this sheet tab…");
         const csv = await fetchSheetCsv(parsed);
         if (!isCurrent()) return;
         sheetCsvDois = extractDOIsFromText(csv);
         debugLog(`Sheets: CSV export found ${sheetCsvDois.length} DOIs`);
     } catch (err) {
-        if (!isCurrent()) return;
+        if (!isCurrent() || isAbortError(err)) return;
         sheetCsvDois = [];
         unavailable = true;
         debugWarn("Sheets: full-tab export unavailable — checking visible cells only", err);
+    } finally {
+        endWorkIndicator();
     }
     if (isWorkCancelled()) return;
     await scanWholePage().catch((err) => debugError("Sheets: scan pass failed —", err));

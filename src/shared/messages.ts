@@ -349,9 +349,11 @@ const CANCELLABLE_TYPES = new Set([
     "FLORA_AUGMENT", "FLORA_PMC_RESOLVE", "FLORA_OPENALEX_RESOLVE", "FLORA_S2_RESOLVE",
 ]);
 
-export async function safeSendMessage<T = unknown>(message: unknown): Promise<T | undefined> {
+export async function safeSendMessage<T = unknown>(message: unknown, requestSignal?: AbortSignal): Promise<T | undefined> {
     const record = message as {type?: string};
-    const signal = CANCELLABLE_TYPES.has(record?.type ?? "") ? activeWorkSignal() : undefined;
+    // A caller-supplied signal replaces the scan signal, so a caller with its
+    // own deadline cancels the worker request when it stops waiting.
+    const signal = requestSignal ?? (CANCELLABLE_TYPES.has(record?.type ?? "") ? activeWorkSignal() : undefined);
     const requestId = signal ? Array.from(crypto.getRandomValues(new Uint32Array(4))).join("-") : undefined;
     const payload = requestId ? {...record, requestId} : message;
     let rejectAbort: ((reason: unknown) => void) | undefined;

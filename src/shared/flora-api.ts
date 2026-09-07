@@ -1,4 +1,4 @@
-import {fetchWithDeadline} from "./work-cancellation";
+import {fetchWithDeadline, isAbortError} from "./work-cancellation";
 import { z } from "zod";
 import type { DoiString, ReplicationResult } from "./types";
 import { ReplicationResultSchema } from "./types";
@@ -48,6 +48,8 @@ export async function lookupDOIs(
       }
       debugLog(`Batch ${batchNum} returned ${batchResults.size} results`);
     } catch (err) {
+      // A cancelled batch is not a per-DOI failure: reject so the caller caches nothing.
+      if (isAbortError(err)) throw err;
       debugError(`Batch ${batchNum} failed:`, err);
       const message = err instanceof Error ? err.message : "Lookup failed";
       for (const doi of batch) errors[doi] = message;

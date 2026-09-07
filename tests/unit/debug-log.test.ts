@@ -307,6 +307,15 @@ describe("debug report", () => {
     expect(report).toContain("https://example.org/works?contact=[redacted email]&doi=10.1234/abc");
   });
 
+  it("redacts addresses that use the fuller local-part character set", () => {
+    const report = renderDebugReport({environment: [], settings: [], entries: [], error: {
+      message: "Request failed", stack: "wrote to first/last@example.com and (a&b*c=d?e@example.org)",
+    }});
+    expect(report).not.toContain("first");
+    expect(report).not.toContain("a&b*c=d?e");
+    expect(report).toContain("wrote to [redacted email] and ([redacted email])");
+  });
+
   it("applies the report size limit after redacting legacy short addresses", () => {
     const report = renderDebugReport({environment: [], settings: [], entries: Array.from({length: 30}, (_, i) => entry("a@b ".repeat(400), i))});
     expect(report).not.toContain("a@b");

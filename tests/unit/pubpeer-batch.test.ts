@@ -117,6 +117,17 @@ describe("lookupPubPeerForDoi batching", () => {
     expect(second?.total_comments).toBe(3);
   });
 
+  it("rejects a malformed feedback entry instead of caching it as a miss", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true, status: 200, headers: {get: () => null},
+      json: async () => ({status: "success", feedbacks: [{id: "10.1234/a", total_comments: "many"}]}),
+    });
+    await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+    fetchMock.mockResolvedValue({ok: true, status: 200, headers: {get: () => null}, json: async () => ({feedbacks: []})});
+    await expect(lookupPubPeerForDoi("10.1234/a")).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("rejects failures without caching them, so a later retry can succeed", async () => {
     fetchMock.mockRejectedValue(new Error("network down"));
     await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");

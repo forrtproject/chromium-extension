@@ -1,4 +1,4 @@
-import {fetchWithDeadline} from "./work-cancellation";
+import {fetchWithDeadline, isAbortError} from "./work-cancellation";
 // Semantic Scholar paper id → DOI, in one batched API call per 500 ids. Runs
 // in the service worker (see resolveSemanticScholarIdsViaWorker) so the fetch
 // has the api.semanticscholar.org host permission.
@@ -60,6 +60,8 @@ export async function resolveSemanticScholarIds(rawIds: string[], signal?: Abort
                 results.set(batch[index], doi ? normaliseDOI(doi) : null);
             });
         } catch (err) {
+            // A cancelled batch is not a provider failure: reject so the caller drops the pass.
+            if (isAbortError(err)) throw err;
             debugWarn(`Semantic Scholar resolve: batch of ${batch.length} failed —`, err);
         }
     }

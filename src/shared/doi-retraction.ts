@@ -3,7 +3,8 @@ import {FLORA_NOTICE_PILL_CLASS} from "@shared/doi-label";
 import {INDICATOR_PILL_CLASS, PILL_WRAPPER_STYLE} from "@shared/indicator-pill";
 import type {DoiString, NoticeKind, RetractionResponse} from "@shared/types";
 import {safeSendMessage, type RetractionCheckResponse} from "@shared/messages";
-import {debugError, debugLog, debugWarn} from "@shared/debug";
+import {activeWorkSignal} from "@shared/work-cancellation";
+import {debugError, debugLog} from "@shared/debug";
 
 export const FLORA_RET_CHECK_KEY = "flora-ret-checked";
 
@@ -114,16 +115,6 @@ let pendingBatch: Promise<Map<DoiString, RetractionResponse>> | null = null;
 // worker's cold start) without stalling the toast for much longer.
 export const RETRACTION_CHECK_TIMEOUT_MS = 8_000;
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | "timeout"> {
-    return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => resolve("timeout"), ms);
-        promise.then(
-            (v) => { clearTimeout(timer); resolve(v); },
-            (e) => { clearTimeout(timer); reject(e); },
-        );
-    });
-}
-
 function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
     return new Promise((resolve, reject) => {
         setTimeout(async () => {
@@ -131,16 +122,21 @@ function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
             pendingDois.clear();
             pendingBatch = null;
             const started = performance.now();
+            // The deadline aborts the message itself, so a request nothing waits
+            // for any more is cancelled in the worker rather than left running.
+            const deadline = new AbortController();
+            const scan = activeWorkSignal();
+            const stopWithScan = () => deadline.abort(scan?.reason);
+            scan?.addEventListener("abort", stopWithScan, {once: true});
+            const timer = setTimeout(() => deadline.abort(new DOMException(
+                `Retraction checks unavailable: the worker timed out after ${RETRACTION_CHECK_TIMEOUT_MS} ms`,
+                "TimeoutError",
+            )), RETRACTION_CHECK_TIMEOUT_MS);
             try {
-                const response = await withTimeout(
-                    safeSendMessage<RetractionCheckResponse>({type: "FLORA_RET_CHECK", dois}),
-                    RETRACTION_CHECK_TIMEOUT_MS,
+                const response = await safeSendMessage<RetractionCheckResponse>(
+                    {type: "FLORA_RET_CHECK", dois}, deadline.signal
                 );
                 const elapsed = Math.round(performance.now() - started);
-                if (response === "timeout") {
-                    debugWarn(`Retraction check: no answer from the worker after ${elapsed} ms for ${dois.length} DOI(s) — continuing without notices`);
-                    throw new Error("Retraction checks unavailable: worker timed out");
-                }
                 if (response === undefined) throw new Error("Extension context invalidated");
                 if (response?.type !== "FLORA_RET_CHECK_RESULT" || response.error || !Array.isArray(response.results)) {
                     throw new Error(response?.error || "Retraction checks unavailable");
@@ -152,6 +148,9 @@ function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
                 // Callers must distinguish an unavailable source from a confirmed empty result.
                 debugError(`Retraction check failed for ${dois.length} DOI(s) —`, err);
                 reject(err);
+            } finally {
+                clearTimeout(timer);
+                scan?.removeEventListener("abort", stopWithScan);
             }
         }, 0);
     });

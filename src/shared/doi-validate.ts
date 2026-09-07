@@ -1,4 +1,4 @@
-import {fetchWithDeadline} from "@shared/work-cancellation";
+import {fetchWithDeadline, isAbortError} from "@shared/work-cancellation";
 import type { DoiString } from "./types";
 import { debugLog, debugWarn } from "./debug";
 import { BlobCache } from "./blob-cache";
@@ -89,6 +89,8 @@ export async function validateDOIs(
       updates.push([doi, { valid }]);
       debugLog(`DOI validation: ${doi} → ${valid ? "valid" : "invalid"}`);
     } catch (err) {
+      // Cancellation ends the whole pass; nothing is cached from it.
+      if (isAbortError(err)) throw err;
       // Left out of the map entirely, so the caller keeps the DOI.
       debugWarn(`DOI validation: ${doi} unresolved —`, err);
     }

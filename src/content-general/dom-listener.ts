@@ -79,7 +79,14 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     });
     observer.observe(document.body, {childList: true, subtree: true});
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden || !missedWhileHidden) return;
+        if (document.hidden) {
+            // A debounce armed while visible would otherwise fire in the
+            // background and scan the page a second time on the catch-up.
+            if (pendingFullScan || pendingNodes.length > 0) missedWhileHidden = true;
+            clearTimeout(debounceTimer);
+            return;
+        }
+        if (!missedWhileHidden) return;
         missedWhileHidden = false;
         clearTimeout(debounceTimer);
         pendingFullScan = false;

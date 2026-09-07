@@ -30,6 +30,17 @@ describe("lookupDOIs", () => {
     expect(errors[targets[50]]).toBeUndefined();
   });
 
+  it("rejects when the transport is cancelled instead of failing each DOI", async () => {
+    server.use(http.get(API_URL, () => new Promise<never>(() => {})));
+    const controller = new AbortController();
+    const errors: Record<string, string> = {};
+    const pending = lookupDOIs([doi("10.1038/a")], errors, controller.signal);
+    const outcome = expect(pending).rejects.toMatchObject({name: "AbortError"});
+    controller.abort(new DOMException("Work cancelled", "AbortError"));
+    await outcome;
+    expect(errors).toEqual({});
+  });
+
   it("returns matched results on 200", async () => {
     const result = mockResult();
     server.use(

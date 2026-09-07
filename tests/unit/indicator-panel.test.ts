@@ -57,6 +57,40 @@ describe("createIndicatorPanel", () => {
     expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("3");
   });
 
+  it("reports a recovered retry so the owning page rerenders its panel", async () => {
+    const panel = createIndicatorPanel({doi: DOI});
+    document.body.appendChild(panel);
+    const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
+    const onResolved = vi.fn();
+    updateIndicatorPillBadges(document, states, () => [], "panels", undefined,
+      {generation: () => 1, onResolved});
+    const recovered = matchedState(3).get(DOI) as unknown as {result: unknown};
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({results: {[DOI]: recovered.result}, errors: {}});
+    panel.querySelector<HTMLButtonElement>("[data-flora-badge-row] button")!.click();
+    await vi.waitFor(() => expect(onResolved).toHaveBeenCalledTimes(1));
+    expect(states.get(DOI)?.status).toBe("matched");
+  });
+
+  it("discards a retry that lands after the page it belongs to is gone", async () => {
+    const panel = createIndicatorPanel({doi: DOI});
+    document.body.appendChild(panel);
+    const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
+    const onResolved = vi.fn();
+    let generation = 1;
+    updateIndicatorPillBadges(document, states, () => [], "panels", undefined,
+      {generation: () => generation, onResolved});
+    let land: (value: unknown) => void = () => {};
+    vi.mocked(chrome.runtime.sendMessage).mockReturnValue(new Promise((resolve) => { land = resolve; }));
+    panel.querySelector<HTMLButtonElement>("[data-flora-badge-row] button")!.click();
+    await vi.waitFor(() => expect(states.get(DOI)?.status).toBe("loading"));
+    generation = 2;
+    land({results: {[DOI]: null}, errors: {}});
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(states.get(DOI)?.status).toBe("loading");
+    expect(onResolved).not.toHaveBeenCalled();
+  });
+
   it("is identifiable as FLoRA's own UI", () => {
     // Otherwise the DOI it prints gets rescanned and the DOM listener loops.
     const panel = createIndicatorPanel({ doi: DOI });

@@ -1212,13 +1212,21 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
     return resetInheritedText(wrapper);
 }
 
+export interface BadgeRetryHooks {
+    /** Owning page's identity, read when a retry starts and again when it lands. */
+    generation?: () => unknown;
+    /** Runs after a retry writes its result, so the owner can rerender dependent UI. */
+    onResolved?: () => void;
+}
+
 /** `getRedacts` is read on every repaint, so a notice found after a row failed still lands on it. */
 export function updateIndicatorPillBadges(
     root: ParentNode,
     pageState: Map<DoiString, LookupState>,
     getRedacts: () => readonly RetractionResponse[],
     scope: IndicatorScope = "pills",
-    onlyDoi?: DoiString
+    onlyDoi?: DoiString,
+    hooks?: BadgeRetryHooks
 ): void {
     const retractionByDoi = new Map(getRedacts().map((r) => [r.originDoi, r] as const));
     for (const wrapper of root.querySelectorAll<HTMLElement>(indicatorSelector(scope))) {
@@ -1242,17 +1250,23 @@ export function updateIndicatorPillBadges(
             const pending = state.status === "loading";
             const retry = async () => {
                 const next = pageState;
+                const startedOn = hooks?.generation?.();
                 next.set(doi, {status: "loading"});
-                updateIndicatorPillBadges(root, next, getRedacts, scope, doi);
+                updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
+                let resolved: LookupState;
                 try {
                     const response = await safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: [doi]});
                     if (!response || response.errors?.[doi]) throw new Error("FORRT unavailable");
                     const result = response.results[doi];
-                    next.set(doi, result ? {status: "matched", result, source: "extracted"} : {status: "no-match"});
+                    resolved = result ? {status: "matched", result, source: "extracted"} : {status: "no-match"};
                 } catch {
-                    next.set(doi, {status: "error", message: "FORRT unavailable"});
+                    resolved = {status: "error", message: "FORRT unavailable"};
                 }
-                updateIndicatorPillBadges(root, next, getRedacts, scope, doi);
+                // The page this retry belongs to is gone; its state and pills are another page's now.
+                if (hooks?.generation?.() !== startedOn) return;
+                next.set(doi, resolved);
+                updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
+                hooks?.onResolved?.();
             };
             replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,

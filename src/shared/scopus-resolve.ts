@@ -1,4 +1,4 @@
-import {fetchWithDeadline} from "./work-cancellation";
+import {fetchWithDeadline, isAbortError} from "./work-cancellation";
 // Scopus record id → DOI, in one batched call per 50 ids. Runs in the content
 // script: the endpoint is same-origin on www.scopus.com and authenticated by
 // the session cookie, so no host permission and no worker hop are needed.
@@ -72,6 +72,8 @@ export async function resolveScopusIds(
                 results.set(id, item.doi ? normaliseDOI(item.doi) : null);
             }
         } catch (err) {
+            // A cancelled batch is not a provider failure: reject so the caller drops the pass.
+            if (isAbortError(err)) throw err;
             debugWarn(`Scopus resolve: batch of ${batch.length} failed —`, err);
         }
     }

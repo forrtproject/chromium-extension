@@ -36,6 +36,15 @@ export function applyCommenterMutes(
   };
 }
 
+/** The fields callers read: the DOI key, the comment count, the link, and the commenter list. */
+function isUsableFeedback(feedback: PubPeerFeedback | null | undefined): boolean {
+  if (!feedback || typeof feedback !== "object") return false;
+  return typeof feedback.id === "string" &&
+    typeof feedback.total_comments === "number" &&
+    typeof feedback.url === "string" &&
+    (feedback.users == null || typeof feedback.users === "string");
+}
+
 export class PubPeerRateLimitError extends Error {
   constructor(public retryAfterMs: number) {
     super(`PubPeer rate limited (retry after ${retryAfterMs}ms)`);
@@ -69,7 +78,11 @@ async function fetchPubPeer(
     throw new Error(`PubPeer API error: ${response.status}`);
   }
   const data = (await response.json()) as { status: string; feedbacks?: PubPeerFeedback[] };
-  if (!Array.isArray(data.feedbacks)) throw new Error("PubPeer returned an invalid response");
+  // Reject the whole response rather than filtering: a dropped entry would be
+  // cached as a confirmed miss instead of offering Retry.
+  if (!Array.isArray(data.feedbacks) || !data.feedbacks.every(isUsableFeedback)) {
+    throw new Error("PubPeer returned an invalid response");
+  }
   return data.feedbacks;
 }
 

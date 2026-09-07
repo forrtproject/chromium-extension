@@ -1,4 +1,4 @@
-import {fetchWithDeadline} from "./work-cancellation";
+import {fetchWithDeadline, isAbortError} from "./work-cancellation";
 // EBSCOhost record id → DOI, one request per record, four in flight. Runs in
 // the content script: the endpoint is same-origin on research.ebsco.com and
 // authenticated by the session cookie, so no host permission and no worker hop
@@ -78,6 +78,8 @@ export async function resolveEbscoIds(
             try {
                 results.set(id, await withResolveTimeout(fetchDoi(id, profile, fetchImpl), `EBSCO resolve ${id}`));
             } catch (err) {
+                // A cancelled lookup is not a provider failure: reject so the caller drops the pass.
+                if (isAbortError(err)) throw err;
                 debugWarn(`EBSCO resolve: ${id} failed —`, err);
             }
         }

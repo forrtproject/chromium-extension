@@ -1,4 +1,4 @@
-import {fetchWithDeadline} from "./work-cancellation";
+import {fetchWithDeadline, isAbortError} from "./work-cancellation";
 // OpenAlex work id → DOI, in one batched API call per 50 ids. Runs in the
 // service worker (see resolveOpenAlexIdsViaWorker) so the polite-pool mailto
 // and any future pacing sit with the other OpenAlex traffic.
@@ -54,6 +54,8 @@ export async function resolveOpenAlexIds(rawIds: string[], signal?: AbortSignal)
                 results.set(id, work.doi ? normaliseDOI(work.doi) : null);
             }
         } catch (err) {
+            // A cancelled batch is not a provider failure: reject so the caller drops the pass.
+            if (isAbortError(err)) throw err;
             debugWarn(`OpenAlex resolve: batch of ${batch.length} failed —`, err);
         }
     }

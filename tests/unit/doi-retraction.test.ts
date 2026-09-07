@@ -21,10 +21,9 @@ describe("doi retraction content helper", () => {
         const {retractionCheck} = await import("../../src/shared/doi-retraction");
         const result = await retractionCheck([originalDoi]);
 
-        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
-            type: "FLORA_RET_CHECK",
-            dois: [originalDoi],
-        });
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+            expect.objectContaining({type: "FLORA_RET_CHECK", dois: [originalDoi]}),
+        );
         expect(result).toEqual([
             {originDoi: originalDoi, doi: "10.1038/retraction", kind: "retraction"},
         ]);
@@ -58,10 +57,9 @@ describe("doi retraction content helper", () => {
         ]);
 
         expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
-        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
-            type: "FLORA_RET_CHECK",
-            dois: [retracted, clean],
-        });
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+            expect.objectContaining({type: "FLORA_RET_CHECK", dois: [retracted, clean]}),
+        );
         // Each caller gets only what it asked about.
         expect(first).toEqual([{originDoi: retracted, doi: "10.1038/retraction", kind: "retraction"}]);
         expect(second).toEqual([]);
@@ -97,6 +95,28 @@ describe("doi retraction content helper", () => {
             const assertion = expect(pending).rejects.toThrow("timed out");
             await vi.advanceTimersByTimeAsync(RETRACTION_CHECK_TIMEOUT_MS + 1);
             await assertion;
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("cancels the timed-out request in the worker", async () => {
+        vi.useFakeTimers();
+        try {
+            const sendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+            sendMessage.mockReturnValue(new Promise(() => {}));
+            const {retractionCheck, RETRACTION_CHECK_TIMEOUT_MS} = await import("../../src/shared/doi-retraction");
+            const pending = retractionCheck([doi("10.1038/nature12373")]);
+            const assertion = expect(pending).rejects.toThrow("timed out");
+            await vi.advanceTimersByTimeAsync(RETRACTION_CHECK_TIMEOUT_MS + 1);
+            await assertion;
+
+            const check = sendMessage.mock.calls.find(([m]) => m.type === "FLORA_RET_CHECK")![0];
+            expect(check.requestId).toEqual(expect.any(String));
+            expect(sendMessage).toHaveBeenCalledWith({
+                type: "FLORA_CANCEL_REQUEST",
+                requestId: check.requestId,
+            });
         } finally {
             vi.useRealTimers();
         }

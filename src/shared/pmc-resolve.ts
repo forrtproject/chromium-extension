@@ -1,4 +1,4 @@
-import {fetchWithDeadline} from "./work-cancellation";
+import {fetchWithDeadline, isAbortError} from "./work-cancellation";
 // PMC id / PMID → DOI via NCBI's ID Converter. NCBI sends no CORS headers, so
 // this only runs in the service worker (see resolvePmcIdsViaWorker).
 //
@@ -105,6 +105,8 @@ export async function resolvePmcIds(
         try {
             records = await withResolveTimeout(fetchIdConv(batch, idtype, signal), `NCBI resolve (${idtype})`);
         } catch (err) {
+            // A cancelled batch is not a provider failure: reject so the caller drops the pass.
+            if (isAbortError(err)) throw err;
             debugWarn(`NCBI resolve (${idtype}): batch of ${batch.length} failed, retrying next pass —`, err);
             continue;
         }

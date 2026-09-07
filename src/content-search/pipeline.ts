@@ -333,6 +333,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
             }
         }
 
+        if (navigated()) return;
         if (isWorkCancelled()) return;
         for (const info of pending) {
             const augmentedDoi = augmented.get(info.title) ?? null;

@@ -64,7 +64,15 @@ export class RequestGate {
                         throw new Error(`${this.name} rate limited (paused for another ${Math.round((startAt - now) / 1000)} s)`);
                     }
                     this.nextStartAt = startAt + this.minIntervalMs;
-                    if (startAt > now) await abortableDelay(startAt - now, signal);
+                    if (startAt > now) {
+                        try {
+                            await abortableDelay(startAt - now, signal);
+                        } catch (err) {
+                            // Hand back the start slot so a retry is not spaced behind one nobody uses.
+                            if (this.nextStartAt === startAt + this.minIntervalMs) this.nextStartAt = startAt;
+                            throw err;
+                        }
+                    }
                 } while (this.blockedUntil > Date.now());
 
                 signal.throwIfAborted();

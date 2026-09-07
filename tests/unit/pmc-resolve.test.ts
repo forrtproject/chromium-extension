@@ -183,6 +183,16 @@ describe("resolvePmcIds", () => {
     expect(result.get("9599441")).toBeNull();
   });
 
+  it("rejects a cancelled batch instead of answering without it", async () => {
+    server.use(http.get(IDCONV_URL, () => new Promise<never>(() => {})));
+    const controller = new AbortController();
+    const pending = resolvePmcIds(["PMC1234567"], "pmcid", controller.signal);
+    const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    controller.abort(new DOMException("Work cancelled", "AbortError"));
+    await outcome;
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
   it("sends the configured email and tool for NCBI's usage policy", async () => {
     let params: URLSearchParams | null = null;
     server.use(http.get(IDCONV_URL, ({ request }) => {

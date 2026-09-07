@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
 import { validateDOIs, _resetValidationCacheForTesting } from "../../src/shared/doi-validate";
+import { beginCancellableWork, cancelWork, endCancellableWork } from "../../src/shared/work-cancellation";
 import type { DoiString } from "../../src/shared/types";
 
 const server = setupServer();
@@ -246,6 +247,17 @@ describe("validateDOIs", () => {
 
     const results = await validateDOIs([doi("10.6338/jda.202212/sp_17(4).0000")]);
     expect(results.get(doi("10.6338/jda.202212/sp_17(4).0000"))).toBe(true);
+  });
+
+  it("rejects a cancelled pass instead of reporting the DOIs unresolved", async () => {
+    server.use(http.get(HANDLE_PATTERN, () => new Promise<never>(() => {})));
+    beginCancellableWork();
+    const pending = validateDOIs([doi("10.1038/cancelled")]);
+    const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    cancelWork();
+    await outcome;
+    endCancellableWork();
+    expect(cachedDois()).toEqual([]);
   });
 
   it("mixes cached and uncached DOIs", async () => {
