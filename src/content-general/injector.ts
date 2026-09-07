@@ -1046,6 +1046,10 @@ export function renderSidePanel(
   const arrow = document.createElement("span");
   arrow.style.cssText =
     "color:rgba(255,255,255,0.9);font-size:16px;line-height:1;" +
+    // The tab sits on the right edge on every page, so the glyph must point
+    // left whatever the page's writing direction is. Without this an RTL page
+    // mirrors "‹" into "›" and a closed panel shows the open arrow.
+    "direction:ltr;unicode-bidi:isolate;" +
     "transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);pointer-events:none;";
   arrow.textContent = "‹";
 

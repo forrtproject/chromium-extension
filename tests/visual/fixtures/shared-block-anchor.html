@@ -25,8 +25,10 @@
 <body>
   <h1>Comparative note on two prior findings</h1>
   <p class="lede">
-    Fixture for issue #105: several matched DOIs share a single block anchor, so
-    each must carry its own badge rather than the container carrying one.
+    Several matched DOIs share a single block anchor. The indicator pill is a
+    per-reference-entry pill: each reference entry gets one pill, for the first
+    DOI in the entry, placed right after that DOI. Body prose carries no
+    indicator pill. Guards the layout of that placement.
   </p>
 
   <h2 id="references-heading">References</h2>
@@ -38,13 +40,13 @@
       Reanalysed by Author, C. (2016). A computationally reproduced analysis.
       <em>Journal of Mock Studies</em>, 13(1), 44–60.
       <span class="doi">10.5555/flora.repro.0002</span>.
-      <div class="note">Two cited papers, one reference entry.</div>
+      <div class="note">Two cited papers, one reference entry — one pill, on the entry’s first DOI.</div>
     </li>
     <li>
       Author, G. (2019). An ordinary paper with no replication record.
       <em>Journal of Mock Studies</em>, 16(1), 5–21.
       <span class="doi">10.5555/flora.none.0005</span>.
-      <div class="note">Single DOI — unchanged single-badge behaviour.</div>
+      <div class="note">Single DOI — one pill on that DOI.</div>
     </li>
   </ol>
 
@@ -52,7 +54,8 @@
   <p>
     Both <span class="doi">10.5555/flora.repl.0001</span> and
     <span class="doi">10.5555/flora.repro.0002</span> are discussed together in
-    this paragraph, which is also a single block anchor.
+    this paragraph. It is body prose, not a reference entry, so neither DOI
+    gets an indicator pill here.
   </p>
 </body>
 </html>
