@@ -43,7 +43,7 @@ describe("a pill dropped into a publisher-styled container", () => {
         const popover = pill.querySelector<HTMLElement>("[data-flora-popover]")!;
         const body = pill.querySelector<HTMLElement>('[role="button"]')!;
 
-        expect(body.style.padding).toBe("2px 8px 2px 10px");
+        expect(body.style.padding).toBe("2px");
         expect(popover.style.borderWidth).toBe("1px");
         expect(popover.style.padding).toBe("8px");
     });

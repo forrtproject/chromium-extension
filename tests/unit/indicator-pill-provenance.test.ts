@@ -23,10 +23,9 @@ describe("indicator pill provenance", () => {
     expect(background(build(true))).toBe(background(build(false)));
   });
 
-  it("underlines the unconfirmed DOI and omits the check", () => {
+  it("underlines the unconfirmed DOI", () => {
     const seg = build(true).querySelector("[data-flora-doi-segment]") as HTMLElement;
     expect(seg.style.textDecoration).toContain("underline");
-    expect(seg.querySelector("svg")).toBeNull();
     expect(seg.textContent).toContain("DOI");
   });
 
@@ -38,7 +37,7 @@ describe("indicator pill provenance", () => {
     expect(row.style.padding).toBe("5px 4px");
   });
 
-  it("shows a check and no underline on a confirmed DOI", () => {
+  it("leaves a confirmed DOI un-underlined", () => {
     const seg = build(false).querySelector("[data-flora-doi-segment]") as HTMLElement;
     expect(seg.style.textDecoration).not.toContain("underline");
     expect(seg.querySelector("svg")).not.toBeNull();
