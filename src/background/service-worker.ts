@@ -606,15 +606,15 @@ export function syncRetractionsInfo(): Promise<void> {
 }
 
 // A missing map makes every check ask for a sync, so a download that keeps
-// failing must not be retried on each of them. In-memory: one further attempt
-// per worker lifetime is not a pile-up.
+// failing must not be retried on each of them. The attempt time is stored
+// because the worker idles out between checks and would forget it otherwise.
 const RETRY_INTERVAL = 1000 * 60 * 10;
-let lastSyncAttempt = 0;
+const SYNC_ATTEMPT_KEY = "flora_retraction_sync_attempt";
 
 async function runRetractionSync(): Promise<void> {
     const minInterval = 1000 * 60 * 60 * 24 * 7; // weekly
     const currentTime = Date.now();
-    const previous = await chrome.storage.local.get(["synctime", RET_MAP_KEY]);
+    const previous = await chrome.storage.local.get(["synctime", RET_MAP_KEY, SYNC_ATTEMPT_KEY]);
     const lastSync = previous.synctime || 0;
     const nextUpdate = lastSync + minInterval;
     const map = previous[RET_MAP_KEY] as RetractionMaps | undefined;
@@ -623,7 +623,8 @@ async function runRetractionSync(): Promise<void> {
         Object.keys(map.concerns || {}).length === 0
     );
     if (!isEmpty && currentTime <= nextUpdate) return;
-    if (currentTime - lastSyncAttempt < RETRY_INTERVAL) return;
-    lastSyncAttempt = currentTime;
+    const lastAttempt = typeof previous[SYNC_ATTEMPT_KEY] === "number" ? previous[SYNC_ATTEMPT_KEY] as number : 0;
+    if (currentTime - lastAttempt < RETRY_INTERVAL) return;
+    await chrome.storage.local.set({[SYNC_ATTEMPT_KEY]: currentTime});
     await storageSync();
 }

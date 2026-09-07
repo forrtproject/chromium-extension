@@ -112,15 +112,24 @@ describe("pending lookups are not shown as negatives", () => {
         expect(mockLookupPubPeer).toHaveBeenCalledTimes(2);
     });
 
-    it("leaves the PubPeer row pending when the pass is cancelled", async () => {
+    it("offers a retry on the PubPeer row when the pass is cancelled", async () => {
         const lookup = deferred<null>();
         mockLookupPubPeer.mockReturnValueOnce(lookup.promise);
         const pill = createIndicatorPill({doi: DOI, oaStatus: null, retraction: null});
         lookup.reject(new DOMException("Work cancelled", "AbortError"));
         await new Promise(resolve => setTimeout(resolve, 0));
-        expect(rowText(pill, "data-flora-pubpeer-row")).toContain("Checking");
+        expect(rowText(pill, "data-flora-pubpeer-row")).toContain("Not checked");
         expect(rowText(pill, "data-flora-pubpeer-row")).not.toContain("Unavailable");
-        expect(pill.querySelector("[data-flora-pubpeer-row] button")).toBeNull();
+        expect(pill.querySelector("[data-flora-pubpeer-row] button")?.textContent).toContain("Retry");
+    });
+
+    it("offers a retry on the Open Access row when the pass is cancelled", async () => {
+        const oa = deferred<OpenAccessStatus | null>();
+        const pill = createIndicatorPill({doi: DOI, oaStatus: oa.promise, retraction: null});
+        oa.reject(new DOMException("Work cancelled", "AbortError"));
+        await vi.waitFor(() => expect(rowText(pill, "data-flora-oa-row")).toContain("Not checked"));
+        expect(rowText(pill, "data-flora-oa-row")).not.toContain("Unavailable");
+        expect(pill.querySelector("[data-flora-oa-row] button")?.textContent).toContain("Retry");
     });
 
     it("shows no OA row pending state when no lookup was started", () => {

@@ -25,7 +25,8 @@ function edit(from, body, extra = {}) {
 
 async function scenario({changed = false, files = [], failure = false,
   stale = false, permission = 'write', results, authorBody, edited, changedFiles,
-  previousStatuses = [], attempt = 1, updatedAt = CAPTURE_TIME, artifactId = 1} = {}) {
+  previousStatuses = [], attempt = 1, updatedAt = CAPTURE_TIME, artifactId = 1,
+  raced} = {}) {
   fs.writeFileSync('visual-report/results.json', JSON.stringify(results ?? [{
     name: 'fixture', status: changed ? 'fail' : 'pass', detail: '120 px differ',
     ...(changed ? {changed: true} : {}),
@@ -41,11 +42,14 @@ async function scenario({changed = false, files = [], failure = false,
     conclusion: failure ? 'failure' : 'success', run_attempt: attempt,
     updated_at: updatedAt, html_url: 'https://github.com/o/r/actions/runs/123',
   };
-  let body, state, status;
+  let body, state, status, reads = 0;
   const github = {
     rest: {
       pulls: {
-        get: async () => ({data: pr}), listFiles: 'files',
+        // `raced` stands for a concurrent change landing between the initial
+        // read and the publisher's re-read.
+        get: async () => ({data: reads++ === 0 || !raced ? pr : {...pr, ...raced}}),
+        listFiles: 'files',
         update: async input => { body = input.body; },
       },
       actions: {
@@ -163,6 +167,12 @@ test('visual publication policy', async t => {
     assert.equal(proseOnly.state,'pending');
     const untrusted = await scenario({changed:true,files,edited:edit(partial,complete),permission:'read'});
     assert.equal(untrusted.state,'pending');
+    // A new head commit between the two reads means the checked body no longer
+    // describes the current capture, so nothing is written.
+    const newHead = await scenario({changed:true,files,edited:edit(partial,complete),
+      raced:{head:{sha:'zzz',repo:{full_name:'o/r'}}}});
+    assert.equal(newHead.body,undefined);
+    assert.equal(newHead.status,undefined);
     const malformedReceipt = {...latest.status,description:'Visual checklist 123/1: screenshots=10 setup=1'};
     const malformed = await scenario({changed:true,files,authorBody:complete,previousStatuses:[malformedReceipt]});
     assert.equal(malformed.state,'pending');

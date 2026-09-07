@@ -1,4 +1,4 @@
-import {beginCancellableWork, endCancellableWork, cancelWork, workSignal} from "./work-cancellation";
+import {beginCancellableWork, endCancellableWork, cancelWork, resumeAutomaticWork, workSignal} from "./work-cancellation";
 // Progress toast — the bottom-right indicator shown while ORE works a page.
 // Stage-weighted, not item-counted: each stage is one batched worker call.
 //
@@ -840,6 +840,7 @@ export function _resetWorkIndicatorForTesting(): void {
     for (const resolve of idleWaiters) resolve();
     idleWaiters.clear();
     endCancellableWork();
+    resumeAutomaticWork(); // also clears a page cancellation, so automatic work can start again
     progress = 0;
     labelText = DEFAULT_LABEL;
     suppressed = false;

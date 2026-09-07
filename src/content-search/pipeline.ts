@@ -445,11 +445,12 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         debugLog(`${label}: Rendered`, badgedCount, "badge(s)");
     } catch (err) {
         if (navigated()) return;
-        // A repeated DOI can already carry an earlier row's result; a failure
-        // here marks only the DOIs that had none.
+        // A repeated DOI can already carry an earlier row's settled answer —
+        // a match or a confirmed no-match. A failure here marks only the DOIs
+        // that had none.
         for (const doi of uniqueDois) {
             const previous = previousLookupState.get(doi);
-            if (previous?.status === "matched") lookupState.set(doi, previous);
+            if (previous?.status === "matched" || previous?.status === "no-match") lookupState.set(doi, previous);
             else lookupState.set(doi, {status: "error", message: "FORRT unavailable"});
         }
         if (!isWorkCancelled()) debugLog(`${label}: Lookup failed:`, err);

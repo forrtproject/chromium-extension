@@ -1,5 +1,5 @@
-import {beforeEach, describe, expect, it, vi} from "vitest";
-import {enforceCacheBudget} from "../../src/shared/cache-budget";
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {enforceCacheBudget, installCacheBudget} from "../../src/shared/cache-budget";
 import {effectiveCacheQuotaMb, MIN_CACHE_QUOTA_MB} from "../../src/shared/settings";
 
 describe("shared provider cache budget", () => {
@@ -72,5 +72,38 @@ describe("shared provider cache budget", () => {
     expect(effectiveCacheQuotaMb(9)).toBe(MIN_CACHE_QUOTA_MB);
     expect(effectiveCacheQuotaMb(50)).toBe(50);
     expect(effectiveCacheQuotaMb(0)).toBe(0);
+  });
+});
+
+describe("scheduled cache budget sweeps", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("queues a write that arrives during a sweep instead of overlapping sweeps", async () => {
+    vi.useFakeTimers();
+    chrome.storage.sync.get = vi.fn().mockResolvedValue({flora_settings: {cacheQuotaMb: 50}});
+    let sweeps = 0;
+    let release: () => void = () => {};
+    chrome.storage.local.getBytesInUse = vi.fn(async (keys: string | string[] | null) => {
+      if (keys !== null) return 0;
+      sweeps++;
+      await new Promise<void>(resolve => {release = resolve;});
+      return 0; // under budget: the sweep stops after its usage reads
+    });
+
+    installCacheBudget();
+    // Read the budget's own listener: getSettings installs one of its own later.
+    const onChanged = vi.mocked(chrome.storage.onChanged.addListener).mock.lastCall![0];
+    await vi.advanceTimersByTimeAsync(1000); // the install's own sweep, now held
+    expect(sweeps).toBe(1);
+
+    onChanged({flora_oa_blob: {newValue: {}}}, "local");
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(sweeps).toBe(1); // the follow-up waits for the running sweep
+
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sweeps).toBe(2);
+    release();
+    await vi.advanceTimersByTimeAsync(0);
   });
 });

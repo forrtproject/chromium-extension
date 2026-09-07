@@ -181,13 +181,16 @@ function buildOaSegment(state: OaState): HTMLElement {
     return shieldFromPageCss(el);
 }
 
-function buildPubPeerSegment(feedback: PubPeerFeedback | null, answered: boolean | "pending" = "pending"): HTMLElement {
+/** Whether a PubPeer lookup landed, is still running, or was cancelled. */
+type PubPeerAnswered = boolean | "pending" | "cancelled";
+
+function buildPubPeerSegment(feedback: PubPeerFeedback | null, answered: PubPeerAnswered = "pending"): HTMLElement {
     const available = !!feedback && feedback.total_comments > 0;
     const el = document.createElement("span");
     el.setAttribute("data-flora-pubpeer-segment", "");
     el.style.cssText = `display:inline-flex;align-items:center;line-height:0;color:#fff;opacity:${available ? "1" : "0.35"};`;
     el.innerHTML = PUBPEER_HUB_SVG;
-    el.title = answered === "pending" ? "Checking PubPeer…" : available && feedback
+    el.title = answered === "pending" ? "Checking PubPeer…" : answered === "cancelled" ? "PubPeer not checked" : available && feedback
         ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"} on PubPeer`
         : answered ? "No PubPeer discussion found" : "PubPeer status unavailable";
     return shieldFromPageCss(el);
@@ -424,10 +427,12 @@ function buildOaChoice(loc: OpenAccessLocation, compact: boolean): HTMLElement {
     return item;
 }
 
-type OaState = OpenAccessStatus | null | "pending" | "no-email";
+/** "cancelled": the reader stopped the pass before the lookup landed. */
+type OaState = OpenAccessStatus | null | "pending" | "no-email" | "cancelled";
 
 function oaSubtitle(state: OaState, available: boolean): string {
     if (state === "pending") return "Checking…";
+    if (state === "cancelled") return "Not checked";
     if (state === "no-email") return "Add your email in Settings to check open access";
     if (state === null) return "Unavailable";
     if (state.notIndexed) return "Not indexed by Unpaywall";
@@ -435,7 +440,7 @@ function oaSubtitle(state: OaState, available: boolean): string {
 }
 
 function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLElement {
-    const oa = state === "pending" || state === "no-email" ? null : state;
+    const oa = typeof state === "string" ? null : state;
     const available = !!oa?.isOa;
     const locations = oaLocations(oa);
 
@@ -446,10 +451,10 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
             available: available && locations.length === 1,
             title: "Open Access",
             subtitle: oaSubtitle(state, available),
-            onAction: state === "no-email" ? openFloraOptions : state === null ? retry : undefined,
-            subtitleShort: state === null ? "Unavailable" : state === "pending" ? "…" : oa?.notIndexed ? "Not indexed" : available ? "Free" : "—",
+            onAction: state === "no-email" ? openFloraOptions : state === null || state === "cancelled" ? retry : undefined,
+            subtitleShort: state === null ? "Unavailable" : state === "cancelled" ? "Not checked" : state === "pending" ? "…" : oa?.notIndexed ? "Not indexed" : available ? "Free" : "—",
             href: locations[0]?.url,
-            actionLabel: state === "no-email" ? "Settings" : state === null ? "Retry" : "View PDF",
+            actionLabel: state === "no-email" ? "Settings" : state === null || state === "cancelled" ? "Retry" : "View PDF",
             attr: "data-flora-oa-row",
             compact,
         });
@@ -526,12 +531,16 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
     return wrapper;
 }
 
-function buildPubPeerRow(state: PubPeerFeedback | null | "pending" | "unavailable", compact = false, retry?: () => void): HTMLElement {
+/** "cancelled": the reader stopped the pass before the lookup landed. */
+type PubPeerState = PubPeerFeedback | null | "pending" | "unavailable" | "cancelled";
+
+function buildPubPeerRow(state: PubPeerState, compact = false, retry?: () => void): HTMLElement {
     const feedback = typeof state === "string" ? null : state;
     const available = !!feedback && feedback.total_comments > 0;
+    const retryable = state === "unavailable" || state === "cancelled";
     const subtitle = state === "pending"
         ? "Checking…"
-        : state === "unavailable" ? "Unavailable" : available && feedback
+        : state === "cancelled" ? "Not checked" : state === "unavailable" ? "Unavailable" : available && feedback
             ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"}`
             : "No discussion found";
     return buildRow({
@@ -540,10 +549,10 @@ function buildPubPeerRow(state: PubPeerFeedback | null | "pending" | "unavailabl
         available,
         title: "PubPeer",
         subtitle,
-        subtitleShort: state === "pending" ? "…" : state === "unavailable" ? "Unavailable" : available && feedback ? `${feedback.total_comments}` : "—",
+        subtitleShort: state === "pending" ? "…" : state === "cancelled" ? "Not checked" : state === "unavailable" ? "Unavailable" : available && feedback ? `${feedback.total_comments}` : "—",
         href: feedback?.url,
-        onAction: state === "unavailable" ? retry : undefined,
-        actionLabel: state === "unavailable" ? "Retry" : "View thread",
+        onAction: retryable ? retry : undefined,
+        actionLabel: retryable ? "Retry" : "View thread",
         attr: "data-flora-pubpeer-row",
         compact,
     });
@@ -804,7 +813,7 @@ interface IndicatorRowsOptions {
     reproductionsCount: number | null;
     /** Called when the async lookup lands, so a caller can mirror it elsewhere. */
     onOa?: (state: OaState) => void;
-    onPubPeer?: (feedback: PubPeerFeedback | null, answered: boolean | "pending") => void;
+    onPubPeer?: (feedback: PubPeerFeedback | null, answered: PubPeerAnswered) => void;
     /** Single-line rows and tighter metrics, for the always-visible panel. */
     compact?: boolean;
 }
@@ -835,9 +844,10 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
         opts.onOa?.(state);
     };
     const loadOa = (request: Promise<OpenAccessStatus | null>): void => {
-        // A cancelled pass leaves the row pending; a later pass fills it in.
+        // A cancelled pass settles the row to "Not checked", which carries the
+        // Retry action; nothing re-fetches it otherwise.
         void request.then(async oa => settleOa(oa ?? (await hasContactEmail() ? null : "no-email")))
-            .catch(err => settleOa(isAbortError(err) ? "pending" : null));
+            .catch(err => settleOa(isAbortError(err) ? "cancelled" : null));
     };
     const retryOa = (): void => {
         settleOa("pending");
@@ -847,17 +857,19 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
 
     let pubpeerRow = buildPubPeerRow("pending", compact);
     rows.appendChild(pubpeerRow);
-    const settlePubPeer = (feedback: PubPeerFeedback | null | "unavailable" | "pending"): void => {
+    const settlePubPeer = (feedback: PubPeerState): void => {
         const resolved = shieldFromPageCss(buildPubPeerRow(feedback, compact, retryPubPeer));
         replaceIndicatorRow(pubpeerRow, resolved);
         pubpeerRow = resolved;
-        opts.onPubPeer?.(typeof feedback === "string" ? null : feedback, feedback === "pending" ? "pending" : typeof feedback !== "string");
+        const answered: PubPeerAnswered = feedback === "pending" || feedback === "cancelled" ? feedback : typeof feedback !== "string";
+        opts.onPubPeer?.(typeof feedback === "string" ? null : feedback, answered);
     };
     const retryPubPeer = (): void => {
         settlePubPeer("pending");
         void lookupPubPeerForDoi(opts.doi).then(settlePubPeer).catch(error => {
-            // A cancelled pass leaves the row pending; a later pass fills it in.
-            settlePubPeer(isAbortError(error) ? "pending" : "unavailable");
+            // A cancelled pass settles the row to "Not checked", which carries
+            // the Retry action; nothing re-fetches it otherwise.
+            settlePubPeer(isAbortError(error) ? "cancelled" : "unavailable");
             if (typeof error?.retryAfterMs === "number") {
                 const subtitle = pubpeerRow.querySelector("[data-flora-row-sub]");
                 if (subtitle) subtitle.textContent = compact ? "Rate limited" : `Rate limited — try again in ${Math.ceil(error.retryAfterMs / 1000)} seconds`;

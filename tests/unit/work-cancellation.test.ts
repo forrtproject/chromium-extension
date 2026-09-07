@@ -1,5 +1,5 @@
 import {afterEach, expect, it, vi} from "vitest";
-import {fetchWithDeadline, runWorkerRequest, cancelWorkerRequest, beginCancellableWork, cancelWork, endCancellableWork} from "../../src/shared/work-cancellation";
+import {fetchWithDeadline, runWorkerRequest, cancelWorkerRequest, beginCancellableWork, cancelWork, endCancellableWork, resumeAutomaticWork, workSignal} from "../../src/shared/work-cancellation";
 import {SharedRequest} from "../../src/shared/shared-request";
 import {RequestGate} from "../../src/shared/request-gate";
 
@@ -87,6 +87,18 @@ it("cancels worker messages on HTTP pages and permits user actions after the pas
     expect(await safeSendMessage({type: "FLORA_CREATE_SET", dois: ["10.1234/a"]})).toEqual({setId: "new-set"});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("citation")));
     expect(await (await fetchWithDeadline("https://example.org/citation")).text()).toBe("citation");
+});
+
+it("keeps a cancelled pass aborted when work resumes before it unwinds", () => {
+    beginCancellableWork();
+    const passSignal = workSignal();
+    cancelWork();
+    resumeAutomaticWork(); // e.g. the reader unhides FLoRA mid-pass
+    expect(passSignal.aborted).toBe(true);
+    expect(workSignal().aborted).toBe(true);
+    endCancellableWork();
+    beginCancellableWork();
+    expect(workSignal().aborted).toBe(false);
 });
 
 it("keeps an explicit user request independent while a scan is being cancelled", async () => {

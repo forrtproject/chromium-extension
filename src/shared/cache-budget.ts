@@ -67,18 +67,25 @@ export async function enforceCacheBudget(bytes: number): Promise<void> {
 /** Install only in the service worker: one sweep owner for every provider. */
 export function installCacheBudget(): void {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // Sweeps run one at a time: a write during a sweep gets a follow-up after it
+  // settles, rather than a second sweep evicting from a stale snapshot.
+  let sweep: Promise<void> = Promise.resolve();
   const schedule = () => {
     if (timer) return;
     timer = setTimeout(() => {
       timer = undefined;
-      void getSettings().then(settings => enforceCacheBudget(effectiveCacheQuotaMb(settings.cacheQuotaMb) * 1024 * 1024))
+      sweep = sweep
+        .then(getSettings)
+        .then(settings => enforceCacheBudget(effectiveCacheQuotaMb(settings.cacheQuotaMb) * 1024 * 1024))
         .catch(err => debugWarn("Provider cache budget: sweep failed —", err));
     }, 1000);
   };
   chrome.storage.onChanged.addListener((changes, area) => {
     // Only new data can push usage over budget, so a sweep never reschedules
-    // itself off its own removals.
-    if ((area === "local" && Object.entries(changes).some(([key, change]) => isProviderCacheKey(key) && change.newValue !== undefined)) ||
+    // itself off its own removals. A retraction-map write changes the headroom
+    // the fast path subtracts, so it schedules a sweep as well.
+    if ((area === "local" && (RET_MAP_KEY in changes ||
+        Object.entries(changes).some(([key, change]) => isProviderCacheKey(key) && change.newValue !== undefined))) ||
         (area === "sync" && "flora_settings" in changes)) schedule();
   });
   schedule(); // covers a restart and a quota change made while asleep

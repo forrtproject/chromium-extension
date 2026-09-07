@@ -2,10 +2,14 @@
 let controller = new AbortController();
 let started = false;
 let cancelledPage: string | null = null;
-/** Clear the stop and hand later passes a signal that is not already aborted. */
+/**
+ * Clear the stop. A cancelled pass that is still unwinding keeps its aborted
+ * signal, so its remaining provider calls stay cancelled; the next pass gets a
+ * fresh controller from `beginCancellableWork`.
+ */
 function liftCancel(): void {
   cancelledPage = null;
-  if (controller.signal.aborted) controller = new AbortController();
+  if (!started && controller.signal.aborted) controller = new AbortController();
 }
 /** Automatic passes stay stopped on this page until navigation or an explicit resume. */
 export function canStartAutomaticWork(): boolean {

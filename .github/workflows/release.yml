@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Keep the write-capable token out of .git/config, where dependency
+          # install scripts could read it. The release action takes its token
+          # from the action input instead.
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24

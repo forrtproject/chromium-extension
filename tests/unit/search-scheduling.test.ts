@@ -16,7 +16,7 @@ beforeEach(() => {
     vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visible ? "visible" : "hidden");
     document.body.innerHTML = "";
     send.mockReset().mockResolvedValue({results: {}, errors: {}});
-    vi.doMock("../../src/shared/messages", () => ({safeSendMessage: send, augmentDOIsViaWorker: vi.fn()}));
+    vi.doMock("../../src/shared/messages", () => ({safeSendMessage: send, augmentDOIsViaWorker: vi.fn(), isContextInvalidated: () => false}));
     vi.doMock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null)}));
     vi.doMock("../../src/shared/doi-retraction", () => ({retractionCheck: vi.fn().mockResolvedValue([])}));
     vi.doMock("../../src/shared/indicator-pill", () => ({

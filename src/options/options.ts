@@ -104,7 +104,8 @@ const cacheQuotaSaveBtn = document.getElementById("cache-quota-save-btn") as HTM
 const cacheQuotaStatus = document.getElementById("cache-quota-status") as HTMLParagraphElement;
 
 getSettings().then(({ cacheQuotaMb }) => {
-  cacheQuotaInput.value = String(cacheQuotaMb);
+  // Show the floored value, so the displayed limit matches the enforced one.
+  cacheQuotaInput.value = String(effectiveCacheQuotaMb(cacheQuotaMb));
 });
 
 cacheQuotaSaveBtn.addEventListener("click", async () => {

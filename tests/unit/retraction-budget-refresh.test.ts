@@ -45,7 +45,7 @@ beforeEach(() => {
 afterEach(() => {vi.useRealTimers(); vi.unstubAllGlobals();});
 
 async function checkRetraction(): Promise<unknown> {
-    const listener = vi.mocked(chrome.runtime.onMessage.addListener).mock.calls[0][0];
+    const listener = vi.mocked(chrome.runtime.onMessage.addListener).mock.lastCall![0];
     return new Promise(resolve => listener({type: "FLORA_RET_CHECK", dois: ["10.1000/paper"]}, {}, resolve));
 }
 
@@ -80,9 +80,14 @@ describe("retraction map and the cache budget", () => {
             await vi.runAllTimersAsync(); // let the check's fire-and-forget sync settle
         }
         expect(remoteRequests).toBe(1);
+        // A worker restart drops in-memory state, so the backoff has to be stored.
+        vi.resetModules();
+        const restarted = await import("../../src/background/service-worker");
+        await restarted.syncRetractionsInfo();
+        expect(remoteRequests).toBe(1);
         vi.setSystemTime(NOW + 10 * 60 * 1000 + 1);
         failDownloads = false;
-        await syncRetractionsInfo();
+        await restarted.syncRetractionsInfo();
         expect(remoteRequests).toBe(2);
         expect(store[RET_MAP_KEY]).toEqual(map);
     });

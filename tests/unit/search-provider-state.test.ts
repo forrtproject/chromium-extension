@@ -465,6 +465,16 @@ it("keeps a matched row's result when a later pass repeating that DOI fails", as
     expect(badges.mock.lastCall![1].get(DOI)).toEqual({status: "matched", result, source: "extracted"});
 });
 
+it("keeps a no-match row's result when a later pass repeating that DOI fails", async () => {
+    send.mockResolvedValueOnce({results: {}, errors: {}});
+    const {processSearchResults} = await import("../../src/content-search/pipeline");
+    await processSearchResults(adapter, document);
+    send.mockRejectedValueOnce(new Error("offline"));
+    document.body.insertAdjacentHTML("beforeend", '<div class="result" id="later"></div>');
+    await processSearchResults(adapter, document);
+    expect(badges.mock.lastCall![1].get(DOI)).toEqual({status: "no-match"});
+});
+
 it("ignores a duplicate Retry while recovery is running, even when recovery fails", async () => {
     send.mockResolvedValue({type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}});
     let fail!: (reason: Error) => void;
