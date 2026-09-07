@@ -47,13 +47,16 @@ module.exports = async ({github, context}) => {
   const evidence = `<!-- flora-visual:evidence:${pr.head.sha}:${run_id}:${run.run_attempt ?? 1}:${run.updated_at} -->`;
   const screenshotLabel = 'I checked the changed screenshots and they look right.';
   const setupLabel = 'I checked the screenshot test setup changes.';
-  // The author's own prose may quote a start marker, so the managed block is
-  // the last complete marker pair: the closing marker and the start nearest
-  // before it. Prose outside that pair is never rewritten.
+  // The author's own prose may quote either marker, so the managed block is the
+  // first closing marker that has a start before it, paired with the start
+  // nearest to it. Prose outside that pair is never rewritten.
   const managedRange = body => {
-    const to = (body ?? '').lastIndexOf(end);
-    const from = to >= 0 ? body.lastIndexOf(start, to) : -1;
-    return from >= 0 ? {from, to} : undefined;
+    const text = body ?? '';
+    for (let to = text.indexOf(end); to >= 0; to = text.indexOf(end, to + end.length)) {
+      const from = text.lastIndexOf(start, to);
+      if (from >= 0) return {from, to};
+    }
+    return undefined;
   };
   const managed = body => {
     const range = managedRange(body);

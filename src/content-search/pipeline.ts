@@ -100,7 +100,11 @@ function syncRetractionPage(): void {
 pageNavigation?.addEventListener("currententrychange", syncRetractionPage);
 
 function refreshBadges(): void {
-    updateIndicatorPillBadges(document, lookupState, () => [...retractions.values()], "panels");
+    // A FORRT Retry inside a panel writes into lookupState from outside a pass,
+    // so it carries this page's identity: a result landing after a navigation
+    // belongs to a page whose state has already been cleared.
+    updateIndicatorPillBadges(document, lookupState, () => [...retractions.values()], "panels",
+        undefined, {generation: () => searchNavigationGeneration});
 }
 
 // Set by the popup's hide command and by the work toast's pause control (both

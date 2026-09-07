@@ -112,6 +112,9 @@ const REVIEW = process.argv.includes("--review");
 // new renders, so `--update` stages every render outside the repository and
 // copies it into the baseline directory only once all fixtures have succeeded.
 const STAGING_DIR = UPDATE ? mkdtempSync(path.join(os.tmpdir(), "flora-visual-baselines-")) : "";
+// Covers every way the run can end, including a capture that throws before the
+// baselines are copied across.
+if (STAGING_DIR) process.on("exit", () => rmSync(STAGING_DIR, { recursive: true, force: true }));
 
 // ── Chrome for Testing bootstrap ────────────────────────────────────────────
 async function ensureChrome(): Promise<string> {
@@ -463,11 +466,9 @@ async function main(): Promise<void> {
       for (const r of results) {
         copyFileSync(path.join(STAGING_DIR, `${r.name}.png`), path.join(BASELINE_DIR, `${r.name}.png`));
       }
-      rmSync(STAGING_DIR, { recursive: true, force: true });
       console.log(`Baselines written: ${results.length}. Inspect before committing.`);
       return;
     }
-    rmSync(STAGING_DIR, { recursive: true, force: true });
     console.log(`FAILED: ${failures.length}/${results.length} fixture(s) could not be captured. Baselines left unchanged.`);
     for (const f of failures) console.log(`  ✗ ${f.name}: ${f.detail}`);
     process.exit(1);

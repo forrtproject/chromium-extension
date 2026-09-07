@@ -508,3 +508,23 @@ it("refreshes same-URL new history entries but ignores unchanged-entry state upd
     await vi.waitFor(() => expect(retraction).toHaveBeenCalledTimes(2));
     expect(document.querySelectorAll("[data-flora-panel]")).toHaveLength(1);
 });
+
+it("hands badge retries a generation, so a retry landing after a navigation is discarded", async () => {
+    const navigation = navigationEvents as EventTarget & {currentEntry: {key: string}};
+    navigation.currentEntry = {key: "first"};
+    send.mockResolvedValue({type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}});
+    const {processSearchResults} = await import("../../src/content-search/pipeline");
+    await processSearchResults(adapter, document);
+    // What a retry started on this page captures, and what it compares against
+    // when its result lands.
+    const state = badges.mock.lastCall![1] as Map<DoiString, unknown>;
+    const {generation} = badges.mock.lastCall![5] as {generation: () => unknown};
+    const startedOn = generation();
+    expect(state.get(DOI)).toEqual({status: "no-match"});
+
+    navigation.currentEntry = {key: "second"};
+    navigation.dispatchEvent(new Event("currententrychange"));
+
+    expect(generation()).not.toBe(startedOn);
+    expect(state.has(DOI)).toBe(false);
+});

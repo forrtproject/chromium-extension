@@ -250,10 +250,16 @@ describe("validateDOIs", () => {
   });
 
   it("rejects a cancelled pass instead of reporting the DOIs unresolved", async () => {
-    server.use(http.get(HANDLE_PATTERN, () => new Promise<never>(() => {})));
+    let requested = false;
+    server.use(http.get(HANDLE_PATTERN, () => {
+      requested = true;
+      return new Promise<never>(() => {});
+    }));
     beginCancellableWork();
     const pending = validateDOIs([doi("10.1038/cancelled")]);
     const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    // Cancel the request while it is in flight.
+    await vi.waitFor(() => expect(requested).toBe(true));
     cancelWork();
     await outcome;
     endCancellableWork();

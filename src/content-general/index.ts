@@ -395,6 +395,15 @@ async function runScanPass(): Promise<void> {
     // owns it, so a failure is reported instead of left unhandled.
     const abandonReferences = (): void =>
         void refsPromise.catch((err) => debugError("References: resolution failed —", err));
+    // Same page, no verdict for these references: hand their scan markers back
+    // once they resolve, so the pass that resumes marks them up instead of
+    // treating them as done. A navigation in the meantime has already released
+    // the markers, and the reused nodes may belong to a later pass by then.
+    const releaseReferencesWhenResolved = (): void =>
+        void refsPromise.then(
+            (refs) => { if (!pageChanged()) releaseReferenceEntries(refs); },
+            (err) => debugError("References: resolution failed —", err),
+        );
 
     // Non-Sheets: one classification scan (allDois). Sheets: canvas extractDOIs + CSV.
     let dois: DoiString[];
@@ -466,7 +475,7 @@ async function runScanPass(): Promise<void> {
             // Abandoned mid-check on this page: give back the scan markers, so
             // the pass that resumes checks these DOIs instead of skipping them.
             seenDois.clear();
-            abandonReferences();
+            releaseReferencesWhenResolved();
             return;
         }
         pageNotices = notices;

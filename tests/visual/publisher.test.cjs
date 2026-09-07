@@ -254,11 +254,21 @@ test('visual publication policy', async t => {
     const quoted = body => `Intro.\n\n<!-- flora-visual:start -->\n\nAuthor notes about the managed block.\n\n${body}`;
     const unchecked = quoted(evidence()), checked = quoted(evidence({screenshots:true}));
     const published = await scenario({changed:true,edited:edit(unchecked,checked)});
-    // Only the last complete marker pair is managed, so the quoted marker and
-    // the prose after it survive publication.
+    // Only one marker pair is managed, so the quoted marker and the prose
+    // after it survive publication.
     assert.equal(published.state,'success');
     assert.ok(published.body.startsWith('Intro.\n\n<!-- flora-visual:start -->\n\nAuthor notes about the managed block.\n\nKeep this author paragraph.\n\n'));
     assert.equal((published.body.match(/<!-- flora-visual:end -->/g) ?? []).length,1);
+  });
+
+  await t.test('keeps author prose that quotes the end marker after the block', async () => {
+    const trailing = body => `${body}\n\nTrailing author notes.\n\n<!-- flora-visual:end -->\n\nMore prose.`;
+    const unchecked = trailing(evidence()), checked = trailing(evidence({screenshots:true}));
+    const published = await scenario({changed:true,edited:edit(unchecked,checked)});
+    assert.equal(published.state,'success');
+    assert.ok(published.body.includes('Trailing author notes.\n\n<!-- flora-visual:end -->\n\nMore prose.'));
+    assert.ok(published.body.includes('### Visual review'));
+    assert.equal((published.body.match(/### Visual review/g) ?? []).length,1);
   });
 
   await t.test('escapes parentheses in screenshot URLs', async () => {

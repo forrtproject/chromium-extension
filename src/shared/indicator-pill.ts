@@ -1226,7 +1226,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
 
 export interface BadgeRetryHooks {
     /** Owning page's identity, read when a retry starts and again when it lands. */
-    generation?: () => unknown;
+    generation: () => unknown;
     /** Runs after a retry writes its result, so the owner can rerender dependent UI. */
     onResolved?: () => void;
 }
@@ -1236,9 +1236,9 @@ export function updateIndicatorPillBadges(
     root: ParentNode,
     pageState: Map<DoiString, LookupState>,
     getRedacts: () => readonly RetractionResponse[],
-    scope: IndicatorScope = "pills",
-    onlyDoi?: DoiString,
-    hooks?: BadgeRetryHooks
+    scope: IndicatorScope,
+    onlyDoi: DoiString | undefined,
+    hooks: BadgeRetryHooks
 ): void {
     const retractionByDoi = new Map(getRedacts().map((r) => [r.originDoi, r] as const));
     for (const wrapper of root.querySelectorAll<HTMLElement>(indicatorSelector(scope))) {
@@ -1262,7 +1262,7 @@ export function updateIndicatorPillBadges(
             const pending = state.status === "loading";
             const retry = async () => {
                 const next = pageState;
-                const startedOn = hooks?.generation?.();
+                const startedOn = hooks.generation();
                 next.set(doi, {status: "loading"});
                 updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
                 let resolved: LookupState;
@@ -1275,10 +1275,10 @@ export function updateIndicatorPillBadges(
                     resolved = {status: "error", message: "FORRT unavailable"};
                 }
                 // The page this retry belongs to is gone; its state and pills are another page's now.
-                if (hooks?.generation?.() !== startedOn) return;
+                if (hooks.generation() !== startedOn) return;
                 next.set(doi, resolved);
                 updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
-                hooks?.onResolved?.();
+                hooks.onResolved?.();
             };
             replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,

@@ -100,6 +100,26 @@ describe("doi retraction content helper", () => {
         }
     });
 
+    it("never sends a check that a cancel overtook before the flush", async () => {
+        vi.useFakeTimers();
+        try {
+            const sendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+            const {retractionCheck} = await import("../../src/shared/doi-retraction");
+            const {beginCancellableWork, cancelWork, endCancellableWork} =
+                await import("../../src/shared/work-cancellation");
+            beginCancellableWork();
+            const pending = retractionCheck([doi("10.1038/nature12373")]);
+            const assertion = expect(pending).rejects.toMatchObject({name: "AbortError"});
+            cancelWork();
+            await vi.advanceTimersByTimeAsync(1);
+            await assertion;
+            expect(sendMessage).not.toHaveBeenCalled();
+            endCancellableWork();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("cancels the timed-out request in the worker", async () => {
         vi.useFakeTimers();
         try {

@@ -316,6 +316,17 @@ describe("debug report", () => {
     expect(report).toContain("wrote to [redacted email] and ([redacted email])");
   });
 
+  it("redacts a whole address behind a mailto: scheme or inside a URL path", () => {
+    const report = renderDebugReport({environment: [], settings: [], entries: [], error: {
+      message: "Request failed",
+      stack: "opened mailto:first/last@example.com\n at https://example.org/u/first/last@example.com/x",
+    }});
+    expect(report).not.toContain("first");
+    expect(report).not.toContain("example.com");
+    expect(report).toContain("opened mailto:[redacted email]");
+    expect(report).toContain("https://example.org/[redacted email]/x");
+  });
+
   it("applies the report size limit after redacting legacy short addresses", () => {
     const report = renderDebugReport({environment: [], settings: [], entries: Array.from({length: 30}, (_, i) => entry("a@b ".repeat(400), i))});
     expect(report).not.toContain("a@b");

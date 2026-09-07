@@ -184,10 +184,16 @@ describe("resolvePmcIds", () => {
   });
 
   it("rejects a cancelled batch instead of answering without it", async () => {
-    server.use(http.get(IDCONV_URL, () => new Promise<never>(() => {})));
+    let requested = false;
+    server.use(http.get(IDCONV_URL, () => {
+      requested = true;
+      return new Promise<never>(() => {});
+    }));
     const controller = new AbortController();
     const pending = resolvePmcIds(["PMC1234567"], "pmcid", controller.signal);
     const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    // Cancel the request while it is in flight.
+    await vi.waitFor(() => expect(requested).toBe(true));
     controller.abort(new DOMException("Work cancelled", "AbortError"));
     await outcome;
     expect(chrome.storage.local.set).not.toHaveBeenCalled();

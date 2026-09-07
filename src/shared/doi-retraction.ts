@@ -116,6 +116,9 @@ let pendingBatch: Promise<Map<DoiString, RetractionResponse>> | null = null;
 export const RETRACTION_CHECK_TIMEOUT_MS = 8_000;
 
 function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
+    // The signal of the pass the queued DOIs belong to. A cancel can land
+    // between queueing and the flush below.
+    const scan = activeWorkSignal();
     return new Promise((resolve, reject) => {
         setTimeout(async () => {
             const dois = [...pendingDois];
@@ -125,7 +128,6 @@ function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
             // The deadline aborts the message itself, so a request nothing waits
             // for any more is cancelled in the worker rather than left running.
             const deadline = new AbortController();
-            const scan = activeWorkSignal();
             const stopWithScan = () => deadline.abort(scan?.reason);
             scan?.addEventListener("abort", stopWithScan, {once: true});
             const timer = setTimeout(() => deadline.abort(new DOMException(
@@ -133,6 +135,9 @@ function flushRetractionQueue(): Promise<Map<DoiString, RetractionResponse>> {
                 "TimeoutError",
             )), RETRACTION_CHECK_TIMEOUT_MS);
             try {
+                // Cancelled between queueing and this flush: the request is
+                // never sent, so nothing reaches the worker.
+                scan?.throwIfAborted();
                 const response = await safeSendMessage<RetractionCheckResponse>(
                     {type: "FLORA_RET_CHECK", dois}, deadline.signal
                 );
