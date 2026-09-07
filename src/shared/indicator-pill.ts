@@ -59,7 +59,22 @@ export const PUBPEER_HUB_SVG =
     `<line x1="18.027" y1="124.955" x2="80.772" y2="21.267"/>` +
     `<line x1="76.136" y1="80.344" x2="45.023" y2="80.344"/></svg>`;
 
-const DIVIDER_STYLE = "width:1px;height:11px;background:rgba(255,255,255,0.4);flex-shrink:0;margin:0 6px;";
+const PILL_LINK_SVG =
+    `<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.6" stroke-linecap="round" style="display:block;">` +
+    `<path d="M5 6.5a2.5 2.5 0 0 0 3.5.5l1.5-1.5a2.5 2.5 0 0 0-3.5-3.5L5.5 3"/>` +
+    `<path d="M7 5.5a2.5 2.5 0 0 0-3.5-.5L2 6.5a2.5 2.5 0 0 0 3.5 3.5L6.5 9"/></svg>`;
+
+const PILL_REPEAT_SVG =
+    `<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;">` +
+    `<path d="M2 4h7.5a.5.5 0 0 1 .5.5v2"/><path d="M8 2l2 2-2 2"/>` +
+    `<path d="M10 8H2.5a.5.5 0 0 1-.5-.5V5"/><path d="M4 6l-2 2 2 2"/></svg>`;
+
+const PILL_ALERT_SVG =
+    `<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;">` +
+    `<path d="M6 1.6 11.2 10.6H0.8z"/><path d="M6 5v2.3"/><path d="M6 9.1h0.01"/></svg>`;
 
 // Link/chain glyph for the popover's DOI row — same Octicons family as the
 // copy/open/check icons used elsewhere in the popover.
@@ -158,43 +173,147 @@ function shieldFromPageCss<T extends Element>(root: T): T {
     return resetInheritedText(root);
 }
 
+const SEGMENT_ATTR = "data-flora-segment";
+const SEGMENT_PRESENT_ATTR = "data-flora-present";
+const SEGMENT_DIVIDER_ATTR = "data-flora-segment-divider";
+const SEGMENT_STRIP_ATTR = "data-flora-segments";
+const SEGMENT_ACCENT_ATTR = "data-flora-accent";
+
+const FILL_ALPHA = "bf";
+const FILL_HOVER_ALPHA = "e6";
+const BORDER_ALPHA = "4d";
+const ABSENT_ALPHA = "80";
+const ABSENT_HOVER_ALPHA = "14";
+
 function makeDivider(): HTMLElement {
     const d = document.createElement("span");
-    d.style.cssText = DIVIDER_STYLE;
-    return d;
+    d.setAttribute(SEGMENT_DIVIDER_ATTR, "");
+    d.style.cssText = "width:1px;align-self:stretch;background:rgba(255,255,255,0.22);flex-shrink:0;margin:4px 0;";
+    return shieldFromPageCss(d);
 }
 
-// ──────────────────────────────────────────────
-// Inline segments — dimmed/lit status glyphs only, no direct interaction.
-// ──────────────────────────────────────────────
+interface SegmentSpec {
+    attr: string;
+    iconHtml: string;
+    label: string;
+    title: string;
+    exists: boolean;
+    count?: number;
+    fill?: string;
+    decoration?: string;
+}
 
-function buildOaSegment(oa: OpenAccessStatus | null): HTMLElement {
+function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
+    const rest = spec.exists ? spec.fill ?? `${color}${FILL_ALPHA}` : "transparent";
+    const hover = spec.exists
+        ? spec.fill ?? `${color}${FILL_HOVER_ALPHA}`
+        : `${color}${ABSENT_HOVER_ALPHA}`;
+    const decoration = spec.decoration
+        ?? (spec.exists ? "text-decoration:none;" : `text-decoration:line-through;text-decoration-color:${color}${ABSENT_ALPHA};`);
+
+    const el = document.createElement("span");
+    el.setAttribute(spec.attr, "");
+    el.setAttribute(SEGMENT_ATTR, "");
+    if (spec.exists) el.setAttribute(SEGMENT_PRESENT_ATTR, "");
+    el.title = spec.title;
+    el.style.cssText = `
+    display:inline-flex;align-items:center;gap:5px;flex-shrink:0;
+    padding:3px 9px;white-space:nowrap;line-height:1;
+    color:${spec.exists ? "#fff" : `${color}${ABSENT_ALPHA}`};
+    background:${rest};
+    ${decoration}
+    transition:background 0.15s ease;
+  `;
+    el.addEventListener("mouseenter", () => { el.style.background = hover; });
+    el.addEventListener("mouseleave", () => { el.style.background = rest; });
+
+    const icon = document.createElement("span");
+    icon.style.cssText = `display:inline-flex;align-items:center;line-height:0;opacity:${spec.exists ? "1" : "0.6"};`;
+    icon.innerHTML = spec.iconHtml;
+    el.appendChild(icon);
+
+    const label = document.createElement("span");
+    label.setAttribute("data-flora-segment-label", "");
+    label.textContent = spec.label;
+    label.style.cssText = "font-size:10.5px;font-weight:600;letter-spacing:0.02em;line-height:1;";
+    el.appendChild(label);
+
+    if (spec.exists && spec.count !== undefined) {
+        const count = document.createElement("span");
+        count.textContent = `${spec.count}`;
+        count.style.cssText =
+            "font-size:9px;font-weight:700;line-height:1;padding:2px 3px;border-radius:3px;"
+            + "background:rgba(255,255,255,0.18);font-variant-numeric:tabular-nums;";
+        el.appendChild(count);
+    }
+    return shieldFromPageCss(el);
+}
+
+function refreshSegmentStrip(strip: HTMLElement): void {
+    for (const divider of strip.querySelectorAll(`[${SEGMENT_DIVIDER_ATTR}]`)) divider.remove();
+
+    const segments = [...strip.querySelectorAll<HTMLElement>(`[${SEGMENT_ATTR}]`)];
+    segments.forEach((seg, i) => {
+        const present = seg.hasAttribute(SEGMENT_PRESENT_ATTR);
+        const prev = i > 0 ? segments[i - 1].hasAttribute(SEGMENT_PRESENT_ATTR) : null;
+        const next = i < segments.length - 1 ? segments[i + 1].hasAttribute(SEGMENT_PRESENT_ATTR) : null;
+
+        const start = i === 0 ? "9999px" : present && prev === false ? "4px" : "0";
+        const end = i === segments.length - 1 ? "9999px" : present && next === false ? "4px" : "0";
+        seg.style.setProperty("border-radius", `${start} ${end} ${end} ${start}`);
+
+        const gap = prev === null ? "0" : prev !== present ? "3px" : present ? "0" : "2px";
+        seg.style.setProperty("margin-left", gap, "important");
+
+        if (present && prev) strip.insertBefore(makeDivider(), seg);
+    });
+}
+
+function buildDoiSegment(isAugmented: boolean, provenanceLabel?: string, color = "#853953"): HTMLElement {
+    return buildSegment({
+        attr: "data-flora-doi-segment",
+        iconHtml: PILL_LINK_SVG,
+        label: "DOI",
+        title: provenanceLabel ?? (isAugmented ? SEARCH_PROVENANCE : PAGE_PROVENANCE),
+        exists: true,
+        decoration: isAugmented
+            ? "text-decoration:underline dotted;text-underline-offset:2px;text-decoration-thickness:1px;"
+            : undefined,
+    }, color);
+}
+
+function buildOaSegment(oa: OpenAccessStatus | null, color = "#853953"): HTMLElement {
     const available = !!oa?.isOa;
-    const el = document.createElement("span");
-    el.setAttribute("data-flora-oa-segment", "");
-    el.style.cssText = `display:inline-flex;align-items:center;line-height:0;color:#fff;opacity:${available ? "1" : "0.35"};`;
-    el.innerHTML = OA_UNLOCK_SVG;
-    el.title = available ? "Open Access — free full text available" : "Open Access status unavailable";
-    return shieldFromPageCss(el);
+    return buildSegment({
+        attr: "data-flora-oa-segment",
+        iconHtml: OA_UNLOCK_SVG.replace('width="12" height="12"', 'width="11" height="11"'),
+        label: "OA",
+        title: available ? "Open Access — free full text available" : "Open Access status unavailable",
+        exists: available,
+    }, color);
 }
 
-function buildPubPeerSegment(feedback: PubPeerFeedback | null): HTMLElement {
+function buildPubPeerSegment(feedback: PubPeerFeedback | null, color = "#853953"): HTMLElement {
     const available = !!feedback && feedback.total_comments > 0;
-    const el = document.createElement("span");
-    el.setAttribute("data-flora-pubpeer-segment", "");
-    el.style.cssText = `display:inline-flex;align-items:center;line-height:0;color:#fff;opacity:${available ? "1" : "0.35"};`;
-    el.innerHTML = PUBPEER_HUB_SVG;
-    el.title = available && feedback
-        ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"} on PubPeer`
-        : "No PubPeer discussion found";
-    return shieldFromPageCss(el);
+    return buildSegment({
+        attr: "data-flora-pubpeer-segment",
+        iconHtml: PUBPEER_HUB_SVG.replace('width="11" height="15"', 'width="8" height="11"'),
+        label: "PubPeer",
+        title: available && feedback
+            ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"} on PubPeer`
+            : "No PubPeer discussion found",
+        exists: available,
+        count: available && feedback ? feedback.total_comments : undefined,
+    }, color);
 }
 
 interface BadgeSignal {
     available: boolean;
     href?: string;
-    glyph: string;       // inline segment text
-    background: string;  // inline segment background colour
+    segmentLabel: string;
+    segmentIcon: string;
+    segmentCount?: number;
+    segmentFill?: string;
     accent: string;      // popover row icon/action colour
     rowTitle: string;    // popover row heading
     rowSubtitle: string; // popover row status line
@@ -215,8 +334,9 @@ function resolveBadgeSignal(
         return {
             available: true,
             href: `https://doi.org/${retraction.doi}`,
-            glyph: "!",
-            background: presentation.pillStroke,
+            segmentLabel: presentation.label,
+            segmentIcon: PILL_ALERT_SVG,
+            segmentFill: presentation.pillStroke,
             accent: presentation.pillStroke,
             rowTitle: presentation.label,
             rowSubtitle: presentation.bannerCopy,
@@ -228,8 +348,9 @@ function resolveBadgeSignal(
         return {
             available: true,
             href: atlasDoiUrl([doi]),
-            glyph: `${replicationsCount} Reps`,
-            background: "rgba(255,255,255,0.25)",
+            segmentLabel: "Reps",
+            segmentIcon: PILL_REPEAT_SVG,
+            segmentCount: replicationsCount,
             accent: "#0369a1",
             rowTitle: "Replications",
             rowSubtitle: `${replicationsCount} replication${replicationsCount === 1 ? "" : "s"} recorded`,
@@ -241,8 +362,9 @@ function resolveBadgeSignal(
         return {
             available: true,
             href: atlasDoiUrl([doi]),
-            glyph: `${reproductionsCount} Reprod`,
-            background: "rgba(255,255,255,0.25)",
+            segmentLabel: "Reproductions",
+            segmentIcon: PILL_REPEAT_SVG,
+            segmentCount: reproductionsCount,
             accent: "#6d28d9",
             rowTitle: "Reproductions",
             rowSubtitle: `${reproductionsCount} reproduction${reproductionsCount === 1 ? "" : "s"} recorded`,
@@ -252,8 +374,8 @@ function resolveBadgeSignal(
     }
     return {
         available: false,
-        glyph: "",
-        background: "rgba(255,255,255,0.15)",
+        segmentLabel: "Reps",
+        segmentIcon: PILL_REPEAT_SVG,
         accent: "#8b949e",
         rowTitle: "Replication / Reproduction data",
         rowSubtitle: "No replication or reproduction data found",
@@ -261,23 +383,16 @@ function resolveBadgeSignal(
     };
 }
 
-function buildBadgeSegment(signal: BadgeSignal): HTMLElement {
-    const el = document.createElement("span");
-    el.setAttribute("data-flora-badge-segment", "");
-    // Single-glyph states ("!" or empty) render as a small circle; multi-char
-    // labels ("3 Reps") widen into a pill so the text isn't clipped.
-    const isPill = signal.glyph.length > 1;
-    el.style.cssText = `
-    display:inline-flex;align-items:center;justify-content:center;
-    height:15px;${isPill ? "min-width:15px;padding:0 5px;border-radius:999px;" : "width:15px;border-radius:50%;"}
-    margin-left:2px;flex-shrink:0;white-space:nowrap;
-    font-size:9px;font-weight:700;line-height:1;color:#fff;
-    background:${signal.background};
-    opacity:${signal.available ? "1" : "0.35"};
-  `;
-    el.textContent = signal.glyph;
-    el.title = signal.available ? `${signal.rowTitle} — ${signal.rowSubtitle}` : signal.rowSubtitle;
-    return shieldFromPageCss(el);
+function buildBadgeSegment(signal: BadgeSignal, color = "#853953"): HTMLElement {
+    return buildSegment({
+        attr: "data-flora-badge-segment",
+        iconHtml: signal.segmentIcon,
+        label: signal.segmentLabel,
+        title: signal.available ? `${signal.rowTitle} — ${signal.rowSubtitle}` : signal.rowSubtitle,
+        exists: signal.available,
+        count: signal.segmentCount,
+        fill: signal.segmentFill,
+    }, color);
 }
 
 // ──────────────────────────────────────────────
@@ -889,64 +1004,51 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     pill.setAttribute("aria-haspopup", "dialog");
     pill.setAttribute("aria-expanded", "false");
     pill.setAttribute("aria-label", pillAriaLabel(doi, retraction, replicationsCount, reproductionsCount));
+    pill.setAttribute(SEGMENT_STRIP_ATTR, "");
+    pill.setAttribute(SEGMENT_ACCENT_ATTR, color);
     pill.style.cssText = `
     display: inline-flex;
-    align-items: center;
-    font-size: 12px;
-    font-weight: 500;
+    align-items: stretch;
+    box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    color: white;
-    background: ${color};
-    opacity: 0.75;
-    padding: 2px 8px 2px 10px;
-    border-radius: 20px;
+    background: transparent;
+    padding: 2px;
+    border: 1px solid ${color}${BORDER_ALPHA};
+    border-radius: 9999px;
     cursor: pointer;
     user-select: none;
-    line-height: 18px;
+    line-height: 1;
     letter-spacing: 0.02em;
     box-shadow: 0 0 0 0 rgba(0,0,0,0);
-    transition: opacity 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
   `;
     pill.addEventListener("mouseenter", () => {
-        pill.style.opacity = "1";
-        pill.style.boxShadow = "0 1px 2px rgba(27,31,36,0.12), 0 2px 6px rgba(66,74,83,0.14)";
-        pill.style.transform = "translateY(-1px)";
+        pill.style.borderColor = `${color}${ABSENT_ALPHA}`;
+        pill.style.boxShadow = "0 1px 2px rgba(27,31,36,0.10), 0 2px 6px rgba(66,74,83,0.10)";
     });
     pill.addEventListener("mouseleave", () => {
-        pill.style.opacity = "0.75";
+        pill.style.borderColor = `${color}${BORDER_ALPHA}`;
         pill.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
-        pill.style.transform = "translateY(0)";
     });
 
     // Segment 1 — DOI content.
-    const doiSegment = document.createElement("span");
-    doiSegment.setAttribute("data-flora-doi-segment", "");
-    if (isAugmented) {
-        doiSegment.textContent = "DOI";
-        doiSegment.style.cssText = "text-decoration: underline dotted; text-underline-offset: 2px; text-decoration-thickness: 1px;";
-    } else {
-        const checkSvg = `<svg width="12" height="12" viewBox="0 0 16 16" fill="white" style="display:inline-block;vertical-align:middle;"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path></svg>`;
-        doiSegment.style.cssText = "display:inline-flex;align-items:center;gap:4px;";
-        doiSegment.innerHTML = `DOI ${checkSvg}`;
-    }
-    pill.appendChild(doiSegment);
+    pill.appendChild(buildDoiSegment(isAugmented, provenanceLabel, color));
 
     // Segment 2 — Open Access padlock (async).
-    pill.appendChild(makeDivider());
-    let oaSegment = buildOaSegment(null);
+    let oaSegment = buildOaSegment(null, color);
     pill.appendChild(oaSegment);
 
     // Segment 3 — PubPeer marker (async, fetched internally so callers don't
     // each need to import pubpeer-api.ts; per-pill lookups are coalesced into
     // one batch request and cached).
-    pill.appendChild(makeDivider());
-    let pubpeerSegment = buildPubPeerSegment(null);
+    let pubpeerSegment = buildPubPeerSegment(null, color);
     pill.appendChild(pubpeerSegment);
 
     // Segment 4 — retraction/replication badge (already-resolved inputs).
-    pill.appendChild(makeDivider());
-    const badgeSegment = buildBadgeSegment(resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount));
-    pill.appendChild(badgeSegment);
+    pill.appendChild(buildBadgeSegment(
+        resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount), color));
+
+    refreshSegmentStrip(pill);
 
     // ── Popover — one interactive row per segment, plus DOI copy/open ──
     const popover = document.createElement("div");
@@ -979,14 +1081,16 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         doi, color, isAugmented, provenanceLabel, oaStatus, retraction, replicationsCount, reproductionsCount,
         // The pill mirrors each resolved row into its matching inline segment.
         onOa: (oa) => {
-            const resolved = buildOaSegment(oa);
+            const resolved = buildOaSegment(oa, color);
             oaSegment.replaceWith(resolved);
             oaSegment = resolved;
+            refreshSegmentStrip(pill);
         },
         onPubPeer: (feedback) => {
-            const resolved = buildPubPeerSegment(feedback);
+            const resolved = buildPubPeerSegment(feedback, color);
             pubpeerSegment.replaceWith(resolved);
             pubpeerSegment = resolved;
+            refreshSegmentStrip(pill);
         },
     }));
 
@@ -1203,7 +1307,12 @@ export function updateIndicatorPillBadges(
         const reproductionsCount = state?.status === "matched" ? state.result.record.stats.n_reproductions_total : null;
         const signal = resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount);
 
-        if (badgeSegment) badgeSegment.replaceWith(buildBadgeSegment(signal));
+        if (badgeSegment) {
+            const strip = badgeSegment.closest<HTMLElement>(`[${SEGMENT_STRIP_ATTR}]`);
+            badgeSegment.replaceWith(buildBadgeSegment(
+                signal, strip?.getAttribute(SEGMENT_ACCENT_ATTR) ?? undefined));
+            if (strip) refreshSegmentStrip(strip);
+        }
         if (badgeRow) {
             badgeRow.replaceWith(shieldFromPageCss(buildBadgeRow(signal, wrapper.hasAttribute("data-flora-panel"))));
         }
