@@ -2,6 +2,11 @@
 let controller = new AbortController();
 let started = false;
 let cancelledPage: string | null = null;
+/** URL plus Navigation API entry key, so a same-URL SPA navigation counts as a new page. */
+const pageIdentity = (): string => {
+  const entry = (window as Window & {navigation?: {currentEntry?: {key: string}}}).navigation?.currentEntry?.key ?? "";
+  return `${location.href}\n${entry}`;
+};
 /**
  * Clear the stop. A cancelled pass that is still unwinding keeps its aborted
  * signal, so its remaining provider calls stay cancelled; the next pass gets a
@@ -13,7 +18,7 @@ function liftCancel(): void {
 }
 /** Automatic passes stay stopped on this page until navigation or an explicit resume. */
 export function canStartAutomaticWork(): boolean {
-  if (cancelledPage !== null && cancelledPage !== location.href) liftCancel();
+  if (cancelledPage !== null && cancelledPage !== pageIdentity()) liftCancel();
   return cancelledPage === null;
 }
 export function resumeAutomaticWork(): void { liftCancel(); }
@@ -30,7 +35,7 @@ export function isAbortError(err: unknown): boolean {
 }
 
 export function cancelWork(): void {
-  cancelledPage = location.href;
+  cancelledPage = pageIdentity();
   controller.abort(new DOMException("Work cancelled", "AbortError"));
 }
 

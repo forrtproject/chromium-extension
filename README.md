@@ -209,7 +209,7 @@ never included.
 
 * Opened pull request are tested against the [test workflow](.github/workflows/test.yml)
 * Pushing to `main` creates a new draft release from latest sources.
-* Pushing a tag to `main` will create a new release
+* Pushing a `v*` tag on a commit that is on `main` creates a new release
 
 ### Commands
 

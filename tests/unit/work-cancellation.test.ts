@@ -1,5 +1,5 @@
 import {afterEach, expect, it, vi} from "vitest";
-import {fetchWithDeadline, runWorkerRequest, cancelWorkerRequest, beginCancellableWork, cancelWork, endCancellableWork, resumeAutomaticWork, workSignal} from "../../src/shared/work-cancellation";
+import {fetchWithDeadline, runWorkerRequest, cancelWorkerRequest, beginCancellableWork, canStartAutomaticWork, cancelWork, endCancellableWork, resumeAutomaticWork, workSignal} from "../../src/shared/work-cancellation";
 import {SharedRequest} from "../../src/shared/shared-request";
 import {RequestGate} from "../../src/shared/request-gate";
 
@@ -112,4 +112,14 @@ it("keeps an explicit user request independent while a scan is being cancelled",
     cancelWork();
     expect(transport.aborted).toBe(false);
     expect(await response.text()).toBe("citation");
+});
+
+it("treats a same-URL SPA navigation after Cancel as a new page", () => {
+    const navigation = {currentEntry: {key: "entry-1"}};
+    vi.stubGlobal("navigation", navigation);
+    cancelWork();
+    expect(canStartAutomaticWork()).toBe(false);
+    navigation.currentEntry = {key: "entry-2"};
+    expect(canStartAutomaticWork()).toBe(true);
+    resumeAutomaticWork();
 });
