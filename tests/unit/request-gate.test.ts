@@ -123,6 +123,53 @@ describe("RequestGate", () => {
         vi.unstubAllGlobals();
     });
 
+    it("reuses a start slot freed between two later reservations", async () => {
+        vi.useFakeTimers();
+        const starts: number[] = [];
+        const fetchMock = vi.fn(async () => { starts.push(Date.now()); return new Response("ok"); });
+        vi.stubGlobal("fetch", fetchMock);
+        const gate = new RequestGate("Test", 4, 1000);
+        const t0 = Date.now();
+
+        const first = gate.fetch("https://x/1", {signal: new AbortController().signal});
+        const controller = new AbortController();
+        const cancelled = gate.fetch("https://x/2", {signal: controller.signal});
+        const outcome = expect(cancelled).rejects.toMatchObject({name: "AbortError"});
+        const third = gate.fetch("https://x/3", {signal: new AbortController().signal});
+        await vi.advanceTimersByTimeAsync(0);
+
+        controller.abort(new DOMException("Work cancelled", "AbortError"));
+        await outcome;
+
+        const fourth = gate.fetch("https://x/4", {signal: new AbortController().signal});
+        await vi.advanceTimersByTimeAsync(3000);
+        await Promise.all([first, third, fourth]);
+
+        expect(starts.map((at) => at - t0)).toEqual([0, 1000, 2000]);
+    });
+
+    it("frees the slot when a request is cancelled after reserving but before sending", async () => {
+        vi.useFakeTimers();
+        const starts: number[] = [];
+        const fetchMock = vi.fn(async () => { starts.push(Date.now()); return new Response("ok"); });
+        vi.stubGlobal("fetch", fetchMock);
+        const gate = new RequestGate("Test", 4, 1000);
+        const t0 = Date.now();
+
+        const controller = new AbortController();
+        const cancelled = gate.fetch("https://x/1", {signal: controller.signal});
+        const outcome = expect(cancelled).rejects.toMatchObject({name: "AbortError"});
+        controller.abort(new DOMException("Work cancelled", "AbortError"));
+        await outcome;
+        expect(fetchMock).not.toHaveBeenCalled();
+
+        const next = gate.fetch("https://x/2", {signal: new AbortController().signal});
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(starts.map((at) => at - t0)).toEqual([0]);
+        await next;
+    });
+
     it("blocks the platform on a long Retry-After instead of queueing behind it", async () => {
         const fetchMock = vi.fn()
             .mockResolvedValue(new Response("", {status: 429, headers: {"retry-after": "39000"}}));

@@ -40,7 +40,6 @@ export class RequestGate {
     private active = 0;
     private readonly waiting: Array<() => void> = [];
     private blockedUntil = 0;
-    private nextStartAt = 0;
     /** Start times reserved by requests that are still spacing-relevant. */
     private reservedStarts: number[] = [];
 
@@ -64,13 +63,12 @@ export class RequestGate {
                     if (reserved !== undefined) reserved = this.releaseReservation(reserved);
                     const now = Date.now();
                     this.reservedStarts = this.reservedStarts.filter(start => start + this.minIntervalMs > now);
-                    const startAt = Math.max(now, this.nextStartAt, this.blockedUntil);
+                    const startAt = this.earliestStart(now);
                     if (startAt - now > MAX_WAIT_MS) {
                         throw new Error(`${this.name} rate limited (paused for another ${Math.round((startAt - now) / 1000)} s)`);
                     }
                     reserved = startAt;
                     this.reservedStarts.push(startAt);
-                    this.nextStartAt = startAt + this.minIntervalMs;
                     if (startAt > now) {
                         try {
                             await abortableDelay(startAt - now, signal);
@@ -85,6 +83,7 @@ export class RequestGate {
                     }
                 } while (this.blockedUntil > Date.now());
 
+                if (signal.aborted) reserved = this.releaseReservation(reserved);
                 signal.throwIfAborted();
                 const response = await fetchWithDeadline(url, {...init, signal});
                 if (response.status !== 429) return response;
@@ -103,12 +102,18 @@ export class RequestGate {
         }
     }
 
-    /** Drop one reservation and re-space the next start on those still held. */
     private releaseReservation(startAt: number): undefined {
         const index = this.reservedStarts.indexOf(startAt);
         if (index >= 0) this.reservedStarts.splice(index, 1);
-        this.nextStartAt = Math.max(0, ...this.reservedStarts.map(start => start + this.minIntervalMs));
         return undefined;
+    }
+
+    private earliestStart(now: number): number {
+        let candidate = Math.max(now, this.blockedUntil);
+        for (const start of [...this.reservedStarts].sort((a, b) => a - b)) {
+            if (Math.abs(candidate - start) < this.minIntervalMs) candidate = start + this.minIntervalMs;
+        }
+        return candidate;
     }
 
     private acquire(signal: AbortSignal): Promise<void> {
