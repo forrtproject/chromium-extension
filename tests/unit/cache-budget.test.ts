@@ -106,4 +106,23 @@ describe("scheduled cache budget sweeps", () => {
     release();
     await vi.advanceTimersByTimeAsync(0);
   });
+
+  it("ignores a retraction-map write, which is outside the budget", async () => {
+    vi.useFakeTimers();
+    chrome.storage.sync.get = vi.fn().mockResolvedValue({flora_settings: {cacheQuotaMb: 50}});
+    let sweeps = 0;
+    chrome.storage.local.getBytesInUse = vi.fn(async (keys: string | string[] | null) => {
+      if (keys === null) sweeps++;
+      return 0;
+    });
+
+    installCacheBudget();
+    const onChanged = vi.mocked(chrome.storage.onChanged.addListener).mock.lastCall![0];
+    await vi.advanceTimersByTimeAsync(1000); // the install's own sweep
+    expect(sweeps).toBe(1);
+
+    onChanged({RetractionLookupLocal: {newValue: {retractions: {}, concerns: {}}}}, "local");
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(sweeps).toBe(1);
+  });
 });

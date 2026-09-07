@@ -92,6 +92,19 @@ describe("retraction map and the cache budget", () => {
         expect(store[RET_MAP_KEY]).toEqual(map);
     });
 
+    it("backs off from memory when the attempt time cannot be stored", async () => {
+        failDownloads = true;
+        chrome.storage.local.set = vi.fn(async () => {throw new Error("storage full");});
+        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
+        await syncRetractionsInfo();
+        expect(remoteRequests).toBe(1);
+        await syncRetractionsInfo();
+        expect(remoteRequests).toBe(1);
+        vi.setSystemTime(NOW + 10 * 60 * 1000 + 1);
+        await syncRetractionsInfo();
+        expect(remoteRequests).toBe(2);
+    });
+
     it.each(["missing", "empty"])("repairs a %s map on the next sync", async kind => {
         store.synctime = NOW;
         if (kind === "empty") store[RET_MAP_KEY] = {retractions: {}, concerns: {}};

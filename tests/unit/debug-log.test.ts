@@ -320,7 +320,8 @@ describe("debug report", () => {
     const report = renderDebugReport({environment: [], settings: [], entries: [], error: {
       message: "Request failed",
       stack: "opened mailto:first/last@example.com\n at https://example.org/u/first/last@example.com/x" +
-        "\n at https://api.example.org/u/first.last/second@example.com/x",
+        "\n at https://api.example.org/u/first.last/second@example.com/x" +
+        "\n at file:///first/last@example.com",
     }});
     expect(report).not.toContain("first");
     expect(report).not.toContain("second");
@@ -328,6 +329,7 @@ describe("debug report", () => {
     expect(report).toContain("opened mailto:[redacted email]");
     expect(report).toContain("https://example.org/[redacted email]/x");
     expect(report).toContain("https://api.example.org/[redacted email]/x");
+    expect(report).toContain("file:///[redacted email]");
   });
 
   it("applies the report size limit after redacting legacy short addresses", () => {

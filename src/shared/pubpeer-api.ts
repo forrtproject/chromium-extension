@@ -48,7 +48,7 @@ function isHttpsUrl(url: string): boolean {
 /** The fields callers read: the DOI key, the comment count, the link, and the commenter list. */
 function isUsableFeedback(feedback: PubPeerFeedback | null | undefined): boolean {
   if (!feedback || typeof feedback !== "object") return false;
-  return typeof feedback.id === "string" &&
+  return typeof feedback.id === "string" && feedback.id.trim().length > 0 &&
     typeof feedback.total_comments === "number" &&
     typeof feedback.url === "string" && isHttpsUrl(feedback.url) &&
     (feedback.users == null || typeof feedback.users === "string");

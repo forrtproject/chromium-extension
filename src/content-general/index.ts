@@ -1066,24 +1066,27 @@ async function fetchSheetDois(): Promise<void> {
     const isCurrent = () => myGen === sheetFetchGen &&
         sheetTabKey(parsed) === sheetTabKey(parseSheetsUrl(location.href));
     let unavailable = false;
-    // The export runs inside a work indicator so Cancel reaches the worker request.
+    // One work indicator spans the export and the scan, so Cancel reaches the
+    // worker request and a single toast covers the whole pass.
     beginWorkIndicator({stages: ["scan"]});
     try {
-        reportWorkStage("scan", "Exporting this sheet tab…");
-        const csv = await fetchSheetCsv(parsed);
-        if (!isCurrent()) return;
-        sheetCsvDois = extractDOIsFromText(csv);
-        debugLog(`Sheets: CSV export found ${sheetCsvDois.length} DOIs`);
-    } catch (err) {
-        if (!isCurrent() || isAbortError(err)) return;
-        sheetCsvDois = [];
-        unavailable = true;
-        debugWarn("Sheets: full-tab export unavailable — checking visible cells only", err);
+        try {
+            reportWorkStage("scan", "Exporting this sheet tab…");
+            const csv = await fetchSheetCsv(parsed);
+            if (!isCurrent()) return;
+            sheetCsvDois = extractDOIsFromText(csv);
+            debugLog(`Sheets: CSV export found ${sheetCsvDois.length} DOIs`);
+        } catch (err) {
+            if (!isCurrent() || isAbortError(err)) return;
+            sheetCsvDois = [];
+            unavailable = true;
+            debugWarn("Sheets: full-tab export unavailable — checking visible cells only", err);
+        }
+        if (isWorkCancelled()) return;
+        await scanWholePage().catch((err) => debugError("Sheets: scan pass failed —", err));
     } finally {
         endWorkIndicator();
     }
-    if (isWorkCancelled()) return;
-    await scanWholePage().catch((err) => debugError("Sheets: scan pass failed —", err));
     if (!isCurrent() || isWorkCancelled()) return;
     if (unavailable) {
         showToast(SHEET_UNAVAILABLE, {

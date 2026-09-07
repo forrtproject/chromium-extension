@@ -54,9 +54,11 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     });
 
     const observer = new MutationObserver((mutations) => {
-        // Do no work while this tab is in the background.
+        // Do no work while this tab is in the background. The records go
+        // uninspected, so the catch-up on resume can only be a full scan.
         if (document.hidden) {
             missedWhileHidden = true;
+            pendingFullScan = true;
             return;
         }
         let hasExternalChange = false;
@@ -89,9 +91,10 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         if (!missedWhileHidden) return;
         missedWhileHidden = false;
         clearTimeout(debounceTimer);
-        pendingFullScan = false;
-        pendingNodes = [];
-        scanWholePage();
+        // Run the work the debounce was holding: a full scan when one is
+        // pending, and otherwise only the nodes that arrived, which skip the
+        // scan when they carry no DOI candidates.
+        flush();
     });
     return observer;
 }

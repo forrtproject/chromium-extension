@@ -114,7 +114,11 @@ const REVIEW = process.argv.includes("--review");
 const STAGING_DIR = UPDATE ? mkdtempSync(path.join(os.tmpdir(), "flora-visual-baselines-")) : "";
 // Covers every way the run can end, including a capture that throws before the
 // baselines are copied across.
-if (STAGING_DIR) process.on("exit", () => rmSync(STAGING_DIR, { recursive: true, force: true }));
+if (STAGING_DIR) {
+  process.on("exit", () => rmSync(STAGING_DIR, { recursive: true, force: true }));
+  // A signal ends the process without firing `exit`, so ask for it explicitly.
+  for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => process.exit(1));
+}
 
 // ── Chrome for Testing bootstrap ────────────────────────────────────────────
 async function ensureChrome(): Promise<string> {
@@ -462,9 +466,22 @@ async function main(): Promise<void> {
   writeFileSync(path.join(OUTPUT_DIR, "results.json"), JSON.stringify(results, null, 2));
   if (UPDATE) {
     if (failures.length === 0) {
+      const missing = results.filter((r) => !existsSync(path.join(STAGING_DIR, `${r.name}.png`)));
+      if (missing.length > 0) {
+        console.log(`FAILED: staged render missing for ${missing.map((r) => r.name).join(", ")}. Baselines left unchanged.`);
+        process.exit(1);
+      }
       mkdirSync(BASELINE_DIR, { recursive: true });
-      for (const r of results) {
-        copyFileSync(path.join(STAGING_DIR, `${r.name}.png`), path.join(BASELINE_DIR, `${r.name}.png`));
+      const written: string[] = [];
+      try {
+        for (const r of results) {
+          copyFileSync(path.join(STAGING_DIR, `${r.name}.png`), path.join(BASELINE_DIR, `${r.name}.png`));
+          written.push(r.name);
+        }
+      } catch (err) {
+        console.log(`FAILED: copying baselines stopped at ${written.length}/${results.length} — ${String(err)}`);
+        console.log(`Baselines already replaced: ${written.join(", ") || "none"}. Re-run to finish.`);
+        process.exit(1);
       }
       console.log(`Baselines written: ${results.length}. Inspect before committing.`);
       return;

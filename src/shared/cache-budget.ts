@@ -30,11 +30,11 @@ export async function enforceCacheBudget(bytes: number): Promise<void> {
   if (!Number.isFinite(bytes) || bytes <= 0) return;
   // Cheap upper bound first: everything except the retraction map, which is the
   // one large key outside the budget. Only an over-budget sweep pays for
-  // deserialising the stored values.
-  const [total, mapBytes] = await Promise.all([
-    chrome.storage.local.getBytesInUse(null),
-    chrome.storage.local.getBytesInUse(RET_MAP_KEY),
-  ]);
+  // deserialising the stored values. The map is measured before the total, so a
+  // map that grows between the two reads can only overestimate provider usage
+  // and fall through to the full read — never skip a sweep that is due.
+  const mapBytes = await chrome.storage.local.getBytesInUse(RET_MAP_KEY);
+  const total = await chrome.storage.local.getBytesInUse(null);
   if (total - mapBytes <= bytes) return;
   const all = await chrome.storage.local.get(null);
   const keys = Object.keys(all).filter(isProviderCacheKey);
@@ -82,10 +82,9 @@ export function installCacheBudget(): void {
   };
   chrome.storage.onChanged.addListener((changes, area) => {
     // Only new data can push usage over budget, so a sweep never reschedules
-    // itself off its own removals. A retraction-map write changes the headroom
-    // the fast path subtracts, so it schedules a sweep as well.
-    if ((area === "local" && (RET_MAP_KEY in changes ||
-        Object.entries(changes).some(([key, change]) => isProviderCacheKey(key) && change.newValue !== undefined))) ||
+    // itself off its own removals.
+    if ((area === "local" &&
+        Object.entries(changes).some(([key, change]) => isProviderCacheKey(key) && change.newValue !== undefined)) ||
         (area === "sync" && "flora_settings" in changes)) schedule();
   });
   schedule(); // covers a restart and a quota change made while asleep

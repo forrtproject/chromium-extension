@@ -41,6 +41,8 @@ export class RequestGate {
     private readonly waiting: Array<() => void> = [];
     private blockedUntil = 0;
     private nextStartAt = 0;
+    /** Start times reserved by requests that are still spacing-relevant. */
+    private reservedStarts: number[] = [];
 
     constructor(
         private readonly name: string,
@@ -52,24 +54,32 @@ export class RequestGate {
         const signal = (init?.signal === undefined ? activeWorkSignal() : init.signal) ?? new AbortController().signal;
         signal.throwIfAborted();
         await this.acquire(signal);
+        let reserved: number | undefined;
         try {
             for (let attempt = 0; ; attempt++) {
                 // Reserve a start slot again if another in-flight request
                 // extended the cooldown while we slept. Re-reserving also
                 // preserves spacing when several sleepers wake together.
                 do {
+                    if (reserved !== undefined) reserved = this.releaseReservation(reserved);
                     const now = Date.now();
+                    this.reservedStarts = this.reservedStarts.filter(start => start + this.minIntervalMs > now);
                     const startAt = Math.max(now, this.nextStartAt, this.blockedUntil);
                     if (startAt - now > MAX_WAIT_MS) {
                         throw new Error(`${this.name} rate limited (paused for another ${Math.round((startAt - now) / 1000)} s)`);
                     }
+                    reserved = startAt;
+                    this.reservedStarts.push(startAt);
                     this.nextStartAt = startAt + this.minIntervalMs;
                     if (startAt > now) {
                         try {
                             await abortableDelay(startAt - now, signal);
                         } catch (err) {
-                            // Hand back the start slot so a retry is not spaced behind one nobody uses.
-                            if (this.nextStartAt === startAt + this.minIntervalMs) this.nextStartAt = startAt;
+                            // Hand back this start slot so a retry is not spaced
+                            // behind one nobody uses. Every cancelled sleeper
+                            // returns its own, so several cancelled together
+                            // free every slot they held.
+                            reserved = this.releaseReservation(startAt);
                             throw err;
                         }
                     }
@@ -91,6 +101,14 @@ export class RequestGate {
         } finally {
             this.release();
         }
+    }
+
+    /** Drop one reservation and re-space the next start on those still held. */
+    private releaseReservation(startAt: number): undefined {
+        const index = this.reservedStarts.indexOf(startAt);
+        if (index >= 0) this.reservedStarts.splice(index, 1);
+        this.nextStartAt = Math.max(0, ...this.reservedStarts.map(start => start + this.minIntervalMs));
+        return undefined;
     }
 
     private acquire(signal: AbortSignal): Promise<void> {

@@ -123,9 +123,18 @@ describe("lookupPubPeerForDoi batching", () => {
       json: async () => ({status: "success", feedbacks: [{id: "10.1234/a", total_comments: "many"}]}),
     });
     await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+    // A blank id names no publication, so the entry is unusable as well.
+    fetchMock.mockResolvedValue({
+      ok: true, status: 200, headers: {get: () => null},
+      json: async () => ({status: "success", feedbacks: [{
+        id: "  ", title: "A", total_comments: 3, total_peeriodical_comments: 0,
+        last_commented_at: "", users: "", url: "https://pubpeer.com/publications/a",
+      }]}),
+    });
+    await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
     fetchMock.mockResolvedValue({ok: true, status: 200, headers: {get: () => null}, json: async () => ({feedbacks: []})});
     await expect(lookupPubPeerForDoi("10.1234/a")).resolves.toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it.each(["javascript:alert(1)", "data:text/html,<script></script>"])(

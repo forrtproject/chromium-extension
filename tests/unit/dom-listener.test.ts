@@ -105,6 +105,37 @@ describe("startDomListener", () => {
         hidden.mockRestore();
     });
 
+    it("skips the catch-up scan when the debounced nodes carry no DOI", async () => {
+        const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+        listen();
+        document.querySelector("main")!.appendChild(
+            Object.assign(document.createElement("div"), {textContent: "Accept cookies?"})
+        );
+        await Promise.resolve();
+        hidden.mockReturnValue(true);
+        document.dispatchEvent(new Event("visibilitychange"));
+        hidden.mockReturnValue(false);
+        document.dispatchEvent(new Event("visibilitychange"));
+        vi.advanceTimersByTime(DEBOUNCE_MS);
+        expect(scanWholePage).not.toHaveBeenCalled();
+        hidden.mockRestore();
+    });
+
+    it("scans once for mutations that arrived while the tab was hidden", async () => {
+        const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+        listen();
+        document.querySelector("main")!.appendChild(
+            Object.assign(document.createElement("div"), {textContent: "Accept cookies?"})
+        );
+        await Promise.resolve();
+        hidden.mockReturnValue(false);
+        document.dispatchEvent(new Event("visibilitychange"));
+        vi.advanceTimersByTime(DEBOUNCE_MS);
+        // The records were never inspected, so the whole page is rescanned.
+        expect(scanWholePage).toHaveBeenCalledTimes(1);
+        hidden.mockRestore();
+    });
+
     it("skips the full scan for mutations with no DOI content", async () => {
         listen();
         document.querySelector("main")!.appendChild(

@@ -9,7 +9,13 @@ import type { DoiString } from "../../src/shared/types";
 const server = setupServer();
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
-afterEach(() => server.resetHandlers());
+// A cancelled pass leaves the module-level work state started and aborted, so
+// every case starts from a clean slate whatever the previous one asserted.
+afterEach(() => {
+  server.resetHandlers();
+  endCancellableWork();
+  vi.unstubAllGlobals();
+});
 afterAll(() => server.close());
 
 const doi = (s: string) => s as DoiString;
@@ -250,19 +256,19 @@ describe("validateDOIs", () => {
   });
 
   it("rejects a cancelled pass instead of reporting the DOIs unresolved", async () => {
-    let requested = false;
-    server.use(http.get(HANDLE_PATTERN, () => {
-      requested = true;
-      return new Promise<never>(() => {});
-    }));
+    // The transport is stubbed rather than mocked through msw: this case is
+    // about the abort reaching a request that is still open.
+    const fetchStub = vi.fn((_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) =>
+        init.signal!.addEventListener("abort", () => reject(init.signal!.reason), { once: true })));
+    vi.stubGlobal("fetch", fetchStub);
     beginCancellableWork();
     const pending = validateDOIs([doi("10.1038/cancelled")]);
     const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
     // Cancel the request while it is in flight.
-    await vi.waitFor(() => expect(requested).toBe(true));
+    await vi.waitFor(() => expect(fetchStub).toHaveBeenCalled());
     cancelWork();
     await outcome;
-    endCancellableWork();
     expect(cachedDois()).toEqual([]);
   });
 

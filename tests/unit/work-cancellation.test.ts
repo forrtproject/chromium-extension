@@ -38,6 +38,34 @@ it("cancels an active transport and removes queued requests before they start", 
     expect((await gate.fetch("https://example.org/next")).status).toBe(200);
 });
 
+it("hands back every start slot when queued waits are cancelled together", async () => {
+    vi.useFakeTimers();
+    const startedAt: number[] = [];
+    const begin = Date.now();
+    vi.stubGlobal("fetch", vi.fn(() => {
+        startedAt.push(Date.now() - begin);
+        return Promise.resolve(new Response("ok"));
+    }));
+    const gate = new RequestGate("test", 3, 100);
+    const controller = new AbortController();
+    const first = gate.fetch("https://example.org/1");
+    const cancelled = Promise.allSettled([
+        gate.fetch("https://example.org/2", {signal: controller.signal}),
+        gate.fetch("https://example.org/3", {signal: controller.signal}),
+    ]);
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort(new DOMException("Work cancelled", "AbortError"));
+    expect((await cancelled).map(r => r.status)).toEqual(["rejected", "rejected"]);
+    await first;
+
+    // Both cancelled reservations are free again, so the next request waits out
+    // one interval behind the request that actually ran, not three.
+    const next = gate.fetch("https://example.org/4");
+    await vi.advanceTimersByTimeAsync(100);
+    await next;
+    expect(startedAt).toEqual([0, 100]);
+});
+
 it("keeps shared work alive for another caller, then aborts when the last caller leaves", async () => {
     let transport!: AbortSignal;
     const shared = new SharedRequest(signal => {
