@@ -7,8 +7,12 @@ on:
       - main
     paths-ignore:
       - "**/*.json"
-    tags: # or tag push (any branch)
-      - '*'
+    tags: # or a version tag push (any branch)
+      - 'v*'
+
+
+permissions:
+  contents: write # softprops/action-gh-release creates releases and uploads assets
 
 
 jobs:
@@ -35,14 +39,14 @@ jobs:
       # https://github.com/marketplace/actions/gh-release#-customizing
       - name: Draft release
         if: github.ref_type != 'tag' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: draft
           files: flora-extension.zip
           draft: true
       - name: Release
-        if: github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v3
+        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: flora-extension.zip
           make_latest: true

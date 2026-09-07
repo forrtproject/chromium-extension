@@ -1,9 +1,13 @@
 const fs = require('node:fs');
+const path = require('node:path');
 
 module.exports = async ({github, context}) => {
   const {owner, repo} = context.repo;
   const pull_number = Number(process.env.VISUAL_PR);
   const run_id = Number(process.env.VISUAL_RUN_ID);
+  // Resolved outside the read below so a missing setting fails the step loudly
+  // instead of being reported as a capture failure.
+  const resultsPath = path.join(process.env.VISUAL_REPORT_DIR, 'results.json');
   const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number});
   const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id});
   if (pr.state !== 'open' || pr.head.sha !== run.head_sha || pr.head.repo?.full_name !== run.head_repository.full_name) return;
@@ -12,7 +16,7 @@ module.exports = async ({github, context}) => {
       context.payload.pull_request?.body !== pr.body) return;
   let results;
   try {
-    const raw = fs.readFileSync('visual-report/results.json', 'utf8');
+    const raw = fs.readFileSync(resultsPath, 'utf8');
     if (raw.length > 100000) throw new Error('Oversized results');
     results = JSON.parse(raw);
     if (!Array.isArray(results) || results.length === 0 || results.length > 100 ||
@@ -30,8 +34,11 @@ module.exports = async ({github, context}) => {
   // cannot certify themselves as unchanged and bypass human review.
   const capturePath = /^(tests\/visual\/|tests\/fixtures\/(article-with-dois|doi-in-table|retracted)\.html$|\.github\/(workflows\/visual[^/]*\.yml|scripts\/visual-publish\.cjs)$|scripts\/docs-screenshots\.ts$|package(?:-lock)?\.json$|esbuild\.config\.ts$|manifest\.json$|tsconfig[^/]*\.json$|\.npmrc$)/;
   const captureFiles = files.filter(f => [f.filename, f.previous_filename].some(name => name && capturePath.test(name) && !screenshotPath.test(name)));
-  const screenshotReview = changed.length > 0 || baselineFiles.length > 0;
-  const setupReview = captureFiles.length > 0;
+  // A short file listing means the evidence below may miss changed files, so
+  // both checklists fall back to human review.
+  const listingIncomplete = files.length < pr.changed_files;
+  const screenshotReview = changed.length > 0 || baselineFiles.length > 0 || listingIncomplete;
+  const setupReview = captureFiles.length > 0 || listingIncomplete;
   const needsApproval = screenshotReview || setupReview;
   const artifacts = await github.rest.actions.listWorkflowRunArtifacts({owner, repo, run_id});
   const artifact = artifacts.data.artifacts.find(a => a.name === 'visual-report' && !a.expired);
@@ -67,21 +74,22 @@ module.exports = async ({github, context}) => {
     if (validEdit) {
       const {data: permission} = await github.rest.repos.getCollaboratorPermissionLevel({owner, repo, username: event.sender.login});
       if (['admin', 'maintain', 'write'].includes(permission.permission)) {
-        // A collaborator checking a box confirms the submitted checklist. This
-        // also covers rapid clicks whose earlier edited event was superseded.
-        const checking = (checked(pr.body, screenshotLabel) && !checked(before, screenshotLabel)) ||
-          (checked(pr.body, setupLabel) && !checked(before, setupLabel));
-        if (checking) {
-          screenshotsChecked = checked(pr.body, screenshotLabel);
-          setupChecked = checked(pr.body, setupLabel);
-        }
+        // Each box is confirmed by the edit that ticks it. A box the edit
+        // leaves alone keeps whatever the trusted receipt recorded for it.
+        if (checked(pr.body, screenshotLabel) && !checked(before, screenshotLabel)) screenshotsChecked = true;
+        if (checked(pr.body, setupLabel) && !checked(before, setupLabel)) setupChecked = true;
       }
     }
   }
   const approved = (!screenshotReview || screenshotsChecked) && (!setupReview || setupChecked);
   const conclusion = !captured ? 'failure' : needsApproval && !approved ? 'action_required' : 'success';
+  const filesLink = `https://github.com/${owner}/${repo}/pull/${pull_number}/files`;
+  const incompleteNote = listingIncomplete
+    ? `**This PR changes ${pr.changed_files} files but only ${files.length} could be listed.** The evidence below may be incomplete, so both boxes need checking against [Files changed](${filesLink}).`
+    : '';
   const summary = captured
-    ? (setupReview ? `[Check the screenshot test setup changes](https://github.com/${owner}/${repo}/pull/${pull_number}/files) to make sure the report still covers the intended pages.` : '')
+    ? [captureFiles.length > 0 ? `[Check the screenshot test setup changes](${filesLink}) to make sure the report still covers the intended pages.` : '',
+      incompleteNote].filter(Boolean).join('\n\n')
     : '**Screenshots could not be captured.** Check the capture logs and rerun before completing the checklist.';
   const checklist = captured && needsApproval
     ? 'Tick the relevant boxes after checking the evidence. Anyone with write access, including the PR author, can do this. New commits or captures reset the checklist.\n\n' +
@@ -95,29 +103,35 @@ module.exports = async ({github, context}) => {
   const previewLimit = Math.max(0, Math.min(20000, 28000 - summary.length,
     62000 - (pr.body ?? '').length - summary.length));
   let previewChars = 0, omittedPreviews = 0;
-  const groups = {'Changed visuals': [], 'New visuals': [], 'Removed visuals': []};
+  const regeneratedTitle = 'Regenerated baselines';
+  const groups = {'Changed visuals': [], 'New visuals': [], 'Removed visuals': [], [regeneratedTitle]: []};
   if (changed.length) groups['Changed visuals'].push(
     `[Open the before/after report for changed example pages](${link}) — open index.html after downloading.`);
+  // Markdown image URLs stop at whitespace and unescaped brackets/parentheses.
+  const encodePath = p => p.split('/').map(encodeURIComponent).join('/')
+    .replace(/[()]/g, c => (c === '(' ? '%28' : '%29'));
   baselineFiles.forEach(f => {
-    // Regenerated baselines can differ in Git while this run's base/head UI is
-    // identical. Do not present those fixtures as visual changes.
+    // A regenerated baseline differs in Git while this run rendered the base and
+    // head UI identically, so it is grouped apart from real visual changes.
     const fixture = /^tests\/visual\/baselines\/([a-z0-9-]+)\.png$/.exec(f.filename)?.[1];
-    if (captured && f.status === 'modified' && !f.previous_filename && fixture &&
-        results.some(r => r.name === fixture && r.changed === false)) return;
-    const encodePath = path => path.split("/").map(encodeURIComponent).join("/");
+    const regenerated = captured && f.status === 'modified' && !f.previous_filename && !!fixture &&
+      results.some(r => r.name === fixture && r.changed === false);
     const oldName = f.previous_filename ?? f.filename;
     const beforeExists = f.status !== 'added' && screenshotPath.test(oldName);
     const afterExists = f.status !== 'removed' && screenshotPath.test(f.filename);
     const beforePath = encodePath(oldName);
     const before = `https://raw.githubusercontent.com/${pr.base.repo.full_name}/${pr.base.sha}/${beforePath}`;
     const after = `https://raw.githubusercontent.com/${pr.head.repo.full_name}/${pr.head.sha}/${encodePath(f.filename)}`;
-    const category = !beforeExists ? 'New visuals' : !afterExists ? 'Removed visuals' : 'Changed visuals';
+    const category = regenerated ? regeneratedTitle
+      : !beforeExists ? 'New visuals' : !afterExists ? 'Removed visuals' : 'Changed visuals';
     const images = beforeExists && afterExists
       ? `| Committed base | Committed PR |\n| --- | --- |\n| ![Before](${before}) | ![After](${after}) |`
       : afterExists ? `![After](${after})` : `Removed screenshot:\n\n![Before](${before})`;
     const preview = `\n<details open><summary>${htmlLabel(f.filename)}</summary>\n\n${images}\n\n</details>`;
     if (previewChars + preview.length > previewLimit) { omittedPreviews++; return; }
     previewChars += preview.length;
+    if (category === regeneratedTitle && !groups[category].length) groups[category].push(
+      'CI rendered the base and PR builds identically for these fixtures; only the committed PNGs differ.');
     groups[category].push(preview);
   });
   const baselineEvidence = Object.entries(groups).filter(([, entries]) => entries.length)

@@ -24,14 +24,14 @@ function edit(from, body, extra = {}) {
 }
 
 async function scenario({changed = false, files = [], failure = false,
-  stale = false, permission = 'write', results, authorBody, edited,
+  stale = false, permission = 'write', results, authorBody, edited, changedFiles,
   previousStatuses = [], attempt = 1, updatedAt = CAPTURE_TIME, artifactId = 1} = {}) {
   fs.writeFileSync('visual-report/results.json', JSON.stringify(results ?? [{
     name: 'fixture', status: changed ? 'fail' : 'pass', detail: '120 px differ',
     ...(changed ? {changed: true} : {}),
   }]));
   const pr = {
-    number: 215, state: 'open', user: {login: 'author'},
+    number: 215, state: 'open', user: {login: 'author'}, changed_files: changedFiles ?? files.length,
     head: {sha: 'abc', repo: {full_name: 'o/r'}},
     base: {sha: 'def', repo: {full_name: 'o/r'}},
     body: authorBody ?? edited?.body ?? 'Keep this author paragraph.',
@@ -80,7 +80,8 @@ async function scenario({changed = false, files = [], failure = false,
 
 test('visual publication policy', async t => {
   const previousCwd = process.cwd();
-  const previousEnv = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID};
+  const previousEnv = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID,
+    VISUAL_REPORT_DIR: process.env.VISUAL_REPORT_DIR};
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-publisher-'));
   t.after(() => {
     process.chdir(previousCwd);
@@ -94,6 +95,7 @@ test('visual publication policy', async t => {
   fs.mkdirSync('visual-report');
   process.env.VISUAL_PR = '215';
   process.env.VISUAL_RUN_ID = '123';
+  process.env.VISUAL_REPORT_DIR = 'visual-report';
 
   await t.test('accepts only a current authorized human checkbox transition', async () => {
     const unchecked = evidence(), checked = evidence({screenshots:true});
@@ -148,9 +150,15 @@ test('visual publication policy', async t => {
     const superseded = await scenario({changed:true,files,edited:edit(unchecked,partial),authorBody:complete});
     assert.equal(superseded.body,undefined);
     assert.equal(superseded.status,undefined);
+    // An edit promotes only the box it ticks; the other keeps its receipt state.
     const latest = await scenario({changed:true,files,edited:edit(partial,complete)});
-    assert.equal(latest.state,'success');
-    assert.equal(latest.status.description,'Visual checklist 123/1: screenshots=1 setup=1');
+    assert.equal(latest.state,'pending');
+    assert.equal(latest.status.description,'Visual checklist 123/1: screenshots=0 setup=1');
+    const withReceipt = await scenario({changed:true,files,edited:edit(partial,complete),
+      previousStatuses:[{context:'Visual approval',state:'pending',target_url:'https://github.com/o/r/actions/runs/123/artifacts/1',
+        description:'Visual checklist 123/1: screenshots=1 setup=0'}]});
+    assert.equal(withReceipt.state,'success');
+    assert.equal(withReceipt.status.description,'Visual checklist 123/1: screenshots=1 setup=1');
     const proseOnly = await scenario({changed:true,files,edited:edit(complete,complete + '\nMore context.')});
     assert.equal(proseOnly.state,'pending');
     const untrusted = await scenario({changed:true,files,edited:edit(partial,complete),permission:'read'});
@@ -205,7 +213,7 @@ test('visual publication policy', async t => {
     assert.match(escaped.body,/abc\/docs\/img\/a%3Cb%26c%3E.png/);
   });
 
-  await t.test('shows only changed or new visual evidence without unchanged examples', async () => {
+  await t.test('groups regenerated baselines apart from changed and new visuals', async () => {
     const result = await scenario({results:[
       {name:'changed-page',status:'fail',detail:'pixel change',changed:true},
       {name:'unchanged-page',status:'pass',detail:'0 px differ',changed:false},
@@ -219,12 +227,34 @@ test('visual publication policy', async t => {
     assert.match(result.body,/#### Changed visuals/);
     assert.match(result.body,/#### New visuals/);
     assert.match(result.body,/Open the before\/after report for changed example pages/);
-    assert.doesNotMatch(result.body,/unchanged|See others/i);
+    assert.doesNotMatch(result.body,/See others/i);
     assert.match(result.body, /<summary>tests\/visual\/baselines\/changed-page.png<\/summary>/);
     assert.match(result.body, /<summary>tests\/visual\/baselines\/uncaptured-page.png<\/summary>/);
+    // The fixture CI rendered identically stays visible, in the last group.
+    assert.match(result.body,/#### Regenerated baselines[\s\S]*rendered the base and PR builds identically[\s\S]*unchanged-page\.png/);
+    const order = ['#### Changed visuals','#### New visuals','#### Regenerated baselines'].map(h => result.body.indexOf(h));
+    assert.deepEqual(order, [...order].sort((a,b) => a-b));
+    assert.ok(order.every(i => i >= 0));
     assert.equal(result.state, 'pending');
-    assert.equal((result.body.match(/!\[After\]/g) ?? []).length,4);
-    assert.equal((result.body.match(/!\[Before\]/g) ?? []).length,3);
+    assert.equal((result.body.match(/!\[After\]/g) ?? []).length,5);
+    assert.equal((result.body.match(/!\[Before\]/g) ?? []).length,4);
+  });
+
+  await t.test('escapes parentheses in screenshot URLs', async () => {
+    const parens = await scenario({files:[{filename:'docs/img/a(b).png',status:'added'}]});
+    assert.match(parens.body,/abc\/docs\/img\/a%28b%29\.png/);
+    assert.doesNotMatch(parens.body,/img\/a\(b\)\.png\)/);
+  });
+
+  await t.test('demands review when the file listing is shorter than the PR', async () => {
+    const short = await scenario({files:[],changedFiles:5});
+    assert.equal(short.state,'pending');
+    assert.match(short.body,/only 0 could be listed/);
+    assert.match(short.body,new RegExp(`- \\[ \\] ${SCREENSHOTS.replace(/\./g,'\\.')}`));
+    assert.match(short.body,new RegExp(`- \\[ \\] ${SETUP.replace(/\./g,'\\.')}`));
+    const complete = await scenario({files:[{filename:'README.md',status:'modified'}],changedFiles:1});
+    assert.equal(complete.state,'success');
+    assert.doesNotMatch(complete.body,/could be listed/);
   });
 
   await t.test('bounds inline previews without dropping approval requirements', async () => {

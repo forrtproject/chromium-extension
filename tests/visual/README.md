@@ -193,9 +193,9 @@ changes and changes to the capture machinery are separate decisions; ticking
 one box preserves that partial approval while the other remains pending.
 
 A trusted `pull_request_target` body-edit workflow verifies the editor's access
-and an actual unchecked-to-checked transition on the current evidence. That
-edit confirms the boxes checked in the submitted checklist, so rapid clicks
-do not lose the first choice. Stale edit events cannot overwrite a later edit;
+and an actual unchecked-to-checked transition on the current evidence. Each
+edit confirms only the box it ticks; the other box keeps the state recorded in
+the trusted receipt. Stale edit events cannot overwrite a later edit;
 checked text without an authorized checkbox edit does not grant approval.
 Approval is recorded against
 the head commit, capture run/attempt and current artifact, with the capture
@@ -205,11 +205,14 @@ failures regardless of the checklist.
 
 The `Visual approval` status succeeds automatically when there are no screenshot
 or capture-input changes, stays pending until the required boxes are checked,
-and fails if capture failed. The description and report show only **Changed
-visuals** and **New visuals**, with removals listed separately when needed.
-Unchanged examples are omitted. Modified committed images have a base/PR
-comparison; new images appear once. Rendered examples and committed images
-can overlap, so they are not combined into a total count.
+and fails if capture failed. It also stays pending when the PR's file listing
+comes back shorter than the PR's file count, because the evidence may then be
+incomplete. Screenshot files are grouped as **Changed visuals**, **New
+visuals**, **Removed visuals** and, last, **Regenerated baselines** — committed
+baseline PNGs whose fixture this run rendered identically on base and head.
+Modified committed images have a base/PR comparison; new images appear once.
+Rendered examples and committed images can overlap, so they are not combined
+into a total count.
 
 **Activation:** these trusted workflows must first be merged to the default
 branch. Then make `Visual approval` a required status check for `main` using
@@ -225,8 +228,9 @@ optional; the existing local comparison/update commands still work.
 Changed committed baseline PNGs also require visual approval and are embedded
 as base/PR image pairs in the PR description. This covers changes to the test
 scenes or reference images even when both builds render identically with the
-new fixture catalogue. Artifact comparisons and committed-baseline comparisons
-are labeled separately because they answer different questions.
+new fixture catalogue; those land in **Regenerated baselines**. Artifact
+comparisons and committed-baseline comparisons are labeled separately because
+they answer different questions.
 
 Changes to visual fixtures, capture/publisher workflows, the publisher script,
 package manifests/lockfile, build configuration or extension manifest also
