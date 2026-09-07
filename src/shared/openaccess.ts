@@ -89,6 +89,7 @@ async function getUserEmail(): Promise<string> {
  * Resolve a DOI's Open Access status via Unpaywall (cached). Returns null when
  * the lookup can't be performed (no email configured, or the request failed) so
  * callers can choose to render nothing rather than a misleading "no access".
+ * Rejects with the abort reason when the pass is cancelled.
  */
 export async function fetchOpenAccess(doi: string): Promise<OpenAccessStatus | null> {
     const signal = activeWorkSignal();
@@ -140,6 +141,8 @@ async function requestOpenAccess(doi: string, email: string, signal?: AbortSigna
         void OA_CACHE.set(doi, status);
         return status;
     } catch (err) {
+        // A cancelled lookup is not an outage, so it rejects rather than reporting "unavailable".
+        if (signal?.aborted) throw err;
         debugWarn(`Open access: Unpaywall lookup failed for ${doi} —`, err);
         return null;
     }

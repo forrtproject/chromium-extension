@@ -129,7 +129,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     } else if (type === "FLORA_SHOW_UI") {
         floraHidden = false;
         resumeAutomaticWork();
-        updateIndicatorPillBadges(document, pageState, redacts);
+        updateIndicatorPillBadges(document, pageState, () => redacts);
         showAllFloraUI();
         void scanWholePage().catch((err) => debugError("General: resumed pass failed —", err));
         reportActiveState(true);
@@ -192,7 +192,7 @@ async function primaryDoiFastPath(): Promise<void> {
         pageStateVersion++;
 
         placeTitleIndicatorPill();
-        updateIndicatorPillBadges(document, pageState, redacts);
+        updateIndicatorPillBadges(document, pageState, () => redacts);
     } catch (err) {
         debugError(`Primary DOI fast path failed for ${primary} —`, err);
         rollback();
@@ -297,7 +297,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                                 if (notice) injectRetractionInfo(pill, notice, {afterend: true});
                             }
                             injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
-                            updateIndicatorPillBadges(document, pageState, redacts);
+                            updateIndicatorPillBadges(document, pageState, () => redacts);
                             lastRenderedPageStateVersion = -1;
                             await checkPubPeer(Promise.resolve(lastResolvedReferences));
                         }
@@ -367,6 +367,10 @@ async function runScanPass(): Promise<void> {
 
     // Resolve reference-list DOIs in parallel with the FORRT lookup below.
     const refsPromise = isSheets ? Promise.resolve([]) : resolveReferenceDois();
+    // finishReferences() takes the promise over below; an exit before that still
+    // owns it, so a failure is reported instead of left unhandled.
+    const abandonReferences = (): void =>
+        void refsPromise.catch((err) => debugError("References: resolution failed —", err));
 
     // Non-Sheets: one classification scan (allDois). Sheets: canvas extractDOIs + CSV.
     let dois: DoiString[];
@@ -404,7 +408,7 @@ async function runScanPass(): Promise<void> {
         try {
             reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);
             const validation = await validateDOIs(dois);
-            if (pageChanged()) return;
+            if (pageChanged()) { abandonReferences(); return; }
             const before = dois.length;
             dois = dois.filter((doi) => validation.get(doi) !== false);
             const removed = before - dois.length;
@@ -418,7 +422,7 @@ async function runScanPass(): Promise<void> {
         }
     }
 
-    if (pageChanged()) return;
+    if (pageChanged()) { abandonReferences(); return; }
 
     // Drop occurrences inside FLoRA's own UI so we don't pill our own panel rows.
     const FLORA_UI_IDS = ["flora-pubpeer-panel", "flora-banner-host", "flora-setup-prompt", "flora-sheets-modal"];
@@ -433,7 +437,7 @@ async function runScanPass(): Promise<void> {
     if (hasDoiChange && dois.length > 0) {
         reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
         const notices = await checkPageRetractions(dois);
-        if (pageChanged()) return;
+        if (pageChanged()) { abandonReferences(); return; }
         pageNotices = notices;
         refreshRedacts();
         // A noticed DOI gets one labelled pill, at its most prominent
@@ -458,7 +462,7 @@ async function runScanPass(): Promise<void> {
     if (newDois.length === 0 && dois.length === 0) {
         debugLog("No valid DOIs found on page, attempting title augmentation");
         if (!isSheets) placeTitleIndicatorPill();
-        if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
+        if (!isSheets) updateIndicatorPillBadges(document, pageState, () => redacts);
         if (!isSheets) augmentFromTitle().catch((err) => debugError("Title augmentation failed —", err));
         if (!isSheets) void checkPubPeer(refsDone);
         return;
@@ -471,7 +475,7 @@ async function runScanPass(): Promise<void> {
         // (triggered by that mutation) would otherwise return without restoring them.
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) placeTitleNoticePill();
-        if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
+        if (!isSheets) updateIndicatorPillBadges(document, pageState, () => redacts);
         if (!isSheets) void checkPubPeer(refsDone);
         return;
     }
@@ -513,7 +517,7 @@ async function runScanPass(): Promise<void> {
             pageStateVersion++;
             if (floraHidden) return;
             if (!isSheets) placeTitleIndicatorPill();
-            updateIndicatorPillBadges(document, pageState, redacts);
+            updateIndicatorPillBadges(document, pageState, () => redacts);
             renderErrorBanner("Couldn't load replication data for this page");
             return;
         }
@@ -580,7 +584,7 @@ async function runScanPass(): Promise<void> {
             // Merged indicator pills (skip on Google Sheets — modal only).
             if (!isSheets) {
                 placeTitleIndicatorPill();
-                updateIndicatorPillBadges(document, pageState, redacts);
+                updateIndicatorPillBadges(document, pageState, () => redacts);
                 const flagged = matched.length > 0 || redacts.length > 0;
                 if (refsPending > 0) {
                     // Verdict waits for the references still being resolved.
@@ -636,7 +640,7 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
                     refreshRedacts();
                     reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
                     renderResolvedReferences(resolvedRefs, new Map(redacts.map((r) => [r.originDoi, r] as const)), pageState);
-                    if (!isSheets) updateIndicatorPillBadges(document, pageState, redacts);
+                    if (!isSheets) updateIndicatorPillBadges(document, pageState, () => redacts);
                 } catch (err) {
                     if (stale()) return [];
                     releaseReferenceEntries(resolvedRefs);

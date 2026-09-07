@@ -100,7 +100,7 @@ function syncRetractionPage(): void {
 pageNavigation?.addEventListener("currententrychange", syncRetractionPage);
 
 function refreshBadges(): void {
-    updateIndicatorPillBadges(document, lookupState, [...retractions.values()], "panels");
+    updateIndicatorPillBadges(document, lookupState, () => [...retractions.values()], "panels");
 }
 
 // Set by the popup's hide command and by the work toast's pause control (both
@@ -444,7 +444,13 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         debugLog(`${label}: Rendered`, badgedCount, "badge(s)");
     } catch (err) {
         if (navigated()) return;
-        for (const doi of uniqueDois) lookupState.set(doi, {status: "error", message: "FORRT unavailable"});
+        // A repeated DOI can already carry an earlier row's result; a failure
+        // here marks only the DOIs that had none.
+        for (const doi of uniqueDois) {
+            const previous = previousLookupState.get(doi);
+            if (previous?.status === "matched") lookupState.set(doi, previous);
+            else lookupState.set(doi, {status: "error", message: "FORRT unavailable"});
+        }
         if (!isWorkCancelled()) debugLog(`${label}: Lookup failed:`, err);
     } finally {
         if (!navigated() && isWorkCancelled()) {

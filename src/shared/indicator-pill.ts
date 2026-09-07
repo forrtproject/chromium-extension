@@ -1,5 +1,6 @@
 import {safeSendMessage, type LookupResponse} from "@shared/messages";
 import {fetchOpenAccess} from "@shared/openaccess";
+import {isAbortError} from "@shared/work-cancellation";
 // Merged FLoRA indicator pill — combines the DOI badge, Open Access padlock,
 // PubPeer discussion marker, and retraction/replication badge into a single
 // pill (mockup: a rounded maroon pill with icon segments split by dividers).
@@ -834,8 +835,9 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
         opts.onOa?.(state);
     };
     const loadOa = (request: Promise<OpenAccessStatus | null>): void => {
+        // A cancelled pass leaves the row pending; a later pass fills it in.
         void request.then(async oa => settleOa(oa ?? (await hasContactEmail() ? null : "no-email")))
-            .catch(() => settleOa(null));
+            .catch(err => settleOa(isAbortError(err) ? "pending" : null));
     };
     const retryOa = (): void => {
         settleOa("pending");
@@ -854,7 +856,8 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     const retryPubPeer = (): void => {
         settlePubPeer("pending");
         void lookupPubPeerForDoi(opts.doi).then(settlePubPeer).catch(error => {
-            settlePubPeer("unavailable");
+            // A cancelled pass leaves the row pending; a later pass fills it in.
+            settlePubPeer(isAbortError(error) ? "pending" : "unavailable");
             if (typeof error?.retryAfterMs === "number") {
                 const subtitle = pubpeerRow.querySelector("[data-flora-row-sub]");
                 if (subtitle) subtitle.textContent = compact ? "Rate limited" : `Rate limited — try again in ${Math.ceil(error.retryAfterMs / 1000)} seconds`;
@@ -1209,14 +1212,15 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
     return resetInheritedText(wrapper);
 }
 
+/** `getRedacts` is read on every repaint, so a notice found after a row failed still lands on it. */
 export function updateIndicatorPillBadges(
     root: ParentNode,
     pageState: Map<DoiString, LookupState>,
-    redacts: readonly RetractionResponse[],
+    getRedacts: () => readonly RetractionResponse[],
     scope: IndicatorScope = "pills",
     onlyDoi?: DoiString
 ): void {
-    const retractionByDoi = new Map(redacts.map((r) => [r.originDoi, r] as const));
+    const retractionByDoi = new Map(getRedacts().map((r) => [r.originDoi, r] as const));
     for (const wrapper of root.querySelectorAll<HTMLElement>(indicatorSelector(scope))) {
         const doi = wrapper.getAttribute("data-flora-doi") as DoiString | null;
         if (!doi || (onlyDoi && doi !== onlyDoi)) continue;
@@ -1239,7 +1243,7 @@ export function updateIndicatorPillBadges(
             const retry = async () => {
                 const next = pageState;
                 next.set(doi, {status: "loading"});
-                updateIndicatorPillBadges(root, next, redacts, scope, doi);
+                updateIndicatorPillBadges(root, next, getRedacts, scope, doi);
                 try {
                     const response = await safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: [doi]});
                     if (!response || response.errors?.[doi]) throw new Error("FORRT unavailable");
@@ -1248,7 +1252,7 @@ export function updateIndicatorPillBadges(
                 } catch {
                     next.set(doi, {status: "error", message: "FORRT unavailable"});
                 }
-                updateIndicatorPillBadges(root, next, redacts, scope, doi);
+                updateIndicatorPillBadges(root, next, getRedacts, scope, doi);
             };
             replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,

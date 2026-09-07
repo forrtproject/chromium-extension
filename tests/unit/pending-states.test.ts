@@ -112,6 +112,17 @@ describe("pending lookups are not shown as negatives", () => {
         expect(mockLookupPubPeer).toHaveBeenCalledTimes(2);
     });
 
+    it("leaves the PubPeer row pending when the pass is cancelled", async () => {
+        const lookup = deferred<null>();
+        mockLookupPubPeer.mockReturnValueOnce(lookup.promise);
+        const pill = createIndicatorPill({doi: DOI, oaStatus: null, retraction: null});
+        lookup.reject(new DOMException("Work cancelled", "AbortError"));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(rowText(pill, "data-flora-pubpeer-row")).toContain("Checking");
+        expect(rowText(pill, "data-flora-pubpeer-row")).not.toContain("Unavailable");
+        expect(pill.querySelector("[data-flora-pubpeer-row] button")).toBeNull();
+    });
+
     it("shows no OA row pending state when no lookup was started", () => {
         const pill = createIndicatorPill({ doi: DOI, oaStatus: null, retraction: null });
 

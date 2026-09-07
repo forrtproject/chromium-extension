@@ -45,7 +45,7 @@ describe("createIndicatorPanel", () => {
     const panel = createIndicatorPanel({doi: DOI});
     document.body.appendChild(panel);
     const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
-    updateIndicatorPillBadges(document, states, [], "panels");
+    updateIndicatorPillBadges(document, states, () => [], "panels");
     expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("Unavailable");
     const state = matchedState(3).get(DOI)!;
     vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({results: {[DOI]: state.status === "matched" ? state.result : null}, errors: {}});
@@ -53,7 +53,7 @@ describe("createIndicatorPanel", () => {
     await vi.waitFor(() => expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("3"));
     expect(panel.querySelector("[data-flora-badge-row] button")).toBeNull();
     expect(states.get(DOI)?.status).toBe("matched");
-    updateIndicatorPillBadges(document, states, [], "panels");
+    updateIndicatorPillBadges(document, states, () => [], "panels");
     expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("3");
   });
 
@@ -165,7 +165,7 @@ describe("createIndicatorPanel", () => {
     expect(panel.querySelector("[data-flora-badge-row] [data-flora-row-sub]")!.textContent)
       .toBe("None");
 
-    updateIndicatorPillBadges(document, matchedState(3), [], "panels");
+    updateIndicatorPillBadges(document, matchedState(3), () => [], "panels");
 
     const badgeRow = panel.querySelector<HTMLElement>("[data-flora-badge-row]")!;
     expect(badgeRow.textContent).toContain("Replications");
@@ -179,11 +179,11 @@ describe("createIndicatorPanel", () => {
     document.body.appendChild(panel);
     const notice = { originDoi: DOI, doi: "10.9/n" as DoiString, kind: "retraction" } as never;
 
-    updateIndicatorPillBadges(document, new Map(), [notice], "panels");
+    updateIndicatorPillBadges(document, new Map(), () => [notice], "panels");
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
       .toContain("retract");
 
-    updateIndicatorPillBadges(document, matchedState(3), [notice], "panels");
+    updateIndicatorPillBadges(document, matchedState(3), () => [notice], "panels");
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
       .toContain("retract");
   });

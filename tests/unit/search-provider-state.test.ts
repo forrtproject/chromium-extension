@@ -162,7 +162,7 @@ it("keeps rows usable when notices fail and retries the failed check without rep
     expect(retraction).toHaveBeenCalledTimes(1);
     expect(isWorkCancelled()).toBe(true); // The older cancelled pass must not be resumed.
     endWorkIndicator();
-    await vi.waitFor(() => expect(badges.mock.lastCall![2]).toEqual([notice]));
+    await vi.waitFor(() => expect(badges.mock.lastCall![2]()).toEqual([notice]));
     expect(retraction).toHaveBeenCalledTimes(2);
     expect(send).toHaveBeenCalledTimes(1);
 });
@@ -196,7 +196,7 @@ it("keeps one Retry for both failed providers until each recovers", async () => 
     await processSearchResults(mixedAdapter, document);
     await vi.waitFor(() => expect(document.getElementById("flora-alert-toast")?.textContent).toContain("DOI matching and retraction checks unavailable"));
     document.querySelector<HTMLButtonElement>("#flora-alert-toast button")!.click();
-    await vi.waitFor(() => expect(badges.mock.lastCall![2]).toEqual([notice]));
+    await vi.waitFor(() => expect(badges.mock.lastCall![2]()).toEqual([notice]));
     expect(augment).toHaveBeenCalledTimes(2);
     expect(retraction).toHaveBeenCalledTimes(2);
     expect(send).toHaveBeenCalledTimes(1);
@@ -338,12 +338,12 @@ it.each(["success", "failure", "same-URL entry"])("ignores stale notice %s after
     const currentNotice = {originDoi: DOI, doi: "10.1234/current-notice", kind: "concern"};
     retraction.mockResolvedValueOnce([currentNotice]);
     await processSearchResults(adapter, document);
-    await vi.waitFor(() => expect(badges.mock.lastCall![2]).toEqual([currentNotice]));
+    await vi.waitFor(() => expect(badges.mock.lastCall![2]()).toEqual([currentNotice]));
     if (outcome !== "failure") resolveOld([{originDoi: DOI, doi: "10.1234/obsolete-notice", kind: "retraction"}]);
     else rejectOld(new Error("Old page check failed"));
     await new Promise(resolve => setTimeout(resolve, 0));
     setSearchHidden(false); // Re-render from retained state to catch silent stale-map writes too.
-    expect(badges.mock.lastCall![2]).toEqual([currentNotice]);
+    expect(badges.mock.lastCall![2]()).toEqual([currentNotice]);
     expect(document.getElementById("flora-alert-toast")).toBeNull();
 });
 
@@ -377,13 +377,13 @@ it("refreshes reused rows after a hash navigation without an explicit pipeline c
     const {processSearchResults} = await import("../../src/content-search/pipeline");
     const {observeSearchResults} = await import("../../src/content-search/observer");
     await processSearchResults(adapter, document);
-    await vi.waitFor(() => expect(badges.mock.lastCall![2]).toEqual([notice]));
+    await vi.waitFor(() => expect(badges.mock.lastCall![2]()).toEqual([notice]));
     observeSearchResults(adapter);
     history.pushState({}, "", "#next-section");
     navigationEvents.dispatchEvent(new Event("currententrychange"));
     await vi.waitFor(() => expect(retraction).toHaveBeenCalledTimes(2));
     expect(document.querySelectorAll("[data-flora-panel]")).toHaveLength(1);
-    expect(badges.mock.lastCall![2]).toEqual([notice]);
+    expect(badges.mock.lastCall![2]()).toEqual([notice]);
 });
 
 it("does not apply a queued shared Retry after A → B → A navigation", async () => {
@@ -453,6 +453,17 @@ it.each(['resolve', 'reject'])("restores a previous row's confirmed DOI after a 
     expect(document.querySelector('#later [data-flora-panel]')).toBeNull();
 });
 
+
+it("keeps a matched row's result when a later pass repeating that DOI fails", async () => {
+    const result = mockResult();
+    send.mockResolvedValueOnce({results: {[DOI]: result}, errors: {}});
+    const {processSearchResults} = await import("../../src/content-search/pipeline");
+    await processSearchResults(adapter, document);
+    send.mockRejectedValueOnce(new Error("offline"));
+    document.body.insertAdjacentHTML("beforeend", '<div class="result" id="later"></div>');
+    await processSearchResults(adapter, document);
+    expect(badges.mock.lastCall![1].get(DOI)).toEqual({status: "matched", result, source: "extracted"});
+});
 
 it("ignores a duplicate Retry while recovery is running, even when recovery fails", async () => {
     send.mockResolvedValue({type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}});

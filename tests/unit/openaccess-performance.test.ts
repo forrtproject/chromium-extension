@@ -44,7 +44,7 @@ describe("Open Access request sharing", () => {
         await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
         endCancellableWork();
         cancelWork();
-        expect(await Promise.all([first, shared])).toEqual([null, null]);
+        await expect(Promise.all([first, shared])).rejects.toMatchObject({name: "AbortError"});
         beginCancellableWork();
         expect(await fetchOpenAccess("10.1000/cancel")).toMatchObject({isOa: false});
         expect(fetchMock).toHaveBeenCalledTimes(2);

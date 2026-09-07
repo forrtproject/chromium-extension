@@ -1370,8 +1370,10 @@ export function renderSidePanel(
     await Promise.allSettled([...oaPlaceholders].map(async ([doi, placeholder]) => {
       try {
         if (host.dataset.floraPanelStale === "1") return;
+        // Panel request, independent of the page scan's cancellation.
         const resp = await fetchWithDeadline(
-          `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`
+          `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`,
+          {signal: null}
         );
         if (!resp.ok) return;
         const data = await resp.json() as {

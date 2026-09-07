@@ -2,12 +2,17 @@
 let controller = new AbortController();
 let started = false;
 let cancelledPage: string | null = null;
+/** Clear the stop and hand later passes a signal that is not already aborted. */
+function liftCancel(): void {
+  cancelledPage = null;
+  if (controller.signal.aborted) controller = new AbortController();
+}
 /** Automatic passes stay stopped on this page until navigation or an explicit resume. */
 export function canStartAutomaticWork(): boolean {
-  if (cancelledPage !== null && cancelledPage !== location.href) cancelledPage = null;
+  if (cancelledPage !== null && cancelledPage !== location.href) liftCancel();
   return cancelledPage === null;
 }
-export function resumeAutomaticWork(): void { cancelledPage = null; }
+export function resumeAutomaticWork(): void { liftCancel(); }
 export const activeWorkSignal = (): AbortSignal | undefined => started ? controller.signal : undefined;
 export const workSignal = (): AbortSignal => controller.signal;
 export function beginCancellableWork(): void {
@@ -15,6 +20,11 @@ export function beginCancellableWork(): void {
   if (controller.signal.aborted) controller = new AbortController();
 }
 export function endCancellableWork(): void { started = false; }
+/** True for work stopped by a cancel or a navigation, as opposed to a failing provider. */
+export function isAbortError(err: unknown): boolean {
+  return (err as {name?: string} | null)?.name === "AbortError";
+}
+
 export function cancelWork(): void {
   cancelledPage = location.href;
   controller.abort(new DOMException("Work cancelled", "AbortError"));
