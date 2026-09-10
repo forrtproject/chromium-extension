@@ -41,7 +41,7 @@ import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
-import {injectInlineRetractionPills, injectRetractionInfo, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
+import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 
@@ -170,8 +170,11 @@ document.addEventListener("flora-pause-site", () => {
 
 const invalidDois = new Set<DoiString>();
 
-function removeTitleIndicatorPill(): void {
+function disownDoi(doi: DoiString): void {
+    invalidDois.add(doi);
+    if (extractPrimaryDOI(document) !== doi) return;
     document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)?.remove();
+    removeNoticePillsFor(doi);
 }
 
 async function primaryDoiFastPath(): Promise<void> {
@@ -222,9 +225,8 @@ async function primaryDoiFastPath(): Promise<void> {
         if (generation !== pageGeneration) return;
         if (validity === false) {
             debugLog(`General: primary DOI ${primary} rejected by doi.org — dropping it`);
-            invalidDois.add(primary);
             rollback();
-            removeTitleIndicatorPill();
+            disownDoi(primary);
             return;
         }
 
@@ -365,6 +367,7 @@ function syncPageNavigation(): void {
     lastUrl = location.href;
     lastPageEntryKey = entryKey;
     pageGeneration++;
+    invalidDois.clear();
     processedDois.clear();
     seenDois.clear();
     doiContext.clear();
@@ -460,8 +463,10 @@ async function runScanPass(): Promise<void> {
             const validation = await validateDOIs(dois);
             if (pageChanged()) { abandonReferences(); return; }
             const before = dois.length;
-            for (const [doi, ok] of validation) if (!ok) invalidDois.add(doi);
-            if (invalidDois.size > 0) removeTitleIndicatorPill();
+            for (const [doi, ok] of validation) {
+                if (ok) invalidDois.delete(doi);
+                else disownDoi(doi);
+            }
             dois = dois.filter((doi) => validation.get(doi) !== false);
             const removed = before - dois.length;
             if (removed > 0) {

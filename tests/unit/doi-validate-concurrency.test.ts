@@ -13,6 +13,44 @@ describe("doi.org fan-out is capped", () => {
         vi.unstubAllGlobals();
     });
 
+    it("asks doi.org once when two passes check the same uncached DOI", async () => {
+        const doi = "10.1234/shared" as DoiString;
+        let release!: () => void;
+        const fetchMock = vi.fn(() => new Promise<Response>((resolve) => {
+            release = () => resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({ responseCode: 1 }),
+            } as Response);
+        }));
+        vi.stubGlobal("fetch", fetchMock);
+
+        const fastPath = validateDOIs([doi]);
+        const fullScan = validateDOIs([doi]);
+        await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+        release();
+
+        expect((await fastPath).get(doi)).toBe(true);
+        expect((await fullScan).get(doi)).toBe(true);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("checks again once the shared flight has settled", async () => {
+        const doi = "10.1234/again" as DoiString;
+        const fetchMock = vi.fn(() => Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ responseCode: 1 }),
+        } as Response));
+        vi.stubGlobal("fetch", fetchMock);
+
+        expect((await validateDOIs([doi])).get(doi)).toBe(true);
+        _resetValidationCacheForTesting();
+        expect((await validateDOIs([doi])).get(doi)).toBe(true);
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it("never has more than a handful of checks in flight", async () => {
         let inFlight = 0;
         let peak = 0;

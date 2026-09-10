@@ -142,3 +142,55 @@ describe("doi retraction content helper", () => {
         }
     });
 });
+
+describe("removeNoticePillsFor", () => {
+    beforeEach(() => {
+        vi.resetModules();
+        document.body.innerHTML = "";
+    });
+
+    async function placeNotice(originDoi: string) {
+        const mod = await import("../../src/shared/doi-retraction");
+        const anchor = document.createElement("p");
+        anchor.textContent = "A cited paper";
+        document.body.appendChild(anchor);
+        mod.injectRetractionInfo(anchor, {
+            originDoi, doi: "10.1038/notice", kind: "retraction",
+        } as never);
+        return mod;
+    }
+
+    it("drops the notice pill for a DOI the page has disowned", async () => {
+        const target = doi("10.1234/rejected");
+        const mod = await placeNotice(target);
+        expect(document.querySelector(`[data-flora-notice-doi="${target}"]`)).not.toBeNull();
+
+        mod.removeNoticePillsFor(target);
+
+        expect(document.querySelector(`[data-flora-notice-doi="${target}"]`)).toBeNull();
+    });
+
+    it("leaves another DOI's notice pill in place", async () => {
+        const kept = doi("10.1234/kept");
+        const mod = await placeNotice(kept);
+
+        mod.removeNoticePillsFor(doi("10.1234/other"));
+
+        expect(document.querySelector(`[data-flora-notice-doi="${kept}"]`)).not.toBeNull();
+    });
+
+    it("lets the same DOI be pilled again after removal", async () => {
+        const target = doi("10.1234/again");
+        const mod = await placeNotice(target);
+        mod.removeNoticePillsFor(target);
+
+        const anchor = document.createElement("p");
+        anchor.textContent = "Cited once more";
+        document.body.appendChild(anchor);
+        mod.injectRetractionInfo(anchor, {
+            originDoi: target, doi: "10.1038/notice", kind: "retraction",
+        } as never);
+
+        expect(document.querySelector(`[data-flora-notice-doi="${target}"]`)).not.toBeNull();
+    });
+});
