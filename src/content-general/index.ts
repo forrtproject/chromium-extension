@@ -168,6 +168,12 @@ document.addEventListener("flora-pause-site", () => {
     reportActiveState(false);
 });
 
+const invalidDois = new Set<DoiString>();
+
+function removeTitleIndicatorPill(): void {
+    document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)?.remove();
+}
+
 async function primaryDoiFastPath(): Promise<void> {
     if (floraHidden || !canStartAutomaticWork()) return;
     const generation = pageGeneration;
@@ -187,6 +193,7 @@ async function primaryDoiFastPath(): Promise<void> {
     };
 
     beginWorkIndicator({stages: ["scan"]});
+    const validating = validateDOIs([primary]).catch(() => new Map<DoiString, boolean>());
     try {
         // "scan", not "lookup": the bar only moves forward, and the full page
         // pass runs alongside this one.
@@ -210,6 +217,16 @@ async function primaryDoiFastPath(): Promise<void> {
             pageState.set(primary, {status: "no-match"});
         }
         pageStateVersion++;
+
+        const validity = (await validating).get(primary);
+        if (generation !== pageGeneration) return;
+        if (validity === false) {
+            debugLog(`General: primary DOI ${primary} rejected by doi.org — dropping it`);
+            invalidDois.add(primary);
+            rollback();
+            removeTitleIndicatorPill();
+            return;
+        }
 
         placeTitleIndicatorPill();
         repaintBadges();
@@ -443,6 +460,8 @@ async function runScanPass(): Promise<void> {
             const validation = await validateDOIs(dois);
             if (pageChanged()) { abandonReferences(); return; }
             const before = dois.length;
+            for (const [doi, ok] of validation) if (!ok) invalidDois.add(doi);
+            if (invalidDois.size > 0) removeTitleIndicatorPill();
             dois = dois.filter((doi) => validation.get(doi) !== false);
             const removed = before - dois.length;
             if (removed > 0) {
@@ -735,7 +754,7 @@ function placeTitleIndicatorPill(): void {
     const titleEl = document.querySelector<HTMLHeadingElement>("h1");
     if (!titleEl || document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)) return;
     const primaryDoi = extractPrimaryDOI(document);
-    if (!primaryDoi) return;
+    if (!primaryDoi || invalidDois.has(primaryDoi)) return;
 
     const retraction = redacts.find((r) => r.originDoi === primaryDoi) ?? null;
     const state = pageState.get(primaryDoi);

@@ -1,20 +1,20 @@
-import {fetchWithDeadline} from "@shared/work-cancellation";
+import { fetchWithDeadline } from "@shared/work-cancellation";
 import type { DoiString, LookupState, ReplicationResult, ReplicationEntry, OriginalEntry, DoiContext } from "../shared/types";
 import type { PubPeerFeedback } from "../shared/pubpeer-api";
 import { debugLog, debugWarn } from "../shared/debug";
 import { getSettings } from "../shared/settings";
 import { safeSendMessage } from "../shared/messages";
-import {RetractionResponse, noticePresentation} from "@shared/doi-retraction";
-import {renderReportDocument, reportUrl, type ReportEntry, type ReportPayload} from "@shared/report";
-import {writeClipboard} from "@shared/clipboard";
-import {showToast} from "@shared/toast";
-import {hideWorkIndicator, showWorkIndicator} from "@shared/progress-toast";
-import {ensureFocusStyle, FLORA_OWNED_SELECTOR, FLORA_UI_SELECTOR} from "@shared/flora-ui";
-import {atlasDoiUrl, bindAtlasLink} from "@shared/flora-atlas";
+import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
+import { renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
+import { writeClipboard } from "@shared/clipboard";
+import { showToast } from "@shared/toast";
+import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
+import { ensureFocusStyle, FLORA_OWNED_SELECTOR, FLORA_UI_SELECTOR } from "@shared/flora-ui";
+import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
-export {beginWorkIndicator, count, endWorkIndicator, isWorkCancelled, reportWorkStage} from "@shared/progress-toast";
+export { beginWorkIndicator, count, endWorkIndicator, isWorkCancelled, reportWorkStage } from "@shared/progress-toast";
 
 const BANNER_HOST_ID = "flora-banner-host";
 
@@ -25,90 +25,90 @@ const BANNER_HOST_ID = "flora-banner-host";
 const isSheets = location.href.includes("docs.google.com/spreadsheets");
 
 const BANNER_BASE_STYLE =
-    "position:fixed;top:0;left:0;width:100%;margin:0;opacity:1;" +
-    "z-index:2147483647;display:flex;align-items:center;gap:12px;" +
-    "padding:5px 8px;font-size:13px;line-height:1.4;box-sizing:border-box;" +
-    "color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;";
+  "position:fixed;top:0;left:0;width:100%;margin:0;opacity:1;" +
+  "z-index:2147483647;display:flex;align-items:center;gap:12px;" +
+  "padding:5px 8px;font-size:13px;line-height:1.4;box-sizing:border-box;" +
+  "color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;";
 
 const LOGO_STYLE =
-    "font-weight:700;font-size:15px;color:#fff;" +
-    "background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;flex-shrink:0;";
+  "font-weight:700;font-size:15px;color:#fff;" +
+  "background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;flex-shrink:0;";
 
 const TEXT_STYLE = "flex:1;";
 
 const CLOSE_STYLE =
-    "all:unset;cursor:pointer;font-size:13px;line-height:1;" +
-    "padding-right:10px;user-select:none;align-self:center;color:rgba(255,255,255,0.8);";
+  "all:unset;cursor:pointer;font-size:13px;line-height:1;" +
+  "padding-right:10px;user-select:none;align-self:center;color:rgba(255,255,255,0.8);";
 
 const BG = {
-    error: "background:#dc2626;",
+  error: "background:#dc2626;",
 } as const;
 
 const REMIND_PILL_STYLE =
-    "all:unset;cursor:pointer;font-size:11px;font-family:inherit;font-weight:500;" +
-    "color:#5f6368;background:#f0f0f0;padding:3px 10px;border-radius:12px;" +
-    "transition:background 0.12s,color 0.12s;";
+  "all:unset;cursor:pointer;font-size:11px;font-family:inherit;font-weight:500;" +
+  "color:#5f6368;background:#f0f0f0;padding:3px 10px;border-radius:12px;" +
+  "transition:background 0.12s,color 0.12s;";
 
 const SETUP_HOST_ID = "flora-setup-prompt";
 
 const SETUP_REMIND_KEY = "flora_setup_remind_after";
 
 function onActivate(el: Element, handler: () => void): void {
-    el.addEventListener("click", handler);
-    el.addEventListener("keydown", (e) => {
-        const key = (e as KeyboardEvent).key;
-        if (key === "Enter" || key === " ") {
-            e.preventDefault();
-            handler();
-        }
-    });
+  el.addEventListener("click", handler);
+  el.addEventListener("keydown", (e) => {
+    const key = (e as KeyboardEvent).key;
+    if (key === "Enter" || key === " ") {
+      e.preventDefault();
+      handler();
+    }
+  });
 }
 
 async function isSetupPromptSuppressed(): Promise<boolean> {
-    // Dismissed this browser session? (relayed via background service worker)
-    try {
-        const resp = await chrome.runtime.sendMessage({type: "FLORA_IS_SETUP_DISMISSED"});
-        if (resp?.dismissed) return true;
-    } catch (err) {
-        debugWarn("Setup prompt: dismissed-state check failed —", err);
-    }
+  // Dismissed this browser session? (relayed via background service worker)
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: "FLORA_IS_SETUP_DISMISSED" });
+    if (resp?.dismissed) return true;
+  } catch (err) {
+    debugWarn("Setup prompt: dismissed-state check failed —", err);
+  }
 
-    // Snoozed until a future time?
-    try {
-        const synced = await chrome.storage.sync.get(SETUP_REMIND_KEY);
-        const remindAfter = synced[SETUP_REMIND_KEY] as number | undefined;
-        if (remindAfter && Date.now() < remindAfter) return true;
-    } catch (err) {
-        debugWarn("Setup prompt: snooze check failed —", err);
-    }
+  // Snoozed until a future time?
+  try {
+    const synced = await chrome.storage.sync.get(SETUP_REMIND_KEY);
+    const remindAfter = synced[SETUP_REMIND_KEY] as number | undefined;
+    if (remindAfter && Date.now() < remindAfter) return true;
+  } catch (err) {
+    debugWarn("Setup prompt: snooze check failed —", err);
+  }
 
-    return false;
+  return false;
 }
 
 async function dismissSetupForSession(): Promise<void> {
-    try {
-        await chrome.runtime.sendMessage({type: "FLORA_DISMISS_SETUP"});
-    } catch (err) {
-        debugWarn("Setup prompt: dismiss did not persist —", err);
-    }
+  try {
+    await chrome.runtime.sendMessage({ type: "FLORA_DISMISS_SETUP" });
+  } catch (err) {
+    debugWarn("Setup prompt: dismiss did not persist —", err);
+  }
 }
 
 async function snoozeSetup(ms: number): Promise<void> {
-    try {
-        await chrome.storage.sync.set({[SETUP_REMIND_KEY]: Date.now() + ms});
-    } catch (err) {
-        debugWarn("Setup prompt: snooze did not persist —", err);
-    }
+  try {
+    await chrome.storage.sync.set({ [SETUP_REMIND_KEY]: Date.now() + ms });
+  } catch (err) {
+    debugWarn("Setup prompt: snooze did not persist —", err);
+  }
 }
 
 export async function renderSetupPrompt(): Promise<void> {
   ensureFocusStyle();
-    if (document.getElementById(SETUP_HOST_ID)) return;
-    if (await isSetupPromptSuppressed()) return;
+  if (document.getElementById(SETUP_HOST_ID)) return;
+  if (await isSetupPromptSuppressed()) return;
 
-    const host = document.createElement("div");
-    host.id = SETUP_HOST_ID;
-    host.innerHTML = `
+  const host = document.createElement("div");
+  host.id = SETUP_HOST_ID;
+  host.innerHTML = `
     <div style="
       position:fixed;bottom:20px;right:20px;z-index:2147483647;
       max-width:320px;background:#fff;border-radius:10px;
@@ -155,139 +155,139 @@ export async function renderSetupPrompt(): Promise<void> {
       }
     </style>`;
 
-    document.body.appendChild(host);
+  document.body.appendChild(host);
 
-    const closeEl = host.querySelector(".flora-setup-close");
-    if (closeEl) {
-        onActivate(closeEl, () => {
-            void dismissSetupForSession().then(() => host.remove());
-        });
-    }
-
-    host.querySelector(".flora-setup-open")?.addEventListener("click", () => {
-        void safeSendMessage({type: "FLORA_OPEN_OPTIONS"});
-        host.remove();
+  const closeEl = host.querySelector(".flora-setup-close");
+  if (closeEl) {
+    onActivate(closeEl, () => {
+      void dismissSetupForSession().then(() => host.remove());
     });
+  }
 
-    for (const btn of host.querySelectorAll<HTMLButtonElement>(".flora-remind-options button")) {
-        btn.addEventListener("click", async () => {
-            const ms = Number(btn.dataset.ms);
-            if (!ms) return;
-            await snoozeSetup(ms);
-            host.remove();
-        });
-    }
+  host.querySelector(".flora-setup-open")?.addEventListener("click", () => {
+    void safeSendMessage({ type: "FLORA_OPEN_OPTIONS" });
+    host.remove();
+  });
+
+  for (const btn of host.querySelectorAll<HTMLButtonElement>(".flora-remind-options button")) {
+    btn.addEventListener("click", async () => {
+      const ms = Number(btn.dataset.ms);
+      if (!ms) return;
+      await snoozeSetup(ms);
+      host.remove();
+    });
+  }
 }
 
 export function renderErrorBanner(message: string): void {
-    const host = ensureBannerHost();
-    host.innerHTML = `
+  const host = ensureBannerHost();
+  host.innerHTML = `
     <div style="${BANNER_BASE_STYLE}${BG.error}">
       <span style="${LOGO_STYLE}">FORRT ORE</span>
       <span style="${TEXT_STYLE}">Error: ${escapeHtml(message)}</span>
       <button style="${CLOSE_STYLE}" aria-label="Close">\u00d7</button>
     </div>`;
-    host.querySelector("button")?.addEventListener("click", () => removeBanner());
-    requestAnimationFrame(() => adjustPageForBanner());
+  host.querySelector("button")?.addEventListener("click", () => removeBanner());
+  requestAnimationFrame(() => adjustPageForBanner());
 }
 
 function ensureBannerHost(): HTMLElement {
-    let host = document.getElementById(BANNER_HOST_ID);
-    if (!host) {
-        host = document.createElement("div");
-        host.id = BANNER_HOST_ID;
-        document.body.prepend(host);
-    }
-    return host;
+  let host = document.getElementById(BANNER_HOST_ID);
+  if (!host) {
+    host = document.createElement("div");
+    host.id = BANNER_HOST_ID;
+    document.body.prepend(host);
+  }
+  return host;
 }
 
 // Track elements we've modified so we can restore them on removal
 interface InlineValue {
-    value: string;
-    priority: string;
+  value: string;
+  priority: string;
 }
 
 const modifiedElements = new Map<HTMLElement, Map<string, InlineValue>>();
 
 function setTracked(el: HTMLElement, prop: string, value: string, priority = "important"): void {
-    let record = modifiedElements.get(el);
-    if (!record) {
-        record = new Map<string, InlineValue>();
-        modifiedElements.set(el, record);
-    }
-    if (!record.has(prop)) {
-        record.set(prop, {
-            value: el.style.getPropertyValue(prop),
-            priority: el.style.getPropertyPriority(prop),
-        });
-    }
-    el.style.setProperty(prop, value, priority);
+  let record = modifiedElements.get(el);
+  if (!record) {
+    record = new Map<string, InlineValue>();
+    modifiedElements.set(el, record);
+  }
+  if (!record.has(prop)) {
+    record.set(prop, {
+      value: el.style.getPropertyValue(prop),
+      priority: el.style.getPropertyPriority(prop),
+    });
+  }
+  el.style.setProperty(prop, value, priority);
 }
 
 function restoreTracked(el: HTMLElement, prop: string): void {
-    const original = modifiedElements.get(el)?.get(prop);
-    if (!original) return;
-    if (original.value === "") el.style.removeProperty(prop);
-    else el.style.setProperty(prop, original.value, original.priority);
+  const original = modifiedElements.get(el)?.get(prop);
+  if (!original) return;
+  if (original.value === "") el.style.removeProperty(prop);
+  else el.style.setProperty(prop, original.value, original.priority);
 }
 
 export function removeBanner(): void {
-    const host = document.getElementById(BANNER_HOST_ID);
-    if (host) {
-        host.remove();
-        for (const [el, record] of modifiedElements) {
-            for (const prop of record.keys()) restoreTracked(el, prop);
-        }
-        modifiedElements.clear();
+  const host = document.getElementById(BANNER_HOST_ID);
+  if (host) {
+    host.remove();
+    for (const [el, record] of modifiedElements) {
+      for (const prop of record.keys()) restoreTracked(el, prop);
     }
+    modifiedElements.clear();
+  }
 }
 
 function adjustPageForBanner(): void {
-    const banner = document.getElementById(BANNER_HOST_ID);
-    if (!banner) return;
-    const inner = banner.firstElementChild as HTMLElement | null;
-    const bannerHeight = inner?.offsetHeight || 35;
+  const banner = document.getElementById(BANNER_HOST_ID);
+  if (!banner) return;
+  const inner = banner.firstElementChild as HTMLElement | null;
+  const bannerHeight = inner?.offsetHeight || 35;
 
-    // Make space for the banner at the top of the body
-    setTracked(document.body, "padding-top", `${bannerHeight}px`);
+  // Make space for the banner at the top of the body
+  setTracked(document.body, "padding-top", `${bannerHeight}px`);
 
-    const setupPrompt = document.getElementById(SETUP_HOST_ID);
-    for (const el of document.querySelectorAll<HTMLElement>("*")) {
-        if (el === banner || el === inner || setupPrompt?.contains(el)) continue;
-        const cs = window.getComputedStyle(el);
-        if (cs.position === "fixed") {
-            if (isSheets) {
-                // Only shift top-anchored elements; skip bottom-anchored ones (sheet tabs bar)
-                const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
-                if (hasBottom && parseInt(cs.bottom) < 50) continue;
-                const currentTop = parseInt(cs.top) || 0;
-                setTracked(el, "top", `${currentTop + bannerHeight}px`);
-            } else {
-                setTracked(el, "padding-top", `${bannerHeight}px`);
-            }
-        } else if (cs.position === "sticky") {
-            const position = el.getBoundingClientRect().top;
-            const threshold = parseInt(cs.top);
-            if (position < bannerHeight || position <= threshold) {
-                setTracked(el, "padding-top", `${bannerHeight}px`);
-            } else {
-                restoreTracked(el, "padding-top");
-            }
-        }
+  const setupPrompt = document.getElementById(SETUP_HOST_ID);
+  for (const el of document.querySelectorAll<HTMLElement>("*")) {
+    if (el === banner || el === inner || setupPrompt?.contains(el)) continue;
+    const cs = window.getComputedStyle(el);
+    if (cs.position === "fixed") {
+      if (isSheets) {
+        // Only shift top-anchored elements; skip bottom-anchored ones (sheet tabs bar)
+        const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
+        if (hasBottom && parseInt(cs.bottom) < 50) continue;
+        const currentTop = parseInt(cs.top) || 0;
+        setTracked(el, "top", `${currentTop + bannerHeight}px`);
+      } else {
+        setTracked(el, "padding-top", `${bannerHeight}px`);
+      }
+    } else if (cs.position === "sticky") {
+      const position = el.getBoundingClientRect().top;
+      const threshold = parseInt(cs.top);
+      if (position < bannerHeight || position <= threshold) {
+        setTracked(el, "padding-top", `${bannerHeight}px`);
+      } else {
+        restoreTracked(el, "padding-top");
+      }
     }
+  }
 }
 
 function escapeHtml(s: string): string {
-    return s.replace(/[&<>"']/g, (c) => {
-        const entities: Record<string, string> = {
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#39;",
-        };
-        return entities[c] ?? c;
-    });
+  return s.replace(/[&<>"']/g, (c) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[c] ?? c;
+  });
 }
 
 // ──────────────────────────────────────────────
@@ -297,27 +297,27 @@ function escapeHtml(s: string): string {
 const SHEETS_MODAL_ID = "flora-sheets-modal";
 
 export interface SheetsModalCallbacks {
-    onDismiss: () => void;
-    onSnooze: () => void;
+  onDismiss: () => void;
+  onSnooze: () => void;
 }
 
 /** A retraction outranks a concern, which outranks a replication count. */
 function sheetsHeadline(retracted: number, concerned: number): string {
-    if (retracted > 0) {
-        return `${retracted} retracted paper${retracted !== 1 ? "s" : ""} in this sheet`;
-    }
-    if (concerned > 0) {
-        return `${concerned} paper${concerned !== 1 ? "s" : ""} with an expression of concern`;
-    }
-    return "Replication data found";
+  if (retracted > 0) {
+    return `${retracted} retracted paper${retracted !== 1 ? "s" : ""} in this sheet`;
+  }
+  if (concerned > 0) {
+    return `${concerned} paper${concerned !== 1 ? "s" : ""} with an expression of concern`;
+  }
+  return "Replication data found";
 }
 
 function noticeSection(notices: RetractionResponse[]): string {
-    if (notices.length === 0) return "";
+  if (notices.length === 0) return "";
 
-    const rows = notices.map((notice) => {
-        const {label, pillBackground, pillStroke, pillText} = noticePresentation(notice.kind);
-        return `
+  const rows = notices.map((notice) => {
+    const { label, pillBackground, pillStroke, pillText } = noticePresentation(notice.kind);
+    return `
       <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
         all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;
         padding:6px 8px;border-radius:6px;background:${pillBackground};
@@ -334,9 +334,9 @@ function noticeSection(notices: RetractionResponse[]): string {
         ">${escapeHtml(notice.originDoi)}</span>
         <span style="flex-shrink:0;font-size:11px;color:${pillText};">Notice ↗</span>
       </a>`;
-    }).join("");
+  }).join("");
 
-    return `
+  return `
       <div data-flora-notices style="margin-bottom:14px;">
         <div style="font-size:11px;font-weight:600;color:#5f6368;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;">
           Withdrawn or questioned
@@ -351,42 +351,42 @@ function noticeSection(notices: RetractionResponse[]): string {
  * it would otherwise pass silently.
  */
 export function renderSheetsModal(
-    matched: { doi: string; result: ReplicationResult }[],
-    notices: RetractionResponse[] = [],
-    callbacks?: SheetsModalCallbacks
+  matched: { doi: string; result: ReplicationResult }[],
+  notices: RetractionResponse[] = [],
+  callbacks?: SheetsModalCallbacks
 ): void {
-    const totalRepl = matched.reduce(
-        (sum, m) => sum + m.result.record.stats.n_replications_total, 0
-    );
-    const totalRepro = matched.reduce(
-        (sum, m) => sum + m.result.record.stats.n_reproductions_total, 0
-    );
-    const hasReplicationData = totalRepl > 0 || totalRepro > 0;
+  const totalRepl = matched.reduce(
+    (sum, m) => sum + m.result.record.stats.n_replications_total, 0
+  );
+  const totalRepro = matched.reduce(
+    (sum, m) => sum + m.result.record.stats.n_reproductions_total, 0
+  );
+  const hasReplicationData = totalRepl > 0 || totalRepro > 0;
 
-    if (!hasReplicationData && notices.length === 0) {
-        removeSheetsModal();
-        return;
-    }
+  if (!hasReplicationData && notices.length === 0) {
+    removeSheetsModal();
+    return;
+  }
 
-    const retracted = notices.filter((n) => n.kind === "retraction").length;
-    const concerned = notices.length - retracted;
-    const doiCount = matched.length;
-    const matchedDois = matched.map((m) => m.doi as DoiString);
+  const retracted = notices.filter((n) => n.kind === "retraction").length;
+  const concerned = notices.length - retracted;
+  const doiCount = matched.length;
+  const matchedDois = matched.map((m) => m.doi as DoiString);
 
-    const signature = [
-        doiCount, totalRepl, totalRepro,
-        ...notices.map((n) => `${n.originDoi}:${n.kind}`).sort(),
-    ].join("|");
+  const signature = [
+    doiCount, totalRepl, totalRepro,
+    ...notices.map((n) => `${n.originDoi}:${n.kind}`).sort(),
+  ].join("|");
 
-    const existing = document.getElementById(SHEETS_MODAL_ID);
-    if (existing?.dataset.floraSheetsSig === signature) return;
-    existing?.remove();
+  const existing = document.getElementById(SHEETS_MODAL_ID);
+  if (existing?.dataset.floraSheetsSig === signature) return;
+  existing?.remove();
 
-    const summary = hasReplicationData
-        ? `Found replication &amp; reproduction data for <strong data-flora-doi-count style="color:#202124;">${doiCount} DOI${doiCount !== 1 ? "s" : ""}</strong> in this spreadsheet.`
-        : "Checked the DOIs in this spreadsheet against the Retraction Watch database.";
+  const summary = hasReplicationData
+    ? `Found replication &amp; reproduction data for <strong data-flora-doi-count style="color:#202124;">${doiCount} DOI${doiCount !== 1 ? "s" : ""}</strong> in this spreadsheet.`
+    : "Checked the DOIs in this spreadsheet against the Retraction Watch database.";
 
-    const statCards = hasReplicationData ? `
+  const statCards = hasReplicationData ? `
         <div style="display:flex;gap:10px;margin-bottom:4px;">
           <div style="
             flex:1;background:#f9f0f4;border:1px solid #d4a5b8;border-radius:8px;
@@ -404,16 +404,16 @@ export function renderSheetsModal(
           </div>
         </div>` : "";
 
-    const detailsLink = hasReplicationData ? `
+  const detailsLink = hasReplicationData ? `
         <a data-flora-details-link target="_blank" rel="noopener" style="
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
         ">View details</a>` : "";
 
-    const host = document.createElement("div");
-    host.id = SHEETS_MODAL_ID;
-    host.dataset.floraSheetsSig = signature;
-    host.innerHTML = `
+  const host = document.createElement("div");
+  host.id = SHEETS_MODAL_ID;
+  host.dataset.floraSheetsSig = signature;
+  host.innerHTML = `
     <div role="dialog" aria-labelledby="flora-modal-title" style="
       position:fixed;top:60px;right:24px;z-index:2147483647;
       width:360px;background:#fff;border-radius:12px;
@@ -463,27 +463,27 @@ export function renderSheetsModal(
       }
     </style>`;
 
-    document.body.appendChild(host);
+  document.body.appendChild(host);
 
-    bindAtlasLink(host.querySelector<HTMLAnchorElement>("[data-flora-details-link]"), matchedDois);
+  bindAtlasLink(host.querySelector<HTMLAnchorElement>("[data-flora-details-link]"), matchedDois);
 
-    // Wire up close / dismiss
-    for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
-        onActivate(el, () => {
-            removeSheetsModal();
-            callbacks?.onDismiss();
-        });
-    }
-
-    // Wire up snooze
-    host.querySelector(".flora-modal-snooze")?.addEventListener("click", () => {
-        removeSheetsModal();
-        callbacks?.onSnooze();
+  // Wire up close / dismiss
+  for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
+    onActivate(el, () => {
+      removeSheetsModal();
+      callbacks?.onDismiss();
     });
+  }
+
+  // Wire up snooze
+  host.querySelector(".flora-modal-snooze")?.addEventListener("click", () => {
+    removeSheetsModal();
+    callbacks?.onSnooze();
+  });
 }
 
 export function removeSheetsModal(): void {
-    document.getElementById(SHEETS_MODAL_ID)?.remove();
+  document.getElementById(SHEETS_MODAL_ID)?.remove();
 }
 
 // ──────────────────────────────────────────────
@@ -493,19 +493,19 @@ export function removeSheetsModal(): void {
 export const HIDE_STYLE_ID = "flora-hide-style";
 
 export function hideAllFloraUI(): void {
-    hideWorkIndicator();
-    if (!document.getElementById(HIDE_STYLE_ID)) {
-        const style = document.createElement("style");
-        style.id = HIDE_STYLE_ID;
-        style.textContent = `${FLORA_UI_SELECTOR} { display: none !important; }`;
-        (document.head ?? document.documentElement).appendChild(style);
-    }
+  hideWorkIndicator();
+  if (!document.getElementById(HIDE_STYLE_ID)) {
+    const style = document.createElement("style");
+    style.id = HIDE_STYLE_ID;
+    style.textContent = `${FLORA_UI_SELECTOR} { display: none !important; }`;
+    (document.head ?? document.documentElement).appendChild(style);
+  }
 
-    const banner = document.getElementById(BANNER_HOST_ID);
-    if (banner) banner.style.display = "none";
+  const banner = document.getElementById(BANNER_HOST_ID);
+  if (banner) banner.style.display = "none";
 
-    const modal = document.getElementById(SHEETS_MODAL_ID);
-    if (modal) modal.style.display = "none";
+  const modal = document.getElementById(SHEETS_MODAL_ID);
+  if (modal) modal.style.display = "none";
 
   const setup = document.getElementById(SETUP_HOST_ID);
   if (setup) setup.style.display = "none";
@@ -515,14 +515,14 @@ export function hideAllFloraUI(): void {
 }
 
 export function showAllFloraUI(): void {
-    showWorkIndicator();
-    document.getElementById(HIDE_STYLE_ID)?.remove();
+  showWorkIndicator();
+  document.getElementById(HIDE_STYLE_ID)?.remove();
 
-    const banner = document.getElementById(BANNER_HOST_ID);
-    if (banner) banner.style.display = "";
+  const banner = document.getElementById(BANNER_HOST_ID);
+  if (banner) banner.style.display = "";
 
-    const modal = document.getElementById(SHEETS_MODAL_ID);
-    if (modal) modal.style.display = "";
+  const modal = document.getElementById(SHEETS_MODAL_ID);
+  if (modal) modal.style.display = "";
 
   const setup = document.getElementById(SETUP_HOST_ID);
   if (setup) setup.style.display = "";
@@ -538,9 +538,9 @@ export function showAllFloraUI(): void {
 const MASTHEAD_SELECTOR = 'header, nav, [role="banner"], [role="navigation"]';
 
 function headingTextWithoutFloraUi(el: Element): string | null {
-    const clone = el.cloneNode(true) as Element;
-    for (const owned of clone.querySelectorAll(FLORA_OWNED_SELECTOR)) owned.remove();
-    return clone.textContent?.replace(/\s+/g, " ").trim() || null;
+  const clone = el.cloneNode(true) as Element;
+  for (const owned of clone.querySelectorAll(FLORA_OWNED_SELECTOR)) owned.remove();
+  return clone.textContent?.replace(/\s+/g, " ").trim() || null;
 }
 
 /**
@@ -549,21 +549,21 @@ function headingTextWithoutFloraUi(el: Element): string | null {
  * the site name ("APA PsycNet") rather than the paper title.
  */
 function getPageArticleTitle(): string | null {
-    for (const sel of [
-        'meta[name="citation_title"]',
-        'meta[name="dc.Title" i]',
-        'meta[property="og:title"]',
-        'meta[name="twitter:title"]',
-    ]) {
-        const content = document.querySelector<HTMLMetaElement>(sel)?.content?.trim();
-        if (content) return content;
-    }
-    for (const h1 of document.querySelectorAll<HTMLHeadingElement>("h1")) {
-        if (h1.closest(MASTHEAD_SELECTOR)) continue;
-        const text = headingTextWithoutFloraUi(h1);
-        if (text) return text;
-    }
-    return document.title?.trim() || null;
+  for (const sel of [
+    'meta[name="citation_title"]',
+    'meta[name="dc.Title" i]',
+    'meta[property="og:title"]',
+    'meta[name="twitter:title"]',
+  ]) {
+    const content = document.querySelector<HTMLMetaElement>(sel)?.content?.trim();
+    if (content) return content;
+  }
+  for (const h1 of document.querySelectorAll<HTMLHeadingElement>("h1")) {
+    if (h1.closest(MASTHEAD_SELECTOR)) continue;
+    const text = headingTextWithoutFloraUi(h1);
+    if (text) return text;
+  }
+  return document.title?.trim() || null;
 }
 
 const PUBPEER_PANEL_ID = "flora-pubpeer-panel";
@@ -622,7 +622,7 @@ function cleanupTabPositioning(): void {
 }
 
 const RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS = 750;
-let _lastSweep = {at: 0, vw: 0, vh: 0, top: ""};
+let _lastSweep = { at: 0, vw: 0, vh: 0, top: "" };
 
 function positionTabOnRightEdge(tab: HTMLElement): void {
   // Respect user-dragged position
@@ -697,7 +697,7 @@ function positionTabOnRightEdge(tab: HTMLElement): void {
 
   const top = `${Math.round(bestTop)}px`;
   tab.style.top = top;
-  _lastSweep = {at: Date.now(), vw: window.innerWidth, vh: window.innerHeight, top};
+  _lastSweep = { at: Date.now(), vw: window.innerWidth, vh: window.innerHeight, top };
 }
 
 function attachTabDrag(tab: HTMLElement): void {
@@ -788,7 +788,7 @@ function panelSignature(
   const statsOf = (doi: DoiString): string => {
     const s = pageState.get(doi);
     if (s?.status !== "matched") return s?.status ?? "none";
-    const {n_replications_total, n_reproductions_total, n_originals_total} = s.result.record.stats;
+    const { n_replications_total, n_reproductions_total, n_originals_total } = s.result.record.stats;
     return `${n_replications_total}/${n_reproductions_total}/${n_originals_total}`;
   };
   const noticeOf = (doi: DoiString): string => retractionByDoi.get(doi)?.kind ?? "";
@@ -841,7 +841,7 @@ function headerAction(icon: string, label: string, onClick: () => void): HTMLBut
 function toReportEntry(entry: {
   doi?: string | null; title?: string | null; journal?: string | null;
   year?: number | null; url?: string | null; outcome?: string | null;
-  authors?: Array<{given?: string | null; family?: string | null}> | null;
+  authors?: Array<{ given?: string | null; family?: string | null }> | null;
 }): ReportEntry {
   const first = entry.authors?.[0];
   const name = first?.family ?? first?.given ?? null;
@@ -865,12 +865,12 @@ function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
   return headerAction(DOWNLOAD_ICON, "Save this report (print to PDF)", () => {
     const win = window.open("", "_blank", "width=900,height=1000");
     if (!win) {
-      showToast("Allow pop-ups for this site to save the report", {tone: "error"});
+      showToast("Allow pop-ups for this site to save the report", { tone: "error" });
       return;
     }
     win.document.write(renderReportDocument(payload()));
     win.document.close();
-    win.addEventListener("load", () => win.print(), {once: true});
+    win.addEventListener("load", () => win.print(), { once: true });
   });
 }
 
@@ -881,10 +881,10 @@ function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
       .then((copied) => {
         showToast(
           copied ? "Report link copied — the report travels inside the link" : "Couldn't copy the link",
-          {tone: copied ? "success" : "error"}
+          { tone: copied ? "success" : "error" }
         );
       })
-      .catch(() => showToast("Couldn't build the report link", {tone: "error"}));
+      .catch(() => showToast("Couldn't build the report link", { tone: "error" }));
   });
 }
 
@@ -1081,7 +1081,7 @@ export function renderSidePanel(
     year: subtitleYear,
     sourceUrl: location.href,
     generated: Date.now(),
-    notice: articleNotice ? {kind: articleNotice.kind, doi: articleNotice.doi} : null,
+    notice: articleNotice ? { kind: articleNotice.kind, doi: articleNotice.doi } : null,
     replications: articleIsReplication ? [] : allReplicationEntries.map(toReportEntry),
     reproductions: articleIsReplication ? [] : allReproductionEntries.map(toReportEntry),
     originals: allOriginalEntries.map(toReportEntry),
@@ -1098,7 +1098,7 @@ export function renderSidePanel(
         comments: refFeedbackByDoi.get(ref.doi)?.total_comments ?? 0,
       };
     }),
-    pubpeer: primary ? {comments: primary.total_comments, url: primary.url} : null,
+    pubpeer: primary ? { comments: primary.total_comments, url: primary.url } : null,
   });
 
   header.appendChild(buildSaveButton(buildPayload));
@@ -1287,8 +1287,8 @@ export function renderSidePanel(
           (isSuccess
             ? "background:#d1fae5;color:#065f46;"
             : isFailure
-            ? "background:#fee2e2;color:#991b1b;"
-            : "background:#fef8e8;color:#b8860b;");
+              ? "background:#fee2e2;color:#991b1b;"
+              : "background:#fef8e8;color:#b8860b;");
         badge.textContent = entry.outcome;
         titleRow.appendChild(badge);
       }
@@ -1373,7 +1373,7 @@ export function renderSidePanel(
         // Panel request, independent of the page scan's cancellation.
         const resp = await fetchWithDeadline(
           `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`,
-          {signal: null}
+          { signal: null }
         );
         if (!resp.ok) return;
         const data = await resp.json() as {
@@ -1716,7 +1716,7 @@ export function renderSidePanel(
           const currentPanel = document.getElementById(PUBPEER_PANEL_ID);
           if (hadFocus && currentPanel && document.activeElement === document.body) {
             const target = retry.isConnected ? retry : currentPanel.querySelector<HTMLElement>('[aria-label="Close panel"]');
-            target?.focus({preventScroll: true});
+            target?.focus({ preventScroll: true });
           }
         }
       });
