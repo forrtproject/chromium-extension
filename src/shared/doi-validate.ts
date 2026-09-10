@@ -78,7 +78,9 @@ const inFlight = new Map<DoiString, Promise<boolean | undefined>>();
 function checkOnce(doi: DoiString): Promise<boolean | undefined> {
   const shared = inFlight.get(doi);
   if (shared) return shared;
-  const run = resolveDoi(doi).finally(() => inFlight.delete(doi));
+  const run: Promise<boolean | undefined> = resolveDoi(doi).finally(() => {
+    if (inFlight.get(doi) === run) inFlight.delete(doi);
+  });
   inFlight.set(doi, run);
   return run;
 }
@@ -115,4 +117,5 @@ async function resolveDoi(doi: DoiString): Promise<boolean | undefined> {
 /** Test-only: drop in-memory cache state so each case starts fresh. */
 export function _resetValidationCacheForTesting(): void {
   VALIDATION_CACHE.resetForTesting();
+  inFlight.clear();
 }

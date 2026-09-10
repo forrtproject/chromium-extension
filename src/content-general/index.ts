@@ -172,9 +172,9 @@ const invalidDois = new Set<DoiString>();
 
 function disownDoi(doi: DoiString): void {
     invalidDois.add(doi);
+    removeNoticePillsFor(doi);
     if (extractPrimaryDOI(document) !== doi) return;
     document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)?.remove();
-    removeNoticePillsFor(doi);
 }
 
 async function primaryDoiFastPath(): Promise<void> {

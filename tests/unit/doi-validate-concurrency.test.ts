@@ -51,6 +51,58 @@ describe("doi.org fan-out is capped", () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
+    it("does not reuse an in-flight check that a reset discarded", async () => {
+        const doi = "10.1234/pending" as DoiString;
+        const releases: Array<() => void> = [];
+        const fetchMock = vi.fn(() => new Promise<Response>((resolve) => {
+            releases.push(() => resolve({
+                ok: true, status: 200, json: () => Promise.resolve({ responseCode: 1 }),
+            } as Response));
+        }));
+        vi.stubGlobal("fetch", fetchMock);
+
+        const abandoned = validateDOIs([doi]);
+        await vi.waitFor(() => expect(releases).toHaveLength(1));
+        _resetValidationCacheForTesting();
+
+        const fresh = validateDOIs([doi]);
+        await vi.waitFor(() => expect(releases).toHaveLength(2));
+        releases.forEach((release) => release());
+
+        expect((await fresh).get(doi)).toBe(true);
+        await abandoned;
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps the live check when a discarded one settles late", async () => {
+        const doi = "10.1234/late" as DoiString;
+        const settle: Array<(status: number) => void> = [];
+        const fetchMock = vi.fn(() => new Promise<Response>((resolve) => {
+            settle.push((status) => resolve({
+                ok: status === 200, status,
+                json: () => Promise.resolve({ responseCode: 1 }),
+            } as Response));
+        }));
+        vi.stubGlobal("fetch", fetchMock);
+
+        const abandoned = validateDOIs([doi]);
+        await vi.waitFor(() => expect(settle).toHaveLength(1));
+        _resetValidationCacheForTesting();
+        const live = validateDOIs([doi]);
+        await vi.waitFor(() => expect(settle).toHaveLength(2));
+
+        settle[0](503);
+        await abandoned;
+
+        const joiner = validateDOIs([doi]);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(settle, "joiner started a third check").toHaveLength(2);
+
+        settle[1](200);
+        await Promise.all([live, joiner]);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it("never has more than a handful of checks in flight", async () => {
         let inFlight = 0;
         let peak = 0;
