@@ -102,17 +102,10 @@ function extractDoiFromScholarRow(row: HTMLElement): ExtractionResult | null {
             return {doi: doiFromParams, confident: true};
         }
         // DOI may be embedded in path (e.g. /edit/10.xxx/yyy/slug)
-        try {
-            const decoded = decodeURIComponent(titleLink.href);
-            const m = decoded.match(/\b(10\.\d{4,}(?:\.\d+)*\/[^\s&"'#?/]+)/);
-            if (m) {
-                const embeddedDoi = normaliseDOI(m[1]);
-                if (embeddedDoi) {
-                    debugLog(`Scholar DOI [title-link embedded-path] "${title}" → ${embeddedDoi} (not confident) from ${titleLink.href}`);
-                    return {doi: embeddedDoi, confident: false};
-                }
-            }
-        } catch { /* invalid encoding — skip */
+        const embeddedDoi = doiFromUrlPath(titleLink.href);
+        if (embeddedDoi) {
+            debugLog(`Scholar DOI [title-link embedded-path] "${title}" → ${embeddedDoi} (not confident) from ${titleLink.href}`);
+            return {doi: embeddedDoi, confident: false};
         }
     }
 
@@ -153,24 +146,28 @@ function extractDoiFromScholarRow(row: HTMLElement): ExtractionResult | null {
     }
 
     // 5. DOI embedded in any link URL path (e.g. /edit/10.xxx/yyy/slug)
-    const doiInUrlRe = /\b(10\.\d{4,}(?:\.\d+)*\/[^\s&"'#?/]+)/;
     for (const link of links) {
-        try {
-            const decoded = decodeURIComponent(link.href);
-            const m = decoded.match(doiInUrlRe);
-            if (m) {
-                const doi = normaliseDOI(m[1]);
-                if (doi) {
-                    debugLog(`Scholar DOI [link embedded-path] "${title}" → ${doi} (not confident) from ${link.href}`);
-                    return {doi, confident: false};
-                }
-            }
-        } catch { /* invalid encoding */
+        const doi = doiFromUrlPath(link.href);
+        if (doi) {
+            debugLog(`Scholar DOI [link embedded-path] "${title}" → ${doi} (not confident) from ${link.href}`);
+            return {doi, confident: false};
         }
     }
 
     debugLog(`Scholar DOI [none] "${title}" → no DOI extracted`);
     return null;
+}
+
+const DOI_IN_PATH_RE = /\b(10\.\d{4,}(?:\.\d+)*\/[^\s&"'#?/]+)/;
+
+function doiFromUrlPath(href: string): DoiString | null {
+    try {
+        const path = decodeURIComponent(new URL(href, document.baseURI).pathname);
+        const match = path.match(DOI_IN_PATH_RE);
+        return match ? normaliseDOI(match[1]) : null;
+    } catch {
+        return null;
+    }
 }
 
 /** Extract a DOI from URL query params where the param name explicitly indicates a DOI. */
