@@ -79,7 +79,7 @@ describe("the popup's resume button", () => {
     expect(localStore[SNOOZE_KEY]).toEqual({});
   });
 
-  it("keeps [hidden] winning over the button's own display rule", () => {
+  it("keeps [hidden] winning over any rule that sets display", () => {
     const style = document.createElement("style");
     style.textContent = readFileSync(join(POPUP_DIR, "popup.css"), "utf-8");
     document.head.appendChild(style);
@@ -87,11 +87,21 @@ describe("the popup's resume button", () => {
     const hides = [...style.sheet!.cssRules].some(
       (rule) =>
         rule instanceof CSSStyleRule &&
-        rule.selectorText.split(",").some((s) => s.trim() === ".popup-btn[hidden]") &&
-        rule.style.display === "none"
+        rule.selectorText.split(",").some((s) => s.trim() === "[hidden]") &&
+        rule.style.display === "none" &&
+        rule.style.getPropertyPriority("display") === "important"
     );
 
-    expect(hides).toBe(true);
+    expect(hides, "no [hidden] rule strong enough to beat a display declaration").toBe(true);
     style.remove();
+  });
+
+  it("ships the debug-only log-copy row hidden", () => {
+    const markup = new DOMParser()
+      .parseFromString(readFileSync(join(POPUP_DIR, "popup.html"), "utf-8"), "text/html");
+    const shipped = [...markup.querySelectorAll("[hidden]")].map((el) => el.id);
+
+    expect(shipped).toContain("log-copy-row");
+    expect(shipped).toContain("snooze-note");
   });
 });

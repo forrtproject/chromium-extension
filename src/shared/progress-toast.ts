@@ -14,6 +14,14 @@ import {blockDomain, snoozeDomain} from "@shared/domains";
 import {getSettings} from "@shared/settings";
 
 export const WORK_TOAST_ID = "flora-working-toast";
+export const SETUP_PROMPT_ID = "flora-setup-prompt";
+
+export function floatingBottom(): number {
+    const setup = document.getElementById(SETUP_PROMPT_ID);
+    const card = setup?.firstElementChild as HTMLElement | null;
+    const height = card?.offsetHeight ?? setup?.offsetHeight ?? 0;
+    return height > 0 ? 20 + height + 10 : 18;
+}
 
 export type WorkStage = "scan" | "validate" | "augment" | "notices" | "lookup" | "report";
 
@@ -60,7 +68,7 @@ const STAGE_LABEL: Record<WorkStage, string> = {
 const DEFAULT_LABEL = "ORE is looking up the papers on this page…";
 
 const HOST_STYLE =
-    "position:fixed;bottom:18px;right:18px;z-index:2147483647;" +
+    "position:fixed;right:18px;z-index:2147483647;" +
     "display:flex;flex-direction:column;gap:7px;pointer-events:none;" +
     "background:linear-gradient(135deg,#853953,#612D53);color:#fff;" +
     "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
@@ -145,6 +153,11 @@ interface StageRecord {
 
 let refCount = 0;
 const idleWaiters = new Set<() => void>();
+const QUIET_BEFORE_DONE_MS = 2_500;
+const QUIET_WITH_STAGES_LEFT_MS = 10_000;
+
+let pageStartedAt: number | null = null;
+let finishTimer: ReturnType<typeof setTimeout> | null = null;
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -165,11 +178,11 @@ let items: WorkItem[] = [];
 let passStartedAt = 0;
 
 function clearTimers(): void {
-    for (const timer of [showTimer, hideTimer, removeTimer]) {
+    for (const timer of [showTimer, hideTimer, removeTimer, finishTimer]) {
         if (timer) clearTimeout(timer);
     }
     cancelQueuedRender();
-    showTimer = hideTimer = removeTimer = null;
+    showTimer = hideTimer = removeTimer = finishTimer = null;
 }
 
 function cancelQueuedRender(): void {
@@ -356,29 +369,6 @@ function buildFooter(): HTMLElement {
     return footer;
 }
 
-/** Compact row that replaces the toast once a pass ends with the log-copy offer on. */
-function buildFinishRow(): HTMLElement {
-    const row = document.createElement("div");
-    row.setAttribute("data-flora-work-finish", "");
-    row.style.cssText = "display:none;align-items:center;gap:8px;line-height:1.4;";
-    const label = document.createElement("span");
-    label.setAttribute("data-flora-work-finish-label", "");
-    label.style.cssText = "flex:1;";
-    const copy = textButton("Copy log");
-    copy.setAttribute("data-flora-work-final-copy", "");
-    copy.addEventListener("click", () => {
-        void copyLog(copy).then(() => {
-            hideTimer = setTimeout(fadeOut, BUTTON_FLASH_MS);
-        });
-    });
-    const close = iconButton("Dismiss", CLOSE_SVG);
-    close.addEventListener("click", () => {
-        clearTimers();
-        removeToast();
-    });
-    row.append(label, copy, close);
-    return row;
-}
 
 function ensureToast(): HTMLElement {
     const existing = document.getElementById(WORK_TOAST_ID);
@@ -454,7 +444,7 @@ function ensureToast(): HTMLElement {
         "list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-weight:400;";
     panel.append(list, buildFooter());
 
-    host.append(style, row, track, pauseRow, panel, buildFinishRow());
+    host.append(style, row, track, pauseRow, panel);
     document.body.appendChild(host);
     document.addEventListener("keydown", onKeydown, true);
     return host;
@@ -471,6 +461,7 @@ function applyExpanded(host: HTMLElement): void {
     }
     if (arrow) arrow.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
     if (expanded) renderStages(host);
+    shieldToastColours(host);
 }
 
 function itemGlyph(status: WorkItemStatus): HTMLElement {
@@ -615,11 +606,13 @@ function renderNow(): void {
     // An immediate stage update supersedes any deferred item update.
     cancelQueuedRender();
     const host = ensureToast();
+    host.style.bottom = `${floatingBottom()}px`;
     const label = host.querySelector<HTMLElement>("[data-flora-work-label]");
     if (label) label.textContent = labelText;
     paint(host);
     applyExpanded(host);
-    if (finished) showFinishRow(host);
+    if (finished) showFinishedState(host);
+    shieldToastColours(host);
     requestAnimationFrame(() => {
         host.style.opacity = "1";
         host.style.transform = "translateY(0)";
@@ -655,16 +648,23 @@ function render(immediate = true): void {
 }
 
 /** Collapse the toast to one line: "Done in 2.3 s · Copy log ×". */
-function showFinishRow(host: HTMLElement): void {
-    for (const part of host.children) {
-        const el = part as HTMLElement;
-        if (el.tagName === "STYLE" || el.hasAttribute("data-flora-work-finish")) continue;
-        el.style.display = "none";
+function showFinishedState(host: HTMLElement): void {
+    setRunningControls(host, false);
+}
+
+function setRunningControls(host: HTMLElement, running: boolean): void {
+    for (const marker of ["spinner", "pause", "cancel"]) {
+        const el = host.querySelector<HTMLElement>(`[data-flora-work-${marker}]`);
+        if (el) el.style.display = running ? "" : "none";
     }
-    const finishRow = host.querySelector<HTMLElement>("[data-flora-work-finish]");
-    const finishLabel = host.querySelector<HTMLElement>("[data-flora-work-finish-label]");
-    if (finishLabel) finishLabel.textContent = labelText;
-    if (finishRow) finishRow.style.display = "flex";
+}
+
+function shieldToastColours(root: HTMLElement): void {
+    root.style.setProperty("color", "#fff", "important");
+    for (const el of root.querySelectorAll<HTMLElement>("*")) {
+        if (el.tagName === "STYLE") continue;
+        el.style.setProperty("color", el.style.getPropertyValue("color") || "inherit", "important");
+    }
 }
 
 function fadeOut(): void {
@@ -680,11 +680,17 @@ function fadeOut(): void {
 /** Show the progress toast (ref-counted — nested calls keep it visible). */
 export function beginWorkIndicator(plan?: WorkPlan): void {
     refCount++;
+    debugLog(`Work: begin (ref ${refCount}) plan=${plan?.stages?.join(",") ?? "all"}`);
     // Also covers a pass starting while the last one's toast is still fading.
     if (refCount === 1) {
+        if (finishTimer) {
+            clearTimeout(finishTimer);
+            finishTimer = null;
+        }
+        if (pageStartedAt === null) pageStartedAt = now();
         beginCancellableWork();
-        // The finished-pass toast holds a copy button, so it is rebuilt whole.
-        if (finished) removeToast();
+        const host = document.getElementById(WORK_TOAST_ID);
+        if (finished && host) setRunningControls(host, true);
         progress = 0;
         labelText = DEFAULT_LABEL;
         dismissed = false;
@@ -803,12 +809,21 @@ export function endWorkIndicator(): void {
     dismissed = false;
     cancelled = false;
 
-    if (offerLogCopy && isDebugEnabled() && !wasDismissed && !suppressed) {
-        finished = true;
-        progress = 1;
-        labelText = `Done in ${formatDuration(now() - passStartedAt)}`;
-        expanded = false;
-        renderNow();
+    if (isDebugEnabled() && !wasDismissed && !suppressed) {
+        const stagesLeft = stages.filter((entry) => entry.startedAt === undefined);
+        const quiet = stagesLeft.length ? QUIET_WITH_STAGES_LEFT_MS : QUIET_BEFORE_DONE_MS;
+        if (stagesLeft.length) {
+            debugLog(`Work: holding the summary — ${stagesLeft.map((e) => e.stage).join(", ")} never ran`);
+        }
+        finishTimer = setTimeout(() => {
+            finishTimer = null;
+            finished = true;
+            progress = 1;
+            labelText = `Done in ${formatDuration(now() - (pageStartedAt ?? passStartedAt))}`;
+            expanded = offerLogCopy;
+            debugLog(`Work: page quiet — ${labelText}`);
+            renderNow();
+        }, quiet);
         return;
     }
 
@@ -816,8 +831,13 @@ export function endWorkIndicator(): void {
     if (!host) return;
     progress = 1;
     paint(host);
+    shieldToastColours(host);
     // Brief delay so quick back-to-back passes don't flicker the toast.
     hideTimer = setTimeout(fadeOut, 500);
+}
+
+export function resetWorkSummary(): void {
+    pageStartedAt = null;
 }
 
 /** Popup hid all FLoRA UI — stay quiet until it comes back. */
@@ -848,6 +868,7 @@ export function _resetWorkIndicatorForTesting(): void {
     cancelled = false;
     expanded = false;
     finished = false;
+    pageStartedAt = null;
     offerLogCopy = false;
     stages = [];
     currentStage = null;

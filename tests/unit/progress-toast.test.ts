@@ -10,6 +10,9 @@ import {
     updateWorkItem,
     WORK_TOAST_ID,
     _resetWorkIndicatorForTesting,
+    resetWorkSummary,
+    floatingBottom,
+    SETUP_PROMPT_ID,
 } from "../../src/shared/progress-toast";
 import {canStartAutomaticWork, resumeAutomaticWork} from "../../src/shared/work-cancellation";
 import {setDebug, _resetDebugForTesting} from "../../src/shared/debug";
@@ -45,6 +48,10 @@ function label(): string {
 
 function percent(): string | null {
     return toast()?.querySelector("[data-flora-work-track]")?.getAttribute("aria-valuenow") ?? null;
+}
+
+function track(): HTMLElement {
+    return toast()!.querySelector<HTMLElement>("[data-flora-work-track]")!;
 }
 
 function button(name: string): HTMLButtonElement {
@@ -270,7 +277,8 @@ describe("progress toast", () => {
         reportWorkStage("lookup", "Looking up 1 DOI…");
         settle();
         setWorkItems([{id: "i0", label: "Paper 0", status: "pending"}]);
-        endWorkIndicator(); // leaves the one-line copy offer up
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(3000);
         settings.offerLogCopyAfterPass = false;
 
         const pending = new Map<number, FrameRequestCallback>();
@@ -287,7 +295,7 @@ describe("progress toast", () => {
         const queued = nextFrame;
         expect(pending.has(queued)).toBe(true);
 
-        button("final-copy").click(); // fades the toast out, then removes it
+        button("close").click();
         await vi.advanceTimersByTimeAsync(6000);
         expect(toast()).toBeNull();
         expect(cancelFrame).toHaveBeenCalledWith(queued);
@@ -306,10 +314,11 @@ describe("progress toast", () => {
         reportWorkStage("lookup", "Looking up 1 DOI…");
         settle();
         setWorkItems([{id: "i0", label: "Paper 0", status: "pending"}]);
-        endWorkIndicator(); // leaves the one-line copy offer up
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(3000);
         settings.offerLogCopyAfterPass = false;
 
-        toast()!.querySelector<HTMLButtonElement>("[data-flora-work-finish] button:last-of-type")!.click();
+        button("close").click();
         expect(toast()).toBeNull();
 
         updateWorkItem("i0", "done"); // a straggler arrives after the toast is gone
@@ -375,7 +384,7 @@ describe("progress toast", () => {
         expect(toast()!.querySelector("[data-flora-work-cancel]")).not.toBeNull();
     });
 
-    it("keeps a one-line copy offer up after the pass when the setting is on", async () => {
+    it("keeps the finished toast up with the copy offer to hand", async () => {
         setDebug(true);
         settings.offerLogCopyAfterPass = true;
         beginWorkIndicator();
@@ -384,18 +393,394 @@ describe("progress toast", () => {
         settle();
 
         endWorkIndicator();
-        vi.advanceTimersByTime(2000);
+        vi.advanceTimersByTime(11_000);
         expect(toast()).not.toBeNull();
-        const finishLabel = toast()!.querySelector("[data-flora-work-finish-label]")!.textContent ?? "";
-        expect(finishLabel).toMatch(/^Done in \d+ ms$/);
+        expect(label()).toMatch(/^Done in \d+ ms$/);
+        expect(track().getAttribute("aria-valuenow")).toBe("100");
 
-        const copy = button("final-copy");
+        const copy = button("copy");
         copy.click();
         await vi.advanceTimersByTimeAsync(1600);
         expect(buildDebugReport).toHaveBeenCalled();
         expect(writeClipboard).toHaveBeenCalledWith("REPORT");
         expect(copy.textContent).toBe("Copied ✓");
         settings.offerLogCopyAfterPass = false;
+    });
+
+    it("holds the toast open after a pass while debug logging is on", async () => {
+        setDebug(true);
+        settings.offerLogCopyAfterPass = false;
+        beginWorkIndicator();
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(10_000);
+
+        expect(toast(), "debug mode must keep the toast up").not.toBeNull();
+        expect(label()).toMatch(/^Done in \d+ ms$/);
+        expect(track().getAttribute("aria-valuenow")).toBe("100");
+        expect(button("spinner").style.display, "the spinner must stop").toBe("none");
+    });
+
+    it("closes the held toast when the reader dismisses it", async () => {
+        setDebug(true);
+        settings.offerLogCopyAfterPass = false;
+        beginWorkIndicator();
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(10_000);
+
+        button("close").click();
+
+        expect(toast()).toBeNull();
+    });
+
+    it("still fades the toast out when debug logging is off", async () => {
+        setDebug(false);
+        settings.offerLogCopyAfterPass = false;
+        beginWorkIndicator();
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(10_000);
+
+        expect(toast()).toBeNull();
+    });
+
+    it("pins the label's colour so a page rule cannot repaint it", () => {
+        beginWorkIndicator();
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+
+        const labelEl = toast()!.querySelector<HTMLElement>("[data-flora-work-label]")!;
+        expect(labelEl.style.getPropertyPriority("color")).toBe("important");
+        expect(labelEl.style.getPropertyValue("color")).toBe("inherit");
+        expect(toast()!.style.getPropertyValue("color")).toBe("rgb(255, 255, 255)");
+        expect(toast()!.style.getPropertyPriority("color")).toBe("important");
+    });
+
+    it("keeps an element's own colour rather than flattening it", () => {
+        beginWorkIndicator();
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+        expand();
+
+        const dimmed = [...toast()!.querySelectorAll<HTMLElement>("*")].filter(
+            (el) => /^rgba\(255,\s*255,\s*255,/.test(el.style.getPropertyValue("color"))
+        );
+        expect(dimmed.length, "the dimmed stage text should survive").toBeGreaterThan(0);
+        for (const el of dimmed) {
+            expect(el.style.getPropertyPriority("color")).toBe("important");
+        }
+    });
+
+    it("reports one Done for a burst of back-to-back passes", async () => {
+        setDebug(true);
+        const done: string[] = [];
+        const record = () => {
+            const text = label();
+            if (text.startsWith("Done in")) done.push(text);
+        };
+
+        for (const stage of ["scan", "lookup", "notices"] as const) {
+            beginWorkIndicator({stages: [stage]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage(stage, `Working on ${stage}…`);
+            settle();
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(200);
+            record();
+        }
+        await vi.advanceTimersByTimeAsync(3000);
+        record();
+
+        expect(done).toEqual([expect.stringMatching(/^Done in /)]);
+    });
+
+    it("times the whole burst, not just the last pass in it", async () => {
+        setDebug(true);
+        let clock = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+        try {
+            beginWorkIndicator({stages: ["scan"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("scan", "Scanning…");
+            settle();
+            clock = 40;
+            endWorkIndicator();
+
+            clock = 340;
+            await vi.advanceTimersByTimeAsync(300);
+            beginWorkIndicator({stages: ["lookup"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("lookup", "Looking up…");
+            settle();
+            clock = 400;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+
+            expect(label(), "the clock must span the whole burst").toBe("Done in 400 ms");
+        } finally {
+            nowSpy.mockRestore();
+        }
+    });
+
+    it("reports one Done for a load held under a single lease", async () => {
+        setDebug(true);
+        const done: string[] = [];
+        const record = () => {
+            if (label().startsWith("Done in")) done.push(label());
+        };
+
+        beginWorkIndicator();
+        await vi.advanceTimersByTimeAsync(0);
+        for (const stage of ["scan", "lookup", "notices"] as const) {
+            beginWorkIndicator({stages: [stage]});
+            reportWorkStage(stage, `Working on ${stage}…`);
+            settle();
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(4000);
+            record();
+        }
+        expect(done, "nothing may report Done while the lease is held").toEqual([]);
+
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(11_000);
+        record();
+
+        expect(done).toEqual([expect.stringMatching(/^Done in /)]);
+    });
+
+    async function runPass(stage: "scan" | "lookup"): Promise<void> {
+        beginWorkIndicator({stages: [stage]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage(stage, `Working on ${stage}…`);
+        settle();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(3000);
+    }
+
+    it("stays silent until the page stops working", async () => {
+        setDebug(true);
+        const seen: string[] = [];
+
+        for (const stage of ["scan", "lookup", "notices"] as const) {
+            beginWorkIndicator({stages: [stage]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage(stage, `Working on ${stage}…`);
+            settle();
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(1500);
+            if (label().startsWith("Done in")) seen.push(label());
+        }
+
+        expect(seen, "no summary while passes keep arriving").toEqual([]);
+
+        await vi.advanceTimersByTimeAsync(3000);
+        expect(label(), "one summary once the page is quiet").toMatch(/^Done in /);
+    });
+
+    it("does not summarise over a pass that outlasts the quiet window", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning…");
+        settle();
+        endWorkIndicator();
+
+        await vi.advanceTimersByTimeAsync(1500);
+        beginWorkIndicator({stages: ["lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("lookup", "Looking up 40 DOIs…");
+
+        await vi.advanceTimersByTimeAsync(4000);
+        expect(label(), "a summary must not land mid-pass").toBe("Looking up 40 DOIs…");
+
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(3000);
+        expect(label()).toMatch(/^Done in /);
+    });
+
+    it("times the whole page, not the pass that happened to finish last", async () => {
+        setDebug(true);
+        let clock = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+        try {
+            beginWorkIndicator({stages: ["scan"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("scan", "Scanning…");
+            settle();
+            clock = 40;
+            endWorkIndicator();
+
+            clock = 340;
+            await vi.advanceTimersByTimeAsync(300);
+            beginWorkIndicator({stages: ["lookup"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("lookup", "Looking up…");
+            settle();
+            clock = 400;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+
+            expect(label()).toBe("Done in 400 ms");
+        } finally {
+            nowSpy.mockRestore();
+        }
+    });
+
+    it("shows work that resumes later, and never counts backwards", async () => {
+        setDebug(true);
+        let clock = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+        try {
+            beginWorkIndicator({stages: ["scan"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("scan", "Scanning…");
+            settle();
+            clock = 100;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+            expect(label()).toBe("Done in 100 ms");
+
+            clock = 9_000;
+            beginWorkIndicator({stages: ["lookup"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("lookup", "Looking up 3 DOIs…");
+            settle();
+            expect(label(), "resumed work must be visible").toBe("Looking up 3 DOIs…");
+
+            clock = 9_500;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+
+            expect(label(), "the total may only grow").toBe("Done in 9.5 s");
+        } finally {
+            nowSpy.mockRestore();
+        }
+    });
+
+    it("summarises again once the page owner declares a new page", async () => {
+        setDebug(true);
+        let clock = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+        try {
+            beginWorkIndicator({stages: ["scan"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("scan", "Scanning…");
+            settle();
+            clock = 100;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+            expect(label()).toBe("Done in 100 ms");
+
+            resetWorkSummary();
+            clock = 200;
+            beginWorkIndicator({stages: ["lookup"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("lookup", "Looking up…");
+            settle();
+            clock = 500;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+
+            expect(label(), "a new page earns its own summary").toBe("Done in 300 ms");
+        } finally {
+            nowSpy.mockRestore();
+        }
+    });
+
+    it("does not restart the clock when the page rewrites its hash or query", async () => {
+        setDebug(true);
+        let clock = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+        try {
+            history.pushState({}, "", "/article");
+            beginWorkIndicator({stages: ["scan"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("scan", "Scanning…");
+            settle();
+            clock = 200;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+            expect(label()).toBe("Done in 200 ms");
+
+            history.pushState({}, "", "/article?utm_source=x#section-3");
+            clock = 1_000;
+            beginWorkIndicator({stages: ["lookup"]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage("lookup", "Looking up…");
+            settle();
+            clock = 1_200;
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(3000);
+
+            expect(label(), "a scroll anchor is not a new page").toBe("Done in 1.2 s");
+        } finally {
+            nowSpy.mockRestore();
+        }
+    });
+
+    it("sits clear of the setup prompt instead of on top of it", () => {
+        const setup = document.createElement("div");
+        setup.id = SETUP_PROMPT_ID;
+        const card = document.createElement("div");
+        Object.defineProperty(card, "offsetHeight", {value: 120, configurable: true});
+        setup.appendChild(card);
+        document.body.appendChild(setup);
+
+        expect(floatingBottom(), "20px prompt inset + its height + a gap").toBe(150);
+
+        setup.remove();
+        expect(floatingBottom(), "back to the corner once the prompt is gone").toBe(18);
+    });
+
+    it("waits longer when a planned stage never ran", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan", "augment", "report"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Found 49 DOIs on this page");
+        settle();
+        reportWorkStage("report", "Generating report…");
+        settle();
+        endWorkIndicator();
+
+        await vi.advanceTimersByTimeAsync(4000);
+        expect(label(), "augment never ran, so the page is not done").not.toMatch(/^Done in /);
+
+        await vi.advanceTimersByTimeAsync(8000);
+        expect(label(), "but it cannot wait forever").toMatch(/^Done in /);
+    });
+
+    it("lets the late stage land inside that longer wait", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan", "augment", "report"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Found 49 DOIs on this page");
+        settle();
+        reportWorkStage("report", "Generating report…");
+        settle();
+        endWorkIndicator();
+
+        await vi.advanceTimersByTimeAsync(4000);
+        beginWorkIndicator({stages: ["augment"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("augment", "Augmenting 3 references without a DOI…");
+        settle();
+        endWorkIndicator();
+
+        await vi.advanceTimersByTimeAsync(3000);
+
+        expect(label(), "every stage ran, so the short wait applies").toMatch(/^Done in /);
+        const rows = [...toast()!.querySelectorAll<HTMLElement>("[data-flora-work-stage]")];
+        expect(rows.every((r) => r.dataset.floraWorkState !== "skipped"),
+            "no stage should still read as skipped").toBe(true);
     });
 
     it("cancel stops the pass at the pipeline's next check and hides the toast", () => {

@@ -1,4 +1,5 @@
 import {SharedRequest} from "@shared/shared-request";
+import {isIssueFormUrl} from "@shared/debug-report";
 import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/work-cancellation";
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
@@ -176,6 +177,20 @@ chrome.runtime.onMessage.addListener(
             (message as { type?: string }).type === "FLORA_OPEN_OPTIONS"
         ) {
             chrome.runtime.openOptionsPage();
+            return false;
+        }
+
+        if (
+            typeof message === "object" &&
+            message !== null &&
+            (message as { type?: string }).type === "FLORA_OPEN_ISSUE"
+        ) {
+            const url = (message as { url?: unknown }).url;
+            if (typeof url === "string" && isIssueFormUrl(url)) {
+                chrome.tabs.create({url});
+            } else {
+                debugError("Issue form: refused to open", url);
+            }
             return false;
         }
 

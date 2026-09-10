@@ -33,6 +33,7 @@ import {
     type SheetsModalCallbacks,
     showAllFloraUI
 } from "./injector";
+import {resetWorkSummary} from "@shared/progress-toast";
 import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
@@ -367,6 +368,7 @@ function syncPageNavigation(): void {
     lastUrl = location.href;
     lastPageEntryKey = entryKey;
     pageGeneration++;
+    resetWorkSummary();
     invalidDois.clear();
     processedDois.clear();
     seenDois.clear();
@@ -960,9 +962,9 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     const passUrl = location.href;
     const generation = pageGeneration;
     const navigated = () => location.href !== passUrl || generation !== pageGeneration;
-    let indicatorStarted = false;
     const primaryDoi = extractPrimaryDOI(document);
     if (!primaryDoi) return;
+    beginWorkIndicator();
     try {
         const resolvedRefs = refsPromise ? await refsPromise : [];
         if (signal?.aborted || navigated()) return;
@@ -987,9 +989,6 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
         if (articleFeedbacksFetched && refKey === lastReferenceDoiKey && lastRenderedPageStateVersion === pageStateVersion) return;
 
         if (floraHidden || isWorkCancelled() || navigated()) return;
-        // Keep detached article-provider work in this pass's cancellation/progress lifetime.
-        beginWorkIndicator();
-        indicatorStarted = true;
         // Article: URL lookup once/page. References: one batched, cached lookup.
         const articlePromise = articleFeedbacksFetched
             ? Promise.resolve({feedbacks: lastArticleFeedbacks, unavailable: articlePubPeerUnavailable})
@@ -1048,7 +1047,7 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     } catch (err) {
         if (!signal?.aborted) debugWarn("PubPeer panel: lookup or render failed —", err);
     } finally {
-        if (indicatorStarted) endWorkIndicator();
+        endWorkIndicator();
     }
 }
 
@@ -1190,8 +1189,17 @@ async function fetchSheetDois(): Promise<void> {
         } else {
             // Start the article's own lookup off URL/meta/JSON-LD, then let the
             // full scan wait for idle rather than competing with page render.
-            void primaryDoiFastPath();
-            whenIdle(() => void scanWholePage());
+            beginWorkIndicator();
+            const fastPath = primaryDoiFastPath()
+                .catch((err) => debugError("General: primary DOI fast path failed —", err));
+            const fullScan = new Promise<void>((resolve) => {
+                whenIdle(() => {
+                    void scanWholePage()
+                        .catch((err) => debugError("General: initial scan failed —", err))
+                        .finally(resolve);
+                });
+            });
+            void Promise.all([fastPath, fullScan]).finally(() => endWorkIndicator());
             // Defer the observer until full load so load-time mutations don't spam it.
             if (document.readyState === "complete") {
                 startDomListener({scanWholePage, getLastUrl: () => lastUrl});

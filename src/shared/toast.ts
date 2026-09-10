@@ -8,7 +8,8 @@
 // One toast element is reused: a second action replaces the first rather than
 // stacking, so rapid clicks down a reference list never pile up.
 
-import {WORK_TOAST_ID} from "./progress-toast";
+import {WORK_TOAST_ID, floatingBottom} from "./progress-toast";
+import {isDebugEnabled} from "./debug";
 
 const TOAST_ID = "flora-action-toast";
 const ALERT_TOAST_ID = "flora-alert-toast";
@@ -84,9 +85,10 @@ function clearTimers(): void {
  * a layout-less document (tests).
  */
 function bottomOffset(): string {
+    const base = floatingBottom();
     const working = document.getElementById(WORK_TOAST_ID);
-    if (!working) return "18px";
-    return `${18 + (working.offsetHeight || 46) + 10}px`;
+    if (!working) return `${base}px`;
+    return `${base + (working.offsetHeight || 46) + 10}px`;
 }
 
 function ensureToast(id: string): HTMLElement {
@@ -148,7 +150,10 @@ export interface ToastOptions {
 export function showToast(message: string, options: ToastOptions = {}): HTMLElement {
     const tone = options.tone ?? "success";
     const action = options.action;
-    const duration = options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
+    const duration = isDebugEnabled()
+        ? 0
+        : options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
+    const dismissible = !!action || duration === 0;
 
     if (!action) clearTimers();
     const host = ensureToast(hostId(action));
@@ -161,7 +166,7 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
 
     host.style.cssText =
         `position:fixed;bottom:${bottomOffset()};right:18px;z-index:2147483647;` +
-        `display:flex;align-items:center;gap:8px;pointer-events:${action ? "auto" : "none"};` +
+        `display:flex;align-items:center;gap:8px;pointer-events:${dismissible ? "auto" : "none"};` +
         `background:${TONE_BACKGROUND[tone]};color:${tone === "info" ? "#334155" : "#fff"};` +
         (tone === "info" ? "border:1px solid #cbd5e1;" : "") +
         "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
@@ -185,14 +190,21 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
             if (options.dismissOnAction !== false) dismissAlertToast();
         });
         host.appendChild(button);
+    }
 
+    if (dismissible) {
         const close = document.createElement("button");
         close.type = "button";
         close.textContent = "\u00d7";
         close.title = "Dismiss";
         close.setAttribute("aria-label", "Dismiss");
+        close.setAttribute("data-flora-toast-close", "");
         close.style.cssText = CLOSE_STYLE + (tone === "info" ? "color:#64748b;" : "");
-        close.addEventListener("click", () => dismissAlertToast());
+        close.addEventListener("click", () => {
+            clearTimers();
+            host.remove();
+            positionAlert();
+        });
         host.appendChild(close);
     }
 
