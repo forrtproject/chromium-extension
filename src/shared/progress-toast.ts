@@ -601,7 +601,12 @@ function paint(host: HTMLElement): void {
     track.setAttribute("aria-valuenow", String(percent));
 }
 
-onDebugChange(() => {
+onDebugChange((enabled) => {
+    if (!enabled && refCount === 0 && !finished) {
+        clearTimers();
+        removeToast();
+        return;
+    }
     if (document.getElementById(WORK_TOAST_ID)) renderNow();
 });
 
