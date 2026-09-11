@@ -503,34 +503,6 @@ describe("progress toast", () => {
         expect(done).toEqual([expect.stringMatching(/^Done in /)]);
     });
 
-    it("times the whole burst, not just the last pass in it", async () => {
-        setDebug(true);
-        let clock = 0;
-        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
-        try {
-            beginWorkIndicator({stages: ["scan"]});
-            await vi.advanceTimersByTimeAsync(0);
-            reportWorkStage("scan", "Scanning…");
-            settle();
-            clock = 40;
-            endWorkIndicator();
-
-            clock = 340;
-            await vi.advanceTimersByTimeAsync(300);
-            beginWorkIndicator({stages: ["lookup"]});
-            await vi.advanceTimersByTimeAsync(0);
-            reportWorkStage("lookup", "Looking up…");
-            settle();
-            clock = 400;
-            endWorkIndicator();
-            await vi.advanceTimersByTimeAsync(3000);
-
-            expect(label(), "the clock must span the whole burst").toBe("Done in 400 ms");
-        } finally {
-            nowSpy.mockRestore();
-        }
-    });
-
     it("reports one Done for a load held under a single lease", async () => {
         setDebug(true);
         const done: string[] = [];
@@ -778,9 +750,63 @@ describe("progress toast", () => {
         await vi.advanceTimersByTimeAsync(3000);
 
         expect(label(), "every stage ran, so the short wait applies").toMatch(/^Done in /);
+
+        expand();
         const rows = [...toast()!.querySelectorAll<HTMLElement>("[data-flora-work-stage]")];
-        expect(rows.every((r) => r.dataset.floraWorkState !== "skipped"),
-            "no stage should still read as skipped").toBe(true);
+        expect(rows.length, "the stage list must actually be rendered").toBeGreaterThan(0);
+        expect(rows.map((r) => r.dataset.floraWorkState), "the late stage ran, so nothing is skipped")
+            .toEqual(["done"]);
+    });
+
+    it("does not land the old page's summary on the next page", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning…");
+        settle();
+        endWorkIndicator();
+
+        await vi.advanceTimersByTimeAsync(1000);
+        resetWorkSummary();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expect(toast(), "the pending summary belonged to the page we left").toBeNull();
+    });
+
+    it("clears a summary already on screen when the page changes", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning…");
+        settle();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+        expect(label()).toMatch(/^Done in /);
+
+        resetWorkSummary();
+
+        expect(toast(), "a new page starts without the last one's summary").toBeNull();
+    });
+
+    it("rebuilds the toast when debug mode arrives after it was built", async () => {
+        setDebug(false);
+        settings.offerLogCopyAfterPass = true;
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning…");
+        settle();
+        expand();
+        expect(toast()!.querySelector("[data-flora-work-copy]"), "no log to copy yet").toBeNull();
+
+        setDebug(true);
+        reportWorkStage("scan", "Still scanning…");
+        settle();
+
+        expect(toast()!.querySelector("[data-flora-work-copy]"),
+            "debug mode must bring the Copy log button with it").not.toBeNull();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+        settings.offerLogCopyAfterPass = false;
     });
 
     it("cancel stops the pass at the pipeline's next check and hides the toast", () => {

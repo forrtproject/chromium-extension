@@ -600,11 +600,19 @@ function paint(host: HTMLElement): void {
     track.setAttribute("aria-valuenow", String(percent));
 }
 
+function dropToastBuiltForOtherDebugState(): void {
+    const host = document.getElementById(WORK_TOAST_ID);
+    if (!host) return;
+    const hasCopy = host.querySelector("[data-flora-work-copy]") !== null;
+    if (hasCopy !== isDebugEnabled()) removeToast();
+}
+
 function renderNow(): void {
     if (suppressed || dismissed) return;
     if (refCount === 0 && !finished) return;
     // An immediate stage update supersedes any deferred item update.
     cancelQueuedRender();
+    dropToastBuiltForOtherDebugState();
     const host = ensureToast();
     host.style.bottom = `${floatingBottom()}px`;
     const label = host.querySelector<HTMLElement>("[data-flora-work-label]");
@@ -838,6 +846,15 @@ export function endWorkIndicator(): void {
 
 export function resetWorkSummary(): void {
     pageStartedAt = null;
+    if (finishTimer) {
+        clearTimeout(finishTimer);
+        finishTimer = null;
+    }
+    finished = false;
+    if (refCount === 0) {
+        clearTimers();
+        removeToast();
+    }
 }
 
 /** Popup hid all FLoRA UI — stay quiet until it comes back. */

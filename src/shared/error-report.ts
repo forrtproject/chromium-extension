@@ -1,6 +1,6 @@
 // Offers a reader the chance to report a crash in FLoRA's own code: a toast
 // that, on click, opens ORE's GitHub issue form prefilled with the error, the
-// page, and the log tail. Nothing leaves the browser without that click.
+// page, and the log tail.
 
 import { debugError, debugLog, debugWarn, isDebugEnabled, setRuntimeErrorListener, type RuntimeErrorInfo } from "@shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "@shared/debug-report";
@@ -80,8 +80,8 @@ async function openIssue(info: RuntimeErrorInfo): Promise<void> {
 
 async function openViaWorker(url: string): Promise<boolean> {
     try {
-        await chrome.runtime.sendMessage({type: "FLORA_OPEN_ISSUE", url});
-        return true;
+        const reply = await chrome.runtime.sendMessage({type: "FLORA_OPEN_ISSUE", url});
+        return (reply as {opened?: boolean} | undefined)?.opened === true;
     } catch (err) {
         debugWarn("Error report: the worker could not open the issue form —", err);
         return false;

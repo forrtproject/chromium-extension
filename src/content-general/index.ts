@@ -1193,10 +1193,18 @@ async function fetchSheetDois(): Promise<void> {
             const fastPath = primaryDoiFastPath()
                 .catch((err) => debugError("General: primary DOI fast path failed —", err));
             const fullScan = new Promise<void>((resolve) => {
+                const release = () => {
+                    document.removeEventListener("visibilitychange", onHidden);
+                    resolve();
+                };
+                function onHidden(): void {
+                    if (document.visibilityState === "hidden") release();
+                }
+                document.addEventListener("visibilitychange", onHidden);
                 whenIdle(() => {
                     void scanWholePage()
                         .catch((err) => debugError("General: initial scan failed —", err))
-                        .finally(resolve);
+                        .finally(release);
                 });
             });
             void Promise.all([fastPath, fullScan]).finally(() => endWorkIndicator());

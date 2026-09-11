@@ -58,3 +58,36 @@ describe("toasts under debug mode", () => {
         expect(alertToast()!.style.pointerEvents).toBe("auto");
     });
 });
+
+describe("two toasts at once", () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        document.body.innerHTML = "";
+        _resetDebugForTesting();
+    });
+
+    afterEach(() => {
+        dismissToast();
+        setDebug(false);
+        _resetDebugForTesting();
+        vi.useRealTimers();
+    });
+
+    it("closing the action toast leaves the timed one on its own timer", () => {
+        setDebug(false);
+        showToast("Checked 3 papers");
+        showToast("ORE hit an error on this page.", {
+            tone: "error",
+            action: {label: "Report it", onClick: () => undefined},
+        });
+
+        document.getElementById("flora-alert-toast")!
+            .querySelector<HTMLElement>("[data-flora-toast-close]")!.click();
+        expect(document.getElementById("flora-alert-toast")).toBeNull();
+        expect(document.getElementById("flora-action-toast"), "the routine toast survives").not.toBeNull();
+
+        vi.advanceTimersByTime(10_000);
+
+        expect(document.getElementById("flora-action-toast"), "and still times out").toBeNull();
+    });
+});

@@ -52,8 +52,17 @@ const CLOSE_STYLE =
     "font-size:13px;line-height:1;padding:2px 4px;border-radius:4px;cursor:pointer;" +
     "pointer-events:auto;flex-shrink:0;";
 
-let dismissTimer: ReturnType<typeof setTimeout> | null = null;
-let removeTimer: ReturnType<typeof setTimeout> | null = null;
+type HostTimers = {dismiss: ReturnType<typeof setTimeout> | null; remove: ReturnType<typeof setTimeout> | null};
+const timers = new Map<string, HostTimers>();
+
+function timersFor(id: string): HostTimers {
+    let entry = timers.get(id);
+    if (!entry) {
+        entry = {dismiss: null, remove: null};
+        timers.set(id, entry);
+    }
+    return entry;
+}
 
 function hostId(action: ToastAction | undefined): string {
     return action ? ALERT_TOAST_ID : TOAST_ID;
@@ -67,14 +76,12 @@ function positionAlert(): void {
     alert.style.bottom = routine ? `${base + (routine.offsetHeight || 34) + 10}px` : `${base}px`;
 }
 
-function clearTimers(): void {
-    if (dismissTimer) {
-        clearTimeout(dismissTimer);
-        dismissTimer = null;
-    }
-    if (removeTimer) {
-        clearTimeout(removeTimer);
-        removeTimer = null;
+function clearTimers(id?: string): void {
+    for (const [key, entry] of timers) {
+        if (id !== undefined && key !== id) continue;
+        if (entry.dismiss) clearTimeout(entry.dismiss);
+        if (entry.remove) clearTimeout(entry.remove);
+        entry.dismiss = entry.remove = null;
     }
 }
 
@@ -155,8 +162,9 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
         : options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
     const dismissible = !!action || duration === 0;
 
-    if (!action) clearTimers();
-    const host = ensureToast(hostId(action));
+    const id = hostId(action);
+    clearTimers(id);
+    const host = ensureToast(id);
     host.setAttribute("data-flora-tone", tone);
 
     // Keep the <style> child (the spinner keyframes) and rebuild the content.
@@ -201,7 +209,7 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
         close.setAttribute("data-flora-toast-close", "");
         close.style.cssText = CLOSE_STYLE + (tone === "info" ? "color:#64748b;" : "");
         close.addEventListener("click", () => {
-            clearTimers();
+            clearTimers(id);
             host.remove();
             positionAlert();
         });
@@ -214,10 +222,11 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
     });
 
     if (duration > 0) {
-        dismissTimer = setTimeout(() => {
+        const own = timersFor(id);
+        own.dismiss = setTimeout(() => {
             host.style.opacity = "0";
             host.style.transform = "translateY(6px)";
-            removeTimer = setTimeout(() => {
+            own.remove = setTimeout(() => {
                 host.remove();
                 positionAlert();
             }, 200);

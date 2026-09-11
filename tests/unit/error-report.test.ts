@@ -176,6 +176,35 @@ describe("automatic reporting under debug mode", () => {
         );
     });
 
+    it("falls back to window.open when the worker did not open the tab", async () => {
+        setDebug(true);
+        const open = vi.fn().mockReturnValue({});
+        vi.stubGlobal("open", open);
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue({opened: false});
+
+        offerErrorReport({message: "TypeError: boom", where: "scan"});
+
+        await vi.waitFor(() => expect(open).toHaveBeenCalled());
+        expect(isIssueFormUrl(open.mock.calls[0][0] as string)).toBe(true);
+    });
+
+    it("does not open a second tab when the worker reports success", async () => {
+        setDebug(true);
+        const open = vi.fn().mockReturnValue({});
+        vi.stubGlobal("open", open);
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue({opened: true});
+
+        offerErrorReport({message: "TypeError: boom", where: "scan"});
+
+        await vi.waitFor(() =>
+            expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+                expect.objectContaining({type: "FLORA_OPEN_ISSUE"})
+            )
+        );
+        await vi.waitFor(() => expect(document.body.textContent).toContain("ORE hit an error"));
+        expect(open, "the worker already opened it").not.toHaveBeenCalled();
+    });
+
     it("opens the prefilled form itself when debug logging is on", async () => {
         setDebug(true);
 
