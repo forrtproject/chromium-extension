@@ -30,6 +30,7 @@ import {
     setWorkItems,
     updateWorkItem,
     type WorkItem,
+    resetWorkSummary,
 } from "@shared/progress-toast";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import type {RowExtraction, SearchSiteAdapter} from "./sites/types";
@@ -87,6 +88,7 @@ function syncRetractionPage(): void {
     lastPageEntryKey = entryKey;
     retractionPage = location.href;
     searchNavigationGeneration++;
+    resetWorkSummary();
     retryingSearchChecks = null;
     unavailableRetractionDois.clear();
     lookupState.clear();

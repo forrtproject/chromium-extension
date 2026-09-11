@@ -377,9 +377,9 @@ export function extractPrimaryDOI(doc: Document): DoiString | null {
     return _primaryDoiCache.result;
   }
   const found = new Set<DoiString>();
-  extractFromUrl(doc, found);
   extractFromMeta(doc, found);
   extractFromJsonLd(doc, found);
+  extractFromUrl(doc, found);
   const result = found.size > 0 ? [...found][0] : null;
   _primaryDoiCache = { epoch: _scanEpoch, doc, result };
   return result;

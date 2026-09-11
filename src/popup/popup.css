@@ -114,6 +114,10 @@ body {
 }
 
 /* ─── Buttons ─── */
+[hidden] {
+  display: none !important;
+}
+
 .popup-btn:focus-visible,
 .popup-link:focus-visible,
 button:focus-visible,
@@ -138,10 +142,6 @@ a:focus-visible {
 
 .popup-btn:hover {
   background: var(--surface);
-}
-
-.popup-btn[hidden] {
-  display: none;
 }
 
 .popup-btn--block {

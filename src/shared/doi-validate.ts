@@ -62,45 +62,60 @@ export async function validateDOIs(
   // write of the whole blob).
   const updates: Array<[DoiString, { valid: boolean }]> = [];
   await mapWithLimit(uncached, MAX_CONCURRENT_CHECKS, async (doi) => {
-    try {
-      // Preserve slashes as URL path separators so multi-slash DOIs
-      // (e.g. 10.6338/JDA.202212/SP_17(4).0000) route correctly on doi.org.
-      // encodeURIComponent on the full DOI would collapse all '/' to %2F,
-      // making the server see a single opaque segment instead of a path.
-      const encodedHandle = doi.split("/").map(encodeURIComponent).join("/");
-      const response = await fetchWithDeadline(`${HANDLE_API}${encodedHandle}`);
-      if (!response.ok) {
-        // 404 = the Handle System has no record of this DOI → invalid.
-        // Any other non-OK status (429, 5xx) is transient — leave unknown.
-        if (response.status === 404) {
-          results.set(doi, false);
-          updates.push([doi, { valid: false }]);
-        }
-        return;
-      }
-      const data = (await response.json()) as { responseCode?: number };
-      // Only success and explicit handle-not-found are conclusive. Other
-      // protocol responses (including 200: handle exists but has no values)
-      // and malformed payloads do not prove that this DOI is invalid.
-      // https://www.handle.net/proxy_servlet.html
-      if (data.responseCode !== 1 && data.responseCode !== 100) return;
-      const valid = data.responseCode === 1;
-      results.set(doi, valid);
-      updates.push([doi, { valid }]);
-      debugLog(`DOI validation: ${doi} → ${valid ? "valid" : "invalid"}`);
-    } catch (err) {
-      // Cancellation ends the whole pass; nothing is cached from it.
-      if (isAbortError(err)) throw err;
-      // Left out of the map entirely, so the caller keeps the DOI.
-      debugWarn(`DOI validation: ${doi} unresolved —`, err);
-    }
+    const verdict = await checkOnce(doi);
+    if (verdict === undefined) return;
+    results.set(doi, verdict);
+    updates.push([doi, { valid: verdict }]);
+    debugLog(`DOI validation: ${doi} → ${verdict ? "valid" : "invalid"}`);
   });
 
   if (updates.length > 0) await VALIDATION_CACHE.setMany(updates);
   return results;
 }
 
+const inFlight = new Map<DoiString, Promise<boolean | undefined>>();
+
+function checkOnce(doi: DoiString): Promise<boolean | undefined> {
+  const shared = inFlight.get(doi);
+  if (shared) return shared;
+  const run: Promise<boolean | undefined> = resolveDoi(doi).finally(() => {
+    if (inFlight.get(doi) === run) inFlight.delete(doi);
+  });
+  inFlight.set(doi, run);
+  return run;
+}
+
+async function resolveDoi(doi: DoiString): Promise<boolean | undefined> {
+  try {
+    // Preserve slashes as URL path separators so multi-slash DOIs
+    // (e.g. 10.6338/JDA.202212/SP_17(4).0000) route correctly on doi.org.
+    // encodeURIComponent on the full DOI would collapse all '/' to %2F,
+    // making the server see a single opaque segment instead of a path.
+    const encodedHandle = doi.split("/").map(encodeURIComponent).join("/");
+    const response = await fetchWithDeadline(`${HANDLE_API}${encodedHandle}`);
+    if (!response.ok) {
+      // 404 = the Handle System has no record of this DOI → invalid.
+      // Any other non-OK status (429, 5xx) is transient — leave unknown.
+      return response.status === 404 ? false : undefined;
+    }
+    const data = (await response.json()) as { responseCode?: number };
+    // Only success and explicit handle-not-found are conclusive. Other
+    // protocol responses (including 200: handle exists but has no values)
+    // and malformed payloads do not prove that this DOI is invalid.
+    // https://www.handle.net/proxy_servlet.html
+    if (data.responseCode !== 1 && data.responseCode !== 100) return undefined;
+    return data.responseCode === 1;
+  } catch (err) {
+    // Cancellation ends the whole pass; nothing is cached from it.
+    if (isAbortError(err)) throw err;
+    // Left out of the map entirely, so the caller keeps the DOI.
+    debugWarn(`DOI validation: ${doi} unresolved —`, err);
+  return undefined;
+}
+}
+
 /** Test-only: drop in-memory cache state so each case starts fresh. */
 export function _resetValidationCacheForTesting(): void {
   VALIDATION_CACHE.resetForTesting();
+  inFlight.clear();
 }

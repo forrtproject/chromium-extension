@@ -236,7 +236,7 @@ function init(): void {
 
   try {
     chrome.storage.local.get(DEBUG_FLAG_KEY, (result) => {
-      _enabled = result?.[DEBUG_FLAG_KEY] === true;
+      applyDebugState(result?.[DEBUG_FLAG_KEY] === true);
     });
 
     // React to live changes (the options/popup toggle, or the console)
@@ -246,7 +246,7 @@ function init(): void {
         // Ship whatever was captured before a switch-off so the tail of a
         // session isn't lost between the last flush and the toggle.
         if (_enabled && !next) flush();
-        _enabled = next;
+        applyDebugState(next);
       }
     });
 
@@ -272,9 +272,31 @@ export function setDebugSink(next: DebugSink | null): void {
  * popup toggle; also callable from the browser console:
  *   chrome.storage.local.set({ flora_debug: true })
  */
+type DebugChangeListener = (enabled: boolean) => void;
+const debugChangeListeners = new Set<DebugChangeListener>();
+
+export function onDebugChange(listener: DebugChangeListener): () => void {
+  debugChangeListeners.add(listener);
+  return () => debugChangeListeners.delete(listener);
+}
+
+function notifyDebugChange(enabled: boolean): void {
+  for (const listener of debugChangeListeners) {
+    try {
+      listener(enabled);
+    } catch {}
+  }
+}
+
+function applyDebugState(next: boolean): void {
+  if (_enabled === next) return;
+  _enabled = next;
+  notifyDebugChange(next);
+}
+
 export function setDebug(enabled: boolean): void {
   if (_enabled && !enabled) flush();
-  _enabled = enabled;
+  applyDebugState(enabled);
   try {
     chrome.storage.local.set({ [DEBUG_FLAG_KEY]: enabled });
   } catch {
@@ -286,7 +308,7 @@ export function setDebug(enabled: boolean): void {
 export async function isDebugEnabledAsync(): Promise<boolean> {
   try {
     const raw = await chrome.storage.local.get(DEBUG_FLAG_KEY);
-    _enabled = raw?.[DEBUG_FLAG_KEY] === true;
+    applyDebugState(raw?.[DEBUG_FLAG_KEY] === true);
   } catch {
     // storage unavailable — fall through to the in-memory value
   }

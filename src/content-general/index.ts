@@ -33,6 +33,7 @@ import {
     type SheetsModalCallbacks,
     showAllFloraUI
 } from "./injector";
+import {resetWorkSummary} from "@shared/progress-toast";
 import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
@@ -41,7 +42,7 @@ import {isSetupComplete} from "@shared/settings";
 import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
-import {injectInlineRetractionPills, injectRetractionInfo, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
+import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 
@@ -168,6 +169,15 @@ document.addEventListener("flora-pause-site", () => {
     reportActiveState(false);
 });
 
+const invalidDois = new Set<DoiString>();
+
+function disownDoi(doi: DoiString): void {
+    invalidDois.add(doi);
+    removeNoticePillsFor(doi);
+    if (extractPrimaryDOI(document) !== doi) return;
+    document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)?.remove();
+}
+
 async function primaryDoiFastPath(): Promise<void> {
     if (floraHidden || !canStartAutomaticWork()) return;
     const generation = pageGeneration;
@@ -187,6 +197,7 @@ async function primaryDoiFastPath(): Promise<void> {
     };
 
     beginWorkIndicator({stages: ["scan"]});
+    const validating = validateDOIs([primary]).catch(() => new Map<DoiString, boolean>());
     try {
         // "scan", not "lookup": the bar only moves forward, and the full page
         // pass runs alongside this one.
@@ -210,6 +221,15 @@ async function primaryDoiFastPath(): Promise<void> {
             pageState.set(primary, {status: "no-match"});
         }
         pageStateVersion++;
+
+        const validity = (await validating).get(primary);
+        if (generation !== pageGeneration) return;
+        if (validity === false) {
+            debugLog(`General: primary DOI ${primary} rejected by doi.org — dropping it`);
+            rollback();
+            disownDoi(primary);
+            return;
+        }
 
         placeTitleIndicatorPill();
         repaintBadges();
@@ -348,6 +368,8 @@ function syncPageNavigation(): void {
     lastUrl = location.href;
     lastPageEntryKey = entryKey;
     pageGeneration++;
+    resetWorkSummary();
+    invalidDois.clear();
     processedDois.clear();
     seenDois.clear();
     doiContext.clear();
@@ -443,6 +465,10 @@ async function runScanPass(): Promise<void> {
             const validation = await validateDOIs(dois);
             if (pageChanged()) { abandonReferences(); return; }
             const before = dois.length;
+            for (const [doi, ok] of validation) {
+                if (ok) invalidDois.delete(doi);
+                else disownDoi(doi);
+            }
             dois = dois.filter((doi) => validation.get(doi) !== false);
             const removed = before - dois.length;
             if (removed > 0) {
@@ -735,7 +761,7 @@ function placeTitleIndicatorPill(): void {
     const titleEl = document.querySelector<HTMLHeadingElement>("h1");
     if (!titleEl || document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)) return;
     const primaryDoi = extractPrimaryDOI(document);
-    if (!primaryDoi) return;
+    if (!primaryDoi || invalidDois.has(primaryDoi)) return;
 
     const retraction = redacts.find((r) => r.originDoi === primaryDoi) ?? null;
     const state = pageState.get(primaryDoi);
@@ -936,9 +962,9 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     const passUrl = location.href;
     const generation = pageGeneration;
     const navigated = () => location.href !== passUrl || generation !== pageGeneration;
-    let indicatorStarted = false;
     const primaryDoi = extractPrimaryDOI(document);
     if (!primaryDoi) return;
+    beginWorkIndicator();
     try {
         const resolvedRefs = refsPromise ? await refsPromise : [];
         if (signal?.aborted || navigated()) return;
@@ -963,9 +989,6 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
         if (articleFeedbacksFetched && refKey === lastReferenceDoiKey && lastRenderedPageStateVersion === pageStateVersion) return;
 
         if (floraHidden || isWorkCancelled() || navigated()) return;
-        // Keep detached article-provider work in this pass's cancellation/progress lifetime.
-        beginWorkIndicator();
-        indicatorStarted = true;
         // Article: URL lookup once/page. References: one batched, cached lookup.
         const articlePromise = articleFeedbacksFetched
             ? Promise.resolve({feedbacks: lastArticleFeedbacks, unavailable: articlePubPeerUnavailable})
@@ -1024,7 +1047,7 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     } catch (err) {
         if (!signal?.aborted) debugWarn("PubPeer panel: lookup or render failed —", err);
     } finally {
-        if (indicatorStarted) endWorkIndicator();
+        endWorkIndicator();
     }
 }
 
@@ -1166,8 +1189,25 @@ async function fetchSheetDois(): Promise<void> {
         } else {
             // Start the article's own lookup off URL/meta/JSON-LD, then let the
             // full scan wait for idle rather than competing with page render.
-            void primaryDoiFastPath();
-            whenIdle(() => void scanWholePage());
+            beginWorkIndicator();
+            const fastPath = primaryDoiFastPath()
+                .catch((err) => debugError("General: primary DOI fast path failed —", err));
+            const fullScan = new Promise<void>((resolve) => {
+                const release = () => {
+                    document.removeEventListener("visibilitychange", onHidden);
+                    resolve();
+                };
+                function onHidden(): void {
+                    if (document.visibilityState === "hidden") release();
+                }
+                document.addEventListener("visibilitychange", onHidden);
+                whenIdle(() => {
+                    void scanWholePage()
+                        .catch((err) => debugError("General: initial scan failed —", err))
+                        .finally(release);
+                });
+            });
+            void Promise.all([fastPath, fullScan]).finally(() => endWorkIndicator());
             // Defer the observer until full load so load-time mutations don't spam it.
             if (document.readyState === "complete") {
                 startDomListener({scanWholePage, getLastUrl: () => lastUrl});

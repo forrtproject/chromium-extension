@@ -1046,6 +1046,22 @@ describe("extractPrimaryDOI", () => {
     expect(extractPrimaryDOI(doc)).toBe("10.1371/journal.pone.0012345");
   });
 
+  it("prefers the publisher's citation_doi over a versioned URL path", () => {
+    const doc = new JSDOM(`<!DOCTYPE html>
+      <html><head><meta name="citation_doi" content="10.64898/2026.09.02.748865"></head>
+      <body></body></html>`,
+      {url: "https://www.biorxiv.org/content/10.64898/2026.09.02.748865v1"}).window.document;
+
+    expect(extractPrimaryDOI(doc)).toBe("10.64898/2026.09.02.748865");
+  });
+
+  it("still falls back to the URL when a page declares no DOI of its own", () => {
+    const doc = new JSDOM(`<!DOCTYPE html><html><head></head><body></body></html>`,
+      {url: "https://example.org/articles/10.1038/nature12373"}).window.document;
+
+    expect(extractPrimaryDOI(doc)).toBe("10.1038/nature12373");
+  });
+
   it("ignores DOIs that only appear in body text or reference links", () => {
     const doc = new JSDOM(`<!DOCTYPE html>
       <html><head></head><body>

@@ -8,7 +8,8 @@
 // One toast element is reused: a second action replaces the first rather than
 // stacking, so rapid clicks down a reference list never pile up.
 
-import {WORK_TOAST_ID} from "./progress-toast";
+import {WORK_TOAST_ID, floatingBottom} from "./progress-toast";
+import {isDebugEnabled} from "./debug";
 
 const TOAST_ID = "flora-action-toast";
 const ALERT_TOAST_ID = "flora-alert-toast";
@@ -51,8 +52,17 @@ const CLOSE_STYLE =
     "font-size:13px;line-height:1;padding:2px 4px;border-radius:4px;cursor:pointer;" +
     "pointer-events:auto;flex-shrink:0;";
 
-let dismissTimer: ReturnType<typeof setTimeout> | null = null;
-let removeTimer: ReturnType<typeof setTimeout> | null = null;
+type HostTimers = {dismiss: ReturnType<typeof setTimeout> | null; remove: ReturnType<typeof setTimeout> | null};
+const timers = new Map<string, HostTimers>();
+
+function timersFor(id: string): HostTimers {
+    let entry = timers.get(id);
+    if (!entry) {
+        entry = {dismiss: null, remove: null};
+        timers.set(id, entry);
+    }
+    return entry;
+}
 
 function hostId(action: ToastAction | undefined): string {
     return action ? ALERT_TOAST_ID : TOAST_ID;
@@ -66,14 +76,12 @@ function positionAlert(): void {
     alert.style.bottom = routine ? `${base + (routine.offsetHeight || 34) + 10}px` : `${base}px`;
 }
 
-function clearTimers(): void {
-    if (dismissTimer) {
-        clearTimeout(dismissTimer);
-        dismissTimer = null;
-    }
-    if (removeTimer) {
-        clearTimeout(removeTimer);
-        removeTimer = null;
+function clearTimers(id?: string): void {
+    for (const [key, entry] of timers) {
+        if (id !== undefined && key !== id) continue;
+        if (entry.dismiss) clearTimeout(entry.dismiss);
+        if (entry.remove) clearTimeout(entry.remove);
+        entry.dismiss = entry.remove = null;
     }
 }
 
@@ -84,9 +92,10 @@ function clearTimers(): void {
  * a layout-less document (tests).
  */
 function bottomOffset(): string {
+    const base = floatingBottom();
     const working = document.getElementById(WORK_TOAST_ID);
-    if (!working) return "18px";
-    return `${18 + (working.offsetHeight || 46) + 10}px`;
+    if (!working) return `${base}px`;
+    return `${base + (working.offsetHeight || 46) + 10}px`;
 }
 
 function ensureToast(id: string): HTMLElement {
@@ -148,10 +157,14 @@ export interface ToastOptions {
 export function showToast(message: string, options: ToastOptions = {}): HTMLElement {
     const tone = options.tone ?? "success";
     const action = options.action;
-    const duration = options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
+    const duration = isDebugEnabled()
+        ? 0
+        : options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
+    const dismissible = !!action || duration === 0;
 
-    if (!action) clearTimers();
-    const host = ensureToast(hostId(action));
+    const id = hostId(action);
+    clearTimers(id);
+    const host = ensureToast(id);
     host.setAttribute("data-flora-tone", tone);
 
     // Keep the <style> child (the spinner keyframes) and rebuild the content.
@@ -161,7 +174,7 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
 
     host.style.cssText =
         `position:fixed;bottom:${bottomOffset()};right:18px;z-index:2147483647;` +
-        `display:flex;align-items:center;gap:8px;pointer-events:${action ? "auto" : "none"};` +
+        `display:flex;align-items:center;gap:8px;pointer-events:${dismissible ? "auto" : "none"};` +
         `background:${TONE_BACKGROUND[tone]};color:${tone === "info" ? "#334155" : "#fff"};` +
         (tone === "info" ? "border:1px solid #cbd5e1;" : "") +
         "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
@@ -185,14 +198,21 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
             if (options.dismissOnAction !== false) dismissAlertToast();
         });
         host.appendChild(button);
+    }
 
+    if (dismissible) {
         const close = document.createElement("button");
         close.type = "button";
         close.textContent = "\u00d7";
         close.title = "Dismiss";
         close.setAttribute("aria-label", "Dismiss");
+        close.setAttribute("data-flora-toast-close", "");
         close.style.cssText = CLOSE_STYLE + (tone === "info" ? "color:#64748b;" : "");
-        close.addEventListener("click", () => dismissAlertToast());
+        close.addEventListener("click", () => {
+            clearTimers(id);
+            host.remove();
+            positionAlert();
+        });
         host.appendChild(close);
     }
 
@@ -202,10 +222,11 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
     });
 
     if (duration > 0) {
-        dismissTimer = setTimeout(() => {
+        const own = timersFor(id);
+        own.dismiss = setTimeout(() => {
             host.style.opacity = "0";
             host.style.transform = "translateY(6px)";
-            removeTimer = setTimeout(() => {
+            own.remove = setTimeout(() => {
                 host.remove();
                 positionAlert();
             }, 200);

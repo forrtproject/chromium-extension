@@ -7,7 +7,7 @@ import {
 } from "../../src/shared/error-report";
 import { dismissToast } from "../../src/shared/toast";
 import { _resetDebugForTesting, recentDebugEntries, setDebug } from "../../src/shared/debug";
-import { issueUrl, collectDebugReport } from "../../src/shared/debug-report";
+import { issueUrl, collectDebugReport, isIssueFormUrl } from "../../src/shared/debug-report";
 
 function toast(): HTMLElement | null {
     return document.getElementById("flora-alert-toast");
@@ -148,5 +148,75 @@ describe("the report a crash carries", () => {
         expect(data.entries.map((e) => e.msg).join("\n")).toContain("References: marking up failed");
         expect(data.environment.join("\n")).toContain("in-memory tail");
         expect(data.error?.message).toBe("boom");
+    });
+});
+
+describe("automatic reporting under debug mode", () => {
+    beforeEach(() => {
+        _resetErrorReportingForTesting();
+        _resetDebugForTesting();
+        document.body.innerHTML = "";
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockReset();
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+        setDebug(false);
+        _resetDebugForTesting();
+    });
+
+    it("waits for a click when debug logging is off", async () => {
+        setDebug(false);
+
+        offerErrorReport({message: "TypeError: boom", where: "scan"});
+        await vi.waitFor(() => expect(document.body.textContent).toContain("ORE hit an error"));
+
+        expect(chrome.runtime.sendMessage).not.toHaveBeenCalledWith(
+            expect.objectContaining({type: "FLORA_OPEN_ISSUE"})
+        );
+    });
+
+    it("falls back to window.open when the worker did not open the tab", async () => {
+        setDebug(true);
+        const open = vi.fn().mockReturnValue({});
+        vi.stubGlobal("open", open);
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue({opened: false});
+
+        offerErrorReport({message: "TypeError: boom", where: "scan"});
+
+        await vi.waitFor(() => expect(open).toHaveBeenCalled());
+        expect(isIssueFormUrl(open.mock.calls[0][0] as string)).toBe(true);
+    });
+
+    it("does not open a second tab when the worker reports success", async () => {
+        setDebug(true);
+        const open = vi.fn().mockReturnValue({});
+        vi.stubGlobal("open", open);
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockResolvedValue({opened: true});
+
+        offerErrorReport({message: "TypeError: boom", where: "scan"});
+
+        await vi.waitFor(() =>
+            expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+                expect.objectContaining({type: "FLORA_OPEN_ISSUE"})
+            )
+        );
+        await vi.waitFor(() => expect(document.body.textContent).toContain("ORE hit an error"));
+        expect(open, "the worker already opened it").not.toHaveBeenCalled();
+    });
+
+    it("opens the prefilled form itself when debug logging is on", async () => {
+        setDebug(true);
+
+        offerErrorReport({message: "TypeError: boom", where: "scan"});
+
+        await vi.waitFor(() =>
+            expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+                expect.objectContaining({type: "FLORA_OPEN_ISSUE"})
+            )
+        );
+        const call = (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mock.calls
+            .find(([msg]) => (msg as {type?: string}).type === "FLORA_OPEN_ISSUE")!;
+        expect(isIssueFormUrl((call[0] as {url: string}).url)).toBe(true);
     });
 });

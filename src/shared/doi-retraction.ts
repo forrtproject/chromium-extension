@@ -303,6 +303,13 @@ function hasNoticePill(doi: DoiString): boolean {
     return false;
 }
 
+export function removeNoticePillsFor(doi: DoiString): void {
+    for (const pill of document.querySelectorAll<HTMLElement>(`.${FLORA_NOTICE_PILL_CLASS}`)) {
+        if (pill.getAttribute(NOTICE_DOI_ATTR) === doi) pill.remove();
+    }
+    pilledRetractionDois.delete(doi);
+}
+
 /**
  * Move an already-placed notice pill to sit right after this DOI's indicator
  * pill. The retraction check completes before reference resolution does, so
