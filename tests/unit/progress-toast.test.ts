@@ -862,6 +862,26 @@ describe("progress toast", () => {
         expect(label(), "the next page still gets its summary").toMatch(/^Done in /);
     });
 
+    it("still summarises when the new page's pass overlaps the old one", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning the page we are leaving…");
+        settle();
+
+        resetWorkSummary();
+        beginWorkIndicator({stages: ["lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("lookup", "Looking up on the new page…");
+        settle();
+
+        endWorkIndicator();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expect(label(), "the new page's own work must still be summarised").toMatch(/^Done in /);
+    });
+
     it("cancel stops the pass at the pipeline's next check and hides the toast", () => {
         beginWorkIndicator();
         reportWorkStage("scan", "Scanning this page for DOIs…");

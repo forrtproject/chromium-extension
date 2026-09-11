@@ -699,13 +699,14 @@ function fadeOut(): void {
 export function beginWorkIndicator(plan?: WorkPlan): void {
     refCount++;
     debugLog(`Work: begin (ref ${refCount}) plan=${plan?.stages?.join(",") ?? "all"}`);
+    summaryInvalidated = false;
+    if (pageStartedAt === null) pageStartedAt = now();
     // Also covers a pass starting while the last one's toast is still fading.
     if (refCount === 1) {
         if (finishTimer) {
             clearTimeout(finishTimer);
             finishTimer = null;
         }
-        if (pageStartedAt === null) pageStartedAt = now();
         beginCancellableWork();
         const host = document.getElementById(WORK_TOAST_ID);
         if (finished && host) setRunningControls(host, true);
