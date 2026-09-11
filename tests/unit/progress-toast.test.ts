@@ -809,6 +809,59 @@ describe("progress toast", () => {
         settings.offerLogCopyAfterPass = false;
     });
 
+    it("refreshes a held summary when debug mode is toggled under it", async () => {
+        setDebug(true);
+        settings.offerLogCopyAfterPass = true;
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning…");
+        settle();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+        expect(label()).toMatch(/^Done in /);
+        expect(toast()!.querySelector("[data-flora-work-copy]")).not.toBeNull();
+
+        setDebug(false);
+
+        expect(toast()?.querySelector("[data-flora-work-copy]"),
+            "the held toast must drop the Copy log button with debug mode").toBeNull();
+        settings.offerLogCopyAfterPass = false;
+    });
+
+    it("does not summarise a pass that was running when the page changed", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning the page we are leaving…");
+        settle();
+
+        resetWorkSummary();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expect(toast(), "the old page's pass must not summarise on the new one").toBeNull();
+    });
+
+    it("summarises normally again on the page that follows", async () => {
+        setDebug(true);
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning…");
+        settle();
+        resetWorkSummary();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        beginWorkIndicator({stages: ["scan"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Scanning the new page…");
+        settle();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expect(label(), "the next page still gets its summary").toMatch(/^Done in /);
+    });
+
     it("cancel stops the pass at the pipeline's next check and hides the toast", () => {
         beginWorkIndicator();
         reportWorkStage("scan", "Scanning this page for DOIs…");

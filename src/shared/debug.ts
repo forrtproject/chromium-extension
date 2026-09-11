@@ -246,7 +246,9 @@ function init(): void {
         // Ship whatever was captured before a switch-off so the tail of a
         // session isn't lost between the last flush and the toggle.
         if (_enabled && !next) flush();
+        const changed = _enabled !== next;
         _enabled = next;
+        if (changed) notifyDebugChange(next);
       }
     });
 
@@ -272,9 +274,26 @@ export function setDebugSink(next: DebugSink | null): void {
  * popup toggle; also callable from the browser console:
  *   chrome.storage.local.set({ flora_debug: true })
  */
+type DebugChangeListener = (enabled: boolean) => void;
+const debugChangeListeners = new Set<DebugChangeListener>();
+
+export function onDebugChange(listener: DebugChangeListener): void {
+  debugChangeListeners.add(listener);
+}
+
+function notifyDebugChange(enabled: boolean): void {
+  for (const listener of debugChangeListeners) {
+    try {
+      listener(enabled);
+    } catch {}
+  }
+}
+
 export function setDebug(enabled: boolean): void {
   if (_enabled && !enabled) flush();
+  const changed = _enabled !== enabled;
   _enabled = enabled;
+  if (changed) notifyDebugChange(enabled);
   try {
     chrome.storage.local.set({ [DEBUG_FLAG_KEY]: enabled });
   } catch {

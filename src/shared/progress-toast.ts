@@ -7,7 +7,7 @@ import {beginCancellableWork, endCancellableWork, cancelWork, resumeAutomaticWor
 // let a user silence ORE on this site. The panel is self-contained: inline
 // styles only, so no page stylesheet can reach it.
 
-import {debugLog, flushDebugLog, isDebugEnabled} from "@shared/debug";
+import {debugLog, flushDebugLog, isDebugEnabled, onDebugChange} from "@shared/debug";
 import {buildDebugReport} from "@shared/debug-report";
 import {writeClipboard} from "@shared/clipboard";
 import {blockDomain, snoozeDomain} from "@shared/domains";
@@ -157,6 +157,7 @@ const QUIET_BEFORE_DONE_MS = 2_500;
 const QUIET_WITH_STAGES_LEFT_MS = 10_000;
 
 let pageStartedAt: number | null = null;
+let summaryInvalidated = false;
 let finishTimer: ReturnType<typeof setTimeout> | null = null;
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -600,6 +601,10 @@ function paint(host: HTMLElement): void {
     track.setAttribute("aria-valuenow", String(percent));
 }
 
+onDebugChange(() => {
+    if (document.getElementById(WORK_TOAST_ID)) renderNow();
+});
+
 function dropToastBuiltForOtherDebugState(): void {
     const host = document.getElementById(WORK_TOAST_ID);
     if (!host) return;
@@ -817,7 +822,9 @@ export function endWorkIndicator(): void {
     dismissed = false;
     cancelled = false;
 
-    if (isDebugEnabled() && !wasDismissed && !suppressed) {
+    const invalidated = summaryInvalidated;
+    summaryInvalidated = false;
+    if (isDebugEnabled() && !wasDismissed && !suppressed && !invalidated) {
         const stagesLeft = stages.filter((entry) => entry.startedAt === undefined);
         const quiet = stagesLeft.length ? QUIET_WITH_STAGES_LEFT_MS : QUIET_BEFORE_DONE_MS;
         if (stagesLeft.length) {
@@ -851,10 +858,12 @@ export function resetWorkSummary(): void {
         finishTimer = null;
     }
     finished = false;
-    if (refCount === 0) {
-        clearTimers();
-        removeToast();
+    if (refCount > 0) {
+        summaryInvalidated = true;
+        return;
     }
+    clearTimers();
+    removeToast();
 }
 
 /** Popup hid all FLoRA UI — stay quiet until it comes back. */
@@ -886,6 +895,7 @@ export function _resetWorkIndicatorForTesting(): void {
     expanded = false;
     finished = false;
     pageStartedAt = null;
+    summaryInvalidated = false;
     offerLogCopy = false;
     stages = [];
     currentStage = null;
