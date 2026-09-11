@@ -275,8 +275,9 @@ export function setDebugSink(next: DebugSink | null): void {
 type DebugChangeListener = (enabled: boolean) => void;
 const debugChangeListeners = new Set<DebugChangeListener>();
 
-export function onDebugChange(listener: DebugChangeListener): void {
+export function onDebugChange(listener: DebugChangeListener): () => void {
   debugChangeListeners.add(listener);
+  return () => debugChangeListeners.delete(listener);
 }
 
 function notifyDebugChange(enabled: boolean): void {
