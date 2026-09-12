@@ -88,9 +88,11 @@ function closeSnoozeOptions(): void {
 
 function reportSnoozeState(until: number | null): void {
   if (activeTabId == null) return;
-  chrome.runtime
-    .sendMessage({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: until, tabId: activeTabId})
-    .catch(() => {});
+  try {
+    chrome.runtime
+      .sendMessage({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: until, tabId: activeTabId})
+      ?.catch(() => {});
+  } catch {}
 }
 
 function buildSnoozeOptions(): void {
