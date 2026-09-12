@@ -39,7 +39,7 @@ import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
-import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
+import {getSnooze, isDomainBlocked} from "@shared/domains";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
@@ -129,12 +129,18 @@ function repaintBadges(onlyDoi?: DoiString): void {
 
 // Tell the service worker whether FLoRA is active on this tab so it can swap the
 // toolbar icon (maroon = active, gray = inactive).
-function reportActiveState(active: boolean): void {
+function reportActiveState(active: boolean, snoozedUntil: number | null = null): void {
     try {
-        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active}).catch(() => {});
+        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active, snoozedUntil}).catch(() => {});
     } catch {
         // extension context unavailable — ignore
     }
+}
+
+function reportInactive(): void {
+    void getSnooze(location.hostname)
+        .then((until) => reportActiveState(false, until))
+        .catch(() => reportActiveState(false));
 }
 
 // Listen for popup messages (works regardless of gate checks above)
@@ -145,7 +151,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     if (type === "FLORA_HIDE_UI") {
         floraHidden = true;
         hideAllFloraUI();
-        reportActiveState(false);
+        reportInactive();
         sendResponse({ok: true});
     } else if (type === "FLORA_SHOW_UI") {
         floraHidden = false;
@@ -166,7 +172,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 document.addEventListener("flora-pause-site", () => {
     floraHidden = true;
     hideAllFloraUI();
-    reportActiveState(false);
+    reportInactive();
 });
 
 const invalidDois = new Set<DoiString>();
@@ -1154,9 +1160,10 @@ async function fetchSheetDois(): Promise<void> {
         return;
     }
 
-    if (await isDomainSnoozed(location.hostname)) {
+    const snoozedUntil = await getSnooze(location.hostname);
+    if (snoozedUntil !== null) {
         debugLog("Domain is snoozed:", location.hostname);
-        reportActiveState(false); // gray toolbar icon — paused on this domain
+        reportActiveState(false, snoozedUntil);
         return;
     }
     // Applicable page — mark the toolbar icon active for this tab.

@@ -8,6 +8,7 @@ import {beginCancellableWork, endCancellableWork, cancelWork, resumeAutomaticWor
 // styles only, so no page stylesheet can reach it.
 
 import {debugLog, flushDebugLog, isDebugEnabled, onDebugChange} from "@shared/debug";
+import {msUntilTomorrow6am} from "@shared/snooze-durations";
 import {buildDebugReport} from "@shared/debug-report";
 import {writeClipboard} from "@shared/clipboard";
 import {blockDomain, snoozeDomain} from "@shared/domains";
@@ -258,14 +259,6 @@ function textButton(text: string): HTMLButtonElement {
     button.textContent = text;
     button.style.cssText = TEXT_BUTTON_STYLE;
     return button;
-}
-
-/** 6 am the next calendar day, in the user's own timezone. */
-function msUntilTomorrow6am(): number {
-    const target = new Date();
-    target.setDate(target.getDate() + 1);
-    target.setHours(6, 0, 0, 0);
-    return Math.max(60_000, target.getTime() - Date.now());
 }
 
 /** Persist the pause first, so a Resume in the popup cannot read storage ahead of it. */

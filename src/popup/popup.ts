@@ -4,7 +4,9 @@ import {
   isDomainBlocked,
   getSnooze,
   clearSnooze,
+  snoozeDomain,
 } from "../shared/domains";
+import {SNOOZE_CHOICES} from "../shared/snooze-durations";
 import { debugError, debugWarn, isDebugEnabledAsync, setDebug } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 import { getSettings, saveSettings } from "../shared/settings";
@@ -14,6 +16,8 @@ const blockBtn = document.getElementById("block-btn")!;
 const blockLabel = document.getElementById("block-btn-label")!;
 const snoozeNote = document.getElementById("snooze-note")!;
 const resumeBtn = document.getElementById("resume-btn")!;
+const snoozeBtn = document.getElementById("snooze-btn")!;
+const snoozeOptions = document.getElementById("snooze-options")!;
 const hideBtn = document.getElementById("hide-btn")!;
 const hideLabel = document.getElementById("hide-btn-label")!;
 const tourBtn = document.getElementById("tour-btn")!;
@@ -70,8 +74,44 @@ function updateSnoozeUI(): void {
   const paused = snoozedUntil !== null;
   snoozeNote.hidden = !paused;
   resumeBtn.hidden = !paused;
+  snoozeBtn.hidden = paused;
   if (paused) {
     snoozeNote.textContent = `Paused until ${formatUntil(snoozedUntil!)}`;
+    closeSnoozeOptions();
+  }
+}
+
+function closeSnoozeOptions(): void {
+  snoozeOptions.hidden = true;
+  snoozeBtn.setAttribute("aria-expanded", "false");
+}
+
+function reportSnoozeState(until: number | null): void {
+  if (activeTabId == null) return;
+  chrome.runtime
+    .sendMessage({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: until, tabId: activeTabId})
+    .catch(() => {});
+}
+
+function buildSnoozeOptions(): void {
+  for (const choice of SNOOZE_CHOICES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "popup-snooze-choice";
+    button.textContent = choice.label;
+    button.addEventListener("click", async () => {
+      if (!currentDomain) return;
+      snoozedUntil = await snoozeDomain(currentDomain, choice.durationMs());
+      updateSnoozeUI();
+      reportSnoozeState(snoozedUntil);
+      const cleared = await tearDownFloraOnPage();
+      if (cleared) {
+        hidden = true;
+        updateHideUI();
+      }
+      showStatus(`Snoozed until ${formatUntil(snoozedUntil)}`, "success");
+    });
+    snoozeOptions.appendChild(button);
   }
 }
 
@@ -97,6 +137,7 @@ function updateDebugUI(): void {
 }
 
 async function init(): Promise<void> {
+  buildSnoozeOptions();
   debugOn = await isDebugEnabledAsync();
   logCopyToggle.checked = (await getSettings()).offerLogCopyAfterPass;
   updateDebugUI();
@@ -104,6 +145,7 @@ async function init(): Promise<void> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) {
     domainEl.textContent = "No active page";
+    snoozeBtn.style.display = "none";
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";
     reportBtn.style.display = "none";
@@ -118,6 +160,7 @@ async function init(): Promise<void> {
     domainEl.textContent = currentDomain;
   } catch {
     domainEl.textContent = "Internal page";
+    snoozeBtn.style.display = "none";
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";
     reportBtn.style.display = "none";
@@ -187,6 +230,12 @@ blockBtn.addEventListener("click", async () => {
   updateBlockUI();
 });
 
+snoozeBtn.addEventListener("click", () => {
+  const open = !snoozeOptions.hidden;
+  snoozeOptions.hidden = open;
+  snoozeBtn.setAttribute("aria-expanded", String(!open));
+});
+
 // End a temporary pause on the current domain
 resumeBtn.addEventListener("click", async () => {
   if (!currentDomain) return;
@@ -194,6 +243,7 @@ resumeBtn.addEventListener("click", async () => {
   await clearSnooze(currentDomain);
   snoozedUntil = null;
   updateSnoozeUI();
+  reportSnoozeState(null);
   showStatus(`Resumed on ${currentDomain} — reload to apply`, "success");
 });
 
