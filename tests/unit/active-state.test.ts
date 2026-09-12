@@ -76,6 +76,19 @@ describe("what the toolbar is told about this tab", () => {
             .toMatchObject({snoozedUntil: null});
     });
 
+    it("cancels a pending clear once the site is active again", async () => {
+        const until = Date.now() + 60_000;
+        snooze.getSnooze.mockResolvedValue(until);
+        reportActiveState(false, until);
+
+        reportActiveState(true);
+        snooze.getSnooze.mockResolvedValue(null);
+        await vi.advanceTimersByTimeAsync(60_000 + 10);
+
+        expect(sent().at(-1), "the stale timer must not report over an active tab")
+            .toMatchObject({active: true});
+    });
+
     it("leaves the badge alone if the pause was extended meanwhile", async () => {
         const until = Date.now() + 60_000;
         snooze.getSnooze.mockResolvedValue(until);
