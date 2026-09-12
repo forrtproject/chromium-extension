@@ -1,5 +1,6 @@
 import {SharedRequest} from "@shared/shared-request";
 import {isIssueFormUrl} from "@shared/debug-report";
+import {formatSnoozeEnd} from "@shared/snooze-durations";
 import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/work-cancellation";
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
@@ -50,12 +51,19 @@ const ICONS = {
     inactive: { 16: "/dist/icons/gray-16.png", 32: "/dist/icons/gray-32.png" },
 };
 
-function setTabIcon(tabId: number, active: boolean): void {
+function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null): void {
+    const snoozed = typeof snoozedUntil === "number";
     chrome.action.setIcon({ tabId, path: active ? ICONS.active : ICONS.inactive }).catch(() => {});
     chrome.action.setTitle({
         tabId,
-        title: active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
+        title: snoozed
+            ? `FORRT ORE — snoozed here until ${formatSnoozeEnd(snoozedUntil as number)}`
+            : active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
     }).catch(() => {});
+    chrome.action.setBadgeText?.({ tabId, text: snoozed ? "Zz" : "" })?.catch?.(() => {});
+    if (snoozed) {
+        chrome.action.setBadgeBackgroundColor?.({ tabId, color: "#853953" })?.catch?.(() => {});
+    }
 }
 
 // Open the walkthrough on first install and seed retraction data immediately.
@@ -104,9 +112,10 @@ chrome.runtime.onMessage.addListener(
             message !== null &&
             (message as { type?: string }).type === "FLORA_ACTIVE_STATE"
         ) {
-            const active = (message as { active?: boolean }).active === true;
-            const tabId = sender.tab?.id;
-            if (tabId != null) setTabIcon(tabId, active);
+            const state = message as { active?: boolean; snoozedUntil?: number | null; tabId?: number };
+            const active = state.active === true;
+            const tabId = sender.tab?.id ?? state.tabId;
+            if (tabId != null) setTabIcon(tabId, active, state.snoozedUntil);
             return false;
         }
 
