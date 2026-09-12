@@ -9,24 +9,10 @@ import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
 import {getSnooze, isDomainBlocked} from "@shared/domains";
+import {reportActiveState, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 
 const SITE_STYLE_ID = "flora-search-site-style";
-
-// Tell the service worker whether FLoRA is active on this tab (toolbar icon).
-function reportActiveState(active: boolean, snoozedUntil: number | null = null): void {
-    try {
-        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active, snoozedUntil})?.catch(() => {});
-    } catch {
-        // extension context unavailable — ignore
-    }
-}
-
-function reportInactive(): void {
-    void getSnooze(location.hostname)
-        .then((until) => reportActiveState(false, until))
-        .catch(() => reportActiveState(false));
-}
 
 function injectSiteStyle(css: string): void {
     if (document.getElementById(SITE_STYLE_ID)) return;
@@ -124,5 +110,5 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 document.addEventListener("flora-pause-site", () => {
     setSearchHidden(true);
     hideAllFloraUI();
-    reportActiveState(false);
+    reportInactive();
 });

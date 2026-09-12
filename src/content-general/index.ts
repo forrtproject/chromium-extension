@@ -40,6 +40,7 @@ import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
 import {getSnooze, isDomainBlocked} from "@shared/domains";
+import {reportActiveState, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
@@ -129,29 +130,7 @@ function repaintBadges(onlyDoi?: DoiString): void {
 
 // Tell the service worker whether FLoRA is active on this tab so it can swap the
 // toolbar icon (maroon = active, gray = inactive).
-function reportActiveState(active: boolean, snoozedUntil: number | null = null): void {
-    try {
-        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active, snoozedUntil}).catch(() => {});
-    } catch {
-        // extension context unavailable — ignore
-    }
-}
 
-function clearBadgeWhenSnoozeEnds(until: number): void {
-    const wait = until - Date.now();
-    if (wait <= 0 || wait > MAX_SNOOZE_TIMER_MS) return;
-    setTimeout(() => {
-        void getSnooze(location.hostname).then((still) => {
-            if (still === null) reportActiveState(false);
-        }).catch(() => {});
-    }, wait);
-}
-
-function reportInactive(): void {
-    void getSnooze(location.hostname)
-        .then((until) => reportActiveState(false, until))
-        .catch(() => reportActiveState(false));
-}
 
 // Listen for popup messages (works regardless of gate checks above)
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
@@ -184,8 +163,6 @@ document.addEventListener("flora-pause-site", () => {
     hideAllFloraUI();
     reportInactive();
 });
-
-const MAX_SNOOZE_TIMER_MS = 24 * 60 * 60 * 1000;
 
 const invalidDois = new Set<DoiString>();
 
@@ -1176,7 +1153,6 @@ async function fetchSheetDois(): Promise<void> {
     if (snoozedUntil !== null) {
         debugLog("Domain is snoozed:", location.hostname);
         reportActiveState(false, snoozedUntil);
-        clearBadgeWhenSnoozeEnds(snoozedUntil);
         return;
     }
     // Applicable page — mark the toolbar icon active for this tab.
