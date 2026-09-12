@@ -137,6 +137,16 @@ function reportActiveState(active: boolean, snoozedUntil: number | null = null):
     }
 }
 
+function clearBadgeWhenSnoozeEnds(until: number): void {
+    const wait = until - Date.now();
+    if (wait <= 0 || wait > MAX_SNOOZE_TIMER_MS) return;
+    setTimeout(() => {
+        void getSnooze(location.hostname).then((still) => {
+            if (still === null) reportActiveState(false);
+        }).catch(() => {});
+    }, wait);
+}
+
 function reportInactive(): void {
     void getSnooze(location.hostname)
         .then((until) => reportActiveState(false, until))
@@ -174,6 +184,8 @@ document.addEventListener("flora-pause-site", () => {
     hideAllFloraUI();
     reportInactive();
 });
+
+const MAX_SNOOZE_TIMER_MS = 24 * 60 * 60 * 1000;
 
 const invalidDois = new Set<DoiString>();
 
@@ -1164,6 +1176,7 @@ async function fetchSheetDois(): Promise<void> {
     if (snoozedUntil !== null) {
         debugLog("Domain is snoozed:", location.hostname);
         reportActiveState(false, snoozedUntil);
+        clearBadgeWhenSnoozeEnds(snoozedUntil);
         return;
     }
     // Applicable page — mark the toolbar icon active for this tab.

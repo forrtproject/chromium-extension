@@ -6,7 +6,7 @@ import {
   clearSnooze,
   snoozeDomain,
 } from "../shared/domains";
-import {SNOOZE_CHOICES} from "../shared/snooze-durations";
+import {SNOOZE_CHOICES, formatSnoozeEnd} from "../shared/snooze-durations";
 import { debugError, debugWarn, isDebugEnabledAsync, setDebug } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 import { getSettings, saveSettings } from "../shared/settings";
@@ -63,20 +63,13 @@ function updateBlockUI(): void {
   }
 }
 
-/** "14:35", or "tomorrow at 09:00" when the pause runs past midnight. */
-function formatUntil(until: number): string {
-  const end = new Date(until);
-  const time = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return end.toDateString() === new Date().toDateString() ? time : `tomorrow at ${time}`;
-}
-
 function updateSnoozeUI(): void {
   const paused = snoozedUntil !== null;
   snoozeNote.hidden = !paused;
   resumeBtn.hidden = !paused;
   snoozeBtn.hidden = paused;
   if (paused) {
-    snoozeNote.textContent = `Paused until ${formatUntil(snoozedUntil!)}`;
+    snoozeNote.textContent = `Paused until ${formatSnoozeEnd(snoozedUntil!)}`;
     closeSnoozeOptions();
   }
 }
@@ -105,13 +98,13 @@ function buildSnoozeOptions(): void {
       if (!currentDomain) return;
       snoozedUntil = await snoozeDomain(currentDomain, choice.durationMs());
       updateSnoozeUI();
-      reportSnoozeState(snoozedUntil);
       const cleared = await tearDownFloraOnPage();
       if (cleared) {
         hidden = true;
         updateHideUI();
       }
-      showStatus(`Snoozed until ${formatUntil(snoozedUntil)}`, "success");
+      reportSnoozeState(snoozedUntil);
+      showStatus(`Snoozed until ${formatSnoozeEnd(snoozedUntil)}`, "success");
     });
     snoozeOptions.appendChild(button);
   }
@@ -158,6 +151,14 @@ async function init(): Promise<void> {
 
   try {
     const url = new URL(tab.url);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      domainEl.textContent = "Internal page";
+      snoozeBtn.style.display = "none";
+      blockBtn.style.display = "none";
+      hideBtn.style.display = "none";
+      reportBtn.style.display = "none";
+      return;
+    }
     currentDomain = url.hostname;
     domainEl.textContent = currentDomain;
   } catch {

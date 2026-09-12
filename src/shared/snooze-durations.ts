@@ -16,3 +16,10 @@ export const SNOOZE_CHOICES: readonly SnoozeChoice[] = [
     {label: "1 hour", durationMs: () => 60 * 60_000},
     {label: "Until tomorrow", durationMs: msUntilTomorrow6am},
 ];
+
+/** "14:35", or "tomorrow at 09:00" when the pause runs past midnight. */
+export function formatSnoozeEnd(until: number): string {
+    const end = new Date(until);
+    const time = end.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+    return end.toDateString() === new Date().toDateString() ? time : `tomorrow at ${time}`;
+}

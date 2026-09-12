@@ -1,5 +1,6 @@
 import {SharedRequest} from "@shared/shared-request";
 import {isIssueFormUrl} from "@shared/debug-report";
+import {formatSnoozeEnd} from "@shared/snooze-durations";
 import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/work-cancellation";
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
@@ -50,19 +51,13 @@ const ICONS = {
     inactive: { 16: "/dist/icons/gray-16.png", 32: "/dist/icons/gray-32.png" },
 };
 
-function untilLabel(until: number): string {
-    const end = new Date(until);
-    const time = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return end.toDateString() === new Date().toDateString() ? time : `tomorrow at ${time}`;
-}
-
 function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null): void {
     const snoozed = typeof snoozedUntil === "number";
     chrome.action.setIcon({ tabId, path: active ? ICONS.active : ICONS.inactive }).catch(() => {});
     chrome.action.setTitle({
         tabId,
         title: snoozed
-            ? `FORRT ORE — snoozed here until ${untilLabel(snoozedUntil as number)}`
+            ? `FORRT ORE — snoozed here until ${formatSnoozeEnd(snoozedUntil as number)}`
             : active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
     }).catch(() => {});
     chrome.action.setBadgeText?.({ tabId, text: snoozed ? "Zz" : "" })?.catch?.(() => {});

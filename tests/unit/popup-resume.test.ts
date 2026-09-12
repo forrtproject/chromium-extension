@@ -124,10 +124,14 @@ describe("the popup's resume button", () => {
   });
 
   it("tells the worker to badge the tab as snoozed, and to clear it on resume", async () => {
+    const seen: Array<{snoozedUntil?: number | null; tabId?: number}> = [];
+    (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(async (m: unknown) => {
+      const msg = m as {type?: string; snoozedUntil?: number | null; tabId?: number};
+      if (msg.type === "FLORA_ACTIVE_STATE") seen.push(msg);
+      return undefined;
+    });
     const resume = await openPopup();
-    const sent = () => (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mock.calls
-      .map(([m]) => m as {type?: string; snoozedUntil?: number | null; tabId?: number})
-      .filter((m) => m.type === "FLORA_ACTIVE_STATE");
+    const sent = () => seen;
 
     document.getElementById("snooze-btn")!.click();
     document.querySelector<HTMLButtonElement>(".popup-snooze-choice")!.click();
@@ -157,6 +161,22 @@ describe("the popup's resume button", () => {
     await vi.waitFor(() => expect(resume.hidden).toBe(false));
 
     expect(seen.at(-1)!.snoozedUntil, "the last word must still be snoozed").toBeGreaterThan(Date.now());
+  });
+
+  it("offers nothing to snooze on a chrome:// page", async () => {
+    (chrome.tabs.query as ReturnType<typeof vi.fn>)
+      .mockResolvedValue([{id: 1, url: "chrome://extensions/"}]);
+    const html = readFileSync(join(POPUP_DIR, "popup.html"), "utf-8");
+    document.body.innerHTML = new DOMParser()
+      .parseFromString(html, "text/html").body.innerHTML;
+    await import("../../src/popup/popup");
+    await vi.waitFor(() =>
+      expect(document.getElementById("current-domain")!.textContent).toBe("Internal page")
+    );
+
+    expect(document.getElementById("snooze-btn")!.style.display,
+      "ORE cannot run here, so there is nothing to pause").toBe("none");
+    expect(document.getElementById("block-btn")!.style.display).toBe("none");
   });
 
   it("keeps [hidden] winning over any rule that sets display", () => {

@@ -8,18 +8,24 @@ import {isSearchHidden, processSearchResults, retryUnansweredSearchResults, setS
 import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
-import {isDomainBlocked, isDomainSnoozed} from "@shared/domains";
+import {getSnooze, isDomainBlocked} from "@shared/domains";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 
 const SITE_STYLE_ID = "flora-search-site-style";
 
 // Tell the service worker whether FLoRA is active on this tab (toolbar icon).
-function reportActiveState(active: boolean): void {
+function reportActiveState(active: boolean, snoozedUntil: number | null = null): void {
     try {
-        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active}).catch(() => {});
+        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active, snoozedUntil})?.catch(() => {});
     } catch {
         // extension context unavailable — ignore
     }
+}
+
+function reportInactive(): void {
+    void getSnooze(location.hostname)
+        .then((until) => reportActiveState(false, until))
+        .catch(() => reportActiveState(false));
 }
 
 function injectSiteStyle(css: string): void {
@@ -47,9 +53,10 @@ function injectSiteStyle(css: string): void {
             return;
         }
 
-        if (await isDomainSnoozed(location.hostname)) {
+        const snoozedUntil = await getSnooze(location.hostname);
+        if (snoozedUntil !== null) {
             debugLog("Domain is snoozed:", location.hostname);
-            reportActiveState(false);
+            reportActiveState(false, snoozedUntil);
             return;
         }
         reportActiveState(true);
@@ -91,7 +98,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     if (type === "FLORA_HIDE_UI") {
         setSearchHidden(true);
         hideAllFloraUI();
-        reportActiveState(false);
+        reportInactive();
         sendResponse({ ok: true });
     } else if (type === "FLORA_SHOW_UI") {
         setSearchHidden(false);

@@ -7,13 +7,15 @@ type BadgeCall = {tabId: number; text: string};
 const icon: IconCall[] = [];
 const title: TitleCall[] = [];
 const badge: BadgeCall[] = [];
+const badgeColour: string[] = [];
 
 function installActionSpies(): void {
     chrome.action.setIcon = vi.fn(async (a: IconCall) => { icon.push(a); }) as never;
     chrome.action.setTitle = vi.fn(async (a: TitleCall) => { title.push(a); }) as never;
     (chrome.action as Record<string, unknown>).setBadgeText =
         vi.fn(async (a: BadgeCall) => { badge.push(a); });
-    (chrome.action as Record<string, unknown>).setBadgeBackgroundColor = vi.fn(async () => undefined);
+    (chrome.action as Record<string, unknown>).setBadgeBackgroundColor =
+        vi.fn(async (a: {color: string}) => { badgeColour.push(a.color); });
 }
 
 async function deliver(message: unknown, tabId?: number): Promise<void> {
@@ -25,7 +27,7 @@ async function deliver(message: unknown, tabId?: number): Promise<void> {
 
 describe("the toolbar shows a snoozed site differently from an inactive one", () => {
     beforeEach(async () => {
-        icon.length = title.length = badge.length = 0;
+        icon.length = title.length = badge.length = badgeColour.length = 0;
         installActionSpies();
         vi.resetModules();
         await import("../../src/background/service-worker");
@@ -39,6 +41,9 @@ describe("the toolbar shows a snoozed site differently from an inactive one", ()
 
         expect(badge.at(-1)).toEqual({tabId: 7, text: "Zz"});
         expect(title.at(-1)!.title).toContain("snoozed here until");
+        expect(badgeColour.at(-1), "the badge wears ORE's own maroon").toBe("#853953");
+        expect(icon.at(-1)!.path, "a snoozed site is not running, so the icon stays gray")
+            .toEqual({16: "/dist/icons/gray-16.png", 32: "/dist/icons/gray-32.png"});
     });
 
     it("leaves an ordinary inactive tab unbadged", async () => {
@@ -53,6 +58,9 @@ describe("the toolbar shows a snoozed site differently from an inactive one", ()
 
         expect(badge.at(-1)).toEqual({tabId: 9, text: ""});
         expect(title.at(-1)!.title).toBe("FORRT ORE — active on this page");
+        expect(icon.at(-1)!.path, "an active site gets the maroon icon")
+            .toEqual({16: "/dist/icons/maroon-16.png", 32: "/dist/icons/maroon-32.png"});
+        expect(badgeColour, "no badge, so no colour to set").toEqual([]);
     });
 
     it("keeps the badge when the torn-down page reports itself still snoozed", async () => {
