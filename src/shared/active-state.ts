@@ -29,11 +29,16 @@ function scheduleBadgeClear(until: number): void {
 export function reportActiveState(active: boolean, snoozedUntil: number | null = null): void {
     reportSeq++;
     send(active, snoozedUntil);
-    if (snoozedUntil !== null) scheduleBadgeClear(snoozedUntil);
+export function reportActiveState(active: boolean, snoozedUntil: number | null = null): void {
+    reportSeq++;
+    send(active, snoozedUntil);
+    if (snoozedUntil !== null) {
+        scheduleBadgeClear(snoozedUntil);
+    } else if (badgeTimer) {
+        clearTimeout(badgeTimer);
+        badgeTimer = null;
+    }
 }
-
-export function reportInactive(): void {
-    const mine = ++reportSeq;
     void getSnooze(location.hostname)
         .then((until) => {
             if (mine !== reportSeq) return;
