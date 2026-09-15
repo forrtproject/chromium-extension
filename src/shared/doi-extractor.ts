@@ -1,3 +1,5 @@
+import {isWordOnline} from "@shared/word-online";
+import {editorReferenceElements} from "@shared/document-editor";
 import type { DoiString, ClassifiedDois, PageType } from "./types";
 import { normaliseDOI } from "./doi-normalise";
 import { debugLog } from "./debug";
@@ -267,6 +269,7 @@ export interface DoiOccurrence {
 export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
   const occurrences: DoiOccurrence[] = [];
   if (!doc.body || !pageMightContainDoi(doc)) return occurrences;
+  const word = isWordOnline(doc.URL);
 
   // Anchor DOIs to their reference entry, not a per-link "Crossref" button.
   const entrySet = new Set<HTMLElement>(
@@ -283,6 +286,7 @@ export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
 
   for (const link of doc.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     if (link.closest(FLORA_UI_SELECTOR)) continue;
+    if (word && link.closest('[aria-hidden="true"]')) continue;
     const textDois = new Set<DoiString>();
     const linkText = link.innerText || link.textContent || "";
     const cleaned = decodeEncodedDois(linkText.replace(WORD_BREAK_CHARS, ""));
@@ -317,6 +321,7 @@ export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
       }
       if (parent.closest("a")) return NodeFilter.FILTER_REJECT;
       if (parent.closest(FLORA_UI_SELECTOR)) return NodeFilter.FILTER_REJECT;
+      if (word && parent.closest('[aria-hidden="true"]')) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
   });
@@ -656,7 +661,7 @@ function findHeadingReferenceSiblings(doc: Document): HTMLElement[] {
 }
 
 export function findReferenceEntries(doc: Document): ReferenceEntry[] {
-  const elements: HTMLElement[] = [];
+  const elements: HTMLElement[] = editorReferenceElements(doc);
 
   for (const container of findReferenceContainers(doc)) {
     elements.push(...entriesFromContainer(container));

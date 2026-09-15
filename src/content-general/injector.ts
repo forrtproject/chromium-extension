@@ -896,7 +896,8 @@ export function renderSidePanel(
   refFeedbackByDoi: Map<DoiString, PubPeerFeedback> = new Map(),
   retractions: RetractionResponse[] = [],
   articleTitle: string | null = null,
-  onRetryPubPeer?: () => Promise<void>
+  onRetryPubPeer?: () => Promise<void>,
+  options: {documentMode?: boolean} = {},
 ): void {
   const existingHost = document.getElementById(PUBPEER_PANEL_ID);
   // Track open state via a stateful marker on the host — comparing inline
@@ -1671,7 +1672,7 @@ export function renderSidePanel(
 
     iframeWrap.appendChild(iframe);
     scrollBody.appendChild(iframeWrap);
-  } else {
+  } else if (!options.documentMode) {
     // No PubPeer thread for this article — show an empty state so the panel
     // doesn't read as broken when there's only FORRT replication data, or
     // nothing flagged at all.

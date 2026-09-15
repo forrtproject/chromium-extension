@@ -270,6 +270,11 @@ function refreshSegmentStrip(strip: HTMLElement): void {
 
         if (present && prev) strip.insertBefore(makeDivider(), seg);
     });
+    if (strip.hasAttribute("data-flora-compact-marker")) {
+        for (const child of strip.querySelectorAll<HTMLElement>(`[${SEGMENT_ATTR}], [${SEGMENT_DIVIDER_ATTR}]`)) {
+            child.style.setProperty("display", "none", "important");
+        }
+    }
 }
 
 function buildDoiSegment(isAugmented: boolean, provenanceLabel?: string, color = "#853953"): HTMLElement {
@@ -694,6 +699,8 @@ function buildBadgeRow(signal: BadgeSignal, compact = false): HTMLElement {
 }
 
 export interface IndicatorPillOptions {
+    /** Compact Word margin trigger; retains the same paper detail popup. */
+    presentation?: "pill" | "marker";
     doi: DoiString;
     /** Pill background colour — default matches confident/direct DOI extraction. */
     color?: string;
@@ -1027,6 +1034,8 @@ function pillAriaLabel(
     return `Open research details for ${doi}: ${summary}. Press Enter for more.`;
 }
 
+const markerUpdates = new WeakMap<HTMLElement, (state: LookupState | undefined, notice: RetractionResponse | null) => void>();
+
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
     ensureFocusStyle();
     const {doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
@@ -1096,6 +1105,55 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     refreshSegmentStrip(pill);
 
+    const markerMode = options.presentation === "marker";
+    let marker: HTMLSpanElement | null = null;
+    let markerState: LookupState["status"] | undefined;
+    let markerStudies = (replicationsCount ?? 0) + (reproductionsCount ?? 0);
+    let markerNotice = retraction;
+    let markerComments = 0;
+    let markerAnswered: PubPeerAnswered = "pending";
+    const refreshMarker = () => {
+        if (!marker) return;
+        const pending = markerAnswered === "pending" || markerState === "loading" || markerState === undefined && !markerStudies;
+        const unavailable = markerAnswered === false || markerAnswered === "cancelled" || markerState === "error";
+        const substantial = markerStudies > 0 || markerComments > 0;
+        const status = markerNotice ? "warning" : substantial ? "filled" : unavailable ? "unavailable" : pending ? "checking" : "empty";
+        wrapper.dataset.floraMarkerState = status;
+        marker.textContent = markerNotice ? "!" : "F";
+        marker.style.background = markerNotice ? "#a72f2f" : substantial ? color : "#fff";
+        marker.style.color = markerNotice || substantial ? "#fff" : color;
+        marker.style.borderColor = markerNotice ? "#a72f2f" : color;
+        marker.style.borderStyle = !markerNotice && (pending || unavailable) ? "dashed" : "solid";
+        const summary = [markerNotice ? (markerNotice.kind === "concern" ? "Expression of concern" : "Retracted") : "",
+            markerStudies ? `${markerStudies} replication/reproduction studies` : "",
+            markerComments ? `${markerComments} PubPeer comments` : "",
+            unavailable ? "Some checks unavailable" : pending ? "Checks in progress" : "",
+            status === "empty" ? "No replication evidence or PubPeer comments found" : ""].filter(Boolean).join(". ");
+        pill.title = `${summary}. Open paper details`;
+        pill.setAttribute("aria-label", `${doi}: ${pill.title}`);
+    };
+    if (markerMode) {
+        wrapper.setAttribute("data-flora-marker", "");
+        wrapper.style.margin = "0";
+        wrapper.style.setProperty("margin-inline-start", "0", "important");
+        wrapper.style.top = "0";
+        pill.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:4px;border:0;border-radius:6px;background:transparent;cursor:pointer;box-sizing:border-box;";
+        // Keep the existing segments as async state targets, but show only F.
+        pill.setAttribute("data-flora-compact-marker", "");
+        refreshSegmentStrip(pill);
+        marker = document.createElement("span");
+        marker.setAttribute("aria-hidden", "true");
+        marker.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;box-sizing:border-box;border:1px solid;border-radius:5px;font:bold 18px Arial,sans-serif;line-height:1;";
+        pill.appendChild(marker);
+        markerUpdates.set(wrapper, (state, notice) => {
+            markerState = state?.status;
+            markerStudies = state?.status === "matched" ? state.result.record.stats.n_replications_total + state.result.record.stats.n_reproductions_total : 0;
+            markerNotice = notice;
+            refreshMarker();
+        });
+        refreshMarker();
+    }
+
     // ── Popover — one interactive row per segment, plus DOI copy/open ──
     const popover = document.createElement("div");
     popover.setAttribute("role", "dialog");
@@ -1133,6 +1191,9 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
             refreshSegmentStrip(pill);
         },
         onPubPeer: (feedback, answered) => {
+            markerComments = feedback?.total_comments ?? 0;
+            markerAnswered = answered;
+            refreshMarker();
             const resolved = buildPubPeerSegment(feedback, answered, color);
             pubpeerSegment.replaceWith(resolved);
             pubpeerSegment = resolved;
@@ -1236,7 +1297,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         }, 0);
     });
 
-    pill.addEventListener("mouseenter", show);
+    if (!markerMode) pill.addEventListener("mouseenter", show);
     pill.addEventListener("mouseleave", hide);
     popover.addEventListener("mouseenter", show);
     popover.addEventListener("mouseleave", hide);
@@ -1359,6 +1420,7 @@ export function updateIndicatorPillBadges(
 
         const retraction = retractionByDoi.get(doi) ?? null;
         const state = pageState.get(doi);
+        markerUpdates.get(wrapper)?.(state, retraction);
         const replicationsCount = state?.status === "matched" ? state.result.record.stats.n_replications_total : null;
         const reproductionsCount = state?.status === "matched" ? state.result.record.stats.n_reproductions_total : null;
         const signal = resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount);

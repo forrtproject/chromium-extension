@@ -1,6 +1,7 @@
 import {containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extractor";
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog} from "@shared/debug";
+import {isWordOnline} from "@shared/word-online";
 
 const MAX_INCREMENTAL_NODES = 50;
 
@@ -63,6 +64,12 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         }
         let hasExternalChange = false;
         for (const m of mutations) {
+            // Word edits existing text nodes and removes/replaces paragraph
+            // renderings while typing. These records have no added elements.
+            if (isWordOnline() && owningElement(m.target)?.closest("#WACViewPanel")) {
+                hasExternalChange = true;
+                pendingFullScan = true;
+            }
             if (!isExternalMutation(m)) continue;
             hasExternalChange = true;
             if (m.target === document.body || m.target === document.documentElement) {
@@ -79,7 +86,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(flush, DEBOUNCE_MS);
     });
-    observer.observe(document.body, {childList: true, subtree: true});
+    observer.observe(document.body, {childList: true, subtree: true, characterData: isWordOnline()});
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
             // A debounce armed while visible would otherwise fire in the

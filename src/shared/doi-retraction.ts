@@ -1,4 +1,5 @@
 import {extractDoiFromHref} from "@shared/doi-extractor";
+import {isDocumentEditor} from "@shared/document-editor";
 import {FLORA_NOTICE_PILL_CLASS} from "@shared/doi-label";
 import {INDICATOR_PILL_CLASS, PILL_WRAPPER_STYLE} from "@shared/indicator-pill";
 import type {DoiString, NoticeKind, RetractionResponse} from "@shared/types";
@@ -239,6 +240,8 @@ export function injectRetractionInfo(
     info: RetractionResponse,
     options: InjectRetractionOptions = {},
 ): void {
+    // Word's compact marker carries the warning and its existing detail popup.
+    if (isDocumentEditor(target.ownerDocument.URL)) return;
     // The marker names the DOI whose pill this anchor hosts. An anchor takes
     // one notice and no more: two noticed DOIs cited in the same paragraph
     // would otherwise stack their pills there, and the second is better
@@ -386,4 +389,3 @@ function placeRetractionPill(target: Element, doi: DoiString, pill: HTMLElement)
         target.appendChild(pill);
     }
 }
-
