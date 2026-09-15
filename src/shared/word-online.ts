@@ -1,3 +1,4 @@
+import {isFloraOwnedNode} from "./flora-ui";
 /** Word renders its document in an Office iframe. Keep all annotation DOM
  * outside its editing and pagination surfaces so it cannot enter saved text. */
 export function isWordOnline(url = location.href): boolean {
@@ -77,9 +78,13 @@ export function wordAnnotationTarget(target: Element): HTMLElement | null {
         document.addEventListener("scroll", schedule, true);
         window.addEventListener("resize", schedule);
         new MutationObserver(records => {
-            if (records.some(record => !(record.target instanceof Element && record.target.closest("[data-flora-ui]")))) schedule();
+            if (records.some(record => {
+                if (isFloraOwnedNode(record.target)) return false;
+                if (record.type === 'characterData') return true;
+                return [...record.addedNodes, ...record.removedNodes].some(node => !isFloraOwnedNode(node));
+            })) schedule();
         }).observe(document.body, {
-            childList: true, subtree: true, characterData: true, attributes: true,
+            childList: true, subtree: true, characterData: true,
         });
     }
     positionWordAnnotations();

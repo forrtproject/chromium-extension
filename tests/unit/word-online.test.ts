@@ -82,6 +82,29 @@ describe("Word Online", () => {
         expect(row.hidden).toBe(true);
     });
 
+    it("scans navigation without waiting for the previous document's throttle", () => {
+        vi.useFakeTimers();
+        const navigation = Object.assign(new EventTarget(), {currentEntry: {key: 'first'}});
+        vi.stubGlobal('navigation', navigation);
+        const scan = vi.fn();
+        // The page-navigation listener has already synchronized the URL.
+        const observer = startDomListener({scanWholePage: scan, getLastUrl: () => location.href});
+        try {
+            navigation.currentEntry = {key: 'second'};
+            navigation.dispatchEvent(new Event('currententrychange'));
+            vi.advanceTimersByTime(300);
+            expect(scan).toHaveBeenCalledTimes(1);
+            navigation.currentEntry = {key: 'third'};
+            navigation.dispatchEvent(new Event('currententrychange'));
+            vi.advanceTimersByTime(300);
+            expect(scan).toHaveBeenCalledTimes(2);
+        } finally {
+            observer.disconnect();
+            vi.useRealTimers();
+            vi.unstubAllGlobals();
+        }
+    });
+
     it("rescans edits to an existing text node", async () => {
         const scan = vi.fn();
         const observer = startDomListener({scanWholePage: scan, getLastUrl: () => location.href});

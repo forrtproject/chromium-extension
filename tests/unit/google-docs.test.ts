@@ -1,6 +1,6 @@
 // @vitest-environment-options {"url":"https://docs.google.com/document/d/test-document/edit"}
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { setGoogleDocsText, docsParagraphs, isGoogleDocs, startGoogleDocs, googleDocsReferenceElements, googleDocsAnnotationTarget, googleDocsAnnotatedReferences } from "../../src/shared/google-docs";
+import { googleDocsContentSnapshot, setGoogleDocsText, docsParagraphs, isGoogleDocs, startGoogleDocs, googleDocsReferenceElements, googleDocsAnnotationTarget, googleDocsAnnotatedReferences } from "../../src/shared/google-docs";
 import { DOCS_TEXT_EVENT } from "../../src/content-docs/canvas";
 import { beginDomScanPass, findReferenceEntries } from "../../src/shared/doi-extractor";
 import { resolveReferenceDois, renderResolvedReferences } from "../../src/content-general/references";
@@ -25,6 +25,15 @@ beforeEach(() => {
     scan.mockClear();
 });
 describe('Google Docs reference adapter', () => {
+    it('keeps the full-document revision stable across canvas redraws', () => {
+        setGoogleDocsText('A full document with 10.1234/example');
+        const revision = googleDocsContentSnapshot();
+        emit({width: 816, height: 1056, runs});
+        emit({width: 816, height: 1056, runs: []});
+        expect(googleDocsContentSnapshot()).toBe(revision);
+        setGoogleDocsText('Changed full document with 10.1234/other');
+        expect(googleDocsContentSnapshot()).toBeGreaterThan(revision);
+    });
     it('joins an uppercase DOI continuation', () => {
         const paragraphs = docsParagraphs([
             {text: 'Smith, J. (2020). A reference https://doi.org/10.1234/ABC-', x: 90, y: 100, width: 500, height: 16},
@@ -35,10 +44,11 @@ describe('Google Docs reference adapter', () => {
     it('does not return an old export immediately after tab navigation', () => {
         const original = location.href;
         setGoogleDocsText('Smith, J. (2020). A reference https://doi.org/10.1234/example');
-        history.replaceState(null, '', '?tab=t.next');
-        expect(googleDocsReferenceElements(document)).toEqual([]);
-        expect(googleDocsAnnotatedReferences()).toEqual([]);
-        history.replaceState(null, '', original);
+        try {
+            history.replaceState(null, '', '?tab=t.next');
+            expect(googleDocsReferenceElements(document)).toEqual([]);
+            expect(googleDocsAnnotatedReferences()).toEqual([]);
+        } finally { history.replaceState(null, '', original); }
     });
     it('finds and reports offscreen references without scrolling or a rendered canvas', async () => {
         document.querySelector('canvas')!.remove();

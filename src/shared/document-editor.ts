@@ -12,7 +12,7 @@ export function editorTitle(): string {
     return (title instanceof HTMLInputElement ? title.value : title?.textContent)?.trim() || 'Word document';
 }
 
-export function editorContentSnapshot(): string {
+export function editorContentSnapshot(): string | number {
     if (isGoogleDocs()) return googleDocsContentSnapshot();
     return [...document.querySelectorAll('#WACViewPanel .Paragraph')].map(element => element.textContent).join('\n');
 }

@@ -52,6 +52,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     navigation?.addEventListener("currententrychange", () => {
         const key = navigation.currentEntry?.key;
         if (observedUrl === location.href && observedKey === key) return;
+        lastWordScan = -Infinity;
         observedUrl = location.href;
         observedKey = key;
         pendingFullScan = true;

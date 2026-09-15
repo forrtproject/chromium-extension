@@ -35,6 +35,7 @@ const snapshots = new Map<HTMLCanvasElement, Snapshot>();
 const entries = new Map<HTMLCanvasElement, Entry[]>();
 const byCopy = new WeakMap<Element, Entry>();
 let installed = false;
+let contentRevision = 0;
 let exportedEntries: HTMLElement[] = [];
 let exportKey = '';
 let exportText: string | undefined;
@@ -42,7 +43,10 @@ let exportPending = false;
 let exportCheckedAt = 0;
 /** Detached reference entries persist when Docs recycles offscreen canvases. */
 export function setGoogleDocsText(text: string, doc: Document = document): void {
-    exportKey = googleDocsExportUrl(doc.URL);
+    const key = googleDocsExportUrl(doc.URL);
+    if (exportKey !== key || exportText !== text) contentRevision++;
+    exportKey = key;
+    exportText = text;
     const previous = new Map(exportedEntries.map(element => [element.getAttribute('data-flora-source-text'), element]));
     exportedEntries = text.split(/\r?\n/).map(line => line.trim()).filter(line =>
         /10\.\d{4,}\//.test(line) || line.length > 60 && /\b(?:18|19|20)\d{2}\b/.test(line) && /^[A-ZÀ-Ž][\p{L}'’\-]+,/u.test(line)
@@ -73,6 +77,7 @@ function showExportStatus(unavailable: boolean): void {
 async function refreshGoogleDocsText(onChange: () => void): Promise<void> {
     const key = googleDocsExportUrl(location.href);
     if (key !== exportKey) {
+        contentRevision++;
         const hadExport = exportedEntries.length > 0;
         exportKey = key;
         exportedEntries = [];
@@ -88,7 +93,6 @@ async function refreshGoogleDocsText(onChange: () => void): Promise<void> {
         if (googleDocsExportUrl(location.href) !== key) return;
         showExportStatus(false);
         if (text !== exportText) {
-            exportText = text;
             setGoogleDocsText(text);
             debugLog('Google Docs: full-document export loaded', exportedEntries.length, 'reference candidates');
             onChange();
@@ -163,6 +167,7 @@ function validSnapshot(raw: unknown): raw is Snapshot {
     return Number.isFinite(s.width) && s.width > 0 && Number.isFinite(s.height) && s.height > 0 && Array.isArray(s.runs) && s.runs.length <= 4000 && s.runs.every(r => typeof r.text === "string" && r.text.length <= 10000 && [r.x, r.y, r.width, r.height].every(Number.isFinite) && r.width >= 0 && r.height > 0);
 }
 export function startGoogleDocs(onChange: () => void): void {
+    if (isGoogleDocs()) document.dispatchEvent(new Event("flora-docs-start-capture"));
     if (installed || !isGoogleDocs())
         return;
     installed = true;
@@ -187,6 +192,7 @@ export function startGoogleDocs(onChange: () => void): void {
             if (previous && JSON.stringify(previous) === detail) return;
             debugLog("Google Docs: received canvas snapshot", next.runs.length, "text runs");
             snapshots.set(canvas, next);
+            if (exportText === undefined) contentRevision++;
             clearTimeout(timer);
             timer = setTimeout(onChange, 300);
         }
@@ -205,6 +211,7 @@ export function startGoogleDocs(onChange: () => void): void {
         for (const canvas of snapshots.keys())
             if (!canvas.isConnected) {
                 snapshots.delete(canvas);
+                if (exportText === undefined) contentRevision++;
                 for (const entry of entries.get(canvas) ?? [])
                     entry.row?.remove();
                 entries.delete(canvas);
@@ -298,7 +305,7 @@ export function googleDocsAnnotatedReferences(): {
     return [...refs.values()];
 }
 
-/** A content snapshot, independent of asynchronously updated ORE UI. */
-export function googleDocsContentSnapshot(): string {
-    return JSON.stringify([exportKey, exportText, [...snapshots].filter(([canvas]) => canvas.isConnected).map(([, value]) => value)]);
+/** Compare revisions in O(1); successful exports make scroll/zoom irrelevant. */
+export function googleDocsContentSnapshot(): number {
+    return contentRevision;
 }
