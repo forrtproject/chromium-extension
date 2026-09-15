@@ -1125,7 +1125,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         marker.style.borderColor = markerNotice ? "#a72f2f" : color;
         marker.style.borderStyle = !markerNotice && (pending || unavailable) ? "dashed" : "solid";
         const summary = [markerNotice ? (markerNotice.kind === "concern" ? "Expression of concern" : "Retracted") : "",
-            markerStudies ? `${markerStudies} linked ${markerStudies === 1 ? "study" : "studies"} in the FORRT Atlas` : "",
+            markerStudies ? `${markerStudies} linked ${markerStudies === 1 ? "study" : "studies"} in the FLoRA Replication Atlas` : "",
             markerComments ? `${markerComments} PubPeer comments` : "",
             unavailable ? "Some checks unavailable" : pending ? "Checks in progress" : "",
             status === "empty" ? "No replication evidence or PubPeer comments found" : ""].filter(Boolean).join(". ");

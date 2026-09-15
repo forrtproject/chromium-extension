@@ -39,7 +39,7 @@ describe("Word F marker",()=>{
   result.record.stats.n_replications_total=0;result.record.stats.n_reproductions_total=0;result.record.stats.n_originals_total=1;
   state.set(doi,{status:"matched",result,source:"extracted"});repaint();
   expect(pill.dataset.floraMarkerState).toBe("filled");
-  expect(pill.querySelector<HTMLElement>('[role="button"]')!.title).toContain("1 linked study in the FORRT Atlas");
+  expect(pill.querySelector<HTMLElement>('[role="button"]')!.title).toContain("1 linked study in the FLoRA Replication Atlas");
  });
  it("offers retry for unavailable document PubPeer checks",async()=>{
   const retry=vi.fn().mockResolvedValue(undefined);
