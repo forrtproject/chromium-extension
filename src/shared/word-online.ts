@@ -76,7 +76,9 @@ export function wordAnnotationTarget(target: Element): HTMLElement | null {
         };
         document.addEventListener("scroll", schedule, true);
         window.addEventListener("resize", schedule);
-        new MutationObserver(schedule).observe(document.getElementById("WACViewPanel")!, {
+        new MutationObserver(records => {
+            if (records.some(record => !(record.target instanceof Element && record.target.closest("[data-flora-ui]")))) schedule();
+        }).observe(document.body, {
             childList: true, subtree: true, characterData: true, attributes: true,
         });
     }

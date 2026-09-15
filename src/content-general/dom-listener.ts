@@ -27,13 +27,19 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     let pendingNodes: Element[] = [];
     let pendingFullScan = false;
     let missedWhileHidden = false;
+    let lastWordScan = -Infinity;
 
     const flush = (): void => {
+        if (isWordOnline() && location.href === getLastUrl() && Date.now() - lastWordScan < 1000) {
+            debounceTimer = setTimeout(flush, 1000 - (Date.now() - lastWordScan));
+            return;
+        }
         const nodes = pendingNodes;
         const full = pendingFullScan;
         pendingNodes = [];
         pendingFullScan = false;
         if (full || location.href !== getLastUrl() || scanAddedNodes(nodes)) {
+            if (isWordOnline()) lastWordScan = Date.now();
             scanWholePage();
         } else {
             debugLog("General: mutation carried no DOI candidates — skipped full scan");

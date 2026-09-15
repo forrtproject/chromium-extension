@@ -25,6 +25,21 @@ beforeEach(() => {
     scan.mockClear();
 });
 describe('Google Docs reference adapter', () => {
+    it('joins an uppercase DOI continuation', () => {
+        const paragraphs = docsParagraphs([
+            {text: 'Smith, J. (2020). A reference https://doi.org/10.1234/ABC-', x: 90, y: 100, width: 500, height: 16},
+            {text: 'DEF123', x: 120, y: 132, width: 100, height: 16},
+        ]);
+        expect(paragraphs[0].text).toContain('10.1234/ABC-DEF123');
+    });
+    it('does not return an old export immediately after tab navigation', () => {
+        const original = location.href;
+        setGoogleDocsText('Smith, J. (2020). A reference https://doi.org/10.1234/example');
+        history.replaceState(null, '', '?tab=t.next');
+        expect(googleDocsReferenceElements(document)).toEqual([]);
+        expect(googleDocsAnnotatedReferences()).toEqual([]);
+        history.replaceState(null, '', original);
+    });
     it('finds and reports offscreen references without scrolling or a rendered canvas', async () => {
         document.querySelector('canvas')!.remove();
         const citation = `Stroop, J. R. (1935). Studies of interference. https://doi.org/10.1037/h0054651`;

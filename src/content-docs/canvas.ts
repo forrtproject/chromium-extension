@@ -15,11 +15,14 @@ const MAX_RUNS = 4000;
 export function installDocsCanvasCapture(): () => void {
     const snapshots = new WeakMap<HTMLCanvasElement, CanvasRun[]>();
     const timers = new Map<HTMLCanvasElement, ReturnType<typeof setTimeout>>();
+    let active = true;
+    const restore: (() => void)[] = [];
     const proto = CanvasRenderingContext2D.prototype;
+    const originals = {fillText: proto.fillText, clearRect: proto.clearRect, fillRect: proto.fillRect, drawImage: proto.drawImage};
     const measure = proto.measureText;
     const publish = (canvas: HTMLCanvasElement) => {
         timers.delete(canvas);
-        if (!canvas.isConnected || !canvas.matches(TILE))
+        if (!active || !canvas.isConnected || !canvas.matches(TILE))
             return;
         canvas.dispatchEvent(new CustomEvent(DOCS_TEXT_EVENT, { bubbles: true, detail: JSON.stringify({
                 width: canvas.width, height: canvas.height, runs: snapshots.get(canvas) ?? [],
@@ -45,6 +48,7 @@ export function installDocsCanvasCapture(): () => void {
     const fillText = proto.fillText;
     proto.fillText = function (text, x, y, maxWidth) {
         const result = maxWidth === undefined ? fillText.call(this, text, x, y) : fillText.call(this, text, x, y, maxWidth);
+        if (!active) return result;
         try {
             const canvas = this.canvas;
             if (!(canvas instanceof HTMLCanvasElement) || !text.trim() || this.globalAlpha === 0)
@@ -81,6 +85,7 @@ export function installDocsCanvasCapture(): () => void {
     const clearRect = proto.clearRect;
     proto.clearRect = function (x, y, w, h) {
         const result = clearRect.call(this, x, y, w, h);
+        if (!active) return result;
         try {
             erase(this.canvas, bounds(this, x, y, w, h));
         }
@@ -90,6 +95,7 @@ export function installDocsCanvasCapture(): () => void {
     const fillRect = proto.fillRect;
     proto.fillRect = function (x, y, w, h) {
         const result = fillRect.call(this, x, y, w, h);
+        if (!active) return result;
         try {
             // Opaque page/background repaint replaces earlier text. Selection
             // highlights are typically drawn on a separate canvas.
@@ -104,15 +110,20 @@ export function installDocsCanvasCapture(): () => void {
         const descriptor = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, property);
         if (!descriptor?.set)
             continue;
-        Object.defineProperty(HTMLCanvasElement.prototype, property, {
+        const patched: PropertyDescriptor = {
             ...descriptor,
             set(this: HTMLCanvasElement, value: number) {
                 descriptor.set!.call(this, value);
-                if (snapshots.has(this)) {
+                if (active && snapshots.has(this)) {
                     snapshots.set(this, []);
                     changed(this);
                 }
             },
+        };
+        Object.defineProperty(HTMLCanvasElement.prototype, property, patched);
+        restore.push(() => {
+            if (Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, property)?.set === patched.set)
+                Object.defineProperty(HTMLCanvasElement.prototype, property, descriptor);
         });
     }
     // Docs can paint into a detached backing canvas and copy that bitmap into
@@ -120,6 +131,7 @@ export function installDocsCanvasCapture(): () => void {
     const drawImage = proto.drawImage;
     proto.drawImage = function (this: CanvasRenderingContext2D, source: CanvasImageSource, ...args: number[]) {
         const result = Reflect.apply(drawImage, this, [source, ...args]);
+        if (!active) return result;
         try {
             if (!(source instanceof HTMLCanvasElement) || !snapshots.has(source)) return result;
             const runs = [...snapshots.get(source)!];
@@ -163,7 +175,13 @@ export function installDocsCanvasCapture(): () => void {
         }
     });
     observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    for (const name of ['fillText', 'clearRect', 'fillRect', 'drawImage'] as const) {
+        const wrapper = proto[name];
+        restore.push(() => { if (proto[name] === wrapper) Object.assign(proto, {[name]: originals[name]}); });
+    }
     return () => {
+        active = false;
+        for (const undo of restore) undo();
         observer.disconnect();
         document.removeEventListener(DOCS_REQUEST_EVENT, onRequest);
         for (const timer of timers.values()) clearTimeout(timer);

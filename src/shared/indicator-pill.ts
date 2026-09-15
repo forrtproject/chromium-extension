@@ -1125,7 +1125,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         marker.style.borderColor = markerNotice ? "#a72f2f" : color;
         marker.style.borderStyle = !markerNotice && (pending || unavailable) ? "dashed" : "solid";
         const summary = [markerNotice ? (markerNotice.kind === "concern" ? "Expression of concern" : "Retracted") : "",
-            markerStudies ? `${markerStudies} replication/reproduction studies` : "",
+            markerStudies ? `${markerStudies} linked replication/reproduction studies` : "",
             markerComments ? `${markerComments} PubPeer comments` : "",
             unavailable ? "Some checks unavailable" : pending ? "Checks in progress" : "",
             status === "empty" ? "No replication evidence or PubPeer comments found" : ""].filter(Boolean).join(". ");
@@ -1137,7 +1137,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         wrapper.style.margin = "0";
         wrapper.style.setProperty("margin-inline-start", "0", "important");
         wrapper.style.top = "0";
-        pill.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:4px;border:0;border-radius:6px;background:transparent;cursor:pointer;box-sizing:border-box;";
+        pill.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:4px;border:0;border-radius:6px;background:transparent;cursor:pointer;box-sizing:border-box;transition:box-shadow 0.15s ease;";
         // Keep the existing segments as async state targets, but show only F.
         pill.setAttribute("data-flora-compact-marker", "");
         refreshSegmentStrip(pill);
@@ -1147,7 +1147,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         pill.appendChild(marker);
         markerUpdates.set(wrapper, (state, notice) => {
             markerState = state?.status;
-            markerStudies = state?.status === "matched" ? state.result.record.stats.n_replications_total + state.result.record.stats.n_reproductions_total : 0;
+            markerStudies = state?.status === "matched" ? state.result.record.stats.n_replications_total + state.result.record.stats.n_reproductions_total + state.result.record.stats.n_originals_total : 0;
             markerNotice = notice;
             refreshMarker();
         });

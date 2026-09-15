@@ -59,6 +59,26 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 describe('Docs canvas capture', () => {
+    it('restores methods and dimensions and stops publication on cleanup', () => {
+        const wrapped = CanvasRenderingContext2D.prototype.fillText;
+        ctx.fillText('paper', 20, 30);
+        cleanup();
+        expect(CanvasRenderingContext2D.prototype.fillText).not.toBe(wrapped);
+        expect(Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'width')).toEqual(restoreWidth);
+        ctx.fillText('later', 20, 30);
+        vi.advanceTimersByTime(110);
+        expect(events).toEqual([]);
+    });
+    it('preserves patches installed later while making this wrapper inert', () => {
+        const wrapper = CanvasRenderingContext2D.prototype.fillText;
+        const later = vi.fn(function(this: CanvasRenderingContext2D, ...args: [string, number, number]) { wrapper.apply(this, args); });
+        CanvasRenderingContext2D.prototype.fillText = later;
+        cleanup();
+        expect(CanvasRenderingContext2D.prototype.fillText).toBe(later);
+        ctx.fillText('later', 20, 30);
+        vi.advanceTimersByTime(110);
+        expect(events).toEqual([]);
+    });
     it('preserves the draw call and publishes transformed text bounds', () => {
         ctx.fillText('10.1234/paper', 20, 30);
         vi.advanceTimersByTime(110);
@@ -93,7 +113,6 @@ describe('Docs canvas capture', () => {
         canvas.className = 'kix-canvas-tile-content';
         document.body.append(canvas);
         await Promise.resolve();
-        document.dispatchEvent(new Event(DOCS_REQUEST_EVENT));
         expect(events.at(-1)?.runs[0].text).toBe('10.1234/detached');
     });
     it('transfers backing-canvas text through cropped and scaled drawImage', () => {

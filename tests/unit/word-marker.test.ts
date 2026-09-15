@@ -34,6 +34,20 @@ describe("Word F marker",()=>{
   state.set(doi,{status:"matched",result,source:"extracted"});repaint();
   expect(pill.dataset.floraMarkerState).toBe("filled");
  });
+ it("fills for a replication linked to an original study",()=>{
+  const pill=make();const result=mockResult();
+  result.record.stats.n_replications_total=0;result.record.stats.n_reproductions_total=0;result.record.stats.n_originals_total=1;
+  state.set(doi,{status:"matched",result,source:"extracted"});repaint();
+  expect(pill.dataset.floraMarkerState).toBe("filled");
+ });
+ it("offers retry for unavailable document PubPeer checks",async()=>{
+  const retry=vi.fn().mockResolvedValue(undefined);
+  renderSidePanel([],[],state,new Map(),new Map(),[],"Document",retry,{documentMode:true});
+  const panel=document.querySelector('#flora-pubpeer-panel')!;
+  expect(panel.textContent).toContain("PubPeer unavailable");
+  const button=[...panel.querySelectorAll('button')].find(button=>button.textContent==='Retry')!;
+  button.click();expect(retry).toHaveBeenCalledOnce();
+ });
  it("distinguishes failed checks from an empty result",async()=>{
   vi.mocked(lookupPubPeerForDoi).mockRejectedValue(new Error("offline"));
   const pill=make();state.set(doi,{status:"no-match"});repaint();

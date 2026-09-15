@@ -6,7 +6,7 @@ import type { DoiString } from "./types";
 export function isGoogleDocs(url = location.href): boolean {
     try {
         const u = new URL(url);
-        return u.protocol === "https:" && u.hostname === "docs.google.com" && /^\/document\/(?:u\/\d+\/)?d\//.test(u.pathname);
+        return u.protocol === "https:" && u.hostname === "docs.google.com" && /^\/document\/(?:u\/\d+\/)?d\/[\w-]+\//.test(u.pathname);
     }
     catch {
         return false;
@@ -42,6 +42,7 @@ let exportPending = false;
 let exportCheckedAt = 0;
 /** Detached reference entries persist when Docs recycles offscreen canvases. */
 export function setGoogleDocsText(text: string, doc: Document = document): void {
+    exportKey = googleDocsExportUrl(doc.URL);
     const previous = new Map(exportedEntries.map(element => [element.getAttribute('data-flora-source-text'), element]));
     exportedEntries = text.split(/\r?\n/).map(line => line.trim()).filter(line =>
         /10\.\d{4,}\//.test(line) || line.length > 60 && /\b(?:18|19|20)\d{2}\b/.test(line) && /^[A-ZÀ-Ž][\p{L}'’\-]+,/u.test(line)
@@ -65,15 +66,19 @@ function showExportStatus(unavailable: boolean): void {
         status.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:100000;background:white;color:#663447;padding:8px 12px;border:1px solid #c9b9bf;border-radius:6px;font:13px system-ui;max-width:340px';
         document.body.append(status);
     }
-    status.textContent = 'ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.';
+    status.textContent = exportText !== undefined
+        ? 'ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.'
+        : 'ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.';
 }
 async function refreshGoogleDocsText(onChange: () => void): Promise<void> {
     const key = googleDocsExportUrl(location.href);
     if (key !== exportKey) {
+        const hadExport = exportedEntries.length > 0;
         exportKey = key;
         exportedEntries = [];
         exportText = undefined;
         exportCheckedAt = 0;
+        if (hadExport) onChange();
     }
     if (exportPending || Date.now() - exportCheckedAt < 60000) return;
     exportPending = true;
@@ -90,11 +95,8 @@ async function refreshGoogleDocsText(onChange: () => void): Promise<void> {
         }
     } catch {
         if (googleDocsExportUrl(location.href) === key) {
-            const hadExport = exportedEntries.length > 0;
-            exportedEntries = [];
-            exportText = undefined;
+            // Retain same-document evidence, explicitly labelled as stale.
             showExportStatus(true);
-            if (hadExport) onChange();
         }
     } finally { exportPending = false; }
 }
@@ -145,7 +147,7 @@ export function docsParagraphs(runs: CanvasRun[]): Paragraph[] {
             lastLine = line;
             continue;
         }
-        const separator = /10\.\d{4,}\/\S*$/.test(prev.text) && /^[a-z0-9][a-z0-9./_\-]+[.;)]?$/.test(line.text.trim()) ? "" : " ";
+        const separator = /10\.\d{4,}\/\S*$/.test(prev.text) && /^[a-z0-9][a-z0-9./_\-]+[.;)]?$/i.test(line.text.trim()) ? "" : " ";
         prev.text += separator + line.text;
         prev.width = Math.max(prev.x + prev.width, line.x + line.width) - Math.min(prev.x, line.x);
         prev.x = Math.min(prev.x, line.x);
@@ -216,7 +218,7 @@ export function startGoogleDocs(onChange: () => void): void {
 export function googleDocsReferenceElements(doc: Document): HTMLElement[] {
     if (!isGoogleDocs(doc.URL))
         return [];
-    const all: HTMLElement[] = [...exportedEntries];
+    const all: HTMLElement[] = exportKey === googleDocsExportUrl(doc.URL) ? [...exportedEntries] : [];
     for (const [canvas, snapshot] of snapshots) {
         if (!canvas.isConnected)
             continue;
@@ -289,9 +291,14 @@ export function googleDocsAnnotatedReferences(): {
             if (doi && e.canvas.isConnected)
                 refs.set(doi, { doi, title: e.copy.textContent ?? doi });
         }
-    for (const entry of exportedEntries) {
+    for (const entry of exportKey === googleDocsExportUrl(location.href) ? exportedEntries : []) {
         const doi = entry.querySelector('[data-flora-doi]')?.getAttribute('data-flora-doi') as DoiString | null;
         if (doi) refs.set(doi, {doi, title: entry.getAttribute('data-flora-source-text') ?? doi});
     }
     return [...refs.values()];
+}
+
+/** A content snapshot, independent of asynchronously updated ORE UI. */
+export function googleDocsContentSnapshot(): string {
+    return JSON.stringify([exportKey, exportText, [...snapshots].filter(([canvas]) => canvas.isConnected).map(([, value]) => value)]);
 }

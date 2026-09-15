@@ -1,6 +1,6 @@
 import {activeWorkSignal} from "@shared/work-cancellation";
 import {isWordOnline} from "@shared/word-online";
-import {isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
+import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
 import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
 import {waitForWorkToFinish} from "@shared/progress-toast";
 import {
@@ -959,7 +959,9 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     if (isSheets || floraHidden || isWorkCancelled()) return;
     const passUrl = location.href;
     const generation = pageGeneration;
-    const navigated = () => location.href !== passUrl || generation !== pageGeneration;
+    const editorSnapshot = isDocumentEditor() ? editorContentSnapshot() : null;
+    const navigated = () => location.href !== passUrl || generation !== pageGeneration
+        || editorSnapshot !== null && editorContentSnapshot() !== editorSnapshot;
     const primaryDoi = extractPrimaryDOI(document);
     const editorDocument = isDocumentEditor();
     if (!primaryDoi && !editorDocument) return;
@@ -1024,14 +1026,15 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
                     return {feedbacks: [] as PubPeerFeedback[], unavailable: true};
                 },
             );
+        const unavailableReferences = new Set<string>();
         const [article, refFeedbackByDoi, articleTitle] = await Promise.all([
             articlePromise,
-            lookupPubPeerForDois(referenceDois, undefined, signal),
+            lookupPubPeerForDois(referenceDois, unavailableReferences, signal),
             primaryDoi ? fetchTitleByDoi(primaryDoi, signal) : Promise.resolve(editorTitle()),
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
-        articlePubPeerUnavailable = article.unavailable;
+        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
         lastArticleFeedbacks = article.feedbacks;
         lastReferenceDoiKey = refKey;
 
@@ -1060,7 +1063,7 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         lastRenderedPageStateVersion = pageStateVersion;
         renderSidePanel(article.feedbacks, panelRefs, pageState, doiContext, refFeedbackByDoi, redacts, articleTitle,
-            article.unavailable ? async () => {
+            articlePubPeerUnavailable ? async () => {
                 if (floraHidden || navigated()) return;
                 resumeAutomaticWork();
                 articleFeedbacksFetched = false;
@@ -1148,6 +1151,7 @@ async function fetchSheetDois(): Promise<void> {
 
 
 (async () => {
+  let editorAllowed = false;
   try {
     if (window !== window.top && !isWordOnline()) return;
     installErrorReporting();
@@ -1200,6 +1204,7 @@ async function fetchSheetDois(): Promise<void> {
     if (!(await isSetupComplete())) {
         renderSetupPrompt().catch((err) => debugError("Setup prompt failed to render —", err));
     }
+    editorAllowed = true;
     const startFlora = (): void => {
         if (isGoogleDocs()) startGoogleDocs(() => {
             if (document.hidden || floraHidden || !canStartAutomaticWork()) return;
@@ -1272,5 +1277,7 @@ async function fetchSheetDois(): Promise<void> {
   } catch (err) {
     reportCodeError(`ORE failed to start on ${location.hostname}`, err);
     reportActiveState(false);
+  } finally {
+    if (!editorAllowed && isGoogleDocs()) document.dispatchEvent(new Event("flora-docs-stop-capture"));
   }
 })();

@@ -5,6 +5,7 @@ import {isWordOnline, wordReferenceElements, wordAnnotationTarget, positionWordA
 import {beginDomScanPass, findReferenceEntries, extractDoiOccurrences} from "../../src/shared/doi-extractor";
 import {resolveReferenceDois, renderResolvedReferences} from "../../src/content-general/references";
 import {injectRetractionInfo} from "../../src/shared/doi-retraction";
+import {editorTitle, editorContentSnapshot} from "../../src/shared/document-editor";
 import {startDomListener} from "../../src/content-general/dom-listener";
 import type {DoiString} from "../../src/shared/types";
 
@@ -20,6 +21,13 @@ beforeEach(() => {
 });
 
 describe("Word Online", () => {
+    it("reads an input title and detects same-URL content changes", () => {
+        const title = document.createElement('input'); title.id = 'documentTitle'; title.value = 'My document'; document.body.append(title);
+        expect(editorTitle()).toBe('My document');
+        const previous = editorContentSnapshot();
+        document.querySelector('.Paragraph')!.textContent = 'An edited reference';
+        expect(editorContentSnapshot()).not.toBe(previous);
+    });
     it("injects only into Word frames, leaving arbitrary iframes excluded", () => {
         const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
         expect(manifest.content_scripts.find((s: {matches: string[]}) => s.matches.includes("<all_urls>")).all_frames).toBe(false);
