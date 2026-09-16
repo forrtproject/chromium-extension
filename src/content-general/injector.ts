@@ -912,6 +912,14 @@ export function renderSidePanel(
   const articleDois = [...doiContext.entries()]
     .filter(([, ctx]) => ctx === "article")
     .map(([doi]) => doi);
+
+  if (options.documentMode && !onRetryPubPeer && references.length === 0
+      && articleDois.length === 0 && withComments.length === 0) {
+    debugLog("renderSidePanel: document has nothing to report — no panel");
+    removeSidePanel();
+    return;
+  }
+
   let articleReplications = 0;
   let articleReproductions = 0;
   let articleOriginals = 0;

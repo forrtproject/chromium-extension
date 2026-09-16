@@ -55,6 +55,17 @@ describe("Word F marker",()=>{
   await vi.waitFor(()=>expect(pill.dataset.floraMarkerState).toBe("unavailable"));
   expect(pill.querySelector<HTMLElement>('[role="button"]')!.title).toContain("unavailable");
  });
+ it("stays away from a document with no references or DOIs",()=>{
+  renderSidePanel([],[],state,new Map(),new Map(),[],"Document 1",undefined,{documentMode:true});
+  expect(document.querySelector('#flora-pubpeer-panel')).toBeNull();
+ });
+ it("clears the panel once the last document reference goes",()=>{
+  state.set(doi,{status:"no-match"});
+  renderSidePanel([],[{doi,title:"A referenced study"}],state,new Map([[doi,"reference"]]),new Map(),[],"Document 1",undefined,{documentMode:true});
+  expect(document.querySelector('#flora-pubpeer-panel')).not.toBeNull();
+  renderSidePanel([],[],state,new Map(),new Map(),[],"Document 1",undefined,{documentMode:true});
+  expect(document.querySelector('#flora-pubpeer-panel')).toBeNull();
+ });
  it("reuses the report for a document without an article PubPeer empty state",()=>{
   state.set(doi,{status:"no-match"});
   renderSidePanel([], [{doi,title:"A referenced study"}],state,new Map([[doi,"reference"]]),new Map(),[],"Document 1",undefined,{documentMode:true});
