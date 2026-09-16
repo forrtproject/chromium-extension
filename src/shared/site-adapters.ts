@@ -157,7 +157,7 @@ const SPRINGER: SiteAdapter = {
         { selector: ".c-article-title", position: "after" },
     ],
     referenceScope: ".c-article-references",
-    titlePillStyle: { top: "-15px" },
+    titlePillStyle: { top: "0px" },
     referencePillStyle: { top: "0px" },
 };
 

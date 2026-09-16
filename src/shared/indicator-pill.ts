@@ -187,6 +187,20 @@ const SEGMENT_DIVIDER_ATTR = "data-flora-segment-divider";
 const SEGMENT_STRIP_ATTR = "data-flora-segments";
 const SEGMENT_ACCENT_ATTR = "data-flora-accent";
 
+const TOP_LAYER = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
+
+function enterTopLayer(popover: HTMLElement): void {
+    if (!TOP_LAYER || !popover.isConnected || popover.matches(":popover-open")) return;
+    try { (popover as HTMLElement & {showPopover(): void}).showPopover(); }
+    catch { /* Already open, or detached mid-hover. */ }
+}
+
+function leaveTopLayer(popover: HTMLElement): void {
+    if (!TOP_LAYER || !popover.matches(":popover-open")) return;
+    try { (popover as HTMLElement & {hidePopover(): void}).hidePopover(); }
+    catch { /* Already closed. */ }
+}
+
 const NOTICE_COLOR = "#a72f2f";
 const MARKER_RESTING_SHADOW = "0 1px 2px rgba(27,31,36,0.12)";
 
@@ -1110,7 +1124,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     align-items: stretch;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    background: transparent;
+    background: #ffffff;
     padding: 2px;
     border: 1px solid ${color}${BORDER_ALPHA};
     border-radius: 9999px;
@@ -1196,6 +1210,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     popover.setAttribute("role", "dialog");
     popover.setAttribute("aria-label", `Open research details for ${doi}`);
     popover.setAttribute("data-flora-popover", "");
+    if (TOP_LAYER) popover.setAttribute("popover", "manual");
     // position:fixed (not absolute) so the popover is positioned against the
     // viewport — an ancestor with overflow:hidden (common on article content
     // columns) would otherwise clip it. Coordinates are set in show().
@@ -1251,6 +1266,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         // Reveal first so the popover has measurable dimensions.
         shieldFromPageCss(popover);
         popover.style.display = "flex";
+        enterTopLayer(popover);
         pill.setAttribute("aria-expanded", "true");
 
         const gap = 8;
@@ -1298,6 +1314,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         if (pinned) return;
         hideTimeout = setTimeout(() => {
             popover.style.display = "none";
+            leaveTopLayer(popover);
             pill.setAttribute("aria-expanded", "false");
         }, 200);
     };
