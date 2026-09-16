@@ -7,6 +7,7 @@
 // for entries that exposed no DOI of their own.
 
 import {findReferenceEntries, extractDoiFromHref, type ReferenceEntry} from "@shared/doi-extractor";
+import {isDocumentEditor, editorAnnotationTarget} from "@shared/document-editor";
 import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
 import {validateDOIs} from "@shared/doi-validate";
 import {alignNoticePillWith, type RetractionResponse} from "@shared/doi-retraction";
@@ -75,6 +76,12 @@ function placeReferencePill(
     adapter: SiteAdapter | null
 ): void {
     // A stale adapter selector falls through to the heuristics below.
+    const wordTarget = editorAnnotationTarget(entry);
+    if (wordTarget) {
+        for (const existing of wordTarget.querySelectorAll('.flora-indicator-pill')) existing.remove();
+        wordTarget.prepend(pill);
+        return;
+    }
     if (applyPlacement(adapter?.referencePill, entry, pill, `reference pill for ${doi}`)) return;
 
     if (mode === "page") {
@@ -295,6 +302,7 @@ export function renderResolvedReferences(
         const state = pageState.get(doi);
         const stats = state?.status === "matched" ? state.result.record.stats : null;
         const pill = createIndicatorPill({
+            presentation: isDocumentEditor() ? "marker" : "pill",
             doi,
             color: PILL_COLOR,
             isAugmented,
@@ -311,5 +319,3 @@ export function renderResolvedReferences(
     }
     debugLog(`References: rendered ${resolved.length} inline indicator pill(s)`);
 }
-
-

@@ -1,6 +1,7 @@
 import {containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extractor";
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog} from "@shared/debug";
+import {isWordOnline} from "@shared/word-online";
 
 const MAX_INCREMENTAL_NODES = 50;
 
@@ -26,13 +27,19 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     let pendingNodes: Element[] = [];
     let pendingFullScan = false;
     let missedWhileHidden = false;
+    let lastWordScan = -Infinity;
 
     const flush = (): void => {
+        if (isWordOnline() && location.href === getLastUrl() && Date.now() - lastWordScan < 1000) {
+            debounceTimer = setTimeout(flush, 1000 - (Date.now() - lastWordScan));
+            return;
+        }
         const nodes = pendingNodes;
         const full = pendingFullScan;
         pendingNodes = [];
         pendingFullScan = false;
         if (full || location.href !== getLastUrl() || scanAddedNodes(nodes)) {
+            if (isWordOnline()) lastWordScan = Date.now();
             scanWholePage();
         } else {
             debugLog("General: mutation carried no DOI candidates — skipped full scan");
@@ -45,6 +52,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     navigation?.addEventListener("currententrychange", () => {
         const key = navigation.currentEntry?.key;
         if (observedUrl === location.href && observedKey === key) return;
+        lastWordScan = -Infinity;
         observedUrl = location.href;
         observedKey = key;
         pendingFullScan = true;
@@ -63,6 +71,12 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         }
         let hasExternalChange = false;
         for (const m of mutations) {
+            // Word edits existing text nodes and removes/replaces paragraph
+            // renderings while typing. These records have no added elements.
+            if (isWordOnline() && owningElement(m.target)?.closest("#WACViewPanel")) {
+                hasExternalChange = true;
+                pendingFullScan = true;
+            }
             if (!isExternalMutation(m)) continue;
             hasExternalChange = true;
             if (m.target === document.body || m.target === document.documentElement) {
@@ -79,7 +93,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(flush, DEBOUNCE_MS);
     });
-    observer.observe(document.body, {childList: true, subtree: true});
+    observer.observe(document.body, {childList: true, subtree: true, characterData: isWordOnline()});
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
             // A debounce armed while visible would otherwise fire in the

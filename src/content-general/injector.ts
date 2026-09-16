@@ -896,7 +896,8 @@ export function renderSidePanel(
   refFeedbackByDoi: Map<DoiString, PubPeerFeedback> = new Map(),
   retractions: RetractionResponse[] = [],
   articleTitle: string | null = null,
-  onRetryPubPeer?: () => Promise<void>
+  onRetryPubPeer?: () => Promise<void>,
+  options: {documentMode?: boolean} = {},
 ): void {
   const existingHost = document.getElementById(PUBPEER_PANEL_ID);
   // Track open state via a stateful marker on the host — comparing inline
@@ -911,6 +912,14 @@ export function renderSidePanel(
   const articleDois = [...doiContext.entries()]
     .filter(([, ctx]) => ctx === "article")
     .map(([doi]) => doi);
+
+  if (options.documentMode && !onRetryPubPeer && references.length === 0
+      && articleDois.length === 0 && withComments.length === 0) {
+    debugLog("renderSidePanel: document has nothing to report — no panel");
+    removeSidePanel();
+    return;
+  }
+
   let articleReplications = 0;
   let articleReproductions = 0;
   let articleOriginals = 0;
@@ -947,10 +956,9 @@ export function renderSidePanel(
     .map((doi) => retractionByDoi.get(doi))
     .find((r): r is RetractionResponse => r !== undefined);
 
-  // The panel always renders on a recognised article page (checkPubPeer only
-  // calls this when a primary DOI exists). When nothing is flagged it still
-  // shows the article title and the "No PubPeer comments" empty state, so the
-  // reader can see FLoRA ran and found nothing rather than seeing no UI at all.
+  // Recognised articles and document editors retain the report panel even
+  // without flagged references. Only articles show a confirmed-empty PubPeer
+  // state; both modes show unavailable status and Retry when checks fail.
   debugLog(
     "renderSidePanel:",
     `articleComments=${withComments.length}`,
@@ -1671,7 +1679,8 @@ export function renderSidePanel(
 
     iframeWrap.appendChild(iframe);
     scrollBody.appendChild(iframeWrap);
-  } else {
+  } else if (!options.documentMode || onRetryPubPeer) {
+    // Documents omit a confirmed-empty state, but retain unavailable status and Retry.
     // No PubPeer thread for this article — show an empty state so the panel
     // doesn't read as broken when there's only FORRT replication data, or
     // nothing flagged at all.

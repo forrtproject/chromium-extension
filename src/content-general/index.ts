@@ -1,4 +1,7 @@
 import {activeWorkSignal} from "@shared/work-cancellation";
+import {isWordOnline} from "@shared/word-online";
+import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
+import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
 import {waitForWorkToFinish} from "@shared/progress-toast";
 import {
     beginDomScanPass,
@@ -956,24 +959,51 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     if (isSheets || floraHidden || isWorkCancelled()) return;
     const passUrl = location.href;
     const generation = pageGeneration;
-    const navigated = () => location.href !== passUrl || generation !== pageGeneration;
+    const editorSnapshot = isDocumentEditor() ? editorContentSnapshot() : null;
+    const navigated = () => location.href !== passUrl || generation !== pageGeneration
+        || editorSnapshot !== null && editorContentSnapshot() !== editorSnapshot;
     const primaryDoi = extractPrimaryDOI(document);
-    if (!primaryDoi) return;
+    const editorDocument = isDocumentEditor();
+    if (!primaryDoi && !editorDocument) return;
     beginWorkIndicator();
     try {
         const resolvedRefs = refsPromise ? await refsPromise : [];
         if (signal?.aborted || navigated()) return;
+        const editorRefs = editorDocument ? editorAnnotatedReferences() : [];
+        // Title-resolved document references have no printed DOI in the page scan.
+        // Fetch their FORRT state too, so markers and the report can settle.
+        const missingEditorDois = editorRefs.map(ref => ref.doi).filter(doi => !pageState.has(doi));
+        if (missingEditorDois.length) {
+            for (const doi of missingEditorDois) pageState.set(doi, {status: "loading"});
+            repaintBadges();
+            let response: LookupResponse | undefined;
+            try { response = await safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: missingEditorDois}) ?? undefined; }
+            catch { /* Preserve unavailable status below so the popup offers retry. */ }
+            if (signal?.aborted || navigated()) {
+                for (const doi of missingEditorDois) if (pageState.get(doi)?.status === "loading") pageState.delete(doi);
+                return;
+            }
+            for (const doi of missingEditorDois) {
+                const result = response?.results[doi];
+                pageState.set(doi, !response || response.errors[doi]
+                    ? {status: "error", message: "FORRT unavailable"}
+                    : result ? {status: "matched", result, source: "augmented"} : {status: "no-match"});
+                doiContext.set(doi, "reference");
+            }
+            pageStateVersion++;
+            if (!floraHidden && !isWorkCancelled()) repaintBadges();
+        }
 
         // Union resolved refs with on-page reference DOIs for full PubPeer coverage.
         const seen = new Set<DoiString>();
         const referenceDois: DoiString[] = [];
-        for (const r of resolvedRefs) {
+        for (const r of editorDocument ? editorRefs : resolvedRefs) {
             if (seen.has(r.doi)) continue;
             seen.add(r.doi);
             referenceDois.push(r.doi);
         }
         for (const [doi, ctx] of doiContext) {
-            if (ctx !== "reference") continue;
+            if (ctx !== "reference" || editorDocument) continue;
             if (seen.has(doi)) continue;
             seen.add(doi);
             referenceDois.push(doi);
@@ -985,7 +1015,9 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
 
         if (floraHidden || isWorkCancelled() || navigated()) return;
         // Article: URL lookup once/page. References: one batched, cached lookup.
-        const articlePromise = articleFeedbacksFetched
+        const articlePromise = !primaryDoi
+            ? Promise.resolve({feedbacks: [] as PubPeerFeedback[], unavailable: false})
+            : articleFeedbacksFetched
             ? Promise.resolve({feedbacks: lastArticleFeedbacks, unavailable: articlePubPeerUnavailable})
             : lookupPubPeer([primaryDoi], [passUrl], signal).then(
                 feedbacks => ({feedbacks, unavailable: false}),
@@ -994,14 +1026,15 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
                     return {feedbacks: [] as PubPeerFeedback[], unavailable: true};
                 },
             );
+        const unavailableReferences = new Set<string>();
         const [article, refFeedbackByDoi, articleTitle] = await Promise.all([
             articlePromise,
-            lookupPubPeerForDois(referenceDois, undefined, signal),
-            fetchTitleByDoi(primaryDoi, signal),
+            lookupPubPeerForDois(referenceDois, unavailableReferences, signal),
+            primaryDoi ? fetchTitleByDoi(primaryDoi, signal) : Promise.resolve(editorTitle()),
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
-        articlePubPeerUnavailable = article.unavailable;
+        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
         lastArticleFeedbacks = article.feedbacks;
         lastReferenceDoiKey = refKey;
 
@@ -1020,7 +1053,7 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
                 || noticeDois.has(doi)
                 || hasReplication(doi);
         });
-        const panelRefs = await Promise.all(flagged.map(async (doi) => {
+        const panelRefs = await Promise.all((editorDocument ? referenceDois : flagged).map(async (doi) => {
             const title = refFeedbackByDoi.get(doi)?.title
                 ?? (await fetchTitleByDoi(doi, signal))
                 ?? doi;
@@ -1030,14 +1063,14 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         lastRenderedPageStateVersion = pageStateVersion;
         renderSidePanel(article.feedbacks, panelRefs, pageState, doiContext, refFeedbackByDoi, redacts, articleTitle,
-            article.unavailable ? async () => {
+            articlePubPeerUnavailable ? async () => {
                 if (floraHidden || navigated()) return;
                 resumeAutomaticWork();
                 articleFeedbacksFetched = false;
                 beginWorkIndicator({stages: ["scan"]});
                 try { await checkPubPeer(Promise.resolve(resolvedRefs)); }
                 finally { endWorkIndicator(); }
-            } : undefined);
+            } : undefined, {documentMode: editorDocument});
 
     } catch (err) {
         if (!signal?.aborted) debugWarn("PubPeer panel: lookup or render failed —", err);
@@ -1118,8 +1151,9 @@ async function fetchSheetDois(): Promise<void> {
 
 
 (async () => {
+  let editorAllowed = false;
   try {
-    if (window !== window.top) return;
+    if (window !== window.top && !isWordOnline()) return;
     installErrorReporting();
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
@@ -1149,6 +1183,15 @@ async function fetchSheetDois(): Promise<void> {
         return;
     }
 
+    // The popup pauses/blocks the outer SharePoint site. Respect that host in
+    // the Word iframe as well as the Office host used by its own controls.
+    if (isWordOnline() && document.referrer) {
+        const outerHost = new URL(document.referrer).hostname;
+        if (await isDomainBlocked(outerHost)) { reportActiveState(false); return; }
+        const outerSnooze = await getSnooze(outerHost);
+        if (outerSnooze !== null) { reportActiveState(false, outerSnooze); return; }
+    }
+
     const snoozedUntil = await getSnooze(location.hostname);
     if (snoozedUntil !== null) {
         debugLog("Domain is snoozed:", location.hostname);
@@ -1161,7 +1204,12 @@ async function fetchSheetDois(): Promise<void> {
     if (!(await isSetupComplete())) {
         renderSetupPrompt().catch((err) => debugError("Setup prompt failed to render —", err));
     }
+    editorAllowed = true;
     const startFlora = (): void => {
+        if (isGoogleDocs()) startGoogleDocs(() => {
+            if (document.hidden || floraHidden || !canStartAutomaticWork()) return;
+            void scanWholePage().catch(err => debugError("Google Docs: scan failed —", err));
+        });
         if (isSheets) {
             // Fetch full sheet data via CSV export to get all DOIs regardless of scroll
             fetchSheetDois();
@@ -1229,5 +1277,7 @@ async function fetchSheetDois(): Promise<void> {
   } catch (err) {
     reportCodeError(`ORE failed to start on ${location.hostname}`, err);
     reportActiveState(false);
+  } finally {
+    if (!editorAllowed && isGoogleDocs()) document.dispatchEvent(new Event("flora-docs-stop-capture"));
   }
 })();

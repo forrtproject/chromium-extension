@@ -15,6 +15,11 @@ const sharedOptions: esbuild.BuildOptions = {
 const configs: esbuild.BuildOptions[] = [
   {
     ...sharedOptions,
+    entryPoints: ["src/content-docs/index.ts"],
+    outfile: "dist/content-docs.js",
+  },
+  {
+    ...sharedOptions,
     entryPoints: ["src/content-general/index.ts"],
     outfile: "dist/content-general.js",
   },
