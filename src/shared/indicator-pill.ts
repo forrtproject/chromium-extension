@@ -24,6 +24,7 @@ import {fetchCitationDetailed, preferredCitationFormat, type CitationFormat} fro
 import {debugWarn} from "@shared/debug";
 import {ensureFocusStyle} from "@shared/flora-ui";
 import {getSettings} from "@shared/settings";
+import {MARKER_EDGE_GAP} from "@shared/editor-marker";
 import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 
@@ -177,10 +178,17 @@ function shieldFromPageCss<T extends Element>(root: T): T {
 }
 
 const SEGMENT_ATTR = "data-flora-segment";
+const SEGMENT_LABEL_ATTR = "data-flora-segment-label";
+const SEGMENT_COUNT_ATTR = "data-flora-segment-count";
+const MARKER_ATTR = "data-flora-compact-marker";
+const MARKER_EXPANDED_ATTR = "data-flora-marker-expanded";
 const SEGMENT_PRESENT_ATTR = "data-flora-present";
 const SEGMENT_DIVIDER_ATTR = "data-flora-segment-divider";
 const SEGMENT_STRIP_ATTR = "data-flora-segments";
 const SEGMENT_ACCENT_ATTR = "data-flora-accent";
+
+const NOTICE_COLOR = "#a72f2f";
+const MARKER_RESTING_SHADOW = "0 1px 2px rgba(27,31,36,0.12)";
 
 const FILL_ALPHA = "c7";
 const FILL_HOVER_ALPHA = "e6";
@@ -236,13 +244,14 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
     el.appendChild(icon);
 
     const label = document.createElement("span");
-    label.setAttribute("data-flora-segment-label", "");
+    label.setAttribute(SEGMENT_LABEL_ATTR, "");
     label.textContent = spec.label;
     label.style.cssText = "font-size:10.5px;font-weight:600;letter-spacing:0.02em;line-height:1;";
     el.appendChild(label);
 
     if (spec.exists && spec.count !== undefined) {
         const count = document.createElement("span");
+        count.setAttribute(SEGMENT_COUNT_ATTR, "");
         count.textContent = `${spec.count}`;
         count.style.cssText =
             "font-size:9px;font-weight:700;line-height:1;padding:2px 3px;border-radius:3px;"
@@ -270,10 +279,42 @@ function refreshSegmentStrip(strip: HTMLElement): void {
 
         if (present && prev) strip.insertBefore(makeDivider(), seg);
     });
-    if (strip.hasAttribute("data-flora-compact-marker")) {
-        for (const child of strip.querySelectorAll<HTMLElement>(`[${SEGMENT_ATTR}], [${SEGMENT_DIVIDER_ATTR}]`)) {
-            child.style.setProperty("display", "none", "important");
-        }
+    if (strip.hasAttribute(MARKER_ATTR)) applyMarkerScale(strip);
+}
+
+const LABEL_EXTRA_WIDTH = 11;
+const FALLBACK_LABEL_WIDTH = 96;
+
+function markerLabelBudget(strip: HTMLElement): number {
+    const rect = strip.getBoundingClientRect();
+    if (!rect.width) return Number.POSITIVE_INFINITY;
+    return window.innerWidth - MARKER_EDGE_GAP - rect.right;
+}
+
+function applyMarkerScale(strip: HTMLElement): void {
+    const accent = strip.getAttribute(SEGMENT_ACCENT_ATTR) ?? "#853953";
+    let budget = strip.hasAttribute(MARKER_EXPANDED_ATTR)
+        ? Number(strip.dataset.floraMarkerBudget ?? Number.POSITIVE_INFINITY)
+        : 0;
+    for (const segment of strip.querySelectorAll<HTMLElement>(`[${SEGMENT_ATTR}]`)) {
+        const label = segment.querySelector<HTMLElement>(`[${SEGMENT_LABEL_ATTR}]`);
+        const natural = label ? label.scrollWidth || FALLBACK_LABEL_WIDTH : 0;
+        const show = !!label && natural + LABEL_EXTRA_WIDTH <= budget;
+        if (show) budget -= natural + LABEL_EXTRA_WIDTH;
+        segment.style.setProperty("padding", show ? "3px 8px" : "3px 6px", "important");
+        segment.style.setProperty("gap", show ? "5px" : "0", "important");
+        const struck = show && !segment.hasAttribute(SEGMENT_PRESENT_ATTR);
+        segment.style.setProperty("text-decoration", struck ? "line-through" : "none", "important");
+        segment.style.setProperty("text-decoration-color", `${accent}${ABSENT_ALPHA}`, "important");
+        segment.querySelector<HTMLElement>(`[${SEGMENT_COUNT_ATTR}]`)
+            ?.style.setProperty("margin-left", show ? "0px" : "5px", "important");
+        if (!label) continue;
+        label.style.setProperty("display", "inline-block");
+        label.style.setProperty("overflow", "hidden");
+        label.style.setProperty("white-space", "nowrap");
+        label.style.setProperty("max-width", show ? `${natural}px` : "0px");
+        label.style.setProperty("opacity", show ? "1" : "0");
+        label.style.setProperty("transition", "max-width 0.18s ease, opacity 0.18s ease");
     }
 }
 
@@ -1039,6 +1080,9 @@ const markerUpdates = new WeakMap<HTMLElement, (state: LookupState | undefined, 
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
     ensureFocusStyle();
     const {doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
+    const markerMode = options.presentation === "marker";
+    let restingBorder = `${color}${BORDER_ALPHA}`;
+    let hoverBorder = `${color}${ABSENT_ALPHA}`;
 
     const wrapper = document.createElement("span");
     wrapper.className = INDICATOR_PILL_CLASS;
@@ -1078,12 +1122,12 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   `;
     pill.addEventListener("mouseenter", () => {
-        pill.style.borderColor = `${color}${ABSENT_ALPHA}`;
+        pill.style.borderColor = hoverBorder;
         pill.style.boxShadow = "0 1px 2px rgba(27,31,36,0.10), 0 2px 6px rgba(66,74,83,0.10)";
     });
     pill.addEventListener("mouseleave", () => {
-        pill.style.borderColor = `${color}${BORDER_ALPHA}`;
-        pill.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
+        pill.style.borderColor = restingBorder;
+        pill.style.boxShadow = markerMode ? MARKER_RESTING_SHADOW : "0 0 0 0 rgba(0,0,0,0)";
     });
 
     // Segment 1 — DOI content.
@@ -1105,25 +1149,22 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     refreshSegmentStrip(pill);
 
-    const markerMode = options.presentation === "marker";
-    let marker: HTMLSpanElement | null = null;
     let markerState: LookupState["status"] | undefined;
     let markerStudies = (replicationsCount ?? 0) + (reproductionsCount ?? 0);
     let markerNotice = retraction;
     let markerComments = 0;
     let markerAnswered: PubPeerAnswered = "pending";
     const refreshMarker = () => {
-        if (!marker) return;
+        if (!markerMode) return;
         const pending = markerAnswered === "pending" || markerState === "loading" || markerState === undefined && !markerStudies;
         const unavailable = markerAnswered === false || markerAnswered === "cancelled" || markerState === "error";
         const substantial = markerStudies > 0 || markerComments > 0;
         const status = markerNotice ? "warning" : substantial ? "filled" : unavailable ? "unavailable" : pending ? "checking" : "empty";
         wrapper.dataset.floraMarkerState = status;
-        marker.textContent = markerNotice ? "!" : "F";
-        marker.style.background = markerNotice ? "#a72f2f" : substantial ? color : "#fff";
-        marker.style.color = markerNotice || substantial ? "#fff" : color;
-        marker.style.borderColor = markerNotice ? "#a72f2f" : color;
-        marker.style.borderStyle = !markerNotice && (pending || unavailable) ? "dashed" : "solid";
+        restingBorder = markerNotice ? NOTICE_COLOR : substantial ? `${color}${ABSENT_ALPHA}` : `${color}${BORDER_ALPHA}`;
+        hoverBorder = markerNotice ? NOTICE_COLOR : color;
+        pill.style.borderColor = restingBorder;
+        pill.style.borderStyle = !markerNotice && (pending || unavailable) ? "dashed" : "solid";
         const summary = [markerNotice ? (markerNotice.kind === "concern" ? "Expression of concern" : "Retracted") : "",
             markerStudies ? `${markerStudies} linked ${markerStudies === 1 ? "study" : "studies"} in the FLoRA Replication Atlas` : "",
             markerComments ? `${markerComments} PubPeer comments` : "",
@@ -1137,14 +1178,10 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         wrapper.style.margin = "0";
         wrapper.style.setProperty("margin-inline-start", "0", "important");
         wrapper.style.top = "0";
-        pill.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:4px;border:0;border-radius:6px;background:transparent;cursor:pointer;box-sizing:border-box;transition:box-shadow 0.15s ease;";
-        // Keep the existing segments as async state targets, but show only F.
-        pill.setAttribute("data-flora-compact-marker", "");
+        pill.style.setProperty("background", "#fff");
+        pill.style.setProperty("box-shadow", MARKER_RESTING_SHADOW);
+        pill.setAttribute(MARKER_ATTR, "");
         refreshSegmentStrip(pill);
-        marker = document.createElement("span");
-        marker.setAttribute("aria-hidden", "true");
-        marker.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;box-sizing:border-box;border:1px solid;border-radius:5px;font:bold 18px Arial,sans-serif;line-height:1;";
-        pill.appendChild(marker);
         markerUpdates.set(wrapper, (state, notice) => {
             markerState = state?.status;
             markerStudies = state?.status === "matched" ? state.result.record.stats.n_replications_total + state.result.record.stats.n_reproductions_total + state.result.record.stats.n_originals_total : 0;
@@ -1204,6 +1241,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     let hideTimeout: ReturnType<typeof setTimeout> | null = null;
     let pinned = false;
     let docClickHandler: ((e: MouseEvent) => void) | null = null;
+    let collapseMarker: (() => void) | null = null;
 
     const show = () => {
         if (hideTimeout) {
@@ -1273,6 +1311,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
             document.removeEventListener("click", docClickHandler, {capture: true});
             docClickHandler = null;
         }
+        if (!pill.matches(":hover")) collapseMarker?.();
         hide();
     };
 
@@ -1297,7 +1336,23 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         }, 0);
     });
 
-    if (!markerMode) pill.addEventListener("mouseenter", show);
+    if (markerMode) {
+        const expand = (on: boolean) => {
+            if (on) pill.dataset.floraMarkerBudget = `${markerLabelBudget(pill)}`;
+            else delete pill.dataset.floraMarkerBudget;
+            pill.toggleAttribute(MARKER_EXPANDED_ATTR, on);
+            applyMarkerScale(pill);
+        };
+        collapseMarker = () => expand(false);
+        pill.addEventListener("mouseenter", () => expand(true));
+        pill.addEventListener("mouseleave", () => { if (!pinned) expand(false); });
+        wrapper.addEventListener("focusin", () => expand(true));
+        wrapper.addEventListener("focusout", (e) => {
+            if (!wrapper.contains(e.relatedTarget as Node | null)) expand(false);
+        });
+    } else {
+        pill.addEventListener("mouseenter", show);
+    }
     pill.addEventListener("mouseleave", hide);
     popover.addEventListener("mouseenter", show);
     popover.addEventListener("mouseleave", hide);

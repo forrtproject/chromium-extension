@@ -3,6 +3,7 @@ import { debugLog } from "./debug";
 import type { CanvasRun } from "../content-docs/canvas";
 import { DOCS_TEXT_EVENT, DOCS_REQUEST_EVENT } from "../content-docs/canvas";
 import type { DoiString } from "./types";
+import { markerColumnLeft } from "./editor-marker";
 export function isGoogleDocs(url = location.href): boolean {
     try {
         const u = new URL(url);
@@ -263,7 +264,7 @@ export function googleDocsAnnotationTarget(copy: Element): HTMLElement | null {
         entry.row = document.createElement('div');
         entry.row.className = 'flora-docs-annotation';
         entry.row.setAttribute('data-flora-ui', '');
-        entry.row.style.cssText = 'position:fixed;z-index:100000;width:32px;height:32px;display:flex;';
+        entry.row.style.cssText = 'position:fixed;z-index:100000;display:flex;align-items:center;height:23px;';
         document.body.append(entry.row);
     }
     positionGoogleDocsAnnotations();
@@ -279,7 +280,7 @@ export function positionGoogleDocsAnnotations(): void {
             const top = rect.top + entry.box.y * sy;
             // Anchor every marker to the page margin, independent of citation length.
             const right = rect.left + rect.width;
-            entry.row.style.left = `${Math.max(0, Math.min(right + 12, window.innerWidth - 36))}px`;
+            entry.row.style.left = `${markerColumnLeft(right + 12)}px`;
             entry.row.style.top = `${top}px`;
             entry.row.style.visibility = !entry.canvas.isConnected || !rect.height || top < (viewport?.top ?? 0) || top + 23 > (viewport?.bottom ?? window.innerHeight) ? 'hidden' : 'visible';
         }

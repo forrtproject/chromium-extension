@@ -1,4 +1,5 @@
 import {isFloraOwnedNode} from "./flora-ui";
+import {markerColumnLeft} from "./editor-marker";
 /** Word renders its document in an Office iframe. Keep all annotation DOM
  * outside its editing and pagination surfaces so it cannot enter saved text. */
 export function isWordOnline(url = location.href): boolean {
@@ -64,7 +65,7 @@ export function wordAnnotationTarget(target: Element): HTMLElement | null {
     row = source.ownerDocument.createElement("div");
     row.setAttribute("data-flora-ui", "");
     row.className = "flora-word-annotation";
-    row.style.cssText = "position:fixed;z-index:100000;display:flex;align-items:center;width:32px;height:32px;";
+    row.style.cssText = "position:fixed;z-index:100000;display:flex;align-items:center;height:23px;";
     source.ownerDocument.body.appendChild(row);
     rows.set(source, row);
     if (!observing) {
@@ -99,7 +100,7 @@ export function positionWordAnnotations(): void {
         row.hidden = !rect.height || !!source.closest('[aria-hidden="true"]')
             || !!viewport && (rect.bottom <= viewport.top || rect.top >= viewport.bottom);
         row.style.visibility = row.hidden ? "hidden" : "visible";
-        row.style.left = `${Math.max(0, Math.min(rect.right + 12, window.innerWidth - 36))}px`;
+        row.style.left = `${markerColumnLeft(rect.right + 12)}px`;
         row.style.top = `${Math.max(rect.top, viewport?.top ?? 0)}px`;
     }
 }
