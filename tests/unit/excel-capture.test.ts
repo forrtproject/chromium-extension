@@ -24,7 +24,11 @@ beforeEach(() => {
     _resetExcelForTesting();
 });
 
-afterEach(() => vi.useRealTimers());
+const SHEET_URL = location.href;
+afterEach(() => {
+    vi.useRealTimers();
+    history.replaceState(null, "", SHEET_URL);
+});
 
 describe("what the Excel grid hands the scan", () => {
     it("turns painted cells into the DOIs the sheet carries", () => {
@@ -88,6 +92,11 @@ describe("what the Excel grid hands the scan", () => {
         expect(excelOnlineText(), "rows from the previous workbook are not this sheet's")
             .not.toContain("10.1002/bdm.2178");
         expect(excelOnlineText()).toContain("10.1177/2515245918810225");
+    });
+
+    it("runs after the workbook test on the URL it started with", () => {
+        expect(excelWorkbookKey(), "a test must not leave the worker on another workbook")
+            .not.toBe("another-workbook");
     });
 
     it("moves the revision on so a redraw retriggers the scan", () => {

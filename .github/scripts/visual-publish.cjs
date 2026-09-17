@@ -28,7 +28,7 @@ module.exports = async ({github, context}) => {
   const captured = run.conclusion === 'success' && !!results;
   const changed = captured ? results.filter(r => r.changed) : [];
   const files = await github.paginate(github.rest.pulls.listFiles, {owner, repo, pull_number});
-  const screenshotPath = /^(tests\/visual\/(baselines|review-evidence)\/|docs\/img\/).+\.(png|jpe?g|webp)$/i;
+  const screenshotPath = /^(tests\/visual\/(baselines|review-evidence)\/|docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
   const baselineFiles = files.filter(f => [f.filename, f.previous_filename].some(name => name && screenshotPath.test(name)));
   // A PR controls its capture job and artifacts. Changes to that machinery
   // cannot certify themselves as unchanged and bypass human review.
