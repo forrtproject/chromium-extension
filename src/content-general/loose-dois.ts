@@ -17,6 +17,21 @@ function isEditableSurface(el: HTMLElement): boolean {
     return el.isContentEditable || el.closest("textarea, input, [contenteditable]") !== null;
 }
 
+function placeAfterMention(source: HTMLElement, doi: DoiString, pill: HTMLElement): void {
+    try {
+        for (const node of source.childNodes) {
+            if (node.nodeType !== Node.TEXT_NODE) continue;
+            const text = node as Text;
+            const at = text.data.toLowerCase().indexOf(doi.toLowerCase());
+            if (at < 0) continue;
+            const tail = text.splitText(at + doi.length);
+            source.insertBefore(pill, tail);
+            return;
+        }
+    } catch { }
+    source.appendChild(pill);
+}
+
 function stillOnPage(doi: DoiString): boolean {
     for (const el of document.querySelectorAll(`.${INDICATOR_PILL_CLASS}[${LOOSE_PILL_ATTR}]`)) {
         if (el.getAttribute("data-flora-doi") === doi) return true;
@@ -52,7 +67,7 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed}: 
         });
         pill.setAttribute(LOOSE_PILL_ATTR, "");
 
-        if (occ.kind === "text") occ.source.appendChild(pill);
+        if (occ.kind === "text") placeAfterMention(occ.source, occ.doi, pill);
         else occ.source.insertAdjacentElement("afterend", pill);
 
         pilled.add(occ.doi);

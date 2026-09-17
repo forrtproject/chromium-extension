@@ -32,7 +32,7 @@ module.exports = async ({github, context}) => {
   const baselineFiles = files.filter(f => [f.filename, f.previous_filename].some(name => name && screenshotPath.test(name)));
   // A PR controls its capture job and artifacts. Changes to that machinery
   // cannot certify themselves as unchanged and bypass human review.
-  const capturePath = /^(tests\/visual\/|tests\/fixtures\/(article-with-dois|doi-in-table|retracted)\.html$|\.github\/(workflows\/visual[^/]*\.yml|scripts\/visual-publish\.cjs)$|scripts\/docs-screenshots\.ts$|package(?:-lock)?\.json$|esbuild\.config\.ts$|manifest\.json$|tsconfig[^/]*\.json$|\.npmrc$)/;
+  const capturePath = /^(tests\/visual\/|tests\/fixtures\/(article-with-dois|doi-in-table|retracted)\.html$|\.github\/(workflows\/visual[^/]*\.yml|scripts\/visual-publish\.cjs)$|scripts\/(docs-screenshots|make-icons)\.ts$|package(?:-lock)?\.json$|esbuild\.config\.ts$|manifest\.json$|tsconfig[^/]*\.json$|\.npmrc$)/;
   const captureFiles = files.filter(f => [f.filename, f.previous_filename].some(name => name && capturePath.test(name) && !screenshotPath.test(name)));
   // A short file listing means the evidence below may miss changed files, so
   // both checklists fall back to human review.

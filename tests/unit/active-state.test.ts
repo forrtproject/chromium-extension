@@ -103,6 +103,28 @@ describe("what the toolbar is told about this tab", () => {
             .toMatchObject({active: false, blocked: true});
     });
 
+    it("keeps a confirmed block even when the snooze read fails", async () => {
+        snooze.getSnooze.mockRejectedValue(new Error("storage unavailable"));
+        snooze.isDomainBlocked.mockResolvedValue(true);
+
+        reportInactive();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(sent().at(-1), "one failed read must not un-block the toolbar")
+            .toMatchObject({active: false, blocked: true, snoozedUntil: null});
+    });
+
+    it("still reports when the block read is the one that fails", async () => {
+        const until = Date.now() + 60_000;
+        snooze.getSnooze.mockResolvedValue(until);
+        snooze.isDomainBlocked.mockRejectedValue(new Error("storage unavailable"));
+
+        reportInactive();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(sent().at(-1)).toMatchObject({active: false, blocked: false, snoozedUntil: until});
+    });
+
     it("leaves the badge alone if the pause was extended meanwhile", async () => {
         const until = Date.now() + 60_000;
         snooze.getSnooze.mockResolvedValue(until);

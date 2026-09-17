@@ -1,6 +1,6 @@
 // @vitest-environment-options {"url":"https://excel.officeapps.live.com/x/_layouts/xlviewerinternal.aspx?ui=en-US"}
-import {beforeEach, describe, expect, it, vi} from "vitest";
-import {startExcelOnline, excelOnlineText, excelContentRevision, excelRetainedRowCount, _resetExcelForTesting} from "../../src/shared/excel-online";
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {startExcelOnline, excelOnlineText, excelContentRevision, excelRetainedRowCount, excelWorkbookKey, _resetExcelForTesting} from "../../src/shared/excel-online";
 import {EXCEL_TEXT_EVENT} from "../../src/content-docs/canvas";
 import {extractDOIsFromText} from "../../src/shared/doi-extractor";
 
@@ -23,6 +23,8 @@ beforeEach(() => {
     document.body.innerHTML = "";
     _resetExcelForTesting();
 });
+
+afterEach(() => vi.useRealTimers());
 
 describe("what the Excel grid hands the scan", () => {
     it("turns painted cells into the DOIs the sheet carries", () => {
@@ -73,6 +75,21 @@ describe("what the Excel grid hands the scan", () => {
         expect(excelOnlineText()).not.toContain("Revenue");
     });
 
+    it("drops what it remembered when the frame opens another workbook", () => {
+        startExcelOnline(() => {});
+        paint(tile(), [cell("Paper", 20, 71), cell("10.1002/bdm.2178", 240, 71)]);
+        expect(excelOnlineText()).toContain("10.1002/bdm.2178");
+
+        history.replaceState(null, "", "/x/_layouts/xlviewerinternal.aspx?wopisrc=another-workbook");
+        document.body.innerHTML = "";
+        paint(tile(), [cell("Other", 20, 71), cell("10.1177/2515245918810225", 240, 71)]);
+
+        expect(excelWorkbookKey()).toBe("another-workbook");
+        expect(excelOnlineText(), "rows from the previous workbook are not this sheet's")
+            .not.toContain("10.1002/bdm.2178");
+        expect(excelOnlineText()).toContain("10.1177/2515245918810225");
+    });
+
     it("moves the revision on so a redraw retriggers the scan", () => {
         startExcelOnline(() => {});
         const before = excelContentRevision();
@@ -96,6 +113,5 @@ describe("what the Excel grid hands the scan", () => {
         paint(tile(), [cell("10.1002/bdm.2178", 240, 71)]);
         await vi.advanceTimersByTimeAsync(400);
         expect(onChange).toHaveBeenCalled();
-        vi.useRealTimers();
     });
 });

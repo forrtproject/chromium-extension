@@ -30,6 +30,18 @@ describe("DOIs loose on a page, outside an article or reference list", () => {
         expect(pills()[0].getAttribute("data-flora-doi")).toBe(LOOSE);
     });
 
+    it("sits beside the mention, not after the trailing prose", () => {
+        document.body.innerHTML = `<p>See ${LOOSE} for the replication.</p>`;
+        run(new Map([[LOOSE, "other"]]));
+        const pill = pills()[0];
+        expect(pill.previousSibling!.textContent!.endsWith(LOOSE)).toBe(true);
+        expect(pill.nextSibling!.textContent).toBe(" for the replication.");
+        const ownText = [...document.querySelector("p")!.childNodes]
+            .filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("");
+        expect(ownText, "the sentence itself must read exactly as before")
+            .toBe(`See ${LOOSE} for the replication.`);
+    });
+
     it("leaves article and reference DOIs to their own renderers", () => {
         document.body.innerHTML = `<p>See ${LOOSE} here.</p>`;
         expect(run(new Map([[LOOSE, "article"]]))).toBe(0);

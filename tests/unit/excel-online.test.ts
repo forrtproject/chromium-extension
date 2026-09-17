@@ -46,9 +46,12 @@ describe("reading the Excel grid back off the canvas", () => {
     });
 
     it("keeps neighbouring cells apart so they cannot fuse into a false DOI", () => {
-        const rows = excelRows([cell("10.1177", 20, 40), cell("2515245918810225", 200, 40)]);
-        expect(rows).toEqual(["10.1177 2515245918810225"]);
-        expect(extractDOIsFromText(rows.join("\n")), "a split pair is not a DOI").toEqual([]);
+        const rows = excelRows([cell("10.1177/", 20, 40), cell("2515245918810225", 200, 40)]);
+        expect(rows).toEqual(["10.1177/ 2515245918810225"]);
+        expect(extractDOIsFromText(rows.join("\n")), "two cells must not fuse into a DOI").toEqual([]);
+        expect(extractDOIsFromText("10.1177/" + "2515245918810225"),
+            "without the separator this fixture would read as a real DOI")
+            .toEqual(["10.1177/2515245918810225"]);
     });
 
     it("groups by painted line, not by exact pixel", () => {

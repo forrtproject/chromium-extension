@@ -43,15 +43,13 @@ export function reportBlocked(): void {
 
 export function reportInactive(): void {
     const mine = ++reportSeq;
-    void Promise.all([getSnooze(location.hostname), isDomainBlocked(location.hostname)])
-        .then(([until, blocked]) => {
+    void Promise.allSettled([getSnooze(location.hostname), isDomainBlocked(location.hostname)])
+        .then(([snooze, block]) => {
             if (mine !== reportSeq) return;
-            send(false, until, blocked);
+            const until = snooze.status === "fulfilled" ? snooze.value : null;
+            send(false, until, block.status === "fulfilled" && block.value);
             if (until !== null) scheduleBadgeClear(until);
             else cancelBadgeClear();
-        })
-        .catch(() => {
-            if (mine === reportSeq) send(false, null);
         });
 }
 

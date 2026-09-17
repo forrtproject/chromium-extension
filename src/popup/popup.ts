@@ -211,9 +211,11 @@ blockBtn.addEventListener("click", async () => {
   if (blocked) {
     const updated = domains.filter((d) => d !== currentDomain);
     await saveBlockedDomains(updated);
-    blocked = false;
+    blocked = await isDomainBlocked(currentDomain);
     reportSnoozeState(snoozedUntil);
-    showStatus(`Unblocked ${currentDomain} — reload to apply`, "success");
+    showStatus(blocked
+        ? `${currentDomain} is still covered by a blocked parent domain — edit it in Settings`
+        : `Unblocked ${currentDomain} — reload to apply`, blocked ? "error" : "success");
   } else {
     if (!domains.includes(currentDomain)) {
       domains.push(currentDomain);

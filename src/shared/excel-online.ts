@@ -13,9 +13,17 @@ interface Snapshot {width: number; height: number; runs: CanvasRun[]}
 
 const DOI_ROW = /10\.\d{4,}\//;
 
+export function excelWorkbookKey(url = location.href): string {
+    try {
+        const parsed = new URL(url);
+        return parsed.searchParams.get("wopisrc") ?? parsed.pathname;
+    } catch { return ""; }
+}
+
 const snapshots = new Map<HTMLCanvasElement, Snapshot>();
 const MAX_RETAINED_ROWS = 5000;
 const retained = new Set<string>();
+let retainedKey = "";
 let installed = false;
 let revision = 0;
 let textHandler: ((event: Event) => void) | null = null;
@@ -41,6 +49,12 @@ export function excelRows(runs: readonly CanvasRun[]): string[] {
 }
 
 function retain(rows: readonly string[]): void {
+    const key = excelWorkbookKey();
+    if (key !== retainedKey) {
+        retained.clear();
+        retainedKey = key;
+        revision++;
+    }
     for (const row of rows) {
         if (!DOI_ROW.test(row) || retained.has(row)) continue;
         if (retained.size >= MAX_RETAINED_ROWS) return;
@@ -53,7 +67,8 @@ export function excelOnlineText(): string {
     for (const [canvas, snapshot] of snapshots) {
         if (canvas.isConnected) runs.push(...snapshot.runs);
     }
-    return [...new Set([...excelRows(runs), ...retained])].join("\n");
+    const carried = excelWorkbookKey() === retainedKey ? retained : [];
+    return [...new Set([...excelRows(runs), ...carried])].join("\n");
 }
 
 export function excelRetainedRowCount(): number {
@@ -104,6 +119,7 @@ export function _resetExcelForTesting(): void {
     tileObserver = null;
     snapshots.clear();
     retained.clear();
+    retainedKey = "";
     installed = false;
     revision = 0;
 }
