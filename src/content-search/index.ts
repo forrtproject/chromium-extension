@@ -9,7 +9,7 @@ import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
 import {getSnooze, isDomainBlocked} from "@shared/domains";
-import {reportActiveState, reportInactive} from "@shared/active-state";
+import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 
 const SITE_STYLE_ID = "flora-search-site-style";
@@ -35,7 +35,7 @@ function injectSiteStyle(css: string): void {
 
         if (await isDomainBlocked(location.hostname)) {
             debugLog("Domain is blocked:", location.hostname);
-            reportActiveState(false);
+            reportBlocked();
             return;
         }
 

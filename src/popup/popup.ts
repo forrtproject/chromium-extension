@@ -83,7 +83,7 @@ function reportSnoozeState(until: number | null): void {
   if (activeTabId == null) return;
   try {
     chrome.runtime
-      .sendMessage({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: until, tabId: activeTabId})
+      .sendMessage({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: until, blocked, tabId: activeTabId})
       ?.catch(() => {});
   } catch {}
 }
@@ -212,6 +212,7 @@ blockBtn.addEventListener("click", async () => {
     const updated = domains.filter((d) => d !== currentDomain);
     await saveBlockedDomains(updated);
     blocked = false;
+    reportSnoozeState(snoozedUntil);
     showStatus(`Unblocked ${currentDomain} — reload to apply`, "success");
   } else {
     if (!domains.includes(currentDomain)) {
@@ -219,6 +220,7 @@ blockBtn.addEventListener("click", async () => {
       await saveBlockedDomains(domains);
     }
     blocked = true;
+    reportSnoozeState(null);
     const cleared = await tearDownFloraOnPage();
     if (cleared) {
       hidden = true;

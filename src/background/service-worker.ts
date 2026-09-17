@@ -49,19 +49,24 @@ chrome.storage.onChanged.addListener((changes, area) => {
 const ICONS = {
     active: { 16: "/dist/icons/maroon-16.png", 32: "/dist/icons/maroon-32.png" },
     inactive: { 16: "/dist/icons/gray-16.png", 32: "/dist/icons/gray-32.png" },
+    blocked: { 16: "/dist/icons/blocked-16.png", 32: "/dist/icons/blocked-32.png" },
 };
 
-function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null): void {
-    const snoozed = typeof snoozedUntil === "number";
-    chrome.action.setIcon({ tabId, path: active ? ICONS.active : ICONS.inactive }).catch(() => {});
+function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null, blocked = false): void {
+    const snoozed = !blocked && typeof snoozedUntil === "number";
+    const icon = blocked ? ICONS.blocked : active ? ICONS.active : ICONS.inactive;
+    chrome.action.setIcon({ tabId, path: icon }).catch(() => {});
     chrome.action.setTitle({
         tabId,
-        title: snoozed
+        title: blocked
+            ? "FORRT ORE — turned off on this domain"
+            : snoozed
             ? `FORRT ORE — snoozed here until ${formatSnoozeEnd(snoozedUntil as number)}`
             : active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
     }).catch(() => {});
-    chrome.action.setBadgeText?.({ tabId, text: snoozed ? "Zz" : "" })?.catch?.(() => {});
-    if (snoozed) {
+    const badge = snoozed ? "Zz" : "";
+    chrome.action.setBadgeText?.({ tabId, text: badge })?.catch?.(() => {});
+    if (badge) {
         chrome.action.setBadgeBackgroundColor?.({ tabId, color: "#853953" })?.catch?.(() => {});
     }
 }
@@ -112,10 +117,10 @@ chrome.runtime.onMessage.addListener(
             message !== null &&
             (message as { type?: string }).type === "FLORA_ACTIVE_STATE"
         ) {
-            const state = message as { active?: boolean; snoozedUntil?: number | null; tabId?: number };
+            const state = message as { active?: boolean; snoozedUntil?: number | null; tabId?: number; blocked?: boolean };
             const active = state.active === true;
             const tabId = sender.tab?.id ?? state.tabId;
-            if (tabId != null) setTabIcon(tabId, active, state.snoozedUntil);
+            if (tabId != null) setTabIcon(tabId, active, state.snoozedUntil, state.blocked === true);
             return false;
         }
 

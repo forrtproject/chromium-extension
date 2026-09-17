@@ -43,7 +43,7 @@ import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
 import {getSnooze, isDomainBlocked} from "@shared/domains";
-import {reportActiveState, reportInactive} from "@shared/active-state";
+import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
@@ -1179,7 +1179,7 @@ async function fetchSheetDois(): Promise<void> {
 
     if (await isDomainBlocked(location.hostname)) {
         debugLog("Domain is blocked:", location.hostname);
-        reportActiveState(false); // gray toolbar icon — disabled on this domain
+        reportBlocked();
         return;
     }
 
@@ -1187,7 +1187,7 @@ async function fetchSheetDois(): Promise<void> {
     // the Word iframe as well as the Office host used by its own controls.
     if (isWordOnline() && document.referrer) {
         const outerHost = new URL(document.referrer).hostname;
-        if (await isDomainBlocked(outerHost)) { reportActiveState(false); return; }
+        if (await isDomainBlocked(outerHost)) { reportBlocked(); return; }
         const outerSnooze = await getSnooze(outerHost);
         if (outerSnooze !== null) { reportActiveState(false, outerSnooze); return; }
     }

@@ -26,6 +26,26 @@ function draw(size: number, fill: string, letter: string): string {
     return c.toDataURL("image/png");`;
 }
 
+const PIP = 0.58;
+
+function drawBlocked(size: number): string {
+  const [fill, letter] = VARIANTS.gray;
+  const d = size * PIP, mid = size - d / 2, r = d / 2, inner = r - size * 0.045;
+  return `
+    ${draw(size, fill, letter).replace("return c.toDataURL(\"image/png\");", "")}
+    ctx.fillStyle = "${VARIANTS.maroon[0]}";
+    ctx.beginPath(); ctx.arc(${mid}, ${mid}, ${r}, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(${mid}, ${mid}, ${inner}, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "${VARIANTS.maroon[0]}";
+    ctx.lineWidth = ${Math.max(1.2, size * 0.09)}; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(${mid - inner * 0.6}, ${mid - inner * 0.6});
+    ctx.lineTo(${mid + inner * 0.6}, ${mid + inner * 0.6});
+    ctx.stroke();
+    return c.toDataURL("image/png");`;
+}
+
 const platform = detectBrowserPlatform()!;
 const cacheDir = path.join(os.homedir(), ".cache", "puppeteer");
 const buildId = await resolveBuildId(BrowserName.CHROME, platform, "stable");
@@ -34,9 +54,14 @@ if (!existsSync(executablePath)) await install({ browser: BrowserName.CHROME, bu
 
 const browser = await puppeteer.launch({ executablePath, headless: true });
 const page = await browser.newPage();
-for (const [name, [fill, letter]] of Object.entries(VARIANTS)) {
+const jobs: [string, (size: number) => string][] = [
+  ...Object.entries(VARIANTS).map(([name, [fill, letter]]) =>
+    [name, (size: number) => draw(size, fill, letter)] as [string, (size: number) => string]),
+  ["blocked", drawBlocked],
+];
+for (const [name, body] of jobs) {
   for (const size of SIZES) {
-    const dataUrl: string = await page.evaluate(new Function(draw(size, fill, letter)) as () => string);
+    const dataUrl: string = await page.evaluate(new Function(body(size)) as () => string);
     const file = path.join("assets", "icons", `${name}-${size}.png`);
     writeFileSync(file, Buffer.from(dataUrl.split(",")[1], "base64"));
     console.log("wrote", file);
