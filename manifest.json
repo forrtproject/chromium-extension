@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "FORRT ORE — Open Research Extension",
+  "name": "FORRT ORE \u2014 Open Research Extension",
   "short_name": "FORRT ORE",
-  "version": "0.1.2.3",
+  "version": "0.1.2.4",
   "description": "Shows replication evidence, retractions, PubPeer comments and open-access copies for the papers on any page you read.",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -54,10 +54,22 @@
     },
     {
       "matches": [
+        "https://*.officeapps.live.com/x/_layouts/*"
+      ],
+      "js": [
+        "dist/content-excel.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
         "<all_urls>"
       ],
       "exclude_matches": [
         "https://*.officeapps.live.com/we/wordeditorframe.aspx*",
+        "https://*.officeapps.live.com/x/_layouts/*",
         "*://scholar.google.com/*",
         "*://scholar.google.co.uk/*",
         "*://scholar.google.co.in/*",
@@ -104,6 +116,16 @@
     {
       "matches": [
         "https://*.officeapps.live.com/we/wordeditorframe.aspx*"
+      ],
+      "js": [
+        "dist/content-general.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.officeapps.live.com/x/_layouts/*"
       ],
       "js": [
         "dist/content-general.js"
