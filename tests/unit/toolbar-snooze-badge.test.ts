@@ -81,6 +81,35 @@ describe("the toolbar shows a snoozed site differently from an inactive one", ()
         expect(badge.at(-1)!.text, "this is the bug the content script must avoid").toBe("");
     });
 
+    it("marks a blocked domain with the disabled icon, not a badge", async () => {
+        await deliver({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: null, blocked: true}, 21);
+
+        expect(icon.at(-1)!.path, "the disabled mark rides on the icon itself")
+            .toEqual({16: "/dist/icons/blocked-16.png", 32: "/dist/icons/blocked-32.png"});
+        expect(title.at(-1)!.title).toBe("FORRT ORE — turned off on this domain");
+        expect(badge.at(-1), "the icon already says it, so no text badge on top")
+            .toEqual({tabId: 21, text: ""});
+    });
+
+    it("shows blocked, not snoozed, when a blocked domain still carries a pause", async () => {
+        await deliver({type: "FLORA_ACTIVE_STATE", active: false,
+                       snoozedUntil: Date.now() + 3_600_000, blocked: true}, 22);
+
+        expect(icon.at(-1)!.path, "the pause is moot while the site is off")
+            .toEqual({16: "/dist/icons/blocked-16.png", 32: "/dist/icons/blocked-32.png"});
+        expect(badge.at(-1)!.text, "no Zz over a blocked icon").toBe("");
+        expect(title.at(-1)!.title).not.toContain("snoozed");
+    });
+
+    it("returns to the plain gray icon once the domain is allowed again", async () => {
+        await deliver({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: null, blocked: true}, 23);
+        await deliver({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: null, blocked: false}, 23);
+
+        expect(icon.map((i) => i.path[16]))
+            .toEqual(["/dist/icons/blocked-16.png", "/dist/icons/gray-16.png"]);
+        expect(title.at(-1)!.title).toBe("FORRT ORE — inactive on this page");
+    });
+
     it("accepts the tab id from the popup, which has no sender.tab", async () => {
         await deliver({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: Date.now() + 60_000, tabId: 11});
 

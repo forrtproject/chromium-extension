@@ -111,6 +111,13 @@ export async function fetchOpenAccess(doi: string): Promise<OpenAccessStatus | n
     return request;
 }
 
+async function unpaywallReason(resp: Response): Promise<string | null> {
+    try {
+        const body = (await resp.clone().json()) as {message?: unknown};
+        return typeof body.message === "string" ? body.message : null;
+    } catch { return null; }
+}
+
 async function requestOpenAccess(doi: string, email: string, signal?: AbortSignal): Promise<OpenAccessStatus | null> {
     try {
         const resp = await UNPAYWALL_GATE.fetch(
@@ -121,7 +128,12 @@ async function requestOpenAccess(doi: string, email: string, signal?: AbortSigna
             void OA_CACHE.set(doi, status);
             return status;
         }
-        if (!resp.ok) return null;
+        if (!resp.ok) {
+            const reason = resp.status === 422 ? await unpaywallReason(resp) : null;
+            debugWarn(`Open access: Unpaywall returned ${resp.status} for ${doi}`,
+                reason ? `— ${reason}` : "— no detail given");
+            return null;
+        }
         const data = (await resp.json()) as {
             is_oa?: boolean;
             best_oa_location?: UnpaywallLocation | null;

@@ -43,7 +43,7 @@ import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
 import {getSnooze, isDomainBlocked} from "@shared/domains";
-import {reportActiveState, reportInactive} from "@shared/active-state";
+import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
@@ -59,6 +59,8 @@ import {waitUntilVisible} from "@shared/page-visibility";
 import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
+import {isExcelOnline, startExcelOnline, excelOnlineText, excelWorkbookKey, excelContentRevision} from "@shared/excel-online";
+import {injectLooseDoiPills, resetLooseDoiPills} from "./loose-dois";
 
 const pageState = new Map<DoiString, LookupState>();
 // Retraction notices for the page: `pageNotices` is replaced by each check of
@@ -107,7 +109,9 @@ const dismissedSheets = new Set<string>();
 // Timestamp until which all Sheets modals are snoozed.
 let snoozeUntil = 0;
 // Google sheets match condition
-const isSheets = location.href.includes("docs.google.com/spreadsheets");
+const isExcel = isExcelOnline();
+const isGoogleSheets = location.href.includes("docs.google.com/spreadsheets");
+const isSheets = isGoogleSheets || isExcel;
 // Track whether the popup has hidden FLoRA UI on this page (session only)
 let floraHidden = false;
 
@@ -357,7 +361,7 @@ let lastPageEntryKey = pageNavigation?.currentEntry?.key;
 function syncPageNavigation(): void {
     const entryKey = pageNavigation?.currentEntry?.key;
     // A sheet export belongs to its spreadsheet/tab, regardless of selection or history entry.
-    if (isSheets && sheetTabKey(parseSheetsUrl(lastUrl)) === currentSheetKey()) {
+    if (isGoogleSheets && sheetTabKey(parseSheetsUrl(lastUrl)) === currentSheetKey()) {
         lastUrl = location.href;
         lastPageEntryKey = entryKey;
         return;
@@ -390,6 +394,7 @@ function syncPageNavigation(): void {
     resetRetractionPills();
     removeIndicatorPills();
     resetReferenceMarkers();
+    resetLooseDoiPills();
     if (isSheets) {
         removeSheetsModal();
     } else {
@@ -404,7 +409,10 @@ async function runScanPass(): Promise<void> {
     const scanPageGeneration = pageGeneration;
     const sheetGeneration = sheetFetchGen;
     const sheetIdentity = isSheets ? currentSheetKey() : null;
-    const pageChanged = () => scanPageGeneration !== pageGeneration || (isSheets && (sheetGeneration !== sheetFetchGen || sheetIdentity !== currentSheetKey()));
+    const gridRevision = isExcel ? excelContentRevision() : 0;
+    const pageChanged = () => scanPageGeneration !== pageGeneration
+        || (isSheets && (sheetGeneration !== sheetFetchGen || sheetIdentity !== currentSheetKey()))
+        || (isExcel && gridRevision !== excelContentRevision());
     // Fresh DOM scan pass — resets the per-pass findReferenceContainers memo.
     beginDomScanPass();
     reportWorkStage("scan", "Scanning this page for DOIs…");
@@ -430,8 +438,9 @@ async function runScanPass(): Promise<void> {
     let classified: ClassifiedDois | null = null;
     if (isSheets) {
         dois = extractDOIs(document);
-        if (sheetCsvDois.length > 0) {
-            dois = [...new Set([...dois, ...sheetCsvDois])];
+        const fromGrid = isExcel ? extractDOIsFromText(excelOnlineText()) : sheetCsvDois;
+        if (fromGrid.length > 0) {
+            dois = [...new Set([...dois, ...fromGrid])];
         }
     } else {
         classified = classifyPageDois(document);
@@ -445,10 +454,12 @@ async function runScanPass(): Promise<void> {
     seenDois.mark(dois);
 
     // Populate per-DOI context only when the set changed (idempotent map sets).
-    if (classified && hasDoiChange) {
+    if (classified) {
         for (const doi of classified.articleDois) doiContext.set(doi, "article");
         for (const doi of classified.referenceDois) doiContext.set(doi, "reference");
         for (const doi of classified.otherDois) doiContext.set(doi, "other");
+    }
+    if (classified && hasDoiChange) {
         debugLog("General: pageType =", classified.pageType);
         debugLog(classified.articleDois, "article DOIs,", classified.referenceDois, "reference DOIs,", classified.otherDois, "other DOIs");
     }
@@ -483,8 +494,9 @@ async function runScanPass(): Promise<void> {
 
     // Drop occurrences inside FLoRA's own UI so we don't pill our own panel rows.
     const FLORA_UI_IDS = ["flora-pubpeer-panel", "flora-banner-host", "flora-setup-prompt", "flora-sheets-modal"];
+    const validDois = new Set(dois);
     const pageOccurrences = occurrences.filter(
-        (occ) => !FLORA_UI_IDS.some((id) => occ.anchor.closest(`#${id}`) !== null)
+        (occ) => validDois.has(occ.doi) && !FLORA_UI_IDS.some((id) => occ.anchor.closest(`#${id}`) !== null)
     );
 
     // Retraction check for the page's own DOIs. Reference resolution (title
@@ -517,6 +529,14 @@ async function runScanPass(): Promise<void> {
             new Map(redacts.map((r) => [r.originDoi, r] as const)),
         );
     }
+    if (!isSheets) {
+        injectLooseDoiPills({
+            occurrences: pageOccurrences,
+            context: doiContext,
+            pageState,
+            noticed: new Set(redacts.map((r) => r.originDoi)),
+        });
+    }
     const refsDone = finishReferences(refsPromise);
 
     // Filter out already-processed DOIs
@@ -539,6 +559,12 @@ async function runScanPass(): Promise<void> {
         // (triggered by that mutation) would otherwise return without restoring them.
         if (!isSheets) placeTitleIndicatorPill();
         if (!isSheets) placeTitleNoticePill();
+        if (!isSheets) injectLooseDoiPills({
+            occurrences: pageOccurrences,
+            context: doiContext,
+            pageState,
+            noticed: new Set(redacts.map((r) => r.originDoi)),
+        });
         if (!isSheets) repaintBadges();
         if (!isSheets) void checkPubPeer(refsDone);
         return;
@@ -648,6 +674,12 @@ async function runScanPass(): Promise<void> {
             // Merged indicator pills (skip on Google Sheets — modal only).
             if (!isSheets) {
                 placeTitleIndicatorPill();
+                injectLooseDoiPills({
+                    occurrences: pageOccurrences,
+                    context: doiContext,
+                    pageState,
+                    noticed: new Set(redacts.map((r) => r.originDoi)),
+                });
                 repaintBadges();
                 const flagged = matched.length > 0 || redacts.length > 0;
                 if (refsPending > 0) {
@@ -1080,7 +1112,7 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
 }
 
 function currentSheetKey(): string {
-    return sheetTabKey(parseSheetsUrl(location.href));
+    return isExcel ? excelWorkbookKey() : sheetTabKey(parseSheetsUrl(location.href));
 }
 
 function isSheetsModalSuppressed(): boolean {
@@ -1101,6 +1133,8 @@ const sheetsModalCallbacks: SheetsModalCallbacks = {
 };
 
 const SHEET_UNAVAILABLE = "Full sheet unavailable — only visible cells could be checked.";
+const EXCEL_VISIBLE_ONLY =
+    "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.";
 
 /** Fetch the active tab in full, falling back to visible cells if export fails. */
 async function fetchSheetDois(): Promise<void> {
@@ -1153,7 +1187,7 @@ async function fetchSheetDois(): Promise<void> {
 (async () => {
   let editorAllowed = false;
   try {
-    if (window !== window.top && !isWordOnline()) return;
+    if (window !== window.top && !isWordOnline() && !isExcel) return;
     installErrorReporting();
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
@@ -1179,15 +1213,15 @@ async function fetchSheetDois(): Promise<void> {
 
     if (await isDomainBlocked(location.hostname)) {
         debugLog("Domain is blocked:", location.hostname);
-        reportActiveState(false); // gray toolbar icon — disabled on this domain
+        reportBlocked();
         return;
     }
 
     // The popup pauses/blocks the outer SharePoint site. Respect that host in
     // the Word iframe as well as the Office host used by its own controls.
-    if (isWordOnline() && document.referrer) {
+    if ((isWordOnline() || isExcel) && document.referrer) {
         const outerHost = new URL(document.referrer).hostname;
-        if (await isDomainBlocked(outerHost)) { reportActiveState(false); return; }
+        if (await isDomainBlocked(outerHost)) { reportBlocked(); return; }
         const outerSnooze = await getSnooze(outerHost);
         if (outerSnooze !== null) { reportActiveState(false, outerSnooze); return; }
     }
@@ -1210,7 +1244,17 @@ async function fetchSheetDois(): Promise<void> {
             if (document.hidden || floraHidden || !canStartAutomaticWork()) return;
             void scanWholePage().catch(err => debugError("Google Docs: scan failed —", err));
         });
-        if (isSheets) {
+        if (isExcel) {
+            let toldAboutScrolling = false;
+            startExcelOnline(() => {
+                if (document.hidden || floraHidden || !canStartAutomaticWork()) return;
+                if (!toldAboutScrolling) {
+                    toldAboutScrolling = true;
+                    showToast(EXCEL_VISIBLE_ONLY);
+                }
+                void scanWholePage().catch(err => debugError("Excel: scan failed —", err));
+            });
+        } else if (isSheets) {
             // Fetch full sheet data via CSV export to get all DOIs regardless of scroll
             fetchSheetDois();
             // Poll for sheet tab switches — Sheets uses replaceState (no popstate).
@@ -1279,5 +1323,6 @@ async function fetchSheetDois(): Promise<void> {
     reportActiveState(false);
   } finally {
     if (!editorAllowed && isGoogleDocs()) document.dispatchEvent(new Event("flora-docs-stop-capture"));
+    if (!editorAllowed && isExcel) document.dispatchEvent(new Event("flora-excel-stop-capture"));
   }
 })();

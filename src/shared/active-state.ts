@@ -1,13 +1,13 @@
-import {getSnooze} from "./domains";
+import {getSnooze, isDomainBlocked} from "./domains";
 
 const MAX_TIMER_MS = 2_147_483_647;
 
 let reportSeq = 0;
 let badgeTimer: ReturnType<typeof setTimeout> | null = null;
 
-function send(active: boolean, snoozedUntil: number | null): void {
+function send(active: boolean, snoozedUntil: number | null, blocked = false): void {
     try {
-        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active, snoozedUntil})?.catch(() => {});
+        chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active, snoozedUntil, blocked})?.catch(() => {});
     } catch {}
 }
 
@@ -24,30 +24,32 @@ function scheduleBadgeClear(until: number): void {
         badgeTimer = null;
         void getSnooze(location.hostname)
             .then((still) => {
-                if (still === null) reportActiveState(false);
+                if (still === null) reportInactive();
             })
             .catch(() => {});
     }, wait);
 }
 
-export function reportActiveState(active: boolean, snoozedUntil: number | null = null): void {
+export function reportActiveState(active: boolean, snoozedUntil: number | null = null, blocked = false): void {
     reportSeq++;
-    send(active, snoozedUntil);
+    send(active, snoozedUntil, blocked);
     if (snoozedUntil !== null) scheduleBadgeClear(snoozedUntil);
     else cancelBadgeClear();
 }
 
+export function reportBlocked(): void {
+    reportActiveState(false, null, true);
+}
+
 export function reportInactive(): void {
     const mine = ++reportSeq;
-    void getSnooze(location.hostname)
-        .then((until) => {
+    void Promise.allSettled([getSnooze(location.hostname), isDomainBlocked(location.hostname)])
+        .then(([snooze, block]) => {
             if (mine !== reportSeq) return;
-            send(false, until);
+            const until = snooze.status === "fulfilled" ? snooze.value : null;
+            send(false, until, block.status === "fulfilled" && block.value);
             if (until !== null) scheduleBadgeClear(until);
             else cancelBadgeClear();
-        })
-        .catch(() => {
-            if (mine === reportSeq) send(false, null);
         });
 }
 

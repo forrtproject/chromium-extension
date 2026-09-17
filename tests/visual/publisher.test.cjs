@@ -195,9 +195,12 @@ test('visual publication policy', async t => {
     const setupOnly = await scenario({files:[{filename:'tests/visual/run.ts',status:'modified'}]});
     assert.equal(setupOnly.state,'pending');
     assert.match(setupOnly.body,/Download visual report.*actions\/runs\/123\/artifacts\/1/);
-    for (const filename of ['tsconfig.json', 'tsconfig.visual.json', '.npmrc', 'scripts/docs-screenshots.ts']) {
+    for (const filename of ['tsconfig.json', 'tsconfig.visual.json', '.npmrc', 'scripts/docs-screenshots.ts', 'scripts/make-icons.ts']) {
       assert.equal((await scenario({files:[{filename,status:'modified'}]})).state,'pending');
     }
+    const icon = await scenario({files:[{filename:'assets/icons/blocked-16.png',status:'modified'}]});
+    assert.equal(icon.state,'pending');
+    assert.match(icon.body,/raw.githubusercontent.com/);
     const setupFrom = evidence({screenshotRequired:false,setupRequired:true});
     const setupTo = evidence({screenshotRequired:false,setupRequired:true,setup:true});
     assert.equal((await scenario({files:[{filename:'package.json',status:'modified'}],edited:edit(setupFrom,setupTo)})).state,'success');

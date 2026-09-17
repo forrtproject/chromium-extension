@@ -1,6 +1,9 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from "vitest";
 
-const snooze = vi.hoisted(() => ({getSnooze: vi.fn(async () => null as number | null)}));
+const snooze = vi.hoisted(() => ({
+    getSnooze: vi.fn(async () => null as number | null),
+    isDomainBlocked: vi.fn(async () => false),
+}));
 vi.mock("../../src/shared/domains", () => snooze);
 
 import {
@@ -9,7 +12,7 @@ import {
     _resetActiveStateForTesting,
 } from "../../src/shared/active-state";
 
-type State = {type?: string; active?: boolean; snoozedUntil?: number | null};
+type State = {type?: string; active?: boolean; snoozedUntil?: number | null; blocked?: boolean};
 
 function sent(): State[] {
     return (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mock.calls
@@ -22,6 +25,7 @@ describe("what the toolbar is told about this tab", () => {
         vi.useFakeTimers();
         _resetActiveStateForTesting();
         snooze.getSnooze.mockReset().mockResolvedValue(null);
+        snooze.isDomainBlocked.mockReset().mockResolvedValue(false);
         (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockReset().mockResolvedValue(undefined);
     });
 
@@ -87,6 +91,38 @@ describe("what the toolbar is told about this tab", () => {
 
         expect(sent().at(-1), "the stale timer must not report over an active tab")
             .toMatchObject({active: true});
+    });
+
+    it("still says blocked when the popup tears the page down", async () => {
+        snooze.isDomainBlocked.mockResolvedValue(true);
+
+        reportInactive();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(sent().at(-1), "the teardown must not wipe the blocked badge")
+            .toMatchObject({active: false, blocked: true});
+    });
+
+    it("keeps a confirmed block even when the snooze read fails", async () => {
+        snooze.getSnooze.mockRejectedValue(new Error("storage unavailable"));
+        snooze.isDomainBlocked.mockResolvedValue(true);
+
+        reportInactive();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(sent().at(-1), "one failed read must not un-block the toolbar")
+            .toMatchObject({active: false, blocked: true, snoozedUntil: null});
+    });
+
+    it("still reports when the block read is the one that fails", async () => {
+        const until = Date.now() + 60_000;
+        snooze.getSnooze.mockResolvedValue(until);
+        snooze.isDomainBlocked.mockRejectedValue(new Error("storage unavailable"));
+
+        reportInactive();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(sent().at(-1)).toMatchObject({active: false, blocked: false, snoozedUntil: until});
     });
 
     it("leaves the badge alone if the pause was extended meanwhile", async () => {

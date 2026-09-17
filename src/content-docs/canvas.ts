@@ -10,9 +10,27 @@ export interface CanvasRun {
 }
 export const DOCS_TEXT_EVENT = "flora-docs-rendered-text";
 export const DOCS_REQUEST_EVENT = "flora-docs-request-text";
-const TILE = "canvas.kix-canvas-tile-content";
+export const EXCEL_TEXT_EVENT = "flora-excel-rendered-text";
+export const EXCEL_REQUEST_EVENT = "flora-excel-request-text";
+const DOCS_TILE = "canvas.kix-canvas-tile-content";
 const MAX_RUNS = 4000;
+
+export interface CanvasCaptureOptions {
+    tile: string;
+    textEvent: string;
+    requestEvent: string;
+    label: string;
+}
+
 export function installDocsCanvasCapture(): () => void {
+    return installCanvasCapture({
+        tile: DOCS_TILE, textEvent: DOCS_TEXT_EVENT, requestEvent: DOCS_REQUEST_EVENT,
+        label: "Google Docs",
+    });
+}
+
+export function installCanvasCapture(options: CanvasCaptureOptions): () => void {
+    const TILE = options.tile;
     const snapshots = new WeakMap<HTMLCanvasElement, CanvasRun[]>();
     const timers = new Map<HTMLCanvasElement, ReturnType<typeof setTimeout>>();
     let active = true;
@@ -24,7 +42,7 @@ export function installDocsCanvasCapture(): () => void {
         timers.delete(canvas);
         if (!active || !canvas.isConnected || !canvas.matches(TILE))
             return;
-        canvas.dispatchEvent(new CustomEvent(DOCS_TEXT_EVENT, { bubbles: true, detail: JSON.stringify({
+        canvas.dispatchEvent(new CustomEvent(options.textEvent, { bubbles: true, detail: JSON.stringify({
                 width: canvas.width, height: canvas.height, runs: snapshots.get(canvas) ?? [],
             }) }));
     };
@@ -161,10 +179,10 @@ export function installDocsCanvasCapture(): () => void {
         for (const canvas of document.querySelectorAll<HTMLCanvasElement>(TILE)) publish(canvas);
     };
     const onRequest = () => {
-        console.debug('[FLoRA] Google Docs canvas bridge ready; replaying visible tiles');
+        console.debug(`[FLoRA] ${options.label} canvas bridge ready; replaying visible tiles`);
         replay();
     };
-    document.addEventListener(DOCS_REQUEST_EVENT, onRequest);
+    document.addEventListener(options.requestEvent, onRequest);
     const observer = new MutationObserver(records => {
         // A canvas may acquire its tile class or join the document after drawing.
         if (records.some(record => record.type === 'attributes' || Array.from(record.addedNodes).some(node =>
@@ -183,7 +201,7 @@ export function installDocsCanvasCapture(): () => void {
         active = false;
         for (const undo of restore) undo();
         observer.disconnect();
-        document.removeEventListener(DOCS_REQUEST_EVENT, onRequest);
+        document.removeEventListener(options.requestEvent, onRequest);
         for (const timer of timers.values()) clearTimeout(timer);
         timers.clear();
     };
