@@ -1,11 +1,15 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { createDoiSet, lookupDOIs } from "../../src/shared/flora-api";
 import { doi, mockResult, mockEntry } from "../helpers";
+import { setDebug, recentDebugEntries, _resetDebugForTesting } from "../../src/shared/debug";
 
 const API_URL = "https://rep-api.forrt.org/v1/original-lookup";
 const SETS_URL = "https://rep-api.forrt.org/v1/sets";
+
+// Row id, then the AES key the set was encrypted with — the shape the server hands back.
+const SET_TOKEN = "d7dbaac1.hT9v1RkQ0s_bXm4pE7ZLn2yWgC8jUdA6oIvF3rKqNxM";
 
 const server = setupServer();
 
@@ -181,14 +185,49 @@ describe("createDoiSet", () => {
     server.use(
       http.post(SETS_URL, async ({ request }) => {
         body = await request.json();
-        return HttpResponse.json({ id: "d7dbaac1", count: 2 });
+        return HttpResponse.json({ id: SET_TOKEN, count: 2 });
       })
     );
 
     const setId = await createDoiSet([doi("10.1038/a"), doi("10.1038/b")]);
 
-    expect(setId).toBe("d7dbaac1");
+    expect(setId).toBe(SET_TOKEN);
     expect(body).toEqual({ dois: ["10.1038/a", "10.1038/b"] });
+  });
+
+  it("keeps the key half out of the debug log", async () => {
+    const logged: unknown[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((...args) => {
+      logged.push(...args);
+    });
+    setDebug(true);
+    server.use(http.post(SETS_URL, () => HttpResponse.json({ id: SET_TOKEN, count: 1 })));
+
+    await createDoiSet([doi("10.1038/a")]);
+
+    const transcript = logged.map(String).join(" ");
+    const reported = recentDebugEntries().map((e) => e.msg).join(" ");
+    spy.mockRestore();
+    _resetDebugForTesting();
+
+    // The line has to have been written, or the assertion below proves nothing.
+    expect(transcript).toContain("Created DOI set d7dbaac1");
+    expect(transcript).not.toContain(SET_TOKEN.split(".")[1]);
+    expect(reported).not.toContain(SET_TOKEN.split(".")[1]);
+  });
+
+  it("returns null for a token that lost its key half in transit", async () => {
+    server.use(http.post(SETS_URL, () => HttpResponse.json({ id: "d7dbaac1", count: 1 })));
+
+    expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
+  });
+
+  it("returns null for a token whose key is the wrong length", async () => {
+    server.use(
+      http.post(SETS_URL, () => HttpResponse.json({ id: "d7dbaac1.tooshort", count: 1 }))
+    );
+
+    expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
   });
 
   it("returns null without calling the API for an empty list", async () => {

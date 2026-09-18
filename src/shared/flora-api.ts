@@ -10,9 +10,16 @@ const ResponseEnvelopeSchema = z.object({
   results: z.record(z.string(), z.unknown()),
 });
 
+// `<row id>.<key>` — the second half is the AES key the server encrypted the set with and
+// never keeps, so a token that arrives truncated can never be resolved and is not worth a link.
+const SET_TOKEN = /^[0-9a-f]{8}\.[A-Za-z0-9_-]{43}$/;
+
 const SetSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().regex(SET_TOKEN),
 });
+
+/** The addressable half of a set token, safe to log — the key half is not. */
+const setRowId = (token: string) => token.slice(0, token.indexOf("."));
 
 const API_BASE = "https://rep-api.forrt.org";
 const BATCH_SIZE = 50;
@@ -76,7 +83,7 @@ export async function createDoiSet(dois: DoiString[], signal?: AbortSignal): Pro
     }
 
     const { id } = SetSchema.parse(await response.json());
-    debugLog(`Created DOI set ${id} for ${dois.length} DOIs`);
+    debugLog(`Created DOI set ${setRowId(id)} for ${dois.length} DOIs`);
     return id;
   } catch (err) {
     debugError(`Could not create a DOI set for ${dois.length} DOIs:`, err);

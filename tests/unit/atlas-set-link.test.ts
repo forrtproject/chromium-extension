@@ -3,6 +3,10 @@ import { atlasDoiUrl, bindAtlasLink, needsAtlasSet } from "../../src/shared/flor
 import { doi } from "../helpers";
 import type { DoiString } from "../../src/shared/types";
 
+// A real set token: the key half rides in the URL, and every character in it is
+// URL-unreserved, so the link must carry it through without percent-encoding.
+const SET_TOKEN = "d7dbaac1.hT9v1RkQ0s_bXm4pE7ZLn2yWgC8jUdA6oIvF3rKqNxM";
+
 function dois(count: number, tag: string): DoiString[] {
     return Array.from({ length: count }, (_, i) => doi(`10.1234/journal.${tag}.article.${i}`));
 }
@@ -23,7 +27,7 @@ describe("atlas links for long DOI lists", () => {
         vi.mocked(chrome.runtime.sendMessage).mockReset();
         vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
             type: "FLORA_CREATE_SET_RESULT",
-            setId: "abc123",
+            setId: SET_TOKEN,
         });
     });
 
@@ -54,7 +58,7 @@ describe("atlas links for long DOI lists", () => {
         });
 
         await flush();
-        expect(el.href).toBe("https://forrt.org/flora-replication-atlas/?set=abc123");
+        expect(el.href).toBe(`https://forrt.org/flora-replication-atlas/?set=${SET_TOKEN}`);
     });
 
     it("creates one set for a list rendered twice", async () => {
@@ -95,7 +99,7 @@ describe("atlas links for long DOI lists", () => {
         bindAtlasLink(el, many);
         await flush();
 
-        expect(el.href).toBe("https://forrt.org/flora-replication-atlas/?set=abc123");
+        expect(el.href).toBe(`https://forrt.org/flora-replication-atlas/?set=${SET_TOKEN}`);
     });
 
     it("reserves a tab on a click made before the set id arrives, then navigates it", async () => {
@@ -117,11 +121,11 @@ describe("atlas links for long DOI lists", () => {
         expect(reserved.opener).toBeNull();
         expect(reserved.location.replace).not.toHaveBeenCalled();
 
-        release({ type: "FLORA_CREATE_SET_RESULT", setId: "abc123" });
+        release({ type: "FLORA_CREATE_SET_RESULT", setId: SET_TOKEN });
         await flush();
 
         expect(reserved.location.replace).toHaveBeenCalledWith(
-            "https://forrt.org/flora-replication-atlas/?set=abc123"
+            `https://forrt.org/flora-replication-atlas/?set=${SET_TOKEN}`
         );
     });
 
