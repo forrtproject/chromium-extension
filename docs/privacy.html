@@ -178,7 +178,7 @@
         <tbody>
           <tr>
             <td>FORRT replication API (<code>rep-api.forrt.org</code>)</td>
-            <td>DOIs, in batches; DOI lists for long Atlas links</td>
+            <td>DOIs, in batches; DOI lists for long Atlas links, encrypted before they are stored</td>
             <td>Replication and reproduction records; storing DOI sets referenced by a shorter Atlas link</td>
           </tr>
           <tr>
@@ -292,8 +292,12 @@
           <strong>FORRT API requests</strong> retrieve evidence for the submitted
           DOIs. DOI sets created for long Atlas links are stored by FORRT so
           those links can retrieve the list later; they are separate from the
-          lookup cache on your device. Clearing extension storage does not
-          delete a server-side DOI set.
+          lookup cache on your device. Each set is encrypted before it is stored,
+          under a key generated for that set alone and kept only inside the Atlas
+          link — FORRT does not hold the key and cannot read the DOI list back
+          from its own database. Anyone you give the link to can, so treat it as
+          you would the list itself. Sets are deleted automatically 30 days after
+          they are created; clearing extension storage does not delete one early.
         </li>
         <li>
           <strong>Third-party services</strong> (Crossref, OpenAlex, Unpaywall,

@@ -1,6 +1,9 @@
-/** Strip API contact parameters and email addresses from diagnostic text. */
+/** Strip API contact parameters, email addresses, and DOI-set keys from diagnostic text. */
 export function redactDebugText(text: string): string {
   return text
+    // A set token is `<row id>.<AES key>` and a report is meant to be pasted in public.
+    // The id stays so a set can still be traced; the key half is what reads the DOI list.
+    .replace(/([0-9a-f]{8})\.[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, "$1.[redacted key]")
     .replace(/([?&](?:mailto|email)=)[^&#\s"'<>]*/gi, "$1[redacted]")
     // Reports can contain URLs that were themselves encoded into another URL.
     .replace(/((?:%3f|%26)(?:mailto|email)%3d)(?:(?!%26|%23)[^\s"'<>])*/gi, "$1[redacted]")
