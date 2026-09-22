@@ -168,6 +168,7 @@ let renderFrame: number | null = null;
 let progress = 0;
 let labelText = DEFAULT_LABEL;
 let suppressed = false;
+// Set by × and the site pause; only a page change (resetWorkSummary) lifts it.
 let dismissed = false;
 let expanded = false;
 let cancelled = false;
@@ -355,7 +356,6 @@ function buildFooter(): HTMLElement {
     cancel.addEventListener("click", () => {
         cancelled = true;
         cancelWork();
-        dismissed = true;
         clearTimers();
         removeToast();
     });
@@ -611,7 +611,7 @@ function dropToastBuiltForOtherDebugState(): void {
 }
 
 function renderNow(): void {
-    if (suppressed || dismissed) return;
+    if (suppressed || dismissed || cancelled) return;
     if (refCount === 0 && !finished) return;
     // An immediate stage update supersedes any deferred item update.
     cancelQueuedRender();
@@ -641,7 +641,7 @@ function queueRender(): void {
 
 /** Update now if requested; item bursts can defer to the next animation frame. */
 function render(immediate = true): void {
-    if (suppressed || dismissed) return;
+    if (suppressed || dismissed || cancelled) return;
     if (refCount === 0 && !finished) return;
     if (document.getElementById(WORK_TOAST_ID)) {
         if (immediate) renderNow();
@@ -705,7 +705,6 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         if (finished && host) setRunningControls(host, true);
         progress = 0;
         labelText = DEFAULT_LABEL;
-        dismissed = false;
         cancelled = false;
         expanded = false;
         finished = false;
@@ -817,13 +816,12 @@ export function endWorkIndicator(): void {
     debugLog(`Work: pass done in ${Math.round(now() - passStartedAt)} ms (${breakdown})`);
 
     clearTimers(); // a pass that finished before the toast appeared stays silent
-    const wasDismissed = dismissed;
-    dismissed = false;
+    const hidden = dismissed || cancelled;
     cancelled = false;
 
     const invalidated = summaryInvalidated;
     summaryInvalidated = false;
-    if (isDebugEnabled() && !wasDismissed && !suppressed && !invalidated) {
+    if (isDebugEnabled() && !hidden && !suppressed && !invalidated) {
         const stagesLeft = stages.filter((entry) => entry.startedAt === undefined);
         const quiet = stagesLeft.length ? QUIET_WITH_STAGES_LEFT_MS : QUIET_BEFORE_DONE_MS;
         if (stagesLeft.length) {
@@ -852,6 +850,7 @@ export function endWorkIndicator(): void {
 
 export function resetWorkSummary(): void {
     pageStartedAt = null;
+    dismissed = false;
     if (finishTimer) {
         clearTimeout(finishTimer);
         finishTimer = null;
