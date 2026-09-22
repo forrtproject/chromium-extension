@@ -12,6 +12,7 @@ describe("pageUrl", () => {
         [`${A}#/results/2`, `${A}#/results/2`],
         [`${A}#!/results/2`, `${A}#!/results/2`],
         ["https://docs.google.com/spreadsheets/d/abc/edit#gid=7&range=A1", "https://docs.google.com/spreadsheets/d/abc/edit#gid=7"],
+        [`${A}#gid=2`, A],
     ])("%s → %s", (href, expected) => {
         expect(pageUrl(href)).toBe(expected);
     });

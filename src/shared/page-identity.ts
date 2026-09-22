@@ -1,19 +1,22 @@
 /** A page as seen by the Navigation API: its URL and history-entry key. */
 export interface PageEntry { href: string; key?: string }
 
+const SHEETS_URL = /^https:\/\/docs\.google\.com\/spreadsheets\//;
+
 /**
  * The href that identifies a page. A plain fragment (`#ref-12`, `#d=gs_cit`) is
  * an in-page position and is dropped. A route-like fragment (`#/…`, `#!…`) is a
- * hash-routed SPA page and is kept. A `gid` fragment parameter names the open
- * Google Sheets tab, so only that parameter is kept.
+ * hash-routed SPA page and is kept. On a Google Sheets spreadsheet the `gid`
+ * fragment parameter names the open tab, so only that parameter is kept.
  */
 export function pageUrl(href: string): string {
   const at = href.indexOf("#");
   if (at < 0) return href;
   const fragment = href.slice(at + 1);
   if (/^[/!]/.test(fragment)) return href;
-  const gid = new URLSearchParams(fragment).get("gid");
-  return gid === null ? href.slice(0, at) : `${href.slice(0, at)}#gid=${gid}`;
+  const base = href.slice(0, at);
+  const gid = SHEETS_URL.test(base) ? new URLSearchParams(fragment).get("gid") : null;
+  return gid === null ? base : `${base}#gid=${gid}`;
 }
 
 /** Read at call time: tests and pages may install `navigation` after import. */
