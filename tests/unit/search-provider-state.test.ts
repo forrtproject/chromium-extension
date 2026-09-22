@@ -579,3 +579,18 @@ it("reads a skeleton row once content fills into it, ignoring FLoRA UI and unrel
     await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
     expect(row.getAttribute("data-flora-processed")).toBe("true");
 });
+
+it("reads a skeleton row once text fills into an existing node", async () => {
+    send.mockResolvedValue({type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}});
+    document.body.innerHTML = '<div class="result"><a href="/work"> </a></div>';
+    const textAdapter = {...adapter, extractRow: (row: HTMLElement) => row.textContent?.trim() ? adapter.extractRow(row) : null};
+    const {processSearchResults} = await import("../../src/content-search/pipeline");
+    const {observeSearchResults} = await import("../../src/content-search/observer");
+    await processSearchResults(textAdapter, document);
+    observeSearchResults(textAdapter);
+    const row = document.querySelector(".result")!;
+    expect(row.getAttribute("data-flora-processed")).toBe("not-ready");
+    (row.querySelector("a")!.firstChild as Text).data = "Paper";
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(row.getAttribute("data-flora-processed")).toBe("true");
+});

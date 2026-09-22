@@ -7,7 +7,7 @@
 
 import {debugError} from "@shared/debug";
 import {currentPageEntry, isSamePage} from "@shared/page-identity";
-import {isExternalMutation} from "@shared/flora-ui";
+import {isExternalMutation, isFloraOwnedNode} from "@shared/flora-ui";
 import {NOT_READY, PROCESSED_ATTR, processSearchResults} from "./pipeline";
 import type {SearchSiteAdapter} from "./sites/types";
 
@@ -49,11 +49,14 @@ export function observeSearchResults(adapter: SearchSiteAdapter): void {
                     break;
                 }
             }
-            // Content added inside a row not read yet re-opens it for the next
-            // pass. A row that never becomes readable (an ad) is re-read only
-            // when its own content changes.
-            const row = (mutation.target as Element).closest?.<HTMLElement>(adapter.resultRow);
-            if (row && row.getAttribute(PROCESSED_ATTR) !== "true" && isExternalMutation(mutation)) {
+            // Content added inside a row not read yet, or text filled into it,
+            // re-opens it for the next pass. A row that never becomes readable
+            // (an ad) is re-read only when its own content changes.
+            const textFill = mutation.type === "characterData";
+            const target = textFill ? mutation.target.parentElement : mutation.target as Element;
+            const row = target?.closest?.<HTMLElement>(adapter.resultRow);
+            if (row && row.getAttribute(PROCESSED_ATTR) !== "true"
+                && (textFill ? !isFloraOwnedNode(mutation.target) : isExternalMutation(mutation))) {
                 if (row.getAttribute(PROCESSED_ATTR) === NOT_READY) row.removeAttribute(PROCESSED_ATTR);
                 changed = true;
             }
@@ -65,5 +68,5 @@ export function observeSearchResults(adapter: SearchSiteAdapter): void {
         queuePass();
     });
 
-    observer.observe(document.documentElement, {childList: true, subtree: true});
+    observer.observe(document.documentElement, {childList: true, characterData: true, subtree: true});
 }
