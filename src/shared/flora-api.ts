@@ -23,6 +23,10 @@ const setRowId = (token: string) => token.slice(0, token.indexOf("."));
 
 const API_BASE = "https://rep-api.forrt.org";
 const BATCH_SIZE = 50;
+// Batches run one after another. No new batch starts after this long, so a
+// page with thousands of DOIs still answers inside the worker's request
+// deadline; the DOIs left over come back as errors, which are never cached.
+const LOOKUP_BUDGET_MS = 180_000;
 
 /**
  * Look up replication data for a batch of DOIs.
@@ -43,8 +47,14 @@ export async function lookupDOIs(
   const totalBatches = Math.ceil(dois.length / BATCH_SIZE);
   debugLog(`Looking up ${dois.length} DOIs in ${totalBatches} batch(es) of ${BATCH_SIZE}`);
 
+  const startedAt = Date.now();
   for (let i = 0; i < dois.length; i += BATCH_SIZE) {
     signal?.throwIfAborted();
+    if (Date.now() - startedAt > LOOKUP_BUDGET_MS) {
+      debugError(`Lookup time budget spent; ${dois.length - i} DOI(s) left unchecked`);
+      for (const doi of dois.slice(i)) errors[doi] = "Lookup timed out";
+      break;
+    }
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
     const batch = dois.slice(i, i + BATCH_SIZE);
     debugLog(`Batch ${batchNum}/${totalBatches}: ${batch.length} DOIs`);

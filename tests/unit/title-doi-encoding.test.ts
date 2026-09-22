@@ -11,8 +11,8 @@ vi.mock("../../src/shared/settings", () => ({
 // Pacing between real requests is not under test here.
 vi.mock("../../src/shared/request-gate", () => ({
   RequestGate: class {
-    fetch(url: string, init?: RequestInit) {
-      return fetch(url, init);
+    fetch<T>(url: string, init: RequestInit | undefined, read: (response: Response) => Promise<T>) {
+      return fetch(url, init).then(read);
     }
   },
 }));
