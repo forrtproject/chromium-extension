@@ -4,7 +4,7 @@ import path from "node:path";
 import {resolveSearchSite, SEARCH_SITE_ADAPTERS} from "../../src/content-search/sites";
 import {OPENALEX} from "../../src/content-search/sites/openalex";
 import {normaliseOpenAlexId} from "../../src/shared/openalex-resolve";
-import {SEARCH_SITES, searchScriptOwns} from "../../src/shared/search-sites";
+import {matchSearchSite, SEARCH_SITES, searchScriptOwns} from "../../src/shared/search-sites";
 import {mockResult, patternToRegExp} from "../helpers";
 
 const OPENALEX_ROW = `
@@ -24,35 +24,41 @@ const OPENALEX_ROW = `
     </div>
   </div>`;
 
+const manifest = JSON.parse(
+    readFileSync(path.resolve(__dirname, "..", "..", "manifest.json"), "utf-8")
+) as {content_scripts: {js: string[]; matches: string[]; exclude_matches?: string[]}[]};
+const injects = (script: string, url: string): boolean => manifest.content_scripts.some((s) =>
+    s.js.includes(script)
+    && s.matches.some((p) => patternToRegExp(p).test(url))
+    && !(s.exclude_matches ?? []).some((p) => patternToRegExp(p).test(url)));
+
 describe("search site registry", () => {
-    it("resolves hosts to adapters, including subdomains and www.", () => {
+    it("resolves hosts and their www. form to adapters, and no other subdomain", () => {
         expect(resolveSearchSite("scholar.google.com")?.id).toBe("scholar");
         expect(resolveSearchSite("scholar.google.co.uk")?.id).toBe("scholar");
         expect(resolveSearchSite("openalex.org")?.id).toBe("openalex");
         expect(resolveSearchSite("www.openalex.org")?.id).toBe("openalex");
-        expect(resolveSearchSite("api.openalex.org")?.id).toBe("openalex");
+        expect(resolveSearchSite("api.openalex.org")).toBeNull();
         expect(resolveSearchSite("www.nature.com")).toBeNull();
     });
 
-    it("every adapter ships a stylesheet and unique id", () => {
+    it("gives every search site exactly one adapter, with a stylesheet", () => {
         const ids = SEARCH_SITE_ADAPTERS.map((a) => a.id);
         expect(new Set(ids).size).toBe(ids.length);
+        expect([...ids].sort()).toEqual(Object.keys(SEARCH_SITES).sort());
         for (const adapter of SEARCH_SITE_ADAPTERS) expect(typeof adapter.css).toBe("string");
     });
 
-    it("manifest routes every adapter host to the search content script", () => {
-        const manifest = JSON.parse(
-            readFileSync(path.resolve(__dirname, "..", "..", "manifest.json"), "utf-8")
-        ) as {content_scripts: {js: string[]; matches: string[]}[]};
+    // content-general stands down on every host SEARCH_SITES claims, so each
+    // claimed host must be one content-search is injected on, and the reverse.
+    it("claims exactly the hosts the manifest injects content-search on", () => {
         const entry = manifest.content_scripts.find((s) => s.js.includes("dist/content-search.js"))!;
-        expect(entry).toBeDefined();
-        const covered = (host: string): boolean =>
-            entry.matches.some((pattern) => {
-                const patternHost = pattern.replace(/^\*:\/\//, "").replace(/\/.*$/, "");
-                return patternHost === host || (patternHost.startsWith("*.") && host.endsWith(patternHost.slice(1)));
-            });
-        for (const adapter of SEARCH_SITE_ADAPTERS) {
-            for (const host of adapter.hostnames) expect(covered(host), host).toBe(true);
+        for (const site of Object.values(SEARCH_SITES)) {
+            for (const host of site.hostnames) expect(injects("dist/content-search.js", `https://${host}/`), host).toBe(true);
+        }
+        for (const pattern of entry.matches) {
+            const host = pattern.match(/^\*:\/\/([^/]+)\//)![1];
+            expect(matchSearchSite(host, Object.values(SEARCH_SITES)), pattern).not.toBeNull();
         }
     });
 });
@@ -95,14 +101,6 @@ const PAGES: Record<keyof typeof SEARCH_SITES, {results: string[]; records: stri
 };
 
 describe("page ownership between content-search and content-general", () => {
-    const manifest = JSON.parse(
-        readFileSync(path.resolve(__dirname, "..", "..", "manifest.json"), "utf-8")
-    ) as {content_scripts: {js: string[]; matches: string[]; exclude_matches?: string[]}[]};
-    const injects = (script: string, url: string): boolean => manifest.content_scripts.some((s) =>
-        s.js.includes(script)
-        && s.matches.some((p) => patternToRegExp(p).test(url))
-        && !(s.exclude_matches ?? []).some((p) => patternToRegExp(p).test(url)));
-
     it("every search site lists a results page", () => {
         for (const id of Object.keys(SEARCH_SITES) as (keyof typeof SEARCH_SITES)[]) {
             expect(PAGES[id]?.results.length, id).toBeGreaterThan(0);
@@ -111,7 +109,10 @@ describe("page ownership between content-search and content-general", () => {
 
     it.each(Object.values(PAGES).flatMap((p) => p.results))("content-search alone works %s", (url) => {
         expect(injects("dist/content-search.js", url)).toBe(true);
-        // content-general is either not injected or stands down at runtime.
+        // Only Scholar keeps content-general out through the manifest. Elsewhere
+        // content-general is injected, and its scan entry points return early
+        // when searchScriptOwns() is true.
+        expect(injects("dist/content-general.js", url)).toBe(!url.startsWith("https://scholar."));
         expect(searchScriptOwns(url)).toBe(true);
     });
 
@@ -192,5 +193,25 @@ describe("search pipeline on OpenAlex rows", () => {
             requests: [expect.objectContaining({title: "Understanding Priming Effects in Social Psychology", firstAuthor: "Cameron", year: 2014})],
         }));
         expect(document.querySelector("[data-flora-panel]")).toBeNull();
+    });
+
+    it("ends a running pass and removes its toast when the tab moves to a record page", async () => {
+        const navigation = Object.assign(new EventTarget(), {currentEntry: {key: "results"}});
+        vi.stubGlobal("navigation", navigation);
+        const send = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+        send.mockImplementation(() => new Promise(() => {})); // the worker never answers
+        const {processSearchResults} = await import("../../src/content-search/pipeline");
+        const {WORK_TOAST_ID} = await import("../../src/shared/progress-toast");
+        const {OPENALEX: adapter} = await import("../../src/content-search/sites/openalex");
+        const pass = processSearchResults(adapter, document);
+        await vi.waitFor(() => expect(document.getElementById(WORK_TOAST_ID)).not.toBeNull());
+
+        history.pushState(null, "", "/works/W2142773606");
+        navigation.currentEntry = {key: "record"};
+        navigation.dispatchEvent(new Event("currententrychange"));
+        await pass;
+
+        expect(document.getElementById(WORK_TOAST_ID)).toBeNull();
+        vi.unstubAllGlobals();
     });
 });

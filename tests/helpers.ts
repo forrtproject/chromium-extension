@@ -14,7 +14,10 @@ export function patternToRegExp(pattern: string): RegExp {
   // `?` is a literal in match patterns, and Chrome matches the pattern's path
   // against path + query string.
   const pathRe = pathPart.replace(/[.+^${}()|[\]\\?]/g, "\\$&").replace(/\*/g, ".*");
-  return new RegExp(`^${schemeRe}://${hostRe}${pathRe}$`);
+  // Chrome matches scheme and host case-insensitively but the path
+  // case-sensitively; the `i` flag also relaxes the path, which only matters
+  // for patterns or test URLs with uppercase paths.
+  return new RegExp(`^${schemeRe}://${hostRe}${pathRe}$`, "i");
 }
 
 export function doi(s: string): DoiString {

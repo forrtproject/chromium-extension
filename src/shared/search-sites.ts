@@ -17,7 +17,8 @@
 
 export interface SearchSite {
     id: string;
-    /** Bare hostnames; subdomains and www. match too. */
+    /** Bare hostnames; www. matches too. Other subdomains (api., …) do not
+     *  match: content-search is not injected on them. */
     hostnames: string[];
     /** True on the site's results listings, the pages content-search augments. */
     ownsUrl(url: URL): boolean;
@@ -86,7 +87,7 @@ function normaliseHost(hostname: string): string {
 export function matchSearchSite<T extends SearchSite>(hostname: string, registry: readonly T[]): T | null {
     const host = normaliseHost(hostname);
     return registry.find((site) =>
-        site.hostnames.some((h) => host === normaliseHost(h) || host.endsWith(`.${normaliseHost(h)}`))
+        site.hostnames.some((h) => host === normaliseHost(h))
     ) ?? null;
 }
 

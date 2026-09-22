@@ -908,6 +908,11 @@ export function endWorkIndicator(): void {
         return;
     }
 
+    // The pass outlived its page (resetWorkSummary ran mid-pass): nothing to report.
+    if (invalidated) {
+        removeToast();
+        return;
+    }
     const host = document.getElementById(WORK_TOAST_ID);
     if (!host) return;
     progress = 1;
