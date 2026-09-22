@@ -28,6 +28,19 @@ function parseRetryAfter(header: string | null): number | null {
     return Number.isNaN(at) ? null : at - Date.now();
 }
 
+/** Stop an unread body from downloading, so a released slot has no transfer left behind it. */
+async function discardBody(response: Response): Promise<void> {
+    if (!response.bodyUsed) await response.body?.cancel().catch(() => {});
+}
+
+/** Run `read`, then discard whatever body it left unread (e.g. after throwing on an error status). */
+async function readThenDiscard<T>(response: Response, read: (response: Response) => Promise<T>): Promise<T> {
+    try {
+        return await read(response);
+    } finally {
+        await discardBody(response);
+    }
+}
 
 /**
  * Per-platform fetch gate: caps concurrent requests, spaces their starts by
@@ -38,7 +51,9 @@ function parseRetryAfter(header: string | null): number | null {
  *
  * `read` consumes the final response (including a 429 the gate gives up on),
  * and a request holds its concurrency slot until `read` settles, so
- * `maxConcurrent` counts a request until its body has been read.
+ * `maxConcurrent` counts a request until its body has been read. Any body
+ * `read` leaves unread, and the body of a 429 that is retried, is cancelled
+ * before the slot is released.
  */
 export class RequestGate {
     private active = 0;
@@ -90,15 +105,16 @@ export class RequestGate {
                 if (signal.aborted) reserved = this.releaseReservation(reserved);
                 signal.throwIfAborted();
                 const response = await fetchWithDeadline(url, {...init, signal});
-                if (response.status !== 429) return await read(response);
+                if (response.status !== 429) return await readThenDiscard(response, read);
 
                 const backoff = parseRetryAfter(response.headers.get("retry-after")) ?? DEFAULT_BACKOFF_MS;
                 this.blockedUntil = Math.max(this.blockedUntil, Date.now() + backoff);
-                if (attempt > 0) return await read(response);
+                if (attempt > 0) return await readThenDiscard(response, read);
                 if (backoff > MAX_WAIT_MS) {
                     debugWarn(`${this.name}: HTTP 429 with Retry-After ${Math.round(backoff / 1000)} s — pausing this platform until then`);
-                    return await read(response);
+                    return await readThenDiscard(response, read);
                 }
+                await discardBody(response);
                 debugWarn(`${this.name}: HTTP 429 — pausing ${backoff} ms, then retrying once`);
             }
         } finally {

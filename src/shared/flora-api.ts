@@ -52,7 +52,7 @@ export async function lookupDOIs(
     signal?.throwIfAborted();
     if (Date.now() - startedAt > LOOKUP_BUDGET_MS) {
       debugError(`Lookup time budget spent; ${dois.length - i} DOI(s) left unchecked`);
-      for (const doi of dois.slice(i)) errors[doi] = "Lookup timed out";
+      for (const doi of dois.slice(i)) errors[doi] = "Lookup skipped: time budget spent";
       break;
     }
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;

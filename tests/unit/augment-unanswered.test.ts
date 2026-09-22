@@ -52,6 +52,7 @@ describe("augmentDOIsDetailed answered flag", () => {
     (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("reports answered:false when neither platform responded", async () => {
     server.use(
@@ -94,7 +95,6 @@ describe("augmentDOIsDetailed answered flag", () => {
     controller.abort(new DOMException("Worker request deadline reached", "AbortError"));
 
     const outcomes = await pending;
-    vi.unstubAllGlobals();
     expect(outcomes.get(fast)).toMatchObject({doi: "10.1234/fast", answered: true});
     expect(outcomes.get(slow)).toMatchObject({doi: null, answered: false});
   });

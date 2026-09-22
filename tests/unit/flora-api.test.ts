@@ -62,7 +62,7 @@ describe("lookupDOIs", () => {
     }
     expect(calls).toBe(2);
     expect(Object.keys(errors)).toEqual(targets.slice(100));
-    expect(errors[targets[100]]).toMatch(/timed out/);
+    expect(errors[targets[100]]).toBe("Lookup skipped: time budget spent");
   });
 
   it("returns matched results on 200", async () => {

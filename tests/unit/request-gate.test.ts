@@ -206,4 +206,23 @@ describe("RequestGate", () => {
         expect(await second).toEqual({n: 2});
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
+
+    it("cancels a body the reader leaves unread, including a retried 429, before releasing the slot", async () => {
+        const cancelled: string[] = [];
+        const streamingResponse = (label: string, status: number, headers?: HeadersInit) =>
+            new Response(new ReadableStream({cancel: () => { cancelled.push(label); }}), {status, headers});
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(streamingResponse("429", 429, {"retry-after": "0"}))
+            .mockResolvedValueOnce(streamingResponse("500", 500))
+            .mockResolvedValue(new Response("ok"));
+        vi.stubGlobal("fetch", fetchMock);
+        const gate = new RequestGate("Test", 1);
+        const throwOnError = async (response: Response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.text();
+        };
+        await expect(gate.fetch("https://x/1", undefined, throwOnError)).rejects.toThrow("HTTP 500");
+        expect(cancelled).toEqual(["429", "500"]);
+        expect(await gate.fetch("https://x/2", undefined, throwOnError)).toBe("ok");
+    });
 });
