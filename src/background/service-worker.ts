@@ -580,7 +580,8 @@ async function loadRetractionSource(signal: AbortSignal): Promise<RetractionMaps
         signal.throwIfAborted();
         debugWarn("Retractions: storage unavailable — using bundled data", error);
     }
-    signal.throwIfAborted();
+    // A completed read is cached even when every caller has stopped waiting,
+    // so the next check does not start from zero.
     const hasStoredData = !!stored && (
         Object.keys(stored.retractions || {}).length > 0 ||
         Object.keys(stored.concerns || {}).length > 0
@@ -592,6 +593,7 @@ async function loadRetractionSource(signal: AbortSignal): Promise<RetractionMaps
         debugLog(`Retractions: source loaded from storage in ${Math.round(performance.now() - started)} ms`);
         return source;
     }
+    signal.throwIfAborted();
 
     // The synced map is absent on first use and after a failed sync. Answer
     // from the bundled JSON and check whether refresh is due. Don't cache this
@@ -666,5 +668,11 @@ async function runRetractionSync(): Promise<void> {
     lastSyncAttemptAt = currentTime;
     await chrome.storage.local.set({[SYNC_ATTEMPT_KEY]: currentTime})
         .catch(err => debugWarn("Retraction sync: attempt time not stored —", err));
-    await storageSync();
+    // Chrome stops a worker whose fetch response takes over 30 s; extension API calls reset that timer.
+    const keepAlive = setInterval(() => { chrome.runtime.getPlatformInfo?.().catch(() => {}); }, 20_000);
+    try {
+        await storageSync();
+    } finally {
+        clearInterval(keepAlive);
+    }
 }

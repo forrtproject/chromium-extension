@@ -1,8 +1,7 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from "vitest";
 
-// safeSendMessage retries only when Chrome says no listener received the
-// message. A closed response port may mean the listener already started work,
-// so that error must surface rather than replaying the request.
+// safeSendMessage retries when no listener received the message, and when the
+// worker stopped before answering, except for requests that must not run twice.
 describe("safeSendMessage retry", () => {
     const send = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
 
@@ -43,13 +42,43 @@ describe("safeSendMessage retry", () => {
         expect(send).toHaveBeenCalledTimes(1);
     });
 
+    // Observed in Chrome 152 when the worker is stopped while FLORA_RET_CHECK is pending.
+    const CHANNEL_CLOSED = "A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received";
+
     it.each([
+        CHANNEL_CLOSED,
         "The message port closed before a response was received.",
-        "A listener indicated an asynchronous response, but the message channel closed before a response was received.",
-    ])("does not retry after a request may have reached the listener: %s", async (message) => {
-        send.mockRejectedValue(new Error(message));
+    ])("retries a read after the worker stopped before answering: %s", async (message) => {
+        send
+            .mockRejectedValueOnce(new Error(message))
+            .mockResolvedValueOnce({type: "FLORA_RET_CHECK_RESULT", results: []});
         const {safeSendMessage} = await import("../../src/shared/messages");
-        await expect(safeSendMessage({type: "FLORA_TAKE_REPORT"})).rejects.toThrow(message);
+
+        const pending = safeSendMessage({type: "FLORA_RET_CHECK", dois: []});
+        await vi.advanceTimersByTimeAsync(300);
+        await expect(pending).resolves.toEqual({type: "FLORA_RET_CHECK_RESULT", results: []});
+        expect(send).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops retrying a closed channel at the caller's deadline", async () => {
+        send.mockRejectedValue(new Error(CHANNEL_CLOSED));
+        const {safeSendMessage} = await import("../../src/shared/messages");
+        const deadline = new AbortController();
+
+        const pending = safeSendMessage({type: "FLORA_RET_CHECK", dois: []}, deadline.signal);
+        const failure = expect(pending).rejects.toThrow("deadline");
+        await vi.advanceTimersByTimeAsync(300);
+        deadline.abort(new Error("deadline"));
+        await failure;
+        await vi.advanceTimersByTimeAsync(5000);
+        const checks = send.mock.calls.filter(([m]) => m.type === "FLORA_RET_CHECK");
+        expect(checks).toHaveLength(2);
+    });
+
+    it.each(["FLORA_CREATE_SET", "FLORA_OPEN_OPTIONS"])("does not resend %s after a closed channel", async (type) => {
+        send.mockRejectedValue(new Error(CHANNEL_CLOSED));
+        const {safeSendMessage} = await import("../../src/shared/messages");
+        await expect(safeSendMessage({type, dois: []})).rejects.toThrow(CHANNEL_CLOSED);
         expect(send).toHaveBeenCalledTimes(1);
     });
 
