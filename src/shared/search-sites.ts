@@ -70,7 +70,7 @@ export const SEARCH_SITES = {
     scopus: {
         id: "scopus",
         hostnames: ["scopus.com"],
-        ownsUrl: (url) => /^\/(results\/|pages\/search\/)/.test(url.pathname),
+        ownsUrl: (url) => url.pathname.startsWith("/results/") || path(url) === "/pages/search/publications",
     },
     // Results: /c/<profile>/search/results?… . Records: /c/<profile>/search/details/<id> .
     ebsco: {
