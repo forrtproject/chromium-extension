@@ -75,7 +75,7 @@ describe("safeSendMessage retry", () => {
         expect(checks).toHaveLength(2);
     });
 
-    it.each(["FLORA_CREATE_SET", "FLORA_OPEN_OPTIONS"])("does not resend %s after a closed channel", async (type) => {
+    it.each(["FLORA_CREATE_SET", "FLORA_LOOKUP", "FLORA_AUGMENT"])("does not resend %s after a closed channel", async (type) => {
         send.mockRejectedValue(new Error(CHANNEL_CLOSED));
         const {safeSendMessage} = await import("../../src/shared/messages");
         await expect(safeSendMessage({type, dois: []})).rejects.toThrow(CHANNEL_CLOSED);

@@ -333,18 +333,18 @@ export function isWorkerUnreachable(err: unknown): boolean {
  * Chrome rejects a pending message with this when the worker stops before it
  * answers: "A listener indicated an asynchronous response by returning true,
  * but the message channel closed before a response was received". The listener
- * had started, so a resend is safe only for requests that can run twice.
+ * had started, so only requests that are a local read in the worker are resent;
+ * replaying the others could duplicate network calls or other work.
  */
 export function isChannelClosed(err: unknown): boolean {
     return err instanceof Error &&
         /message (port|channel) closed before a response was received/i.test(err.message);
 }
 
-/** Resending these after a closed channel could create a second DOI set or open a second page. */
-const NO_RESEND_TYPES = new Set(["FLORA_CREATE_SET", "FLORA_OPEN_OPTIONS"]);
+const RESEND_AFTER_CLOSE_TYPES = new Set(["FLORA_RET_CHECK"]);
 
 export function shouldResend(err: unknown, type: string | undefined): boolean {
-    return isWorkerUnreachable(err) || (isChannelClosed(err) && !NO_RESEND_TYPES.has(type ?? ""));
+    return isWorkerUnreachable(err) || (isChannelClosed(err) && RESEND_AFTER_CLOSE_TYPES.has(type ?? ""));
 }
 
 /** Back-off between attempts; the total wait stays under 5 s. */
