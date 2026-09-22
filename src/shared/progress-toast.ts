@@ -171,6 +171,8 @@ let pageEndedAt: number | null = null;
 let pageTimes = new Map<string, number>();
 let pageIdleMs = 0;
 let summaryInvalidated = false;
+// Pass time charged before a mid-pass page change; it belongs to the page left behind.
+let passTimesBeforePageChange = new Map<string, number>();
 let finishTimer: ReturnType<typeof setTimeout> | null = null;
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -250,6 +252,10 @@ function closeSegment(at: number): void {
     if (record) record.ms += ms;
     else passOtherMs += ms;
     segmentStartedAt = at;
+}
+
+function passTimes(): [string, number][] {
+    return [...stages.map((entry): [string, number] => [entry.stage, entry.ms]), ["other", passOtherMs]];
 }
 
 function formatBreakdown(times: Iterable<[string, number]>, format: (ms: number) => string): string {
@@ -445,6 +451,8 @@ function ensureToast(): HTMLElement {
     const elapsed = document.createElement("span");
     elapsed.setAttribute("data-flora-work-elapsed", "");
     elapsed.title = "Time this pass has been running";
+    // Kept out of the live region, which would otherwise announce every tick.
+    elapsed.setAttribute("aria-hidden", "true");
     elapsed.style.cssText =
         "flex-shrink:0;color:rgba(255,255,255,0.7);font-size:11px;font-variant-numeric:tabular-nums;";
 
@@ -776,6 +784,7 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         items = [];
         passStartedAt = segmentStartedAt = now();
         passOtherMs = 0;
+        passTimesBeforePageChange = new Map();
         planStages(plan);
     } else if (plan) {
         mergePlan(plan);
@@ -863,12 +872,9 @@ export function endWorkIndicator(): void {
     const endedAt = now();
     closeSegment(endedAt);
     currentStage = null;
-    const passTimes: [string, number][] = [
-        ...stages.map((entry): [string, number] => [entry.stage, entry.ms]),
-        ["other", passOtherMs],
-    ];
+    const times = passTimes();
     const inMs = (ms: number): string => `${Math.round(ms)} ms`;
-    debugLog(`Work: pass done in ${inMs(endedAt - passStartedAt)} (time as current stage — ${formatBreakdown(passTimes, inMs)})`);
+    debugLog(`Work: pass done in ${inMs(endedAt - passStartedAt)} (time as current stage — ${formatBreakdown(times, inMs)})`);
 
     clearTimers(); // a pass that finished before the toast appeared stays silent
     const hidden = dismissed || cancelled;
@@ -881,7 +887,7 @@ export function endWorkIndicator(): void {
         resetPageTimes();
     } else {
         if (pageEndedAt !== null) pageIdleMs += passStartedAt - pageEndedAt;
-        for (const [name, ms] of passTimes) addPageTime(name, ms);
+        for (const [name, ms] of times) addPageTime(name, ms - (passTimesBeforePageChange.get(name) ?? 0));
         pageEndedAt = endedAt;
     }
     if (isDebugEnabled() && !hidden && !suppressed && !invalidated) {
@@ -931,6 +937,8 @@ export function resetWorkSummary(): void {
     finished = false;
     if (refCount > 0) {
         summaryInvalidated = true;
+        closeSegment(now());
+        passTimesBeforePageChange = new Map(passTimes());
         return;
     }
     clearTimers();
@@ -967,6 +975,7 @@ export function _resetWorkIndicatorForTesting(): void {
     finished = false;
     resetPageTimes();
     summaryInvalidated = false;
+    passTimesBeforePageChange = new Map();
     offerLogCopy = false;
     stages = [];
     currentStage = null;

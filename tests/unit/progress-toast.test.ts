@@ -687,6 +687,8 @@ describe("progress toast", () => {
         reportWorkStage("augment", "Augmenting 40 references…");
         settle();
         expect(elapsed(), "hidden while the pass is young").toBe("");
+        expect(toast()!.querySelector("[data-flora-work-elapsed]")!.getAttribute("aria-hidden"),
+            "the live region must not announce every tick").toBe("true");
 
         await vi.advanceTimersByTimeAsync(5_000);
         expect(elapsed()).toBe("0:05");
@@ -987,6 +989,30 @@ describe("progress toast", () => {
         await vi.advanceTimersByTimeAsync(12_000);
 
         expect(label(), "the new page's own work must still be summarised").toMatch(/^Done in /);
+    });
+
+    it("leaves the old page's stage time out of an overlapping new page's breakdown", async () => {
+        setDebug(true);
+        let clock = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+        try {
+            beginWorkIndicator({stages: ["scan"]});
+            reportWorkStage("scan", "Scanning the page we are leaving…");
+            clock = 500;
+            resetWorkSummary();
+            beginWorkIndicator({stages: ["lookup"]});
+            reportWorkStage("lookup", "Looking up on the new page…");
+            clock = 800;
+            endWorkIndicator();
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(12_000);
+
+            const summary = vi.mocked(console.log).mock.calls.map((call) => call.slice(1).join(" "))
+                .find((line) => line.startsWith("Work: page quiet"));
+            expect(summary).toBe("Work: page quiet — Done in 300 ms (lookup: 300 ms)");
+        } finally {
+            nowSpy.mockRestore();
+        }
     });
 
     it("cancel stops the pass at the pipeline's next check and hides the toast", () => {
