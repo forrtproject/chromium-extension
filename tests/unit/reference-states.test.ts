@@ -65,6 +65,7 @@ describe("hasReplication", () => {
     });
 
     it("counts replications, reproductions and original-data entries", () => {
+        expect(hasReplication(withStats({ n_replications_total: 1 }))).toBe(true);
         expect(hasReplication(withStats({ n_originals_total: 1 }))).toBe(true);
         expect(hasReplication(withStats({ n_reproductions_total: 1 }))).toBe(true);
         expect(hasReplication(withStats({}))).toBe(false);
