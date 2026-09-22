@@ -11,19 +11,18 @@
 // picks up.
 //
 // Rows print no DOI. MED rows carry a PMID, resolved through NCBI's ID
-// converter; every other source falls through to a title search. content-general
-// also runs on europepmc.org on purpose: article pages print the DOI for it to
-// annotate, and result rows have none for it to pick up.
+// converter; every other source falls through to a title search.
+// content-general handles article pages (/article/…); see @shared/search-sites.
 
 import {resolvePmcIdsViaWorker} from "@shared/messages";
 import {normalisePmid} from "@shared/pmc-resolve";
+import {SEARCH_SITES} from "@shared/search-sites";
 import type {RowExtraction, SearchSiteAdapter} from "./types";
 import css from "./europepmc.css";
 
 export const EUROPEPMC: SearchSiteAdapter = {
-    id: "europepmc",
+    ...SEARCH_SITES.europepmc,
     label: "Europe PMC",
-    hostnames: ["europepmc.org"],
     resultRow: '.citation[id^="search-results--single--block-"]',
     css,
     extractRow,

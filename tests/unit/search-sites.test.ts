@@ -4,7 +4,8 @@ import path from "node:path";
 import {resolveSearchSite, SEARCH_SITE_ADAPTERS} from "../../src/content-search/sites";
 import {OPENALEX} from "../../src/content-search/sites/openalex";
 import {normaliseOpenAlexId} from "../../src/shared/openalex-resolve";
-import {mockResult} from "../helpers";
+import {SEARCH_SITES, searchScriptOwns} from "../../src/shared/search-sites";
+import {mockResult, patternToRegExp} from "../helpers";
 
 const OPENALEX_ROW = `
   <div class="results-container">
@@ -53,6 +54,72 @@ describe("search site registry", () => {
         for (const adapter of SEARCH_SITE_ADAPTERS) {
             for (const host of adapter.hostnames) expect(covered(host), host).toBe(true);
         }
+    });
+});
+
+// One results URL and one record URL per search site. Record pages need
+// content-general (title pill, reference pills, retraction banner); results
+// pages need content-search alone, since the two bundles' toasts collide.
+const PAGES: Record<keyof typeof SEARCH_SITES, {results: string[]; records: string[]}> = {
+    scholar: {results: ["https://scholar.google.com/scholar?q=replication"], records: []},
+    openalex: {
+        results: ["https://openalex.org/works?page=1&filter=default.search:priming"],
+        records: ["https://openalex.org/works/w2142773606", "https://openalex.org/"],
+    },
+    semanticscholar: {
+        results: ["https://www.semanticscholar.org/search?q=ego%20depletion"],
+        records: ["https://www.semanticscholar.org/paper/Ego-depletion/0123456789abcdef0123456789abcdef01234567"],
+    },
+    pubmed: {
+        results: [
+            "https://pubmed.ncbi.nlm.nih.gov/?term=ego+depletion",
+            "https://pubmed.ncbi.nlm.nih.gov/?linkname=pubmed_pubmed&from_uid=20565167",
+        ],
+        records: ["https://pubmed.ncbi.nlm.nih.gov/20565167/", "https://pubmed.ncbi.nlm.nih.gov/"],
+    },
+    europepmc: {
+        results: ["https://europepmc.org/search?query=ego%20depletion"],
+        records: ["https://europepmc.org/article/MED/20565167"],
+    },
+    scopus: {
+        results: [
+            "https://www.scopus.com/results/results.uri?src=s&sid=abc",
+            "https://www.scopus.com/pages/search/publications?searchId=abc",
+        ],
+        records: ["https://www.scopus.com/pages/publications/85123456789", "https://www.scopus.com/record/display.uri?eid=2-s2.0-1"],
+    },
+    ebsco: {
+        results: ["https://research.ebsco.com/c/abc123/search/results?q=priming"],
+        records: ["https://research.ebsco.com/c/abc123/search/details/xyz789"],
+    },
+};
+
+describe("page ownership between content-search and content-general", () => {
+    const manifest = JSON.parse(
+        readFileSync(path.resolve(__dirname, "..", "..", "manifest.json"), "utf-8")
+    ) as {content_scripts: {js: string[]; matches: string[]; exclude_matches?: string[]}[]};
+    const injects = (script: string, url: string): boolean => manifest.content_scripts.some((s) =>
+        s.js.includes(script)
+        && s.matches.some((p) => patternToRegExp(p).test(url))
+        && !(s.exclude_matches ?? []).some((p) => patternToRegExp(p).test(url)));
+
+    it("every search site lists a results page", () => {
+        for (const id of Object.keys(SEARCH_SITES) as (keyof typeof SEARCH_SITES)[]) {
+            expect(PAGES[id]?.results.length, id).toBeGreaterThan(0);
+        }
+    });
+
+    it.each(Object.values(PAGES).flatMap((p) => p.results))("content-search alone works %s", (url) => {
+        expect(injects("dist/content-search.js", url)).toBe(true);
+        // content-general is either not injected or stands down at runtime.
+        expect(searchScriptOwns(url)).toBe(true);
+    });
+
+    it.each(Object.values(PAGES).flatMap((p) => p.records))("content-general alone works %s", (url) => {
+        expect(injects("dist/content-general.js", url)).toBe(true);
+        expect(searchScriptOwns(url)).toBe(false);
+        const adapter = resolveSearchSite(new URL(url).hostname)!;
+        expect(adapter.ownsUrl(new URL(url))).toBe(false);
     });
 });
 

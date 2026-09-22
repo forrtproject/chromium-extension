@@ -5,13 +5,26 @@
 // pass. Observing the whole document (rather than a results container) keeps
 // this working on single-page apps that replace the container itself.
 
-import {debugError} from "@shared/debug";
+import {debugError, debugLog} from "@shared/debug";
 import {currentPageEntry, isSamePage} from "@shared/page-identity";
 import {isExternalMutation, isFloraOwnedNode} from "@shared/flora-ui";
 import {NOT_READY, PROCESSED_ATTR, processSearchResults} from "./pipeline";
 import type {SearchSiteAdapter} from "./sites/types";
 
 const SETTLE_MS = 150;
+
+/** Run a pass over the document when the current URL is one of the site's
+ *  results pages. Record pages belong to content-general (see
+ *  @shared/search-sites), so no pass and no progress toast runs there. */
+export function processIfResultsPage(adapter: SearchSiteAdapter, context: string): void {
+    if (!adapter.ownsUrl(new URL(location.href))) {
+        debugLog(`${adapter.label}: not a results page — left to content-general`);
+        return;
+    }
+    void processSearchResults(adapter, document).catch((err) =>
+        debugError(`${adapter.label}: ${context} failed —`, err)
+    );
+}
 
 export function observeSearchResults(adapter: SearchSiteAdapter): void {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -20,9 +33,7 @@ export function observeSearchResults(adapter: SearchSiteAdapter): void {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
             timer = null;
-            void processSearchResults(adapter, document).catch((err) =>
-                debugError(`${adapter.label}: pass on changed search results failed —`, err)
-            );
+            processIfResultsPage(adapter, "pass on changed search results");
         }, SETTLE_MS);
     };
     // Same-document navigation may reuse every result node, so no added-row

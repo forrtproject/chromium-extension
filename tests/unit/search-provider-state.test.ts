@@ -11,7 +11,7 @@ let navigationEvents: EventTarget;
 const NativeMutationObserver = MutationObserver;
 const observers: MutationObserver[] = [];
 const adapter: SearchSiteAdapter = {
-    id: "test", label: "Test", hostnames: [], css: "", resultRow: ".result", panelPlacement: [],
+    id: "test", label: "Test", hostnames: [], ownsUrl: () => true, css: "", resultRow: ".result", panelPlacement: [],
     extractRow: () => ({doi: DOI, confident: true, title: "Paper", firstAuthor: null, year: null, sourceUrl: null}),
 };
 beforeEach(() => {

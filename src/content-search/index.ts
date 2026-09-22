@@ -3,8 +3,8 @@
 // placement; pipeline.ts does everything else.
 
 import {resolveSearchSite} from "./sites";
-import {observeSearchResults} from "./observer";
-import {isSearchHidden, processSearchResults, retryUnansweredSearchResults, setSearchHidden} from "./pipeline";
+import {observeSearchResults, processIfResultsPage} from "./observer";
+import {isSearchHidden, retryUnansweredSearchResults, setSearchHidden} from "./pipeline";
 import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
@@ -55,9 +55,7 @@ function injectSiteStyle(css: string): void {
         injectSiteStyle(adapter.css);
 
         // Process any results already on the page
-        void processSearchResults(adapter, document).catch((err) =>
-            debugError(`${adapter.label}: initial pass failed —`, err)
-        );
+        processIfResultsPage(adapter, "initial pass");
 
         // Start observing for dynamically loaded results
         observeSearchResults(adapter);
@@ -93,11 +91,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         // Rows that loaded while the site was paused were left unprocessed, so
         // showing the UI again has nothing to show for them until a pass runs.
         const adapter = resolveSearchSite(location.hostname);
-        if (adapter) {
-            void processSearchResults(adapter, document).catch((err) =>
-                debugError(`${adapter.label}: pass after unhide failed —`, err)
-            );
-        }
+        if (adapter) processIfResultsPage(adapter, "pass after unhide");
         sendResponse({ ok: true });
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({ hidden: isSearchHidden() });

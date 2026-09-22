@@ -13,19 +13,17 @@
 //
 // Rows print no DOI, so the record id carries them: resolveSiteIds reads it
 // from EBSCO's own citation endpoint (see @shared/ebsco-resolve).
-// content-general also runs on research.ebsco.com on purpose: record detail
-// pages print the DOI, which that script annotates, and result rows print none
-// for it to pick up.
+// content-general handles record detail pages; see @shared/search-sites.
 
 import {debugLog} from "@shared/debug";
 import {normaliseEbscoRecordId, resolveEbscoIds} from "@shared/ebsco-resolve";
+import {SEARCH_SITES} from "@shared/search-sites";
 import type {RowExtraction, SearchSiteAdapter} from "./types";
 import css from "./ebsco.css";
 
 export const EBSCO: SearchSiteAdapter = {
-    id: "ebsco",
+    ...SEARCH_SITES.ebsco,
     label: "EBSCOhost",
-    hostnames: ["research.ebsco.com"],
     resultRow: 'article[data-auto="search-result-item"]',
     css,
     extractRow,

@@ -49,6 +49,7 @@ import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
+import {searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
@@ -260,6 +261,10 @@ function whenIdle(fn: () => void, timeout = 1000): void {
 const runScanPasses = serializeWithRerun(async () => {
     if (!canStartAutomaticWork() || !await waitUntilVisible(activeWorkSignal())) return;
     if (floraHidden || !canStartAutomaticWork()) return;
+    if (searchScriptOwns()) {
+        debugLog("General: search results page — content-search owns it");
+        return;
+    }
     beginWorkIndicator({stages: ["scan", "validate", "augment", "notices", "lookup", "report"]});
     try {
         await runScanPass();
@@ -1277,6 +1282,11 @@ async function fetchSheetDois(): Promise<void> {
                     fetchSheetDois();
                 }
             }, 1500);
+        } else if (searchScriptOwns()) {
+            // content-search works this results page. The listener stays up so
+            // a same-document navigation to a record page gets scanned.
+            debugLog("General: search results page — content-search owns it");
+            startDomListener({scanWholePage, getLastUrl: () => lastUrl});
         } else {
             // Start the article's own lookup off URL/meta/JSON-LD, then let the
             // full scan wait for idle rather than competing with page render.

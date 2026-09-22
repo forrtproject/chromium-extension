@@ -21,21 +21,20 @@
 //
 // Rows print no DOI, so the Scopus record id carries them: resolveSiteIds
 // batches the ids through Scopus's own search gateway (see
-// @shared/scopus-resolve). content-general also runs on scopus.com on purpose:
-// abstract pages print the DOI, which that script annotates, and result rows
-// print none for it to pick up.
+// @shared/scopus-resolve). content-general handles abstract pages; see
+// @shared/search-sites.
 
 import {debugLog} from "@shared/debug";
 import {normaliseScopusId, resolveScopusIds} from "@shared/scopus-resolve";
+import {SEARCH_SITES} from "@shared/search-sites";
 import type {RowExtraction, SearchSiteAdapter} from "./types";
 import css from "./scopus.css";
 
 const TITLE_LINK = 'a[href^="/pages/publications/"]';
 
 export const SCOPUS: SearchSiteAdapter = {
-    id: "scopus",
+    ...SEARCH_SITES.scopus,
     label: "Scopus",
-    hostnames: ["scopus.com"],
     // The one element per result that holds the title link, in either layout.
     resultRow: `li:has(${TITLE_LINK}), tr:has(${TITLE_LINK})`,
     css,

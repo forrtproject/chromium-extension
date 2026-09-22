@@ -103,7 +103,6 @@
         "*://*.google.it/maps*",
         "*://*.google.com.br/maps*",
         "*://*.google.com.au/maps*",
-        "*://pubmed.ncbi.nlm.nih.gov/?*",
         "*://forrt.org/*",
         "*://lukaswallrich.github.io/*"
       ],
