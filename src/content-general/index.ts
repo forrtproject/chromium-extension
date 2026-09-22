@@ -61,7 +61,7 @@ import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
 import {isExcelOnline, startExcelOnline, excelOnlineText, excelWorkbookKey, excelContentRevision} from "@shared/excel-online";
 import {injectLooseDoiPills, resetLooseDoiPills} from "./loose-dois";
-import {lookUpMissingReferenceStates, ResolvedReferences} from "./reference-states";
+import {hasReplication, lookUpMissingReferenceStates, ResolvedReferences} from "./reference-states";
 
 const pageState = new Map<DoiString, LookupState>();
 // Retraction notices for the page: `pageNotices` is replaced by each check of
@@ -126,7 +126,7 @@ const badgeRetryHooks = {
         // The indicator mints a fresh work signal, so the panel refresh runs
         // even when the previous pass was cancelled.
         beginWorkIndicator({stages: ["lookup"]});
-        void checkPubPeer(Promise.resolve(resolvedReferences.all()))
+        void checkPubPeer(null)
             .catch((err) => debugError("General: panel refresh after FORRT retry failed —", err))
             .finally(() => endWorkIndicator());
     },
@@ -346,7 +346,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                             injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             repaintBadges();
                             lastRenderedPageStateVersion = -1;
-                            await checkPubPeer(Promise.resolve(resolvedReferences.all()));
+                            await checkPubPeer(null);
                         }
                     } finally { endWorkIndicator(); }
                 } finally { if (retractionRetryQueued === queued) retractionRetryQueued = null; }
@@ -728,7 +728,8 @@ async function lookUpReferenceStates(dois: DoiString[], abandoned: () => boolean
  * references are resolved, check them for retractions, pill them, look up
  * their FORRT data, refresh the badges, and settle the "nothing to flag"
  * verdict the pass left open. Keeps the work toast up while it runs. Resolves
- * to every reference resolved on the page so far. Never rejects — a failure
+ * to every reference resolved on the page so far, or [] when the work was
+ * abandoned. Never rejects — a failure
  * releases the reference entries so a later pass can retry them.
  */
 function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<ResolvedReference[]> {
@@ -776,12 +777,7 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
             if (pendingNothingToFlag && refsPending === 1) {
                 const {dois, flagged} = pendingNothingToFlag;
                 pendingNothingToFlag = null;
-                const replicated = pageRefs.some(({doi}) => {
-                    const state = pageState.get(doi);
-                    if (state?.status !== "matched") return false;
-                    const stats = state.result.record.stats;
-                    return stats.n_replications_total > 0 || stats.n_reproductions_total > 0;
-                });
+                const replicated = pageRefs.some(({doi}) => hasReplication(pageState.get(doi)));
                 reportNothingToFlag([...dois, ...pageRefs.map(ref => ref.doi)], flagged || notices.length > 0 || replicated);
             }
             return pageRefs;
@@ -1019,7 +1015,7 @@ function extractPageAugmentationMetadata(doc: Document): Omit<DoiAugmentRequest,
     };
 }
 
-async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): Promise<void> {
+async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void> {
     const signal = activeWorkSignal() ?? null;
     if (isSheets || floraHidden || isWorkCancelled()) return;
     const passUrl = location.href;
@@ -1032,9 +1028,11 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     if (!primaryDoi && !editorDocument) return;
     beginWorkIndicator();
     try {
-        const resolvedRefs = refsPromise ? await refsPromise : [];
+        // The pass's reference resolution must settle first; the page's full
+        // reference set then comes from resolvedReferences.
+        if (refsPromise) await refsPromise;
         if (signal?.aborted || navigated()) return;
-        const pageRefs = editorDocument ? editorAnnotatedReferences() : resolvedRefs;
+        const pageRefs = editorDocument ? editorAnnotatedReferences() : resolvedReferences.all();
         // Covers references whose lookup an earlier pass abandoned, and
         // document-editor annotations, so markers and the report can settle.
         if (!await lookUpReferenceStates(pageRefs.map(ref => ref.doi), () => !!signal?.aborted || navigated())) return;
@@ -1085,18 +1083,11 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
 
         // Panel lists only refs with PubPeer comments, a notice, or FORRT data.
         const noticeDois = new Set(redacts.map((r) => r.originDoi));
-        const hasReplication = (doi: DoiString): boolean => {
-            const s = pageState.get(doi);
-            if (s?.status !== "matched") return false;
-            const {n_replications_total, n_reproductions_total, n_originals_total} =
-                s.result.record.stats;
-            return n_replications_total > 0 || n_reproductions_total > 0 || n_originals_total > 0;
-        };
         const flagged = referenceDois.filter((doi) => {
             const fb = refFeedbackByDoi.get(doi);
             return (fb !== undefined && fb.total_comments > 0)
                 || noticeDois.has(doi)
-                || hasReplication(doi);
+                || hasReplication(pageState.get(doi));
         });
         const panelRefs = await Promise.all((editorDocument ? referenceDois : flagged).map(async (doi) => {
             const title = refFeedbackByDoi.get(doi)?.title
@@ -1113,7 +1104,7 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
                 resumeAutomaticWork();
                 articleFeedbacksFetched = false;
                 beginWorkIndicator({stages: ["scan"]});
-                try { await checkPubPeer(Promise.resolve(resolvedRefs)); }
+                try { await checkPubPeer(null); }
                 finally { endWorkIndicator(); }
             } : undefined, {documentMode: editorDocument});
 

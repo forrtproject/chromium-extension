@@ -5,27 +5,45 @@ import type {ResolvedReference} from "./references";
 /**
  * Every reference resolved on the current page, one per DOI. Each pass of
  * resolveReferenceDois returns only the entries it newly handled, so the
- * page's reference set is the union of all passes; entries whose element has
- * left the DOM drop out.
+ * page's reference set is the union of all passes. A DOI cited more than once
+ * keeps every occurrence, and is listed while any of them is still in the DOM.
  */
 export class ResolvedReferences {
-    private byDoi = new Map<DoiString, ResolvedReference>();
+    private byDoi = new Map<DoiString, ResolvedReference[]>();
 
     merge(refs: readonly ResolvedReference[]): ResolvedReference[] {
-        for (const ref of refs) this.byDoi.set(ref.doi, ref);
-        for (const [doi, ref] of this.byDoi) {
-            if (!ref.entry.element.isConnected) this.byDoi.delete(doi);
+        for (const ref of refs) {
+            const occurrences = this.byDoi.get(ref.doi) ?? [];
+            if (!occurrences.some((o) => o.entry.element === ref.entry.element)) occurrences.push(ref);
+            this.byDoi.set(ref.doi, occurrences);
         }
         return this.all();
     }
 
+    /** The newest connected occurrence of each DOI; drops occurrences that left the DOM. */
     all(): ResolvedReference[] {
-        return [...this.byDoi.values()];
+        const refs: ResolvedReference[] = [];
+        for (const [doi, occurrences] of this.byDoi) {
+            const connected = occurrences.filter((o) => o.entry.element.isConnected);
+            if (connected.length === 0) this.byDoi.delete(doi);
+            else {
+                this.byDoi.set(doi, connected);
+                refs.push(connected[connected.length - 1]);
+            }
+        }
+        return refs;
     }
 
     clear(): void {
         this.byDoi.clear();
     }
+}
+
+/** True when FLoRA holds replications, reproductions or original-data entries for the DOI. */
+export function hasReplication(state: LookupState | undefined): boolean {
+    if (state?.status !== "matched") return false;
+    const {n_replications_total, n_reproductions_total, n_originals_total} = state.result.record.stats;
+    return n_replications_total > 0 || n_reproductions_total > 0 || n_originals_total > 0;
 }
 
 export interface ReferenceLookupHooks {

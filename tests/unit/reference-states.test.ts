@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { lookUpMissingReferenceStates, ResolvedReferences } from "../../src/content-general/reference-states";
+import { hasReplication, lookUpMissingReferenceStates, ResolvedReferences } from "../../src/content-general/reference-states";
 import type { ResolvedReference } from "../../src/content-general/references";
 import type { LookupResponse } from "../../src/shared/messages";
 import type { DoiString, LookupState, ReplicationResult } from "../../src/shared/types";
@@ -33,6 +33,43 @@ describe("ResolvedReferences", () => {
         expect(refs.merge([again])).toEqual([again]);
         refs.clear();
         expect(refs.all()).toEqual([]);
+    });
+
+    it("keeps a DOI cited twice while either citation is still in the DOM", () => {
+        const refs = new ResolvedReferences();
+        const older = ref(BY_TITLE);
+        const newer = ref(BY_TITLE);
+        refs.merge([older]);
+        refs.merge([newer]);
+        newer.entry.element.remove();
+        expect(refs.all()).toEqual([older]);
+        const detached = ref(BY_TITLE);
+        detached.entry.element.remove();
+        expect(refs.merge([detached])).toEqual([older]);
+    });
+
+    it("drops references that left the DOM without another merge", () => {
+        const refs = new ResolvedReferences();
+        const gone = ref(BY_PMC, "pmc");
+        refs.merge([ref(BY_TITLE), gone]);
+        gone.entry.element.remove();
+        expect(refs.all().map((r) => r.doi)).toEqual([BY_TITLE]);
+    });
+});
+
+describe("hasReplication", () => {
+    const withStats = (stats: Record<string, number>): LookupState => ({
+        status: "matched",
+        source: "augmented",
+        result: { record: { stats: { n_replications_total: 0, n_reproductions_total: 0, n_originals_total: 0, ...stats } } } as unknown as ReplicationResult,
+    });
+
+    it("counts replications, reproductions and original-data entries", () => {
+        expect(hasReplication(withStats({ n_originals_total: 1 }))).toBe(true);
+        expect(hasReplication(withStats({ n_reproductions_total: 1 }))).toBe(true);
+        expect(hasReplication(withStats({}))).toBe(false);
+        expect(hasReplication({ status: "no-match" })).toBe(false);
+        expect(hasReplication(undefined)).toBe(false);
     });
 });
 
