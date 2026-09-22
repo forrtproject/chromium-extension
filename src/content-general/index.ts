@@ -61,6 +61,7 @@ import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
 import {isExcelOnline, startExcelOnline, excelOnlineText, excelWorkbookKey, excelContentRevision} from "@shared/excel-online";
 import {injectLooseDoiPills, resetLooseDoiPills} from "./loose-dois";
+import {lookUpMissingReferenceStates, ResolvedReferences} from "./reference-states";
 
 const pageState = new Map<DoiString, LookupState>();
 // Retraction notices for the page: `pageNotices` is replaced by each check of
@@ -84,7 +85,7 @@ function refreshRedacts(): void {
 // Reference resolution still running after the pass that started it, and the
 // "nothing to flag" verdict it must complete before that toast is shown.
 let refsPending = 0;
-let lastResolvedReferences: ResolvedReference[] = [];
+const resolvedReferences = new ResolvedReferences();
 let pendingNothingToFlag: {dois: DoiString[]; flagged: boolean} | null = null;
 // Keep memory of detected DOIs to track dynamic page changes
 const processedDois = new Set<DoiString>();
@@ -125,7 +126,7 @@ const badgeRetryHooks = {
         // The indicator mints a fresh work signal, so the panel refresh runs
         // even when the previous pass was cancelled.
         beginWorkIndicator({stages: ["lookup"]});
-        void checkPubPeer(Promise.resolve(lastResolvedReferences))
+        void checkPubPeer(Promise.resolve(resolvedReferences.all()))
             .catch((err) => debugError("General: panel refresh after FORRT retry failed —", err))
             .finally(() => endWorkIndicator());
     },
@@ -345,7 +346,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                             injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             repaintBadges();
                             lastRenderedPageStateVersion = -1;
-                            await checkPubPeer(Promise.resolve(lastResolvedReferences));
+                            await checkPubPeer(Promise.resolve(resolvedReferences.all()));
                         }
                     } finally { endWorkIndicator(); }
                 } finally { if (retractionRetryQueued === queued) retractionRetryQueued = null; }
@@ -384,7 +385,7 @@ function syncPageNavigation(): void {
     redacts = [];
     pageNotices = [];
     refNotices.clear();
-    lastResolvedReferences = [];
+    resolvedReferences.clear();
     unavailableRetractionDois.clear();
     retractionRetryQueued = null;
     dismissRetractionRetry();
@@ -701,11 +702,34 @@ async function runScanPass(): Promise<void> {
 }
 
 /**
+ * Look up FORRT data for reference DOIs the page scan did not look up, and
+ * repaint their pills and badges while loading and once answered. Returns
+ * false when abandoned (see lookUpMissingReferenceStates).
+ */
+async function lookUpReferenceStates(dois: DoiString[], abandoned: () => boolean): Promise<boolean> {
+    const looked = await lookUpMissingReferenceStates(pageState, dois.filter((doi) => !invalidDois.has(doi)), {
+        send: (missing) => {
+            reportWorkStage("lookup", `Looking up ${count(missing.length, "reference")} in FLoRA…`);
+            return safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: missing});
+        },
+        onLoading: () => repaintBadges(),
+        abandoned,
+    });
+    if (!looked) return false;
+    if (looked.length === 0) return true;
+    for (const doi of looked) doiContext.set(doi, "reference");
+    pageStateVersion++;
+    if (!floraHidden && !isWorkCancelled()) repaintBadges();
+    return true;
+}
+
+/**
  * Second half of a scan pass, off the pass's own timeline: once the DOI-less
- * references are resolved, check them for retractions, pill them, refresh the
- * badges, and settle the "nothing to flag" verdict the pass left open. Keeps
- * the work toast up while it runs. Never rejects — a failure releases the
- * reference entries so a later pass can retry them.
+ * references are resolved, check them for retractions, pill them, look up
+ * their FORRT data, refresh the badges, and settle the "nothing to flag"
+ * verdict the pass left open. Keeps the work toast up while it runs. Resolves
+ * to every reference resolved on the page so far. Never rejects — a failure
+ * releases the reference entries so a later pass can retry them.
  */
 function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<ResolvedReference[]> {
     const passUrl = lastUrl;
@@ -721,7 +745,6 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
                 releaseReferenceEntries(resolvedRefs);
                 return [];
             }
-            lastResolvedReferences = resolvedRefs;
             let notices: RetractionResponse[] = [];
             if (resolvedRefs.length > 0) {
                 try {
@@ -746,12 +769,22 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
                     return [];
                 }
             }
+            const pageRefs = resolvedReferences.merge(resolvedRefs);
+            const looked = await lookUpReferenceStates(pageRefs.map((r) => r.doi),
+                () => stale() || floraHidden || isWorkCancelled());
+            if (!looked) return [];
             if (pendingNothingToFlag && refsPending === 1) {
                 const {dois, flagged} = pendingNothingToFlag;
                 pendingNothingToFlag = null;
-                reportNothingToFlag([...dois, ...resolvedRefs.map(ref => ref.doi)], flagged || notices.length > 0);
+                const replicated = pageRefs.some(({doi}) => {
+                    const state = pageState.get(doi);
+                    if (state?.status !== "matched") return false;
+                    const stats = state.result.record.stats;
+                    return stats.n_replications_total > 0 || stats.n_reproductions_total > 0;
+                });
+                reportNothingToFlag([...dois, ...pageRefs.map(ref => ref.doi)], flagged || notices.length > 0 || replicated);
             }
-            return resolvedRefs;
+            return pageRefs;
         })
         .catch((err) => {
             debugError("References: resolution failed —", err);
@@ -1001,35 +1034,15 @@ async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): P
     try {
         const resolvedRefs = refsPromise ? await refsPromise : [];
         if (signal?.aborted || navigated()) return;
-        const editorRefs = editorDocument ? editorAnnotatedReferences() : [];
-        // Title-resolved document references have no printed DOI in the page scan.
-        // Fetch their FORRT state too, so markers and the report can settle.
-        const missingEditorDois = editorRefs.map(ref => ref.doi).filter(doi => !pageState.has(doi));
-        if (missingEditorDois.length) {
-            for (const doi of missingEditorDois) pageState.set(doi, {status: "loading"});
-            repaintBadges();
-            let response: LookupResponse | undefined;
-            try { response = await safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: missingEditorDois}) ?? undefined; }
-            catch { /* Preserve unavailable status below so the popup offers retry. */ }
-            if (signal?.aborted || navigated()) {
-                for (const doi of missingEditorDois) if (pageState.get(doi)?.status === "loading") pageState.delete(doi);
-                return;
-            }
-            for (const doi of missingEditorDois) {
-                const result = response?.results[doi];
-                pageState.set(doi, !response || response.errors[doi]
-                    ? {status: "error", message: "FORRT unavailable"}
-                    : result ? {status: "matched", result, source: "augmented"} : {status: "no-match"});
-                doiContext.set(doi, "reference");
-            }
-            pageStateVersion++;
-            if (!floraHidden && !isWorkCancelled()) repaintBadges();
-        }
+        const pageRefs = editorDocument ? editorAnnotatedReferences() : resolvedRefs;
+        // Covers references whose lookup an earlier pass abandoned, and
+        // document-editor annotations, so markers and the report can settle.
+        if (!await lookUpReferenceStates(pageRefs.map(ref => ref.doi), () => !!signal?.aborted || navigated())) return;
 
         // Union resolved refs with on-page reference DOIs for full PubPeer coverage.
         const seen = new Set<DoiString>();
         const referenceDois: DoiString[] = [];
-        for (const r of editorDocument ? editorRefs : resolvedRefs) {
+        for (const r of pageRefs) {
             if (seen.has(r.doi)) continue;
             seen.add(r.doi);
             referenceDois.push(r.doi);
