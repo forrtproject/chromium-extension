@@ -32,12 +32,11 @@ export function isAbortError(err: unknown): boolean {
 }
 
 /**
- * Abort the requests of work begun for a page that is gone. Work for the new
- * page, even work that starts before the old pass has unwound, gets a fresh
- * signal.
+ * Abort the requests of work begun for a page that is gone, including panel
+ * requests still running after their pass ended. Work for the new page, even
+ * work that starts before the old pass has unwound, gets a fresh signal.
  */
 export function abortWorkForNavigation(): void {
-  if (!started) return;
   controller.abort(new DOMException("Page changed", "AbortError"));
   controller = new AbortController();
 }
