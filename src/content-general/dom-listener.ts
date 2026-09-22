@@ -2,6 +2,7 @@ import {containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extract
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog} from "@shared/debug";
 import {isWordOnline} from "@shared/word-online";
+import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 
 const MAX_INCREMENTAL_NODES = 50;
 
@@ -19,7 +20,7 @@ export function scanAddedNodes(nodes: Element[]): boolean {
 
 export interface DomListenerOptions {
     scanWholePage: () => void;
-    /** Current URL as of the last full scan — a change means SPA navigation. */
+    /** Current URL as of the last full scan — a change in its `pageUrl` means SPA navigation. */
     getLastUrl: () => string;
 }
 export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions): MutationObserver {
@@ -30,7 +31,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     let lastWordScan = -Infinity;
 
     const flush = (): void => {
-        if (isWordOnline() && location.href === getLastUrl() && Date.now() - lastWordScan < 1000) {
+        if (isWordOnline() && pageUrl(location.href) === pageUrl(getLastUrl()) && Date.now() - lastWordScan < 1000) {
             debounceTimer = setTimeout(flush, 1000 - (Date.now() - lastWordScan));
             return;
         }
@@ -38,7 +39,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         const full = pendingFullScan;
         pendingNodes = [];
         pendingFullScan = false;
-        if (full || location.href !== getLastUrl() || scanAddedNodes(nodes)) {
+        if (full || pageUrl(location.href) !== pageUrl(getLastUrl()) || scanAddedNodes(nodes)) {
             if (isWordOnline()) lastWordScan = Date.now();
             scanWholePage();
         } else {
@@ -46,15 +47,13 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         }
     };
 
-    const navigation = (window as Window & {navigation?: EventTarget & {currentEntry?: {key: string}}}).navigation;
-    let observedUrl = location.href;
-    let observedKey = navigation?.currentEntry?.key;
+    const navigation = (window as Window & {navigation?: EventTarget}).navigation;
+    let observed = currentPageEntry();
     navigation?.addEventListener("currententrychange", () => {
-        const key = navigation.currentEntry?.key;
-        if (observedUrl === location.href && observedKey === key) return;
+        const previous = observed;
+        observed = currentPageEntry();
+        if (isSamePage(previous, observed)) return;
         lastWordScan = -Infinity;
-        observedUrl = location.href;
-        observedKey = key;
         pendingFullScan = true;
         if (document.hidden) { missedWhileHidden = true; return; }
         clearTimeout(debounceTimer);
