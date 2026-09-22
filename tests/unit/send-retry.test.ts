@@ -60,6 +60,17 @@ describe("safeSendMessage retry", () => {
         expect(send).toHaveBeenCalledTimes(2);
     });
 
+    it("gives up on a persistently closed channel after the back-off schedule", async () => {
+        send.mockRejectedValue(new Error(CHANNEL_CLOSED));
+        const {safeSendMessage, SEND_RETRY_DELAYS_MS} = await import("../../src/shared/messages");
+
+        const pending = safeSendMessage({type: "FLORA_RET_CHECK", dois: []});
+        const failure = expect(pending).rejects.toThrow(CHANNEL_CLOSED);
+        for (const delay of SEND_RETRY_DELAYS_MS) await vi.advanceTimersByTimeAsync(delay);
+        await failure;
+        expect(send).toHaveBeenCalledTimes(SEND_RETRY_DELAYS_MS.length + 1);
+    });
+
     it("stops retrying a closed channel at the caller's deadline", async () => {
         send.mockRejectedValue(new Error(CHANNEL_CLOSED));
         const {safeSendMessage} = await import("../../src/shared/messages");
