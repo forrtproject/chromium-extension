@@ -549,3 +549,33 @@ it("hands badge retries a generation, so a retry landing after a navigation is d
     expect(generation()).not.toBe(startedOn);
     expect(state.has(DOI)).toBe(false);
 });
+
+const hydratingAdapter: SearchSiteAdapter = {
+    ...adapter,
+    extractRow: row => row.querySelector("a") ? adapter.extractRow(row) : null,
+};
+
+it("marks a row that cannot be read yet as not ready rather than processed", async () => {
+    const {processSearchResults} = await import("../../src/content-search/pipeline");
+    await processSearchResults(hydratingAdapter, document);
+    expect(document.querySelector(".result")?.getAttribute("data-flora-processed")).toBe("not-ready");
+    expect(send).not.toHaveBeenCalled();
+});
+
+it("reads a skeleton row once content fills into it, ignoring FLoRA UI and unrelated changes", async () => {
+    send.mockResolvedValue({type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}});
+    const {processSearchResults} = await import("../../src/content-search/pipeline");
+    const {observeSearchResults} = await import("../../src/content-search/observer");
+    const reads = vi.fn(hydratingAdapter.extractRow);
+    const countingAdapter = {...hydratingAdapter, extractRow: reads};
+    await processSearchResults(countingAdapter, document);
+    observeSearchResults(countingAdapter);
+    const row = document.querySelector(".result")!;
+    row.insertAdjacentHTML("beforeend", "<span data-flora-ui></span>");
+    document.body.insertAdjacentHTML("beforeend", "<p>footer</p>");
+    await new Promise(resolve => setTimeout(resolve, 180));
+    expect(reads).toHaveBeenCalledOnce();
+    row.insertAdjacentHTML("beforeend", '<a href="/work">Paper</a>');
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(row.getAttribute("data-flora-processed")).toBe("true");
+});

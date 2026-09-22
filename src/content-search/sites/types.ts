@@ -32,12 +32,14 @@ export interface SearchSiteAdapter {
     label: string;
     /** Bare hostnames; subdomains and www. match too. */
     hostnames: string[];
-    /** Selector for one result row. Rows are processed once and then marked. */
+    /** Selector for one result row. Rows are processed once they can be read, then marked. */
     resultRow: string;
     /** Stylesheet injected once per page: panel placement, sizing and any
      *  site-CSS overrides. Import the site's .css file (bundled as text). */
     css: string;
-    /** Read a row. Return null to skip it (e.g. Scholar's [CITATION] entries). */
+    /** Read a row. Return null when the row has nothing to check yet (a
+     *  skeleton) or ever (Scholar's [CITATION] entries); the row is read again
+     *  only when content is added inside it. */
     extractRow(row: HTMLElement): RowExtraction | null;
     /** Where the panel goes, searched within the row; first match wins.
      *  Falls back to appending to the row when nothing matches. */
