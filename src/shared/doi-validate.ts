@@ -1,4 +1,4 @@
-import {fetchWithDeadline, isAbortError} from "@shared/work-cancellation";
+import {activeWorkSignal, fetchWithDeadline, isAbortError} from "@shared/work-cancellation";
 import type { DoiString } from "./types";
 import { debugLog, debugWarn } from "./debug";
 import { BlobCache } from "./blob-cache";
@@ -12,6 +12,8 @@ import { mapWithLimit } from "./request-gate";
 
 const HANDLE_API = "https://doi.org/api/handles/";
 const MAX_CONCURRENT_CHECKS = 6;
+/** Longest one validateDOIs call waits for doi.org before treating the rest as unknown. */
+export const VALIDATION_BUDGET_MS = 10_000;
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const VALIDATION_CACHE = new BlobCache<{ valid: boolean }>({
@@ -57,17 +59,38 @@ export async function validateDOIs(
   // a possibly-valid DOI. (Marking it invalid here permanently strands the
   // reference: processReferenceDois sets its processed-marker before this
   // check, so a falsely-invalid DOI never gets a second chance at a pill.)
+  // The whole call shares one time limit: when it runs out, open requests are
+  // aborted and the unchecked DOIs stay unknown and uncached, so a slow
+  // doi.org holds up the lookups that follow by at most VALIDATION_BUDGET_MS.
   // Accumulate cache writes and flush the blob once at the end rather than once
   // per resolved DOI (each VALIDATION_CACHE.set is a full chrome.storage.local
   // write of the whole blob).
+  const work = activeWorkSignal();
+  work?.throwIfAborted();
+  const budget = new AbortController();
+  const onCancel = () => budget.abort(work!.reason);
+  work?.addEventListener("abort", onCancel, {once: true});
+  const timer = setTimeout(
+    () => budget.abort(new DOMException("DOI validation time limit reached", "TimeoutError")),
+    VALIDATION_BUDGET_MS,
+  );
   const updates: Array<[DoiString, { valid: boolean }]> = [];
-  await mapWithLimit(uncached, MAX_CONCURRENT_CHECKS, async (doi) => {
-    const verdict = await checkOnce(doi);
-    if (verdict === undefined) return;
-    results.set(doi, verdict);
-    updates.push([doi, { valid: verdict }]);
-    debugLog(`DOI validation: ${doi} → ${verdict ? "valid" : "invalid"}`);
-  });
+  try {
+    await mapWithLimit(uncached, MAX_CONCURRENT_CHECKS, async (doi) => {
+      if (budget.signal.aborted) return;
+      const verdict = await checkOnce(doi, budget.signal);
+      if (verdict === undefined) return;
+      results.set(doi, verdict);
+      updates.push([doi, { valid: verdict }]);
+      debugLog(`DOI validation: ${doi} → ${verdict ? "valid" : "invalid"}`);
+    });
+  } finally {
+    clearTimeout(timer);
+    work?.removeEventListener("abort", onCancel);
+  }
+  if (budget.signal.aborted) {
+    debugWarn(`DOI validation: time limit reached — ${uncached.length - updates.length} DOI(s) left unchecked`);
+  }
 
   if (updates.length > 0) await VALIDATION_CACHE.setMany(updates);
   return results;
@@ -75,24 +98,25 @@ export async function validateDOIs(
 
 const inFlight = new Map<DoiString, Promise<boolean | undefined>>();
 
-function checkOnce(doi: DoiString): Promise<boolean | undefined> {
+/** A check joined from another call stays bound to the time limit of the call that started it. */
+function checkOnce(doi: DoiString, signal: AbortSignal): Promise<boolean | undefined> {
   const shared = inFlight.get(doi);
   if (shared) return shared;
-  const run: Promise<boolean | undefined> = resolveDoi(doi).finally(() => {
+  const run: Promise<boolean | undefined> = resolveDoi(doi, signal).finally(() => {
     if (inFlight.get(doi) === run) inFlight.delete(doi);
   });
   inFlight.set(doi, run);
   return run;
 }
 
-async function resolveDoi(doi: DoiString): Promise<boolean | undefined> {
+async function resolveDoi(doi: DoiString, signal: AbortSignal): Promise<boolean | undefined> {
   try {
     // Preserve slashes as URL path separators so multi-slash DOIs
     // (e.g. 10.6338/JDA.202212/SP_17(4).0000) route correctly on doi.org.
     // encodeURIComponent on the full DOI would collapse all '/' to %2F,
     // making the server see a single opaque segment instead of a path.
     const encodedHandle = doi.split("/").map(encodeURIComponent).join("/");
-    const response = await fetchWithDeadline(`${HANDLE_API}${encodedHandle}`);
+    const response = await fetchWithDeadline(`${HANDLE_API}${encodedHandle}`, {signal});
     if (!response.ok) {
       // 404 = the Handle System has no record of this DOI → invalid.
       // Any other non-OK status (429, 5xx) is transient — leave unknown.
@@ -109,9 +133,9 @@ async function resolveDoi(doi: DoiString): Promise<boolean | undefined> {
     // Cancellation ends the whole pass; nothing is cached from it.
     if (isAbortError(err)) throw err;
     // Left out of the map entirely, so the caller keeps the DOI.
-    debugWarn(`DOI validation: ${doi} unresolved —`, err);
-  return undefined;
-}
+    if (err !== signal.reason) debugWarn(`DOI validation: ${doi} unresolved —`, err);
+    return undefined;
+  }
 }
 
 /** Test-only: drop in-memory cache state so each case starts fresh. */

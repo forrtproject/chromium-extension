@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, beforeAll, afterAll, afterEach } 
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
-import { validateDOIs, _resetValidationCacheForTesting } from "../../src/shared/doi-validate";
+import { validateDOIs, VALIDATION_BUDGET_MS, _resetValidationCacheForTesting } from "../../src/shared/doi-validate";
 import { beginCancellableWork, cancelWork, endCancellableWork } from "../../src/shared/work-cancellation";
 import type { DoiString } from "../../src/shared/types";
 
@@ -292,5 +292,59 @@ describe("validateDOIs", () => {
 
     expect(results.get(doi("10.1038/cached"))).toBe(true);
     expect(results.get(doi("10.1038/uncached"))).toBe(true);
+  });
+});
+
+describe("validateDOIs time limit", () => {
+  // Stubbed transport: a request stays open until its signal aborts, unless
+  // the DOI is listed in `answers`.
+  function stallingFetch(answers: Record<string, number> = {}) {
+    return vi.fn((url: string, init: RequestInit) => {
+      const code = answers[decodeURIComponent(new URL(url).pathname.replace("/api/handles/", ""))];
+      if (code !== undefined) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ responseCode: code }) } as Response);
+      }
+      return new Promise<Response>((_resolve, reject) =>
+        init.signal!.addEventListener("abort", () => reject(init.signal!.reason), { once: true }));
+    });
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockClear();
+    _resetValidationCacheForTesting();
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("stops at the time limit, aborts open requests and skips the queued ones", async () => {
+    const fetchStub = stallingFetch();
+    vi.stubGlobal("fetch", fetchStub);
+    const dois = Array.from({ length: 20 }, (_, i) => doi(`10.1000/slow${i}`));
+
+    let settled = false;
+    const pending = validateDOIs(dois).finally(() => { settled = true; });
+    await vi.advanceTimersByTimeAsync(VALIDATION_BUDGET_MS - 1);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    const results = await pending;
+
+    // Unanswered DOIs are unknown: absent from the map, which callers keep.
+    expect(results.size).toBe(0);
+    expect(fetchStub).toHaveBeenCalledTimes(6);
+    for (const [, init] of fetchStub.mock.calls) expect(init.signal!.aborted).toBe(true);
+    expect(cachedDois()).toEqual([]);
+  });
+
+  it("keeps and caches the verdicts that arrived before the limit", async () => {
+    vi.stubGlobal("fetch", stallingFetch({ "10.1000/fast": 1, "10.1000/gone": 100 }));
+
+    const pending = validateDOIs([doi("10.1000/fast"), doi("10.1000/slow"), doi("10.1000/gone")]);
+    await vi.advanceTimersByTimeAsync(VALIDATION_BUDGET_MS);
+    const results = await pending;
+
+    expect([...results]).toEqual([[doi("10.1000/fast"), true], [doi("10.1000/gone"), false]]);
+    expect(cachedDois().sort()).toEqual(["10.1000/fast", "10.1000/gone"]);
   });
 });
