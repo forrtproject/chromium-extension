@@ -40,7 +40,7 @@ function encodePath(value) {
 }
 
 function baselinePreviews(files, pr, results) {
-  const screenshotPath = /^(tests\/visual\/(baselines|review-evidence)\/|docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
+  const screenshotPath = /^(tests\/visual\/baselines\/|docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
   return files.map(file => {
     const oldName = file.previous_filename ?? file.filename;
     const beforeExists = file.status !== 'added' && screenshotPath.test(oldName);
@@ -253,7 +253,7 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   const results = readResults(path.join(reportDir, 'results.json'));
   const captured = run.conclusion === 'success' && !!results;
   const files = await github.paginate(github.rest.pulls.listFiles, {owner, repo, pull_number});
-  const screenshotPath = /^(tests\/visual\/(baselines|review-evidence)\/|docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
+  const screenshotPath = /^(tests\/visual\/baselines\/|docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
   const capturePath = /^(tests\/visual\/|tests\/fixtures\/(article-with-dois|doi-in-table|retracted)\.html$|\.github\/(workflows\/visual[^/]*\.yml|scripts\/visual-publish\.cjs)$|scripts\/(docs-screenshots|make-icons)\.ts$|package(?:-lock)?\.json$|esbuild\.config\.ts$|manifest\.json$|tsconfig[^/]*\.json$|\.npmrc$)/;
   const baselineFiles = files.filter(f => [f.filename, f.previous_filename].some(n => n && screenshotPath.test(n)));
   const captureFiles = files.filter(f => [f.filename, f.previous_filename].some(n => n && capturePath.test(n) && !screenshotPath.test(n)));

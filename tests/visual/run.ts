@@ -58,7 +58,7 @@ const VIEWPORT = { width: 1280, height: 900, deviceScaleFactor: 1 };
 const PIXEL_THRESHOLD = 0.1;
 const MAX_DIFF_PIXELS = 100;
 
-// CSS injected before any page script runs: kill animations/transitions/
+// CSS injected once the page has loaded: kill animations/transitions/
 // carets/smooth-scroll and remove the transient "scanning" toast, so a
 // screenshot captures a stable end state.
 const DETERMINISM_CSS = `
