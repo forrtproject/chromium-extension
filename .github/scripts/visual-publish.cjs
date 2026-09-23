@@ -230,12 +230,11 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   let approvedBy = null;
   if (captured && needsApproval && evidence) {
     const marker = MARKER.exec(evidence.body ?? '');
-    const parts = ownComments.filter(part => {
+    const parts = (current ? ownComments : postedComments).filter(part => {
       const other = MARKER.exec(part.body ?? '');
       return other && marker && other[1] === marker[1] && other[2] === marker[2] &&
         other[3] === marker[3] && other[4] === marker[4] && other[6] === marker[6];
     });
-    if (publish && !current && evidence) parts.push(...postedComments);
     const complete = marker && parts.length === Number(marker[6]) &&
       new Set(parts.map(part => Number(MARKER.exec(part.body)[5]))).size === Number(marker[6]);
     const after = complete && parts.every(part => Number.isFinite(Date.parse(part.created_at)))
@@ -267,8 +266,9 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   }
   await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha, context: 'Visual approval',
     target_url: evidence?.html_url ?? run.html_url,
-    state: !captured ? 'failure' : !needsApproval || approvedBy ? 'success' : 'pending',
+    state: !captured || (needsApproval && !evidence) ? 'failure' : !needsApproval || approvedBy ? 'success' : 'pending',
     description: !captured ? 'Visual capture failed' : !needsApproval ? 'No visual review needed' :
-      approvedBy ? `Visuals approved by @${approvedBy}` : 'Review images in PR comment, then approve this PR',
+      !evidence ? 'Visual evidence missing; rerun publisher' : approvedBy ? `Visuals approved by @${approvedBy}` :
+        'Review images in PR comment, then approve this PR',
   });
 };

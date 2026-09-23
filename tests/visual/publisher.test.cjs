@@ -161,7 +161,7 @@ test('visual evidence is reviewed in the PR', async t => {
         comments: [comment()], reviews: [{user: {login: 'maintainer', type: 'User'},
           commit_id: options.head ?? HEAD, submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'}],
         ...options});
-      assert.equal(result.status.state, 'pending');
+      assert.equal(result.status.state, 'failure');
     }
     assert.equal((await scenario({changed: true, runHead: NEW_HEAD})).status, undefined);
   });
@@ -202,7 +202,7 @@ test('visual evidence is reviewed in the PR', async t => {
       submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'};
     const incomplete = await scenario({results: rows, event: 'Visual review decision',
       comments: [comment({total: 2})], reviews: [approval]});
-    assert.equal(incomplete.status.state, 'pending');
+    assert.equal(incomplete.status.state, 'failure');
     const complete = await scenario({results: rows, event: 'Visual review decision',
       comments: [comment({total: 2}), comment({id: 43, part: 2, total: 2})], reviews: [approval]});
     assert.equal(complete.status.state, 'success');
