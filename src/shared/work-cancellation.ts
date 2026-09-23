@@ -1,12 +1,9 @@
+import {currentPageEntry, isSamePage, type PageEntry} from "./page-identity";
+
 // Each content-script context owns its scan's cancellation signal.
 let controller = new AbortController();
 let started = false;
-let cancelledPage: string | null = null;
-/** URL plus Navigation API entry key, so a same-URL SPA navigation counts as a new page. */
-const pageIdentity = (): string => {
-  const entry = (window as Window & {navigation?: {currentEntry?: {key: string}}}).navigation?.currentEntry?.key ?? "";
-  return `${location.href}\n${entry}`;
-};
+let cancelledPage: PageEntry | null = null;
 /**
  * Clear the stop. A cancelled pass that is still unwinding keeps its aborted
  * signal, so its remaining provider calls stay cancelled; the next pass gets a
@@ -18,7 +15,7 @@ function liftCancel(): void {
 }
 /** Automatic passes stay stopped on this page until navigation or an explicit resume. */
 export function canStartAutomaticWork(): boolean {
-  if (cancelledPage !== null && cancelledPage !== pageIdentity()) liftCancel();
+  if (cancelledPage !== null && !isSamePage(cancelledPage, currentPageEntry())) liftCancel();
   return cancelledPage === null;
 }
 export function resumeAutomaticWork(): void { liftCancel(); }
@@ -35,7 +32,7 @@ export function isAbortError(err: unknown): boolean {
 }
 
 export function cancelWork(): void {
-  cancelledPage = pageIdentity();
+  cancelledPage = currentPageEntry();
   controller.abort(new DOMException("Work cancelled", "AbortError"));
 }
 

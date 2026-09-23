@@ -370,7 +370,7 @@ it("does not start notice checks from an old site-id resolution after A → B �
     expect(document.querySelector("[data-flora-panel]")).toBeNull();
 });
 
-it("refreshes reused rows after a hash navigation without an explicit pipeline call", async () => {
+it("refreshes reused rows after a hash-route navigation without an explicit pipeline call", async () => {
     send.mockResolvedValue({type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}});
     const notice = {originDoi: DOI, doi: "10.1234/notice", kind: "concern"};
     retraction.mockResolvedValue([notice]);
@@ -379,11 +379,32 @@ it("refreshes reused rows after a hash navigation without an explicit pipeline c
     await processSearchResults(adapter, document);
     await vi.waitFor(() => expect(badges.mock.lastCall![2]()).toEqual([notice]));
     observeSearchResults(adapter);
-    history.pushState({}, "", "#next-section");
+    history.pushState({}, "", "#/results?page=2");
     navigationEvents.dispatchEvent(new Event("currententrychange"));
     await vi.waitFor(() => expect(retraction).toHaveBeenCalledTimes(2));
     expect(document.querySelectorAll("[data-flora-panel]")).toHaveLength(1);
     expect(badges.mock.lastCall![2]()).toEqual([notice]);
+    history.replaceState({}, "", location.pathname + location.search);
+});
+
+it("keeps rows and panels when only a plain fragment changes, even with a new history entry", async () => {
+    send.mockResolvedValue({type: "FLORA_LOOKUP_RESULT", results: {}, errors: {}});
+    const notice = {originDoi: DOI, doi: "10.1234/notice", kind: "concern"};
+    retraction.mockResolvedValue([notice]);
+    const {processSearchResults} = await import("../../src/content-search/pipeline");
+    const {observeSearchResults} = await import("../../src/content-search/observer");
+    await processSearchResults(adapter, document);
+    await vi.waitFor(() => expect(badges.mock.lastCall![2]()).toEqual([notice]));
+    observeSearchResults(adapter);
+    const navigation = navigationEvents as EventTarget & {currentEntry: {key: string}};
+    history.pushState({}, "", "#d=gs_cit&t=1"); // Scholar's Cite popup
+    navigation.currentEntry = {key: "cite-entry"};
+    navigation.dispatchEvent(new Event("currententrychange"));
+    await new Promise(resolve => setTimeout(resolve, 300)); // past the observer's settle delay
+    expect(retraction).toHaveBeenCalledOnce();
+    expect(document.querySelector(".result")?.hasAttribute("data-flora-processed")).toBe(true);
+    expect(document.querySelectorAll("[data-flora-panel]")).toHaveLength(1);
+    history.replaceState({}, "", location.pathname + location.search);
 });
 
 it("does not apply a queued shared Retry after A → B → A navigation", async () => {

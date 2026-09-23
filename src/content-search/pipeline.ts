@@ -20,6 +20,7 @@ import {isSetupComplete} from "@shared/settings";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {activeWorkSignal, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
+import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {
     beginWorkIndicator,
     waitForWorkToFinish,
@@ -69,7 +70,7 @@ export async function retryUnansweredSearchResults(adapter: SearchSiteAdapter, r
 const lookupState = new Map<DoiString, LookupState>();
 const retractions = new Map<DoiString, RetractionResponse>();
 const unavailableRetractionDois = new Set<DoiString>();
-let retractionPage = location.href;
+let retractionPage = currentPageEntry();
 let searchNavigationGeneration = 0;
 function clearResultRow(row: HTMLElement): void {
     row.querySelectorAll("[data-flora-panel]").forEach(panel => panel.remove());
@@ -79,14 +80,10 @@ function clearResultRow(row: HTMLElement): void {
     row.removeAttribute(PROCESSED_ATTR);
 }
 
-type PageNavigation = EventTarget & {currentEntry?: {key: string}};
-const pageNavigation = (window as Window & {navigation?: PageNavigation}).navigation;
-let lastPageEntryKey = pageNavigation?.currentEntry?.key;
 function syncRetractionPage(): void {
-    const entryKey = pageNavigation?.currentEntry?.key;
-    if (retractionPage === location.href && lastPageEntryKey === entryKey) return;
-    lastPageEntryKey = entryKey;
-    retractionPage = location.href;
+    const previous = retractionPage;
+    retractionPage = currentPageEntry();
+    if (isSamePage(previous, retractionPage)) return;
     searchNavigationGeneration++;
     resetWorkSummary();
     retryingSearchChecks = null;
@@ -99,7 +96,7 @@ function syncRetractionPage(): void {
 }
 // Available since Chrome 102. Unlike a content-world history patch, this sees
 // the page's pushState/replaceState calls, even A → B → A between scan passes.
-pageNavigation?.addEventListener("currententrychange", syncRetractionPage);
+(window as Window & {navigation?: EventTarget}).navigation?.addEventListener("currententrychange", syncRetractionPage);
 
 function refreshBadges(): void {
     // A FORRT Retry inside a panel writes into lookupState from outside a pass,
@@ -499,13 +496,13 @@ function dismissSearchRetry(): void {
 
 /** A single retry keeps either failure from hiding the other provider's recovery action. */
 async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
-    const pageUrl = location.href;
+    const passUrl = pageUrl(location.href);
     const generation = searchNavigationGeneration;
     const titleMatchingEnabled = await isSetupComplete();
-    if (searchHidden || isWorkCancelled() || searchRequiresReload || retryingSearchChecks || location.href !== pageUrl || generation !== searchNavigationGeneration) return;
+    if (searchHidden || isWorkCancelled() || searchRequiresReload || retryingSearchChecks || pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration) return;
     const titleFailed = titleMatchingEnabled && [...root.querySelectorAll<HTMLElement>(adapter.resultRow)]
         .some(row => unansweredRows.has(row));
-    const noticesFailed = retractionPage === pageUrl && unavailableRetractionDois.size > 0;
+    const noticesFailed = pageUrl(retractionPage.href) === passUrl && unavailableRetractionDois.size > 0;
     if (!titleFailed && !noticesFailed) {
         dismissSearchRetry();
         return;
@@ -517,7 +514,7 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
     searchRetryToast = showToast(searchRetryMessage, {
         tone: "info", duration: 0, dismissOnAction: false,
         action: {label: "Retry", onClick: () => {
-            if (location.href !== pageUrl || generation !== searchNavigationGeneration) {
+            if (pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration) {
                 if (generation === searchNavigationGeneration) dismissSearchRetry();
                 return;
             }
@@ -528,11 +525,11 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
 }
 
 async function retryFailedSearchChecks(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
-    const pageUrl = location.href;
+    const passUrl = pageUrl(location.href);
     const generation = searchNavigationGeneration;
-    const queued = {page: pageUrl, generation};
+    const queued = {page: passUrl, generation};
     retryingSearchChecks = queued;
-    const navigated = () => location.href !== pageUrl || generation !== searchNavigationGeneration;
+    const navigated = () => pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration;
     const clickedSignal = workSignal();
     const wasCancelled = clickedSignal.aborted;
     try {
@@ -540,7 +537,7 @@ async function retryFailedSearchChecks(adapter: SearchSiteAdapter, root: ParentN
         await waitForWorkToFinish();
         if (searchHidden || navigated() || (!wasCancelled && clickedSignal.aborted)) return;
         // New panels run their own notice checks; retry only failures already known at the click.
-        const failedNotices = retractionPage === pageUrl ? [...unavailableRetractionDois] : [];
+        const failedNotices = pageUrl(retractionPage.href) === passUrl ? [...unavailableRetractionDois] : [];
         resumeAutomaticWork();
         beginWorkIndicator({stages: ["augment", "notices"]});
         try {
@@ -561,10 +558,10 @@ async function retryFailedSearchChecks(adapter: SearchSiteAdapter, root: ParentN
 
 /** Retry only the unavailable notice lookups; already placed rows stay intact. */
 async function checkSearchRetractions(dois: DoiString[], adapter: SearchSiteAdapter): Promise<RetractionResponse[]> {
-    const passUrl = location.href;
+    const passUrl = pageUrl(location.href);
     syncRetractionPage();
     const generation = searchNavigationGeneration;
-    const navigated = () => location.href !== passUrl || generation !== searchNavigationGeneration;
+    const navigated = () => pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration;
     const signal = activeWorkSignal();
     const stale = () => signal?.aborted || searchHidden || isWorkCancelled() || navigated();
     try {

@@ -59,6 +59,7 @@ import {waitUntilVisible} from "@shared/page-visibility";
 import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
 import {startDomListener} from "./dom-listener";
+import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {isExcelOnline, startExcelOnline, excelOnlineText, excelWorkbookKey, excelContentRevision} from "@shared/excel-online";
 import {injectLooseDoiPills, resetLooseDoiPills} from "./loose-dois";
 
@@ -276,8 +277,8 @@ let nothingToFlagReportedFor: string | null = null;
 function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
     const examined = new Set(dois).size;
     if (examined === 0 || flagged || unavailableRetractionDois.size > 0 || dois.some(doi => pageState.get(doi)?.status === "error")) return;
-    if (nothingToFlagReportedFor === location.href) return;
-    nothingToFlagReportedFor = location.href;
+    if (nothingToFlagReportedFor === pageUrl(location.href)) return;
+    nothingToFlagReportedFor = pageUrl(location.href);
     showToast(`Checked ${count(examined, "paper")} — no flags in available results`, {tone: "success"});
 }
 
@@ -287,11 +288,11 @@ function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
  * superseded): those DOIs carry no verdict and must be checked again.
  */
 async function checkPageRetractions(dois: DoiString[]): Promise<RetractionResponse[] | null> {
-    const passUrl = location.href;
+    const passUrl = pageUrl(location.href);
     const generation = sheetFetchGen;
     const checkedPageGeneration = pageGeneration;
     const checkedSheetKey = isSheets ? currentSheetKey() : null;
-    const navigated = () => (isSheets ? currentSheetKey() !== checkedSheetKey : location.href !== passUrl)
+    const navigated = () => (isSheets ? currentSheetKey() !== checkedSheetKey : pageUrl(location.href) !== passUrl)
         || generation !== sheetFetchGen || checkedPageGeneration !== pageGeneration;
     const signal = activeWorkSignal();
     const stale = () => signal?.aborted || floraHidden || isWorkCancelled()
@@ -355,20 +356,16 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
     }
 }
 
-type PageNavigation = EventTarget & {currentEntry?: {key: string}};
-const pageNavigation = (window as Window & {navigation?: PageNavigation}).navigation;
-let lastPageEntryKey = pageNavigation?.currentEntry?.key;
+let lastPageEntryKey = currentPageEntry().key;
 function syncPageNavigation(): void {
-    const entryKey = pageNavigation?.currentEntry?.key;
+    const current = currentPageEntry();
     // A sheet export belongs to its spreadsheet/tab, regardless of selection or history entry.
-    if (isGoogleSheets && sheetTabKey(parseSheetsUrl(lastUrl)) === currentSheetKey()) {
-        lastUrl = location.href;
-        lastPageEntryKey = entryKey;
-        return;
-    }
-    if (lastUrl === location.href && lastPageEntryKey === entryKey) return;
-    lastUrl = location.href;
-    lastPageEntryKey = entryKey;
+    const samePage = isGoogleSheets
+        ? sheetTabKey(parseSheetsUrl(lastUrl)) === currentSheetKey()
+        : isSamePage({href: lastUrl, key: lastPageEntryKey}, current);
+    lastUrl = current.href;
+    lastPageEntryKey = current.key;
+    if (samePage) return;
     pageGeneration++;
     resetWorkSummary();
     invalidDois.clear();
@@ -401,7 +398,7 @@ function syncPageNavigation(): void {
         removeSidePanel();
     }
 }
-pageNavigation?.addEventListener("currententrychange", syncPageNavigation);
+(window as Window & {navigation?: EventTarget}).navigation?.addEventListener("currententrychange", syncPageNavigation);
 
 async function runScanPass(): Promise<void> {
     if (floraHidden || !canStartAutomaticWork()) return;
@@ -708,9 +705,9 @@ async function runScanPass(): Promise<void> {
  * reference entries so a later pass can retry them.
  */
 function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<ResolvedReference[]> {
-    const passUrl = lastUrl;
+    const passUrl = pageUrl(lastUrl);
     const generation = pageGeneration;
-    const stale = () => location.href !== passUrl || generation !== pageGeneration;
+    const stale = () => pageUrl(location.href) !== passUrl || generation !== pageGeneration;
     refsPending++;
     beginWorkIndicator();
     return refsPromise
@@ -989,10 +986,10 @@ function extractPageAugmentationMetadata(doc: Document): Omit<DoiAugmentRequest,
 async function checkPubPeer(refsPromise: Promise<ResolvedReference[]> | null): Promise<void> {
     const signal = activeWorkSignal() ?? null;
     if (isSheets || floraHidden || isWorkCancelled()) return;
-    const passUrl = location.href;
+    const passUrl = pageUrl(location.href);
     const generation = pageGeneration;
     const editorSnapshot = isDocumentEditor() ? editorContentSnapshot() : null;
-    const navigated = () => location.href !== passUrl || generation !== pageGeneration
+    const navigated = () => pageUrl(location.href) !== passUrl || generation !== pageGeneration
         || editorSnapshot !== null && editorContentSnapshot() !== editorSnapshot;
     const primaryDoi = extractPrimaryDOI(document);
     const editorDocument = isDocumentEditor();

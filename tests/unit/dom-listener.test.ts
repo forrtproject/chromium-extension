@@ -70,6 +70,27 @@ describe("startDomListener", () => {
         expect(scanWholePage).toHaveBeenCalledTimes(1);
     });
 
+    it("ignores a plain-fragment change with a new entry key, but scans a hash-route change", () => {
+        const navigation = Object.assign(new EventTarget(), {currentEntry: {key: "first"}});
+        vi.stubGlobal("navigation", navigation);
+        const start = location.href;
+        listen(() => start);
+        try {
+            history.pushState({}, "", "#ref-12");
+            navigation.currentEntry = {key: "second"};
+            navigation.dispatchEvent(new Event("currententrychange"));
+            vi.advanceTimersByTime(DEBOUNCE_MS);
+            expect(scanWholePage).not.toHaveBeenCalled();
+            history.pushState({}, "", "#/chapter-2");
+            navigation.currentEntry = {key: "third"};
+            navigation.dispatchEvent(new Event("currententrychange"));
+            vi.advanceTimersByTime(DEBOUNCE_MS);
+            expect(scanWholePage).toHaveBeenCalledTimes(1);
+        } finally {
+            history.replaceState({}, "", start);
+        }
+    });
+
     it("clears queued hidden navigation work after its visibility catch-up scan", async () => {
         const navigation = Object.assign(new EventTarget(), {currentEntry: {key: "first"}});
         vi.stubGlobal("navigation", navigation);

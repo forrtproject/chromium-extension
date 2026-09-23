@@ -45,6 +45,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { debugLog } from "@shared/debug";
+import { pageUrl } from "@shared/page-identity";
 
 export type PlacementPosition = "append" | "prepend" | "before" | "after";
 
@@ -575,10 +576,10 @@ let expandedForUrl: string | null = null;
 export function expandReferencesSection(adapter: SiteAdapter | null): void {
     const selector = adapter?.autoExpandReferences;
     if (!selector) return;
-    if (expandedForUrl === location.href) return;
+    if (expandedForUrl === pageUrl(location.href)) return;
     const trigger = document.querySelector<HTMLElement>(selector);
     if (!trigger) return;
-    expandedForUrl = location.href;
+    expandedForUrl = pageUrl(location.href);
     if (trigger.getAttribute("aria-expanded") === "true") return;
     trigger.click();
 }

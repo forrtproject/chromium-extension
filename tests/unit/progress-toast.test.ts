@@ -913,7 +913,7 @@ describe("progress toast", () => {
         expect(canStartAutomaticWork()).toBe(true);
 
         cancelPass();
-        history.replaceState(null, "", "#gid=2"); // a Sheets tab switch
+        history.replaceState(null, "", "/next-page"); // a page switch
         expect(canStartAutomaticWork()).toBe(true);
         expect(isWorkCancelled()).toBe(false);
     });

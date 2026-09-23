@@ -5,6 +5,7 @@
 // container itself.
 
 import {debugError} from "@shared/debug";
+import {currentPageEntry, isSamePage} from "@shared/page-identity";
 import {processSearchResults} from "./pipeline";
 import type {SearchSiteAdapter} from "./sites/types";
 
@@ -24,15 +25,12 @@ export function observeSearchResults(adapter: SearchSiteAdapter): void {
     };
     // Same-document navigation may reuse every result node, so no added-row
     // mutation will arrive. Coalesce rapid history changes and read the final DOM.
-    const navigation = (window as Window & {navigation?: EventTarget & {currentEntry?: {key: string}}}).navigation;
-    let observedUrl = location.href;
-    let observedKey = navigation?.currentEntry?.key;
+    const navigation = (window as Window & {navigation?: EventTarget}).navigation;
+    let observed = currentPageEntry();
     navigation?.addEventListener("currententrychange", () => {
-        const key = navigation.currentEntry?.key;
-        if (observedUrl === location.href && observedKey === key) return;
-        observedUrl = location.href;
-        observedKey = key;
-        queuePass();
+        const previous = observed;
+        observed = currentPageEntry();
+        if (!isSamePage(previous, observed)) queuePass();
     });
 
 
