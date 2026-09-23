@@ -41,7 +41,7 @@ ditto -x -k *.zip mac_arm-<version>/
 
 ## What gets tested
 
-13 fixtures (viewport 1280×900, `deviceScaleFactor` 1):
+14 fixtures (viewport 1280×900, `deviceScaleFactor` 1):
 
 | Fixture | Exercises |
 | --- | --- |
@@ -58,6 +58,7 @@ ditto -x -k *.zip mac_arm-<version>/
 | `doi-in-text` | Reused — DOI in running prose |
 | `retracted` | Reused — Springer article page, notice beside the DOI-bearing masthead link |
 | `publisher-styled-link-row` | Reference row whose publisher styling (separator borders) must stay off the pill |
+| `provider-unavailable` | Article when replication and notice providers are unavailable |
 
 Each fixture uses DOIs seeded to a known state (has replications, reproductions,
 retracted, expression of concern, or no data) so the injected UI is fully
@@ -141,21 +142,53 @@ for a whole pill to move. On failure the actual and diff images are written to
 
 Baselines in `baselines/` were rendered on **macOS**. Font rasterisation differs
 across operating systems, so baselines generated on macOS will not match a Linux
-CI run pixel-for-pixel. Regenerate baselines on the platform where the tests will
-run (`npm run test:visual:update`) and commit them from that platform.
+CI run pixel-for-pixel. Local comparisons need baselines generated on the same
+platform; CI uses its own base/head captures for PR review.
 
 ## Updating baselines
 
-When a FLoRA UI change is intentional, run `npm run test:visual:update`,
-**visually inspect** the regenerated PNGs in `baselines/`, and commit them
-alongside the code change so the diff is reviewable. The renders are staged in a
-temporary directory and copied into `baselines/` only when every fixture
-succeeds, so a failed capture leaves the committed baselines untouched.
+For local work, `npm run test:visual:update` regenerates `baselines/`. The
+renders are staged in a temporary directory and copied in only when every
+fixture succeeds. CI commits approved baseline updates to the PR itself, as
+described below. A local update is useful while editing a fixture; it is not
+a step in the PR confirmation flow.
 
-## PR evidence and visual sign-off
+## PR visual review flow
 
-`Visual evidence` builds the PR base and head on the same Ubuntu runner and
-renders both with the PR's fixture catalogue and pinned Chrome 152.0.7977.75.
+1. **Capture.** `Visual evidence` builds the PR base and head on the same
+   Ubuntu runner and renders both with the PR's fixtures and pinned Chrome
+   152.0.7977.75. The trusted publisher posts base/PR captures and any setup
+   diff link directly in the PR conversation. Inspect those images for
+   placement, clipping, readability and missing indicators. The
+   `visual-report` artifact is a machine handoff and troubleshooting aid.
+2. **Confirm.** After all evidence comments for the current PR head and
+   capture attempt are present, the PR author or another collaborator with
+   write access posts a PR conversation comment containing exactly
+   `visuals ok` (case and surrounding whitespace are ignored). A thumbs-up
+   reaction, PR review approval or checkbox does not count. A later
+   `visuals not ok` from a write collaborator blocks confirmation. Editing
+   or deleting the confirming comment revokes it. New evidence after a code
+   change needs a new comment.
+3. **Commit approved captures.** If base and PR renders differ, the trusted
+   action commits the approved PR captures as
+   `tests/visual/baselines/<fixture>.png` on that same-repository PR branch
+   and posts a commit link. The author does not run a local baseline update
+   or make this commit by hand.
+4. **Verify.** The action explicitly starts another `Visual evidence` run
+   because its own token's branch push does not start the PR workflow. The
+   publisher compares that run's actual PNG bytes with the committed PNGs.
+   The required `Visual approval` check succeeds only when the capture
+   succeeds, the images match, and the confirming comment remains valid. A
+   mismatch posts new evidence for review; a failed capture fails the check.
+   If review concerns setup or committed images but the captures do not
+   differ, the comment clears the check without an extra commit.
+
+Automatic baseline commits need a PR branch in this repository. For a fork
+PR with changed captures, move the branch here to use this flow. PRs with no
+visual or capture setup changes pass `Visual approval` automatically.
+
+### What CI compares
+
 Committed macOS baselines do not determine CI results. Changes to committed
 baseline PNGs cannot hide a change between the actual base and head builds.
 Both link-only and text-only DOI fixtures now contain real reference layouts;
@@ -167,41 +200,28 @@ mode. This is a readiness guard, not a claim that every async interaction is
 covered. Popovers, keyboard interaction, popup/options, search-site layouts,
 and narrow viewports still need additional visual scenarios.
 
-The PR approval gate uses exact raw RGBA equality: even a one-channel change
+The visual review gate uses exact raw RGBA equality: even a one-channel change
 within the local perceptual budget requires visual approval.
 
-CI stores before/after PNGs, diff images and JSON results in a `visual-report`
-artifact for the trusted publisher and for troubleshooting. Reviewers work in
-the PR conversation: the publisher stores changed captures on the
-`visual-evidence` branch and posts base/PR images inline. Added or modified committed
-screenshots appear in the same comment as images from the two commits. When
-only the capture setup changed, the comment shows representative captured
-pages and links to the setup diff. Large reviews may span several comments.
-There is no report download or PR-body checkbox in the approval path.
-
-A collaborator with write access inspects the PR comment and submits a normal
-GitHub **Approve** review. The trusted publisher checks that the review was
-submitted after the comment for the current head commit and capture attempt.
-A later change request or dismissal revokes that reviewer's approval. A new
-commit or recapture posts fresh evidence and needs a fresh review. A failed
-capture fails the status regardless of reviews. When neither screenshots nor
-capture inputs changed, `Visual approval` succeeds automatically.
+CI stores before/after PNGs, diff images and JSON results in the
+`visual-report` artifact. The publisher stores images on the
+`visual-evidence` branch for inline PR comments. Added or modified committed
+screenshots appear as images from the two commits. When only capture setup
+changed, the comment shows representative pages and links to the setup diff.
+Large reviews may span several comments.
 
 The publisher runs only default-branch code, validates artifact data and
 image files, and checks the PR head and repository before posting. It stores
 generated images in an immutable commit on the `visual-evidence` branch and
-embeds them from GitHub in the PR comment; the artifact is only the machine
-handoff. A `pull_request_review` event is relayed through a read-only workflow
-to the trusted publisher so reviews on fork PRs can update the status.
+embeds them from GitHub in the PR comment. Relevant `issue_comment` events
+update the status directly, including on fork PRs.
 When review is required, the status links to the PR comment. If the PR's file listing is incomplete,
 review remains required. Changes to visual fixtures, capture/publisher
 workflows, the publisher script, package manifests/lockfile, build
 configuration or extension manifest also require review.
 
-**Activation:** merge the trusted workflows to the default branch, then make
-`Visual approval` a required status check for `main` in branch protection or a
-repository ruleset. A pending status does not block merging until that rule is
-active. This conditional check avoids requiring a review for unrelated PRs.
+`Visual approval` is a required status check for `main`. A pending visual
+confirmation blocks merging.
 
 For local base/head captures, the harness also accepts `VR_REPO_ROOT` (built
 extension root), `VR_BASELINE_DIR`, and `VR_OUTPUT_DIR`. `--review` treats pixel
