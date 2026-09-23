@@ -367,10 +367,7 @@ async function queryCrossref(request: DoiAugmentRequest, email: string, signal?:
     const cleaned = cleanTitleForSearch(title);
     const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link&mailto=${encodeURIComponent(email)}`;
     debugLog(`Augment [crossref] query: "${cleaned}"`);
-    const response = await crossrefGate.fetch(url, {signal});
-    if (!response.ok) throw new Error(`Crossref HTTP ${response.status}`);
-
-    const data = (await response.json()) as {
+    const data = await crossrefGate.fetch<{
         message?: {
             items?: Array<{
                 DOI?: string;
@@ -384,7 +381,10 @@ async function queryCrossref(request: DoiAugmentRequest, email: string, signal?:
                 link?: Array<{URL?: string}>;
             }>;
         };
-    };
+    }>(url, {signal}, async (response) => {
+        if (!response.ok) throw new Error(`Crossref HTTP ${response.status}`);
+        return response.json();
+    });
 
     const items = data.message?.items ?? [];
     const candidates: DoiCandidate[] = [];
@@ -427,10 +427,7 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string, signal?:
     const url = `${OPENALEX_BASE}?filter=title.search:${encodeURIComponent(cleaned)}&select=id,doi,title,publication_year,authorships,primary_location,locations&per_page=5&mailto=${encodeURIComponent(email)}`;
 
     debugLog(`Augment [openalex] query: "${cleaned}"`);
-    const response = await openalexGate.fetch(url, {signal});
-    if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
-
-    const data = (await response.json()) as {
+    const data = await openalexGate.fetch<{
         results?: Array<{
             doi?: string;
             title?: string;
@@ -439,7 +436,10 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string, signal?:
             primary_location?: {landing_page_url?: string | null; pdf_url?: string | null} | null;
             locations?: Array<{landing_page_url?: string | null; pdf_url?: string | null}>;
         }>;
-    };
+    }>(url, {signal}, async (response) => {
+        if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
+        return response.json();
+    });
 
     const works = data.results ?? [];
     const candidates: DoiCandidate[] = [];
@@ -662,12 +662,12 @@ export async function fetchTitleByDoi(doi: string, signal: AbortSignal | null | 
     try {
         const email = await getUserEmail();
         const mailto = email ? `?mailto=${encodeURIComponent(email)}` : "";
-        const response = await crossrefGate.fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`, {signal: signal ?? null});
-        crossrefAnswered = response.ok || response.status === 404;
-        if (response.ok) {
+        title = await crossrefGate.fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`, {signal: signal ?? null}, async (response) => {
+            crossrefAnswered = response.ok || response.status === 404;
+            if (!response.ok) return null;
             const data = (await response.json()) as { message?: { title?: string[] } };
-            title = data.message?.title?.[0] ?? null;
-        }
+            return data.message?.title?.[0] ?? null;
+        });
     } catch {
         // Crossref failed — fall through to OpenAlex
     }
@@ -675,12 +675,12 @@ export async function fetchTitleByDoi(doi: string, signal: AbortSignal | null | 
     if (signal?.aborted && !title) return null;
     if (!title) {
         try {
-            const response = await openalexGate.fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`, {signal: signal ?? null});
-            openalexAnswered = response.ok || response.status === 404;
-            if (response.ok) {
+            title = await openalexGate.fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`, {signal: signal ?? null}, async (response) => {
+                openalexAnswered = response.ok || response.status === 404;
+                if (!response.ok) return null;
                 const data = (await response.json()) as { title?: string };
-                title = data.title ?? null;
-            }
+                return data.title ?? null;
+            });
         } catch (err) {
             debugWarn(`Title lookup: OpenAlex failed for ${doi} —`, err);
         }

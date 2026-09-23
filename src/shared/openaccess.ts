@@ -120,44 +120,48 @@ async function unpaywallReason(resp: Response): Promise<string | null> {
 
 async function requestOpenAccess(doi: string, email: string, signal?: AbortSignal): Promise<OpenAccessStatus | null> {
     try {
-        const resp = await UNPAYWALL_GATE.fetch(
-            `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`, {signal: signal ?? null}
+        return await UNPAYWALL_GATE.fetch(
+            `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`, {signal: signal ?? null},
+            (resp) => readOpenAccess(doi, resp),
         );
-        if (resp.status === 404) {
-            const status = {isOa: false, url: null, notIndexed: true, checkedAt: Date.now()};
-            void OA_CACHE.set(doi, status);
-            return status;
-        }
-        if (!resp.ok) {
-            const reason = resp.status === 422 ? await unpaywallReason(resp) : null;
-            debugWarn(`Open access: Unpaywall returned ${resp.status} for ${doi}`,
-                reason ? `— ${reason}` : "— no detail given");
-            return null;
-        }
-        const data = (await resp.json()) as {
-            is_oa?: boolean;
-            best_oa_location?: UnpaywallLocation | null;
-            oa_locations?: UnpaywallLocation[] | null;
-        };
-        if (typeof data.is_oa !== "boolean") return null;
-        const best = data.best_oa_location ? toLocation(data.best_oa_location) : null;
-        const rest = (data.oa_locations ?? [])
-            .map(toLocation)
-            .filter((loc): loc is OpenAccessLocation => loc !== null);
-        const locations = dedupeByUrl(best ? [best, ...rest] : rest);
-        const status: OpenAccessStatus = {
-            isOa: !!data.is_oa,
-            url: locations[0]?.url ?? null,
-            locations,
-        };
-        void OA_CACHE.set(doi, status);
-        return status;
     } catch (err) {
         // A cancelled lookup is not an outage, so it rejects rather than reporting "unavailable".
         if (signal?.aborted) throw err;
         debugWarn(`Open access: Unpaywall lookup failed for ${doi} —`, err);
         return null;
     }
+}
+
+async function readOpenAccess(doi: string, resp: Response): Promise<OpenAccessStatus | null> {
+    if (resp.status === 404) {
+        const status = {isOa: false, url: null, notIndexed: true, checkedAt: Date.now()};
+        void OA_CACHE.set(doi, status);
+        return status;
+    }
+    if (!resp.ok) {
+        const reason = resp.status === 422 ? await unpaywallReason(resp) : null;
+        debugWarn(`Open access: Unpaywall returned ${resp.status} for ${doi}`,
+            reason ? `— ${reason}` : "— no detail given");
+        return null;
+    }
+    const data = (await resp.json()) as {
+        is_oa?: boolean;
+        best_oa_location?: UnpaywallLocation | null;
+        oa_locations?: UnpaywallLocation[] | null;
+    };
+    if (typeof data.is_oa !== "boolean") return null;
+    const best = data.best_oa_location ? toLocation(data.best_oa_location) : null;
+    const rest = (data.oa_locations ?? [])
+        .map(toLocation)
+        .filter((loc): loc is OpenAccessLocation => loc !== null);
+    const locations = dedupeByUrl(best ? [best, ...rest] : rest);
+    const status: OpenAccessStatus = {
+        isOa: !!data.is_oa,
+        url: locations[0]?.url ?? null,
+        locations,
+    };
+    void OA_CACHE.set(doi, status);
+    return status;
 }
 
 /** Test-only: drop in-memory cache state so each case starts fresh. */

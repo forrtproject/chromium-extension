@@ -45,6 +45,26 @@ describe("lookupDOIs", () => {
     expect(errors).toEqual({});
   });
 
+  it("stops starting batches once its time budget is spent", async () => {
+    vi.useFakeTimers({toFake: ["Date"]});
+    const targets = Array.from({length: 150}, (_, i) => doi(`10.1038/slow${i}`));
+    let calls = 0;
+    server.use(http.get(API_URL, () => {
+      calls++;
+      vi.setSystemTime(Date.now() + 100_000);
+      return HttpResponse.json({results: {}});
+    }));
+    const errors: Record<string, string> = {};
+    try {
+      await lookupDOIs(targets, errors);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(calls).toBe(2);
+    expect(Object.keys(errors)).toEqual(targets.slice(100));
+    expect(errors[targets[100]]).toBe("Lookup skipped: time budget spent");
+  });
+
   it("returns matched results on 200", async () => {
     const result = mockResult();
     server.use(

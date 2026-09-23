@@ -12,8 +12,8 @@ vi.mock("../../src/shared/settings", () => ({
 // not pacing, so route its fetch straight through.
 vi.mock("../../src/shared/request-gate", () => ({
   RequestGate: class {
-    fetch(url: string, init?: RequestInit) {
-      return fetch(url, init);
+    fetch<T>(url: string, init: RequestInit | undefined, read: (response: Response) => Promise<T>) {
+      return fetch(url, init).then(read);
     }
   },
 }));

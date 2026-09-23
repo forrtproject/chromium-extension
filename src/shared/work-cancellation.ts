@@ -78,11 +78,23 @@ export function cancelWorkerRequest(message: unknown, sender: chrome.runtime.Mes
   const key = requestKey(message, sender);
   if (key) workerRequests.get(key)?.abort(new DOMException("Work cancelled", "AbortError"));
 }
+/**
+ * Chrome stops the worker when one event takes longer than 5 minutes, and the
+ * page then gets no answer at all. Past this deadline a request is aborted like
+ * a cancel, so its handler returns what it has and leaves the rest unanswered.
+ */
+export const WORKER_REQUEST_DEADLINE_MS = 240_000;
 export async function runWorkerRequest<T>(message: unknown, sender: chrome.runtime.MessageSender, run: (signal?: AbortSignal) => Promise<T>): Promise<T> {
   const key = requestKey(message, sender);
-  if (!key) return run();
   const request = new AbortController();
-  workerRequests.set(key, request);
+  const timer = setTimeout(
+    () => request.abort(new DOMException("Worker request deadline reached", "AbortError")),
+    WORKER_REQUEST_DEADLINE_MS,
+  );
+  if (key) workerRequests.set(key, request);
   try { return await run(request.signal); }
-  finally { if (workerRequests.get(key) === request) workerRequests.delete(key); }
+  finally {
+    clearTimeout(timer);
+    if (key && workerRequests.get(key) === request) workerRequests.delete(key);
+  }
 }

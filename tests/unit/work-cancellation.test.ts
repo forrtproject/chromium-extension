@@ -1,7 +1,10 @@
 import {afterEach, expect, it, vi} from "vitest";
-import {fetchWithDeadline, runWorkerRequest, cancelWorkerRequest, beginCancellableWork, canStartAutomaticWork, cancelWork, endCancellableWork, resumeAutomaticWork, workSignal} from "../../src/shared/work-cancellation";
+import {fetchWithDeadline, runWorkerRequest, WORKER_REQUEST_DEADLINE_MS, cancelWorkerRequest, beginCancellableWork, canStartAutomaticWork, cancelWork, endCancellableWork, resumeAutomaticWork, workSignal} from "../../src/shared/work-cancellation";
 import {SharedRequest} from "../../src/shared/shared-request";
 import {RequestGate} from "../../src/shared/request-gate";
+
+// Hands the response back unread; these cases exercise scheduling, not body reads.
+const passThrough = async (response: Response) => response;
 
 import {safeSendMessage} from "../../src/shared/messages";
 
@@ -27,15 +30,15 @@ it("cancels an active transport and removes queued requests before they start", 
     }));
     const gate = new RequestGate("test", 1);
     const controller = new AbortController();
-    const first = gate.fetch("https://example.org/active", {signal: controller.signal});
-    const queued = gate.fetch("https://example.org/queued", {signal: controller.signal});
+    const first = gate.fetch("https://example.org/active", {signal: controller.signal}, passThrough);
+    const queued = gate.fetch("https://example.org/queued", {signal: controller.signal}, passThrough);
     const outcomes = Promise.allSettled([first, queued]);
     await Promise.resolve();
     controller.abort();
     expect((await outcomes).map(r => r.status)).toEqual(["rejected", "rejected"]);
     expect(calls).toEqual(["https://example.org/active"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("ok")));
-    expect((await gate.fetch("https://example.org/next")).status).toBe(200);
+    expect((await gate.fetch("https://example.org/next", undefined, passThrough)).status).toBe(200);
 });
 
 it("hands back every start slot when queued waits are cancelled together", async () => {
@@ -48,10 +51,10 @@ it("hands back every start slot when queued waits are cancelled together", async
     }));
     const gate = new RequestGate("test", 3, 100);
     const controller = new AbortController();
-    const first = gate.fetch("https://example.org/1");
+    const first = gate.fetch("https://example.org/1", undefined, passThrough);
     const cancelled = Promise.allSettled([
-        gate.fetch("https://example.org/2", {signal: controller.signal}),
-        gate.fetch("https://example.org/3", {signal: controller.signal}),
+        gate.fetch("https://example.org/2", {signal: controller.signal}, passThrough),
+        gate.fetch("https://example.org/3", {signal: controller.signal}, passThrough),
     ]);
     await vi.advanceTimersByTimeAsync(0);
     controller.abort(new DOMException("Work cancelled", "AbortError"));
@@ -60,7 +63,7 @@ it("hands back every start slot when queued waits are cancelled together", async
 
     // Both cancelled reservations are free again, so the next request waits out
     // one interval behind the request that actually ran, not three.
-    const next = gate.fetch("https://example.org/4");
+    const next = gate.fetch("https://example.org/4", undefined, passThrough);
     await vi.advanceTimersByTimeAsync(100);
     await next;
     expect(startedAt).toEqual([0, 100]);
@@ -81,6 +84,23 @@ it("keeps shared work alive for another caller, then aborts when the last caller
     second.abort();
     expect(transport.aborted).toBe(true);
     expect((await outcomes).every(r => r.status === "rejected")).toBe(true);
+});
+
+it("ends a worker request at its deadline, including one sent without a request id", async () => {
+    vi.useFakeTimers();
+    const pending = runWorkerRequest({type: "FLORA_AUGMENT"}, {} as chrome.runtime.MessageSender, signal =>
+        new Promise<string>(resolve => signal!.addEventListener("abort", () => resolve((signal!.reason as Error).name), {once: true})));
+    await vi.advanceTimersByTimeAsync(WORKER_REQUEST_DEADLINE_MS - 1);
+    expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await pending).toBe("AbortError");
+    expect(vi.getTimerCount()).toBe(0);
+});
+
+it("clears the deadline when a worker request finishes first", async () => {
+    vi.useFakeTimers();
+    expect(await runWorkerRequest({}, {} as chrome.runtime.MessageSender, async () => "done")).toBe("done");
+    expect(vi.getTimerCount()).toBe(0);
 });
 
 it("does not let another document cancel a worker request with the same id", async () => {
