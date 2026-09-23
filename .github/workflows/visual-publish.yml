@@ -1,10 +1,14 @@
 name: Attach visual evidence
 on:
   workflow_run:
-    workflows: [Visual evidence]
+    workflows: [Visual evidence, Visual review decision]
     types: [completed]
-  pull_request_target:
-    types: [edited]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to refresh
+        required: true
+        type: number
 jobs:
   select:
     permissions:
@@ -12,28 +16,43 @@ jobs:
       actions: read
       pull-requests: read
     if: >-
-      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
-      (github.event_name == 'pull_request_target' && github.event.changes.body && github.event.sender.type == 'User')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       (github.event.workflow_run.name == 'Visual evidence' ||
+        github.event.workflow_run.name == 'Visual review decision'))
     runs-on: ubuntu-24.04
     outputs:
       run-id: ${{ steps.capture.outputs.run-id }}
       pr: ${{ steps.capture.outputs.pr }}
     steps:
+      - uses: actions/download-artifact@v4
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Visual review decision'
+        with:
+          name: visual-review-event
+          path: ${{ runner.temp }}/review-event
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
       - uses: actions/github-script@v7
         id: capture
+        env:
+          REVIEW_EVENT_FILE: ${{ runner.temp }}/review-event/event.json
         with:
           script: |
+            const fs = require('node:fs');
             const {owner, repo} = context.repo;
             const run = context.payload.workflow_run;
-            const number = context.payload.pull_request?.number ?? run?.pull_requests?.[0]?.number;
+            const reviewEvent = fs.existsSync(process.env.REVIEW_EVENT_FILE)
+              ? JSON.parse(fs.readFileSync(process.env.REVIEW_EVENT_FILE, 'utf8')) : null;
+            const number = Number(context.payload.inputs?.pr ?? reviewEvent?.pr ?? run?.pull_requests?.[0]?.number);
             let pr;
             if (number) {
               ({data: pr} = await github.rest.pulls.get({owner, repo, pull_number: number}));
-            } else {
+            } else if (run?.name === 'Visual evidence') {
               const prs = await github.paginate(github.rest.pulls.list, {owner, repo, state: 'open'});
               pr = prs.find(p => p.head.sha === run.head_sha && p.head.repo?.full_name === run.head_repository.full_name);
             }
             if (!pr || pr.state !== 'open') return;
+            if (reviewEvent && (reviewEvent.pr !== pr.number || reviewEvent.head !== pr.head.sha)) return;
             const runs = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: 'visual.yml', event: 'pull_request', head_sha: pr.head.sha, per_page: 100});
             const capture = runs.data.workflow_runs.find(r => r.head_repository.full_name === pr.head.repo.full_name);
             if (!capture || capture.status !== 'completed') return;
@@ -42,9 +61,10 @@ jobs:
   describe:
     needs: select
     permissions:
-      contents: read
+      contents: write
       actions: read
       pull-requests: write
+      issues: write
       statuses: write
     if: needs.select.outputs.run-id
     concurrency:
@@ -52,7 +72,7 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     steps:
-      # Both triggers execute default-branch code, never the PR's scripts.
+      # The trusted workflow executes default-branch code, never the PR's scripts.
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
@@ -66,7 +86,38 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ needs.select.outputs.run-id }}
       - uses: actions/github-script@v7
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Visual evidence'
         env:
+          VISUAL_RUN_ID: ${{ needs.select.outputs.run-id }}
+          VISUAL_PR: ${{ needs.select.outputs.pr }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const pull_number = Number(process.env.VISUAL_PR);
+            const run_id = Number(process.env.VISUAL_RUN_ID);
+            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number});
+            const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id});
+            if (pr.state === 'open' && pr.head.sha === run.head_sha)
+              await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+                context: 'Visual approval', state: 'pending', target_url: pr.html_url,
+                description: 'Publishing screenshots in the PR conversation'});
+      - name: Install GitHub CLI with image attachments
+        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'Visual evidence'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/gh-cli"
+          gh release download v2.99.0 -R cli/cli \
+            --pattern gh_2.99.0_linux_amd64.tar.gz \
+            --pattern gh_2.99.0_checksums.txt \
+            --dir "$RUNNER_TEMP/gh-cli"
+          cd "$RUNNER_TEMP/gh-cli"
+          sha256sum --check <(grep ' gh_2.99.0_linux_amd64.tar.gz$' gh_2.99.0_checksums.txt)
+          tar -xzf gh_2.99.0_linux_amd64.tar.gz
+          echo "$RUNNER_TEMP/gh-cli/gh_2.99.0_linux_amd64/bin" >> "$GITHUB_PATH"
+      - uses: actions/github-script@v7
+        env:
+          GH_TOKEN: ${{ github.token }}
           VISUAL_RUN_ID: ${{ needs.select.outputs.run-id }}
           VISUAL_PR: ${{ needs.select.outputs.pr }}
           VISUAL_REPORT_DIR: ${{ runner.temp }}/visual-report

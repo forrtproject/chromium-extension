@@ -170,72 +170,43 @@ and narrow viewports still need additional visual scenarios.
 The PR approval gate uses exact raw RGBA equality: even a one-channel change
 within the local perceptual budget requires visual approval.
 
-CI stores all before/after PNGs, changed-pixel diff images (when dimensions
-match), JSON results, and a self-contained `index.html` in the `visual-report`
-artifact. Download and extract the artifact, then open `index.html`. Reports
-expire after 30 days; rerun capture if the evidence has expired.
+CI stores before/after PNGs, diff images and JSON results in a `visual-report`
+artifact for the trusted publisher and for troubleshooting. Reviewers work in
+the PR conversation: the publisher uploads changed captures as GitHub comment
+attachments and posts base/PR images inline. Added or modified committed
+screenshots appear in the same comment as images from the two commits. When
+only the capture setup changed, the comment shows representative captured
+pages and links to the setup diff. Large reviews may span several comments.
+There is no report download or PR-body checkbox in the approval path.
 
-A separate trusted `workflow_run` job updates a marked section of the PR body
-with the commit, changed fixtures, report link, and approval status. GitHub
-artifact images cannot be embedded directly in Markdown; the report provides
-the image comparison without publishing screenshots to another service.
-The privileged job executes only default-branch code and parses artifact JSON
-as data. It also checks the PR head SHA and repository so stale runs cannot
-approve a newer commit.
+A collaborator with write access inspects the PR comment and submits a normal
+GitHub **Approve** review. The trusted publisher checks that the review was
+submitted after the comment for the current head commit and capture attempt.
+A later change request or dismissal revokes that reviewer's approval. A new
+commit or recapture posts fresh evidence and needs a fresh review. A failed
+capture fails the status regardless of reviews. When neither screenshots nor
+capture inputs changed, `Visual approval` succeeds automatically.
 
-The PR description shows only the checkboxes that apply:
+The publisher runs only default-branch code, validates artifact data and
+image files, and checks the PR head and repository before posting. GitHub CLI
+2.99 uploads the images to GitHub directly; the artifact is only the machine
+handoff. A `pull_request_review` event is relayed through a read-only workflow
+to the trusted publisher so reviews on fork PRs can update the status.
+The status links to the PR comment. If the PR's file listing is incomplete,
+review remains required. Changes to visual fixtures, capture/publisher
+workflows, the publisher script, package manifests/lockfile, build
+configuration or extension manifest also require review.
 
-- [ ] I checked the changed screenshots and they look right.
-- [ ] I checked the screenshot test setup changes.
-
-After inspecting the evidence, a human collaborator with write access can tick
-these boxes directly in the PR description. The PR author can do this too.
-There is no special review phrase or approving-review requirement. Screenshot
-changes and changes to the capture machinery are separate decisions; ticking
-one box preserves that partial approval while the other remains pending.
-
-A trusted `pull_request_target` body-edit workflow verifies the editor's access
-and an actual unchecked-to-checked transition on the current evidence. Each
-edit confirms only the box it ticks; the other box keeps the state recorded in
-the trusted receipt. Stale edit events cannot overwrite a later edit;
-checked text without an authorized checkbox edit does not grant approval.
-Approval is recorded against
-the head commit, capture run/attempt and current artifact, with the capture
-timestamp in the managed evidence marker. New commits or captures reset the
-checkboxes. Unchecking a box withdraws that approval. Capture failures remain
-failures regardless of the checklist.
-
-The `Visual approval` status succeeds automatically when there are no screenshot
-or capture-input changes, stays pending until the required boxes are checked,
-and fails if capture failed. It also stays pending when the PR's file listing
-comes back shorter than the PR's file count, because the evidence may then be
-incomplete. Screenshot files are grouped as **Changed visuals**, **New
-visuals**, **Removed visuals** and, last, **Regenerated baselines** — committed
-baseline PNGs whose fixture this run rendered identically on base and head.
-Modified committed images have a base/PR comparison; new images appear once.
-Rendered examples and committed images can overlap, so they are not combined
-into a total count.
-
-**Activation:** these trusted workflows must first be merged to the default
-branch. Then make `Visual approval` a required status check for `main` using
-branch protection or a repository ruleset. Until that repository setting is
-enabled, the status reports approval but cannot prevent merging. This avoids
-requiring blanket PR approvals when screenshots did not change.
+**Activation:** merge the trusted workflows to the default branch, then make
+`Visual approval` a required status check for `main` in branch protection or a
+repository ruleset. A pending status does not block merging until that rule is
+active. This conditional check avoids requiring a review for unrelated PRs.
 
 For local base/head captures, the harness also accepts `VR_REPO_ROOT` (built
 extension root), `VR_BASELINE_DIR`, and `VR_OUTPUT_DIR`. `--review` treats pixel
 changes as reviewable evidence while still failing capture errors. These are
 optional; the existing local comparison/update commands still work.
 
-Changed committed baseline PNGs also require visual approval and are embedded
-as base/PR image pairs in the PR description. This covers changes to the test
-scenes or reference images even when both builds render identically with the
-new fixture catalogue; those land in **Regenerated baselines**. Artifact
-comparisons and committed-baseline comparisons are labeled separately because
-they answer different questions.
-
-Changes to visual fixtures, capture/publisher workflows, the publisher script,
-package manifests/lockfile, build configuration or extension manifest also
-require review. A PR cannot weaken its own capture and use its resulting
-all-pass artifact as evidence that approval is unnecessary. This is a review
-policy for regression detection, not a security sandbox for hostile extensions.
+Changed committed baseline PNGs require review even when the base and PR builds
+render identically with the new fixture catalogue. A PR cannot weaken its own
+capture and use an all-pass artifact as evidence that review is unnecessary.
