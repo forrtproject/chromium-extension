@@ -3,6 +3,7 @@ const path = require('node:path');
 
 const MARKER = /<!-- flora-visual-review:([0-9a-f]{40}):(\d+):(\d+):([^ ]+):part=(\d+):total=(\d+) -->/;
 const OWN_MARKER = /<!-- flora-visual-review:[0-9a-f]{40}:\d+:\d+:[^ ]+:part=\d+(?::total=\d+)? -->/;
+const BASELINE_MARKER = /<!-- flora-visual-baselines:([0-9a-f]{40}):([0-9a-f]{40}):(\d+):(\d+):(\d+):([a-z0-9,-]+) -->/;
 const BOT = 'github-actions[bot]';
 const MAX_ATTACHMENTS = 40;
 
@@ -103,6 +104,72 @@ async function defaultStoreImages({github, owner, repo, pr, run, files}) {
     `https://raw.githubusercontent.com/${owner}/${repo}/${commit.sha}/${encodePath(folder + '/' + path.basename(file))}`]));
 }
 
+function evidenceTime(evidence, ownComments) {
+  const marker = MARKER.exec(evidence?.body ?? '');
+  if (!marker) return NaN;
+  const parts = ownComments.filter(part => {
+    const other = MARKER.exec(part.body ?? '');
+    return other && other[1] === marker[1] && other[2] === marker[2] &&
+      other[3] === marker[3] && other[4] === marker[4] && other[6] === marker[6];
+  });
+  if (parts.length !== Number(marker[6]) ||
+      new Set(parts.map(part => Number(MARKER.exec(part.body)[5]))).size !== Number(marker[6]) ||
+      !parts.every(part => Number.isFinite(Date.parse(part.created_at)))) return NaN;
+  return Math.max(...parts.map(part => Date.parse(part.created_at)));
+}
+
+async function visualDecision({comments, evidence, ownComments, github, owner, repo}) {
+  const after = evidenceTime(evidence, ownComments);
+  if (!Number.isFinite(after)) return {confirmedBy: null, decision: null};
+  const decisions = comments.filter(comment => comment.user?.type === 'User' &&
+    Number.isFinite(Date.parse(comment.created_at)) && Date.parse(comment.created_at) > after &&
+    ['visuals ok', 'visuals not ok'].includes(String(comment.body ?? '').trim().toLowerCase()));
+  const latest = new Map();
+  for (const decision of decisions) {
+    const prev = latest.get(decision.user.login);
+    if (!prev || Date.parse(decision.created_at) > Date.parse(prev.created_at) ||
+        (decision.created_at === prev.created_at && decision.id > prev.id))
+      latest.set(decision.user.login, decision);
+  }
+  let confirmation = null, objection = false;
+  for (const decision of latest.values()) {
+    try {
+      const {data: permission} = await github.rest.repos.getCollaboratorPermissionLevel({
+        owner, repo, username: decision.user.login,
+      });
+      if (!['write', 'maintain', 'admin'].includes(permission.permission)) continue;
+      if (decision.body.trim().toLowerCase() === 'visuals not ok') objection = true;
+      else confirmation = decision;
+    } catch { /* A former collaborator's comment cannot confirm this capture. */ }
+  }
+  return objection ? {confirmedBy: null, decision: null} :
+    {confirmedBy: confirmation?.user.login ?? null, decision: confirmation};
+}
+
+async function commitApprovedBaselines({github, owner, repo, pr, run, results, reportDir, decision}) {
+  const {data: fresh} = await github.rest.pulls.get({owner, repo, pull_number: pr.number});
+  if (fresh.state !== 'open' || fresh.head.sha !== pr.head.sha ||
+      fresh.head.repo.full_name !== `${owner}/${repo}`) return null;
+  const {data: parent} = await github.rest.git.getCommit({owner, repo, commit_sha: pr.head.sha});
+  const tree = [];
+  for (const result of results.filter(r => r.changed)) {
+    const file = imageFile(reportDir, result.name, 'actual');
+    const {data: blob} = await github.rest.git.createBlob({owner, repo,
+      content: fs.readFileSync(file).toString('base64'), encoding: 'base64'});
+    tree.push({path: `tests/visual/baselines/${result.name}.png`,
+      mode: '100644', type: 'blob', sha: blob.sha});
+  }
+  const {data: updatedTree} = await github.rest.git.createTree({owner, repo,
+    base_tree: parent.tree.sha, tree});
+  if (updatedTree.sha === parent.tree.sha) return {sha: pr.head.sha, changed: false};
+  const {data: commit} = await github.rest.git.createCommit({owner, repo,
+    message: `Update approved visual baselines for PR #${pr.number}\n\nCapture: ${run.id}/${run.run_attempt ?? 1}\nConfirmed-by: @${decision.user.login}`,
+    tree: updatedTree.sha, parents: [pr.head.sha]});
+  await github.rest.git.updateRef({owner, repo, ref: `heads/${pr.head.ref}`,
+    sha: commit.sha, force: false});
+  return {sha: commit.sha, changed: true};
+}
+
 function commentParts({pr, run, results, screenshotReview, setupReview, baselineFiles, captureFiles, listingIncomplete,
   reportDir, time}) {
   const parts = [];
@@ -139,7 +206,8 @@ function commentParts({pr, run, results, screenshotReview, setupReview, baseline
   const summary = `Captured ${results.length} fixtures; ${changed.length} base-to-PR visual changes.\n\n` +
     `Review required: ${[screenshotReview && 'screenshots', setupReview && 'capture setup'].filter(Boolean).join(' and ')}. ` +
     `Inspect the images below${setupReview ? ` and the [capture setup diff](${filesLink})` : ''}, then add a PR comment containing exactly **visuals ok**. ` +
-    `A maintainer other than the PR author must comment after this evidence for commit ${pr.head.sha.slice(0, 7)}. ` +
+    `The PR author or another collaborator with write access must comment after this evidence for commit ${pr.head.sha.slice(0, 7)}. ` +
+    `${changed.length ? 'The action will commit approved captures as baseline PNGs in this PR and verify them in a fresh run. ' : ''}` +
     `To revoke it, edit or delete that comment, or comment **visuals not ok**.\n\n` +
     (listingIncomplete ? `**The PR lists ${pr.changed_files} changed files, but only ${pr._listedFiles} were returned. Review the full file list before commenting.**\n\n` : '') +
     (captureFiles.length ? `Capture setup files: ${captureFiles.slice(0, 20).map(f => `<code>${safeLabel(f.filename)}</code>`).join(', ')}` +
@@ -179,6 +247,40 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   const needsApproval = screenshotReview || setupReview;
   const comments = await github.paginate(github.rest.issues.listComments, {owner, repo, issue_number: pull_number});
   const ownComments = comments.filter(c => c.user?.login === BOT && OWN_MARKER.test(c.body ?? ''));
+  const receipt = comments.find(c => c.user?.login === BOT &&
+    BASELINE_MARKER.exec(c.body ?? '')?.[2] === pr.head.sha);
+  if (receipt && captured) {
+    const marker = BASELINE_MARKER.exec(receipt.body);
+    const oldEvidence = ownComments.find(c => c.id === Number(marker[5]) &&
+      MARKER.exec(c.body ?? '')?.[1] === marker[1]);
+    const {data: commit} = await github.rest.git.getCommit({owner, repo, commit_sha: pr.head.sha});
+    if (oldEvidence && commit.parents?.[0]?.sha === marker[1] &&
+        pr.head.repo.full_name === `${owner}/${repo}`) {
+      const names = marker[6].split(',');
+      let matches = names.length > 0 && new Set(names).size === names.length &&
+        names.every(name => results.some(r => r.name === name)) &&
+        results.filter(r => r.changed).every(r => names.includes(r.name));
+      for (const name of matches ? names : []) {
+        try {
+          const {data: baseline} = await github.rest.repos.getContent({owner, repo,
+            path: `tests/visual/baselines/${name}.png`, ref: pr.head.sha});
+          if (baseline.encoding !== 'base64' || !Buffer.from(baseline.content, 'base64')
+            .equals(fs.readFileSync(imageFile(reportDir, name, 'actual')))) matches = false;
+        } catch { matches = false; }
+      }
+      if (matches) {
+        const {confirmedBy} = await visualDecision({comments, evidence: oldEvidence,
+          ownComments, github, owner, repo});
+        await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+          context: 'Visual approval', target_url: receipt.html_url,
+          state: confirmedBy ? 'success' : 'pending',
+          description: confirmedBy ? `Visuals confirmed by @${confirmedBy}` :
+            'Visual confirmation was revoked; comment visuals ok',
+        });
+        return;
+      }
+    }
+  }
   const current = ownComments.find(c => {
     const m = MARKER.exec(c.body ?? '');
     if (m?.[1] !== pr.head.sha || Number(m[2]) !== run_id ||
@@ -230,48 +332,55 @@ module.exports = async ({github, context, postComment = defaultPostComment,
     }
   }
 
-  let confirmedBy = null;
-  if (captured && needsApproval && evidence) {
+  let confirmedBy = null, decision = null;
+  if (captured && needsApproval && current) {
     const marker = MARKER.exec(evidence.body ?? '');
-    const parts = (current ? ownComments : postedComments).filter(part => {
-      const other = MARKER.exec(part.body ?? '');
-      return other && marker && other[1] === marker[1] && other[2] === marker[2] &&
-        other[3] === marker[3] && other[4] === marker[4] && other[6] === marker[6];
-    });
-    const complete = marker && parts.length === Number(marker[6]) &&
-      new Set(parts.map(part => Number(MARKER.exec(part.body)[5]))).size === Number(marker[6]);
-    const after = complete && parts.every(part => Number.isFinite(Date.parse(part.created_at)))
-      ? Math.max(...parts.map(part => Date.parse(part.created_at))) : NaN;
-    if (Number.isFinite(after) && marker[1] === pr.head.sha && Number(marker[2]) === run_id &&
+    if (marker?.[1] === pr.head.sha && Number(marker[2]) === run_id &&
         Number(marker[3]) === (run.run_attempt ?? 1)) {
-      const decisions = comments.filter(comment =>
-        comment.user?.type === 'User' && comment.user.login !== pr.user.login &&
-        Number.isFinite(Date.parse(comment.created_at)) && Date.parse(comment.created_at) > after &&
-        ['visuals ok', 'visuals not ok'].includes(String(comment.body ?? '').trim().toLowerCase()));
-      const latest = new Map();
-      for (const decision of decisions) {
-        const prev = latest.get(decision.user.login);
-        if (!prev || Date.parse(decision.created_at) > Date.parse(prev.created_at) ||
-            (decision.created_at === prev.created_at && decision.id > prev.id))
-          latest.set(decision.user.login, decision);
+      ({confirmedBy, decision} = await visualDecision({comments,
+        evidence, ownComments, github, owner, repo}));
+    }
+  }
+  if (confirmedBy && decision && results.some(r => r.changed)) {
+    if (pr.head.repo.full_name !== `${owner}/${repo}`) {
+      await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+        context: 'Visual approval', target_url: evidence.html_url, state: 'pending',
+        description: 'Automatic baseline commit needs a branch in this repository'});
+      return;
+    }
+    const saved = await commitApprovedBaselines({github, owner, repo, pr, run, results,
+      reportDir, decision});
+    if (!saved) return;
+    if (saved.changed) {
+      const names = results.filter(r => r.changed).map(r => r.name);
+      await github.rest.repos.createCommitStatus({owner, repo, sha: saved.sha,
+        context: 'Visual approval', target_url: evidence.html_url, state: 'pending',
+        description: 'Verifying approved baselines committed to this PR'});
+      try {
+        const body = `### Approved visual baselines committed\n\n` +
+          `<!-- flora-visual-baselines:${pr.head.sha}:${saved.sha}:${run.id}:${run.run_attempt ?? 1}:${evidence.id}:${names.join(',')} -->\n\n` +
+          `@${confirmedBy} confirmed the [screenshots](${evidence.html_url}). ` +
+          `[The updated baseline PNGs are now in this PR](https://github.com/${owner}/${repo}/commit/${saved.sha}). ` +
+          `A new capture is checking that they render identically.`;
+        const receipt = await postComment({github, owner, repo, pull_number, body});
+        await github.rest.actions.createWorkflowDispatch({owner, repo,
+          workflow_id: 'visual.yml', ref: pr.head.ref, inputs: {pr: String(pr.number)}});
+        await github.rest.repos.createCommitStatus({owner, repo, sha: saved.sha,
+          context: 'Visual approval', target_url: receipt.html_url, state: 'pending',
+          description: 'Verifying approved baselines committed to this PR'});
+      } catch (error) {
+        await github.rest.repos.createCommitStatus({owner, repo, sha: saved.sha,
+          context: 'Visual approval', target_url: evidence.html_url, state: 'failure',
+          description: 'Baseline commit needs a new visual capture'});
+        throw error;
       }
-      let objection = false;
-      for (const decision of latest.values()) {
-        try {
-          const {data: permission} = await github.rest.repos.getCollaboratorPermissionLevel({
-            owner, repo, username: decision.user.login,
-          });
-          if (!['write', 'maintain', 'admin'].includes(permission.permission)) continue;
-          if (decision.body.trim().toLowerCase() === 'visuals not ok') objection = true;
-          else confirmedBy = decision.user.login;
-        } catch { /* A former collaborator's comment cannot confirm this capture. */ }
-      }
-      if (objection) confirmedBy = null;
+      return;
     }
   }
   await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha, context: 'Visual approval',
     target_url: evidence?.html_url ?? run.html_url,
-    state: !captured || (needsApproval && !evidence) ? 'failure' : !needsApproval || confirmedBy ? 'success' : 'pending',
+    state: !captured || (needsApproval && !evidence) ? 'failure' :
+      !needsApproval || confirmedBy ? 'success' : 'pending',
     description: !captured ? 'Visual capture failed' : !needsApproval ? 'No visual review needed' :
       !evidence ? 'Visual evidence missing; rerun publisher' : confirmedBy ? `Visuals confirmed by @${confirmedBy}` :
         'Review images, then comment visuals ok on this PR',

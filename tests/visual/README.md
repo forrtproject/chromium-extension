@@ -146,11 +146,14 @@ run (`npm run test:visual:update`) and commit them from that platform.
 
 ## Updating baselines
 
-When a FLoRA UI change is intentional, run `npm run test:visual:update`,
-**visually inspect** the regenerated PNGs in `baselines/`, and commit them
-alongside the code change so the diff is reviewable. The renders are staged in a
-temporary directory and copied into `baselines/` only when every fixture
-succeeds, so a failed capture leaves the committed baselines untouched.
+For local work, `npm run test:visual:update` regenerates `baselines/`. The
+renders are staged in a temporary directory and copied in only when every
+fixture succeeds. In a same-repository PR, commenting `visuals ok` after
+inspecting CI evidence makes the trusted action commit the captured PNGs into
+that PR's `baselines/` directory. It then starts a fresh capture. The required
+status succeeds when that run reproduces the committed PNGs. Fork PR branches
+cannot be updated with this repository's workflow token and need a branch in
+this repository for automatic baseline commits.
 
 ## PR evidence and visual sign-off
 
@@ -179,12 +182,12 @@ only the capture setup changed, the comment shows representative captured
 pages and links to the setup diff. Large reviews may span several comments.
 There is no report download or PR-body checkbox in the approval path.
 
-A collaborator with write access other than the PR author inspects the evidence
+A collaborator with write access, including the PR author, inspects the evidence
 and adds a PR conversation comment containing exactly `visuals ok`. The trusted
 publisher checks that the comment follows the complete evidence for the current
 head commit and capture attempt. Editing or deleting the comment revokes it;
 `visuals not ok` blocks confirmation while that collaborator's objection stands.
-A new commit or recapture posts fresh evidence and needs a fresh comment. A failed
+A change to the captured UI posts fresh evidence and needs a fresh comment. A failed
 capture fails the status regardless of comments. When neither screenshots nor
 capture inputs changed, `Visual approval` succeeds automatically.
 

@@ -10,6 +10,7 @@ const NEW_HEAD = 'b'.repeat(40);
 const CAPTURED_AT = '2026-09-23T00:00:00Z';
 const POSTED_AT = '2026-09-23T00:05:00Z';
 const PNG = Buffer.from('89504e470d0a1a0a', 'hex');
+const SETUP_FILE = {filename: 'tests/visual/run.ts', status: 'modified'};
 
 function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42,
   part = 1, total = 1, created = time} = {}) {
@@ -28,7 +29,7 @@ function decision({id = 60, user = 'maintainer', body = 'visuals ok',
 async function scenario({changed = false, files = [], comments = [], failure = false,
   event = 'Visual evidence', head = HEAD, runHead = head, attempt = 1, changedFiles = files.length,
   results, authorBody = 'Author description.', permission = 'write', storeDefault = false,
-  branchExists = false, racedReads = {}} = {}) {
+  branchExists = false, racedReads = {}, baselineBytes = PNG} = {}) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-publisher-test-'));
   const previous = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID,
     VISUAL_REPORT_DIR: process.env.VISUAL_REPORT_DIR};
@@ -45,12 +46,12 @@ async function scenario({changed = false, files = [], comments = [], failure = f
   }
   const pr = {number: 215, state: 'open', changed_files: changedFiles, body: authorBody,
     user: {login: 'pr-author'},
-    head: {sha: head, repo: {full_name: 'o/r'}},
+    head: {sha: head, ref: 'feature', repo: {full_name: 'o/r'}},
     base: {sha: 'c'.repeat(40), repo: {full_name: 'o/r'}}};
   const run = {id: 123, head_sha: runHead, head_repository: {full_name: 'o/r'},
     conclusion: failure ? 'failure' : 'success', run_attempt: attempt,
     updated_at: CAPTURED_AT, html_url: 'https://github.com/o/r/actions/runs/123'};
-  const posted = [], deleted = [], bodyUpdates = [], statuses = [], stored = [], gitCalls = [];
+  const posted = [], deleted = [], bodyUpdates = [], statuses = [], stored = [], gitCalls = [], dispatches = [];
   let prReads = 0;
   const readPr = () => {
     const override = racedReads[++prReads] ?? {};
@@ -60,12 +61,15 @@ async function scenario({changed = false, files = [], comments = [], failure = f
   const github = {paginate: async method => methods[method](), rest: {
     pulls: {get: async () => ({data: readPr()}), listFiles: 'files',
       update: async input => {bodyUpdates.push(input.body); return {data: {...pr, body: input.body}};}},
-    actions: {getWorkflowRun: async () => ({data: run})},
+    actions: {getWorkflowRun: async () => ({data: run}),
+      createWorkflowDispatch: async input => {dispatches.push(input);}},
     issues: {listComments: 'comments', deleteComment: async input => {deleted.push(input.comment_id);},
       createComment: async input => ({data: {...comment({id: 80}), body: input.body}})},
     repos: {createCommitStatus: async input => {statuses.push(input);},
-      getCollaboratorPermissionLevel: async () => ({data: {permission}})},
+      getCollaboratorPermissionLevel: async () => ({data: {permission}}),
+      getContent: async () => ({data: {encoding: 'base64', content: baselineBytes.toString('base64')}})},
     git: {
+      getCommit: async () => ({data: {tree: {sha: 'parent-tree'}, parents: [{sha: HEAD}]}}),
       createBlob: async input => {gitCalls.push(['blob', input]); return {data: {sha: `blob-${gitCalls.length}`}};},
       createTree: async input => {gitCalls.push(['tree', input]); return {data: {sha: 'tree-sha'}};},
       getRef: async () => {
@@ -93,7 +97,7 @@ async function scenario({changed = false, files = [], comments = [], failure = f
         `https://raw.githubusercontent.com/o/r/${'e'.repeat(40)}/${path.basename(file)}`]));
     };
     await publish(options);
-    result = {posted, deleted, bodyUpdates, stored, gitCalls, status: statuses.at(-1)};
+    result = {posted, deleted, bodyUpdates, stored, gitCalls, dispatches, status: statuses.at(-1)};
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
@@ -124,7 +128,7 @@ test('visual evidence is reviewed in the PR', async t => {
   });
 
   await t.test('only a fresh authorized human comment clears the pending status', async () => {
-    const confirmed = await scenario({changed: true, event: 'Visual comment',
+    const confirmed = await scenario({files: [SETUP_FILE], event: 'Visual comment',
       comments: [comment(), decision()]});
     assert.equal(confirmed.posted.length, 0);
     assert.equal(confirmed.status.state, 'success');
@@ -132,17 +136,18 @@ test('visual evidence is reviewed in the PR', async t => {
     for (const candidate of [
       decision({created: '2026-09-23T00:04:00Z'}),
       decision({created: POSTED_AT}),
-      decision({user: 'pr-author'}),
       decision({body: 'Looks good, visuals ok'}),
       {...decision(), user: {login: 'bot', type: 'Bot'}},
     ]) {
-      assert.equal((await scenario({changed: true, event: 'Visual comment',
+      assert.equal((await scenario({files: [SETUP_FILE], event: 'Visual comment',
         comments: [comment(), candidate]})).status.state, 'pending');
     }
-    assert.equal((await scenario({changed: true, event: 'Visual comment',
+    assert.equal((await scenario({files: [SETUP_FILE], event: 'Visual comment',
       comments: [comment(), decision()], permission: 'read'})).status.state, 'pending');
-    assert.equal((await scenario({changed: true, event: 'Visual comment',
+    assert.equal((await scenario({files: [SETUP_FILE], event: 'Visual comment',
       comments: [comment(), decision({body: '  VISUALS OK  '})]})).status.state, 'success');
+    assert.equal((await scenario({files: [SETUP_FILE], event: 'Visual comment',
+      comments: [comment(), decision({user: 'pr-author'})]})).status.state, 'success');
   });
 
   await t.test('editing, deleting, or objecting revokes visual confirmation', async () => {
@@ -153,14 +158,41 @@ test('visual evidence is reviewed in the PR', async t => {
       [comment(), decision(), decision({id: 61, user: 'second-maintainer', body: 'visuals not ok',
         created: '2026-09-23T00:07:00Z'})],
     ]) {
-      const result = await scenario({changed: true, event: 'Visual comment', comments});
+      const result = await scenario({files: [SETUP_FILE], event: 'Visual comment', comments});
       assert.equal(result.status.state, 'pending');
     }
   });
 
+  await t.test('author confirmation commits captured PNGs to the PR and verifies the next run', async () => {
+    const approved = await scenario({changed: true, event: 'Visual comment',
+      comments: [comment(), decision({user: 'pr-author'})]});
+    assert.equal(approved.status.sha, 'e'.repeat(40));
+    assert.equal(approved.status.state, 'pending');
+    assert.equal(approved.dispatches.length, 1);
+    assert.equal(approved.dispatches[0].ref, 'feature');
+    assert.equal(approved.dispatches[0].inputs.pr, '215');
+    const tree = approved.gitCalls.find(([name]) => name === 'tree')[1];
+    assert.equal(tree.base_tree, 'parent-tree');
+    assert.equal(tree.tree[0].path, 'tests/visual/baselines/fixture.png');
+    assert.match(approved.posted[0].body, /Approved visual baselines committed/);
+    const receipt = {...comment({id: 99}), body: approved.posted[0].body};
+    const next = await scenario({changed: true, head: 'e'.repeat(40),
+      comments: [comment(), decision({user: 'pr-author'}), receipt]});
+    assert.equal(next.status.state, 'success');
+    assert.equal(next.posted.length, 0);
+    const revoked = await scenario({changed: true, head: 'e'.repeat(40),
+      event: 'Visual comment', comments: [comment(), receipt]});
+    assert.equal(revoked.status.state, 'pending');
+    const mismatch = await scenario({changed: true, head: 'e'.repeat(40),
+      comments: [comment(), decision({user: 'pr-author'}), receipt],
+      baselineBytes: Buffer.from('different')});
+    assert.equal(mismatch.status.state, 'pending');
+    assert.equal(mismatch.posted.length, 1);
+  });
+
   await t.test('new capture or commit requires new evidence and confirmation', async () => {
     for (const options of [{attempt: 2}, {head: NEW_HEAD}]) {
-      const result = await scenario({changed: true, event: 'Visual comment',
+      const result = await scenario({files: [SETUP_FILE], event: 'Visual comment',
         comments: [comment(), decision()],
         ...options});
       assert.equal(result.status.state, 'failure');
@@ -205,7 +237,8 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.equal(incomplete.status.state, 'failure');
     const complete = await scenario({results: rows, event: 'Visual comment',
       comments: [comment({total: 2}), comment({id: 43, part: 2, total: 2}), decision()]});
-    assert.equal(complete.status.state, 'success');
+    assert.equal(complete.status.state, 'pending');
+    assert.equal(complete.dispatches.length, 1);
   });
 
   await t.test('failed or malformed captures cannot be approved', async () => {

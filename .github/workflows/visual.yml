@@ -2,28 +2,55 @@ name: Visual evidence
 
 on:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number whose approved baselines were committed
+        required: true
+        type: number
 
 permissions:
   contents: read
 
 concurrency:
-  group: visual-${{ github.event.pull_request.number }}
+  group: visual-${{ github.event.pull_request.number || inputs.pr }}
   cancel-in-progress: true
 
 jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    outputs:
+      head-repo: ${{ steps.pr.outputs.head-repo }}
+      head-sha: ${{ steps.pr.outputs.head-sha }}
+      base-sha: ${{ steps.pr.outputs.base-sha }}
+    steps:
+      - uses: actions/github-script@v7
+        id: pr
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const pr = context.payload.pull_request ??
+              (await github.rest.pulls.get({owner, repo,
+                pull_number: Number(context.payload.inputs?.pr)})).data;
+            if (pr.state !== 'open' || (context.eventName === 'workflow_dispatch' &&
+                pr.head.sha !== context.sha)) throw new Error('PR head changed before visual capture');
+            core.setOutput('head-repo', pr.head.repo.full_name);
+            core.setOutput('head-sha', pr.head.sha);
+            core.setOutput('base-sha', pr.base.sha);
   capture:
+    needs: resolve
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ needs.resolve.outputs.head-repo }}
+          ref: ${{ needs.resolve.outputs.head-sha }}
           path: head
           persist-credentials: false
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.resolve.outputs.base-sha }}
           path: base
           persist-credentials: false
       - uses: actions/setup-node@v6

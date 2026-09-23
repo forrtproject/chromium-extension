@@ -44,14 +44,23 @@ jobs:
               pr = prs.find(p => p.head.sha === run.head_sha && p.head.repo?.full_name === run.head_repository.full_name);
             }
             if (!pr || pr.state !== 'open') return;
-            if (run?.name === 'Visual evidence' && pr.head.sha !== run.head_sha) return;
+            if (run?.name === 'Visual evidence' &&
+                (pr.head.sha !== run.head_sha ||
+                 pr.head.repo.full_name !== run.head_repository?.full_name ||
+                 !(run.pull_requests?.some(p => p.number === pr.number) ||
+                   (run.event === 'workflow_dispatch' && run.head_branch === pr.head.ref)))) return;
             await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
               context: 'Visual approval', state: 'pending', target_url: pr.html_url,
               description: 'Checking current visual evidence and PR comments'});
-            const runs = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: 'visual.yml', event: 'pull_request', head_sha: pr.head.sha, per_page: 100});
-            const capture = runs.data.workflow_runs.find(r =>
-              r.head_repository.full_name === pr.head.repo.full_name &&
-              r.pull_requests?.some(p => p.number === pr.number));
+            let capture = run?.name === 'Visual evidence' ? run : null;
+            if (!capture) {
+              const runs = await github.rest.actions.listWorkflowRuns({owner, repo,
+                workflow_id: 'visual.yml', head_sha: pr.head.sha, per_page: 100});
+              capture = runs.data.workflow_runs.find(r =>
+                r.head_repository?.full_name === pr.head.repo.full_name &&
+                (r.pull_requests?.some(p => p.number === pr.number) ||
+                 (r.event === 'workflow_dispatch' && r.head_branch === pr.head.ref)));
+            }
             if (!capture || capture.status !== 'completed') return;
             core.setOutput('run-id', String(capture.id));
             core.setOutput('pr', String(pr.number));
@@ -60,7 +69,7 @@ jobs:
     permissions:
       # The trusted publisher writes generated PNGs to the visual-evidence branch.
       contents: write
-      actions: read
+      actions: write
       pull-requests: write
       issues: write
       statuses: write
