@@ -41,6 +41,9 @@ import type {RowExtraction, SearchSiteAdapter} from "./sites/types";
 const PILL_COLOR = "#853953";
 
 export const PROCESSED_ATTR = "data-flora-processed";
+// Marker value for a row that could not be read yet (e.g. an SPA skeleton). The
+// observer clears it when content lands inside the row, so the next pass reads it again.
+export const NOT_READY = "not-ready";
 
 // Failed title resolution waits for an explicit retry or corrected settings.
 // Keeping these rows processed prevents new-result mutations from retrying an outage.
@@ -208,14 +211,13 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     let pending: RowInfo[] = [];
     for (const row of rows) {
         unansweredRows.delete(row);
-        row.setAttribute(PROCESSED_ATTR, "true");
-        let extraction: RowExtraction | null;
+        let extraction: RowExtraction | null = null;
         try {
             extraction = adapter.extractRow(row);
         } catch (err) {
             debugWarn(`${label}: could not read a result row —`, err);
-            continue;
         }
+        row.setAttribute(PROCESSED_ATTR, extraction ? "true" : NOT_READY);
         if (!extraction) continue;
         const info: RowInfo = {...extraction, row};
         if (info.doi && info.confident) {
