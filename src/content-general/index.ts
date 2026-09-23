@@ -443,6 +443,9 @@ async function runScanPass(): Promise<void> {
         classified = classifyPageDois(document);
         dois = classified.allDois;
     }
+    // doi.org has already rejected these on this page; a pass that finds no
+    // unseen DOI skips validation, so drop them here.
+    dois = dois.filter((doi) => !invalidDois.has(doi));
 
     // DOI occurrences with source + anchor, so badges place without re-scanning.
     const occurrences = extractDoiOccurrences(document);
@@ -472,8 +475,7 @@ async function runScanPass(): Promise<void> {
             if (pageChanged()) { abandonReferences(); return; }
             const before = dois.length;
             for (const [doi, ok] of validation) {
-                if (ok) invalidDois.delete(doi);
-                else disownDoi(doi);
+                if (!ok) disownDoi(doi);
             }
             dois = dois.filter((doi) => validation.get(doi) !== false);
             const removed = before - dois.length;
