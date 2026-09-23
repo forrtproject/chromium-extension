@@ -625,6 +625,97 @@ describe("progress toast", () => {
         }
     });
 
+    it("charges every moment of a pass to one stage, so the breakdown adds up", async () => {
+        setDebug(true);
+        vi.spyOn(performance, "now").mockImplementation(() => Date.now());
+        const logged = (prefix: string): string =>
+            vi.mocked(console.log).mock.calls.map((call) => call.slice(1).join(" "))
+                .find((line) => line.startsWith(prefix)) ?? "";
+
+        beginWorkIndicator({stages: ["scan", "augment", "validate", "report"]});
+        await vi.advanceTimersByTimeAsync(100); // before any stage reports: "other"
+        reportWorkStage("scan", "Scanning…");
+        await vi.advanceTimersByTimeAsync(200);
+        // Reference resolution starts alongside the pass; stages interleave.
+        reportWorkStage("augment", "Augmenting 3 references…");
+        await vi.advanceTimersByTimeAsync(300);
+        reportWorkStage("validate", "Checking 5 DOIs resolve…");
+        await vi.advanceTimersByTimeAsync(400);
+        reportWorkStage("augment", "Augmenting 3 references…");
+        await vi.advanceTimersByTimeAsync(1000);
+        reportWorkStage("report", "Marking up…");
+        await vi.advanceTimersByTimeAsync(500);
+        endWorkIndicator();
+
+        expect(logged("Work: pass done")).toBe(
+            "Work: pass done in 2500 ms (time as current stage — " +
+            "scan: 200 ms, augment: 1300 ms, validate: 400 ms, report: 500 ms, other: 100 ms)"
+        );
+        // The summary waits out the quiet period; that wait is not part of the total.
+        await vi.advanceTimersByTimeAsync(3000);
+        expect(label()).toBe("Done in 2.5 s");
+        expand();
+        const shown = (stage: string) =>
+            toast()!.querySelector(`[data-flora-work-stage="${stage}"] [data-flora-work-duration]`)?.textContent;
+        expect(shown("augment")).toBe("1.3 s");
+    });
+
+    it("counts the idle gap between passes in the page breakdown", async () => {
+        setDebug(true);
+        vi.spyOn(performance, "now").mockImplementation(() => Date.now());
+        beginWorkIndicator({stages: ["scan"]});
+        reportWorkStage("scan", "Scanning…");
+        await vi.advanceTimersByTimeAsync(400);
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(1000);
+        beginWorkIndicator({stages: ["lookup"]});
+        reportWorkStage("lookup", "Looking up…");
+        await vi.advanceTimersByTimeAsync(600);
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(3000);
+
+        expect(label()).toBe("Done in 2.0 s");
+        const summary = vi.mocked(console.log).mock.calls.map((call) => call.slice(1).join(" "))
+            .find((line) => line.startsWith("Work: page quiet"));
+        expect(summary).toBe("Work: page quiet — Done in 2.0 s (scan: 400 ms, lookup: 600 ms, idle between passes: 1.0 s)");
+    });
+
+    it("shows the elapsed time once a pass runs for a while, on a single interval", async () => {
+        vi.spyOn(performance, "now").mockImplementation(() => Date.now());
+        const elapsed = () => toast()?.querySelector("[data-flora-work-elapsed]")?.textContent ?? null;
+        beginWorkIndicator();
+        reportWorkStage("augment", "Augmenting 40 references…");
+        settle();
+        expect(elapsed(), "hidden while the pass is young").toBe("");
+        expect(toast()!.querySelector("[data-flora-work-elapsed]")!.getAttribute("aria-hidden"),
+            "the live region must not announce every tick").toBe("true");
+
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(elapsed()).toBe("0:05");
+        await vi.advanceTimersByTimeAsync(129_000);
+        expect(elapsed()).toBe("2:14");
+        reportWorkStage("report", "Marking up…"); // a re-render must not add a second interval
+        expect(vi.getTimerCount()).toBe(1);
+
+        button("close").click();
+        expect(toast()).toBeNull();
+        expect(vi.getTimerCount(), "dismissal stops the clock").toBe(0);
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(toast(), "the tick never brings a dismissed toast back").toBeNull();
+        endWorkIndicator();
+    });
+
+    it("stops the elapsed clock when the pass ends", async () => {
+        vi.spyOn(performance, "now").mockImplementation(() => Date.now());
+        beginWorkIndicator();
+        reportWorkStage("lookup", "Looking up…");
+        await vi.advanceTimersByTimeAsync(6_000);
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(1_000);
+        expect(toast()).toBeNull();
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
     it("shows work that resumes later, and never counts backwards", async () => {
         setDebug(true);
         let clock = 0;
@@ -898,6 +989,30 @@ describe("progress toast", () => {
         await vi.advanceTimersByTimeAsync(12_000);
 
         expect(label(), "the new page's own work must still be summarised").toMatch(/^Done in /);
+    });
+
+    it("leaves the old page's stage time out of an overlapping new page's breakdown", async () => {
+        setDebug(true);
+        let clock = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+        try {
+            beginWorkIndicator({stages: ["scan"]});
+            reportWorkStage("scan", "Scanning the page we are leaving…");
+            clock = 500;
+            resetWorkSummary();
+            beginWorkIndicator({stages: ["lookup"]});
+            reportWorkStage("lookup", "Looking up on the new page…");
+            clock = 800;
+            endWorkIndicator();
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(12_000);
+
+            const summary = vi.mocked(console.log).mock.calls.map((call) => call.slice(1).join(" "))
+                .find((line) => line.startsWith("Work: page quiet"));
+            expect(summary).toBe("Work: page quiet — Done in 300 ms (lookup: 300 ms)");
+        } finally {
+            nowSpy.mockRestore();
+        }
     });
 
     it("cancel stops the pass at the pipeline's next check and hides the toast", () => {

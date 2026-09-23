@@ -143,12 +143,19 @@ const SHOW_DELAY_MS = 250;
 const COPY_LOG_WAIT_MS = 1500;
 const BUTTON_FLASH_MS = 1500;
 const MAX_ITEM_ROWS = 6;
+// The running toast shows its elapsed time once a pass outlasts this.
+const ELAPSED_AFTER_MS = 5_000;
 
+// Stage timing. Stages overlap: reference resolution runs alongside the pass,
+// and callers report only when a stage starts. So each moment of a pass is
+// charged to the stage the toast shows as current (the latest reported), and
+// a stage's time adds up over every stretch it was current. The stage times
+// plus "other" (before the first report) tile the pass exactly.
 interface StageRecord {
     stage: WorkStage;
     detail?: string;
-    startedAt?: number;
-    endedAt?: number;
+    ran?: boolean;
+    ms: number;
     skipped?: boolean;
 }
 
@@ -158,11 +165,19 @@ const QUIET_BEFORE_DONE_MS = 2_500;
 const QUIET_WITH_STAGES_LEFT_MS = 10_000;
 
 let pageStartedAt: number | null = null;
+// Page totals, summed over the passes since resetWorkSummary. Stage times,
+// "other" and the idle gaps between passes add up to the "Done in" total.
+let pageEndedAt: number | null = null;
+let pageTimes = new Map<string, number>();
+let pageIdleMs = 0;
 let summaryInvalidated = false;
+// Pass time charged before a mid-pass page change; it belongs to the page left behind.
+let passTimesBeforePageChange = new Map<string, number>();
 let finishTimer: ReturnType<typeof setTimeout> | null = null;
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeTimer: ReturnType<typeof setTimeout> | null = null;
+let elapsedTimer: ReturnType<typeof setInterval> | null = null;
 let renderFrame: number | null = null;
 // 0 = nothing reported yet, and the bar runs indeterminate.
 let progress = 0;
@@ -179,12 +194,16 @@ let stages: StageRecord[] = [];
 let currentStage: WorkStage | null = null;
 let items: WorkItem[] = [];
 let passStartedAt = 0;
+// When the current stage (or "other", before any report) became current.
+let segmentStartedAt = 0;
+let passOtherMs = 0;
 
 function clearTimers(): void {
     for (const timer of [showTimer, hideTimer, removeTimer, finishTimer]) {
         if (timer) clearTimeout(timer);
     }
     cancelQueuedRender();
+    stopElapsedTicker();
     showTimer = hideTimer = removeTimer = finishTimer = null;
 }
 
@@ -200,7 +219,7 @@ function now(): number {
 
 function planStages(plan?: WorkPlan): void {
     const wanted = plan?.stages?.length ? plan.stages : STAGE_ORDER;
-    stages = wanted.map((stage) => ({stage}));
+    stages = wanted.map((stage) => ({stage, ms: 0}));
 }
 
 /** A nested pass adds the stages it plans that the outer one did not, in canonical order. */
@@ -210,13 +229,13 @@ function mergePlan(plan: WorkPlan): void {
     if (!missing.length) return;
     const merged = new Set([...stages.map((entry) => entry.stage), ...missing]);
     const ordered = STAGE_ORDER.filter((stage) => merged.has(stage));
-    stages = ordered.map((stage) => stages.find((entry) => entry.stage === stage) ?? {stage});
+    stages = ordered.map((stage) => stages.find((entry) => entry.stage === stage) ?? {stage, ms: 0});
 }
 
 function stageRecord(stage: WorkStage): StageRecord {
     let record = stages.find((entry) => entry.stage === stage);
     if (!record) {
-        record = {stage};
+        record = {stage, ms: 0};
         stages.push(record);
     }
     return record;
@@ -226,9 +245,50 @@ function formatDuration(ms: number): string {
     return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
 }
 
+/** Charge the time since the last stage change to the stage that was current. */
+function closeSegment(at: number): void {
+    const ms = at - segmentStartedAt;
+    const record = currentStage ? stages.find((entry) => entry.stage === currentStage) : undefined;
+    if (record) record.ms += ms;
+    else passOtherMs += ms;
+    segmentStartedAt = at;
+}
+
+function passTimes(): [string, number][] {
+    return [...stages.map((entry): [string, number] => [entry.stage, entry.ms]), ["other", passOtherMs]];
+}
+
+function formatBreakdown(times: Iterable<[string, number]>, format: (ms: number) => string): string {
+    return [...times].filter(([, ms]) => ms > 0).map(([name, ms]) => `${name}: ${format(ms)}`).join(", ");
+}
+
+function formatClock(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function tickElapsed(): void {
+    const el = document.getElementById(WORK_TOAST_ID)?.querySelector<HTMLElement>("[data-flora-work-elapsed]");
+    if (!el) return;
+    const ms = now() - passStartedAt;
+    el.textContent = !finished && refCount > 0 && ms >= ELAPSED_AFTER_MS ? formatClock(ms) : "";
+}
+
+/** One 1 s interval while a running toast is on the page. */
+function startElapsedTicker(): void {
+    tickElapsed();
+    if (elapsedTimer === null) elapsedTimer = setInterval(tickElapsed, 1000);
+}
+
+function stopElapsedTicker(): void {
+    if (elapsedTimer !== null) clearInterval(elapsedTimer);
+    elapsedTimer = null;
+}
+
 function removeToast(): void {
     // A frame queued before removal must not rebuild the toast afterwards.
     cancelQueuedRender();
+    stopElapsedTicker();
     const host = document.getElementById(WORK_TOAST_ID);
     if (!host) return;
     document.removeEventListener("keydown", onKeydown, true);
@@ -388,6 +448,13 @@ function ensureToast(): HTMLElement {
     label.setAttribute("data-flora-work-label", "");
     label.style.cssText = "flex:1;";
     label.textContent = labelText;
+    const elapsed = document.createElement("span");
+    elapsed.setAttribute("data-flora-work-elapsed", "");
+    elapsed.title = "Time this pass has been running";
+    // Kept out of the live region, which would otherwise announce every tick.
+    elapsed.setAttribute("aria-hidden", "true");
+    elapsed.style.cssText =
+        "flex-shrink:0;color:rgba(255,255,255,0.7);font-size:11px;font-variant-numeric:tabular-nums;";
 
     const pauseRow = buildPauseRow();
     const pause = iconButton("Snooze ORE on this site", PAUSE_SVG);
@@ -415,7 +482,7 @@ function ensureToast(): HTMLElement {
         removeToast();
     });
 
-    row.append(spinner, label, chevron, pause, close);
+    row.append(spinner, label, elapsed, chevron, pause, close);
 
     const track = document.createElement("div");
     track.setAttribute("data-flora-work-track", "");
@@ -545,7 +612,7 @@ function renderStages(host: HTMLElement): void {
             icon.append(spinner);
             row.style.fontWeight = "600";
             text.textContent = record.detail ?? STAGE_LABEL[record.stage];
-        } else if (record.endedAt !== undefined) {
+        } else if (record.ran) {
             row.dataset.floraWorkState = "done";
             icon.textContent = "✓";
             row.style.color = "rgba(255,255,255,0.75)";
@@ -563,11 +630,11 @@ function renderStages(host: HTMLElement): void {
         }
 
         row.append(icon, text);
-        if (record.endedAt !== undefined && record.startedAt !== undefined) {
+        if (record.ran && !isCurrent) {
             const duration = document.createElement("span");
             duration.setAttribute("data-flora-work-duration", "");
             duration.style.cssText = "flex-shrink:0;color:rgba(255,255,255,0.6);font-size:11px;";
-            duration.textContent = formatDuration(record.endedAt - record.startedAt);
+            duration.textContent = formatDuration(record.ms);
             row.append(duration);
         }
         list.append(row);
@@ -623,6 +690,7 @@ function renderNow(): void {
     paint(host);
     applyExpanded(host);
     if (finished) showFinishedState(host);
+    else startElapsedTicker();
     shieldToastColours(host);
     requestAnimationFrame(() => {
         host.style.opacity = "1";
@@ -660,11 +728,12 @@ function render(immediate = true): void {
 
 /** Collapse the toast to one line: "Done in 2.3 s · Copy log ×". */
 function showFinishedState(host: HTMLElement): void {
+    stopElapsedTicker();
     setRunningControls(host, false);
 }
 
 function setRunningControls(host: HTMLElement, running: boolean): void {
-    for (const marker of ["spinner", "pause", "cancel"]) {
+    for (const marker of ["spinner", "elapsed", "pause", "cancel"]) {
         const el = host.querySelector<HTMLElement>(`[data-flora-work-${marker}]`);
         if (el) el.style.display = running ? "" : "none";
     }
@@ -713,7 +782,9 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         });
         currentStage = null;
         items = [];
-        passStartedAt = now();
+        passStartedAt = segmentStartedAt = now();
+        passOtherMs = 0;
+        passTimesBeforePageChange = new Map();
         planStages(plan);
     } else if (plan) {
         mergePlan(plan);
@@ -742,23 +813,17 @@ export function reportWorkStage(stage: WorkStage, detail: string): void {
         return;
     }
 
-    const previous = currentStage ? stages.find((entry) => entry.stage === currentStage) : undefined;
-    if (previous && previous.startedAt !== undefined && previous.endedAt === undefined) {
-        previous.endedAt = now();
-        debugLog(`Work: ${previous.stage} done in ${Math.round(previous.endedAt - previous.startedAt)} ms`);
-    }
+    closeSegment(now());
 
     // Anything planned ahead of this stage that never reported is not coming.
     for (const entry of stages) {
         if (entry.stage === stage) break;
-        if (entry.startedAt === undefined) entry.skipped = true;
+        if (!entry.ran) entry.skipped = true;
     }
 
     record.detail = detail;
     record.skipped = false;
-    // A stage that ran already (a nested pass re-entering it) is timed afresh.
-    if (record.startedAt === undefined || record.endedAt !== undefined) record.startedAt = now();
-    record.endedAt = undefined;
+    record.ran = true;
     currentStage = stage;
     items = [];
     debugLog(`Work: ${stage} started — ${detail}`);
@@ -804,16 +869,12 @@ export function endWorkIndicator(): void {
     for (const resolve of idleWaiters) resolve();
     idleWaiters.clear();
 
-    const ending = currentStage ? stages.find((entry) => entry.stage === currentStage) : undefined;
-    if (ending && ending.startedAt !== undefined && ending.endedAt === undefined) {
-        ending.endedAt = now();
-    }
+    const endedAt = now();
+    closeSegment(endedAt);
     currentStage = null;
-    const breakdown = stages
-        .filter((entry) => entry.startedAt !== undefined && entry.endedAt !== undefined)
-        .map((entry) => `${entry.stage}: ${Math.round((entry.endedAt as number) - (entry.startedAt as number))} ms`)
-        .join(", ");
-    debugLog(`Work: pass done in ${Math.round(now() - passStartedAt)} ms (${breakdown})`);
+    const times = passTimes();
+    const inMs = (ms: number): string => `${Math.round(ms)} ms`;
+    debugLog(`Work: pass done in ${inMs(endedAt - passStartedAt)} (time as current stage — ${formatBreakdown(times, inMs)})`);
 
     clearTimers(); // a pass that finished before the toast appeared stays silent
     const hidden = dismissed || cancelled;
@@ -821,8 +882,16 @@ export function endWorkIndicator(): void {
 
     const invalidated = summaryInvalidated;
     summaryInvalidated = false;
+    if (invalidated) {
+        // The page changed mid-pass: the next pass starts the page clock.
+        resetPageTimes();
+    } else {
+        if (pageEndedAt !== null) pageIdleMs += passStartedAt - pageEndedAt;
+        for (const [name, ms] of times) addPageTime(name, ms - (passTimesBeforePageChange.get(name) ?? 0));
+        pageEndedAt = endedAt;
+    }
     if (isDebugEnabled() && !hidden && !suppressed && !invalidated) {
-        const stagesLeft = stages.filter((entry) => entry.startedAt === undefined);
+        const stagesLeft = stages.filter((entry) => !entry.ran);
         const quiet = stagesLeft.length ? QUIET_WITH_STAGES_LEFT_MS : QUIET_BEFORE_DONE_MS;
         if (stagesLeft.length) {
             debugLog(`Work: holding the summary — ${stagesLeft.map((e) => e.stage).join(", ")} never ran`);
@@ -831,9 +900,9 @@ export function endWorkIndicator(): void {
             finishTimer = null;
             finished = true;
             progress = 1;
-            labelText = `Done in ${formatDuration(now() - (pageStartedAt ?? passStartedAt))}`;
+            labelText = `Done in ${formatDuration(endedAt - (pageStartedAt ?? passStartedAt))}`;
             expanded = offerLogCopy;
-            debugLog(`Work: page quiet — ${labelText}`);
+            debugLog(`Work: page quiet — ${labelText} (${formatBreakdown([...pageTimes, ["idle between passes", pageIdleMs]], formatDuration)})`);
             renderNow();
         }, quiet);
         return;
@@ -848,8 +917,18 @@ export function endWorkIndicator(): void {
     hideTimer = setTimeout(fadeOut, 500);
 }
 
+function addPageTime(name: string, ms: number): void {
+    pageTimes.set(name, (pageTimes.get(name) ?? 0) + ms);
+}
+
+function resetPageTimes(): void {
+    pageStartedAt = pageEndedAt = null;
+    pageTimes = new Map();
+    pageIdleMs = 0;
+}
+
 export function resetWorkSummary(): void {
-    pageStartedAt = null;
+    resetPageTimes();
     dismissed = false;
     if (finishTimer) {
         clearTimeout(finishTimer);
@@ -858,6 +937,8 @@ export function resetWorkSummary(): void {
     finished = false;
     if (refCount > 0) {
         summaryInvalidated = true;
+        closeSegment(now());
+        passTimesBeforePageChange = new Map(passTimes());
         return;
     }
     clearTimers();
@@ -892,12 +973,13 @@ export function _resetWorkIndicatorForTesting(): void {
     cancelled = false;
     expanded = false;
     finished = false;
-    pageStartedAt = null;
+    resetPageTimes();
     summaryInvalidated = false;
+    passTimesBeforePageChange = new Map();
     offerLogCopy = false;
     stages = [];
     currentStage = null;
     items = [];
-    passStartedAt = 0;
+    passStartedAt = segmentStartedAt = passOtherMs = 0;
     removeToast();
 }
