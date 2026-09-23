@@ -209,18 +209,18 @@ module.exports = async ({github, context, postComment = defaultPostComment, now 
         const prev = latest.get(review.user.login);
         if (!prev || review.submitted_at > prev.submitted_at) latest.set(review.user.login, review);
       }
+      let changesRequested = false;
       for (const review of latest.values()) {
-        if (review.state !== 'APPROVED') continue;
         try {
           const {data: permission} = await github.rest.repos.getCollaboratorPermissionLevel({
             owner, repo, username: review.user.login,
           });
-          if (['write', 'maintain', 'admin'].includes(permission.permission)) {
-            approvedBy = review.user.login;
-            break;
-          }
+          if (!['write', 'maintain', 'admin'].includes(permission.permission)) continue;
+          if (review.state === 'CHANGES_REQUESTED') changesRequested = true;
+          if (review.state === 'APPROVED') approvedBy = review.user.login;
         } catch { /* A former collaborator's review cannot approve this capture. */ }
       }
+      if (changesRequested) approvedBy = null;
     }
   }
   await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha, context: 'Visual approval',

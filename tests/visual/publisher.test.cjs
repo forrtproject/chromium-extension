@@ -119,6 +119,10 @@ test('visual evidence is reviewed in the PR', async t => {
         reviews: [approval, {...approval, submitted_at: '2026-09-23T00:07:00Z', state}]});
       assert.equal(result.status.state, 'pending');
     }
+    const objection = await scenario({changed: true, event: 'Visual review decision', comments: [comment()],
+      reviews: [approval, {...approval, user: {login: 'second-maintainer', type: 'User'},
+        submitted_at: '2026-09-23T00:07:00Z', state: 'CHANGES_REQUESTED'}]});
+    assert.equal(objection.status.state, 'pending');
   });
 
   await t.test('new capture or commit requires new evidence and approval', async () => {
