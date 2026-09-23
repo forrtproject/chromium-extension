@@ -128,6 +128,10 @@ jobs:
               owner, repo, run_id: Number(process.env.VISUAL_RUN_ID),
             });
             if (pr.state !== 'open' || pr.head.sha !== run.head_sha) return;
+            await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+              context: 'Visual approval', state: 'failure',
+              target_url: `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`,
+              description: 'Visual evidence could not be posted'});
             const body = `### Visual evidence publishing failed — ${pr.head.sha.slice(0, 7)}\n\n` +
               `The images could not be posted. [Inspect the publishing run](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}) and rerun it.`;
             const {data: comment} = await github.rest.issues.createComment({
