@@ -29,7 +29,8 @@ function decision({id = 60, user = 'maintainer', body = 'visuals ok',
 async function scenario({changed = false, files = [], comments = [], failure = false,
   event = 'Visual evidence', head = HEAD, runHead = head, attempt = 1, changedFiles = files.length,
   results, authorBody = 'Author description.', permission = 'write', storeDefault = false,
-  branchExists = false, racedReads = {}, baselineBytes = PNG, headRepo = 'o/r'} = {}) {
+  branchExists = false, evidenceRace = false, racedReads = {}, baselineBytes = PNG,
+  headRepo = 'o/r'} = {}) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-publisher-test-'));
   const previous = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID,
     VISUAL_REPORT_DIR: process.env.VISUAL_REPORT_DIR};
@@ -53,6 +54,7 @@ async function scenario({changed = false, files = [], comments = [], failure = f
     updated_at: CAPTURED_AT, html_url: 'https://github.com/o/r/actions/runs/123'};
   const posted = [], deleted = [], bodyUpdates = [], statuses = [], stored = [], gitCalls = [], dispatches = [];
   let prReads = 0;
+  let refReads = 0, refWrites = 0;
   const readPr = () => {
     const override = racedReads[++prReads] ?? {};
     return {...pr, ...override, head: override.head ? {...pr.head, ...override.head} : pr.head};
@@ -73,12 +75,17 @@ async function scenario({changed = false, files = [], comments = [], failure = f
       createBlob: async input => {gitCalls.push(['blob', input]); return {data: {sha: `blob-${gitCalls.length}`}};},
       createTree: async input => {gitCalls.push(['tree', input]); return {data: {sha: 'tree-sha'}};},
       getRef: async () => {
-        if (branchExists) return {data: {object: {sha: 'd'.repeat(40)}}};
+        if (branchExists) return {data: {object: {sha: (evidenceRace && refReads++ ? 'f' : 'd').repeat(40)}}};
         const error = new Error('missing'); error.status = 404; throw error;
       },
       createCommit: async input => {gitCalls.push(['commit', input]); return {data: {sha: 'e'.repeat(40)}};},
       createRef: async input => {gitCalls.push(['ref', input]);},
-      updateRef: async input => {gitCalls.push(['update', input]);},
+      updateRef: async input => {
+        gitCalls.push(['update', input]);
+        if (evidenceRace && refWrites++ === 0) {
+          const error = new Error('non-fast-forward'); error.status = 422; throw error;
+        }
+      },
     },
   }};
   let result;
@@ -269,6 +276,11 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.deepEqual(next.gitCalls.map(([name]) => name), ['blob', 'blob', 'tree', 'commit', 'update']);
     assert.deepEqual(next.gitCalls.find(([name]) => name === 'commit')[1].parents, ['d'.repeat(40)]);
     assert.equal(next.gitCalls.find(([name]) => name === 'tree')[1].base_tree, 'parent-tree');
+    const raced = await scenario({changed: true, storeDefault: true,
+      branchExists: true, evidenceRace: true});
+    assert.deepEqual(raced.gitCalls.filter(([name]) => name === 'commit')
+      .map(([, input]) => input.parents[0]), ['d'.repeat(40), 'f'.repeat(40)]);
+    assert.equal(raced.gitCalls.filter(([name]) => name === 'update').length, 2);
   });
 
   await t.test('replaces old bot evidence and removes the PR-body checklist', async () => {
