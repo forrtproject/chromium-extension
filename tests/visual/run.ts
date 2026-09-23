@@ -1,7 +1,7 @@
 // Visual-regression harness for FLoRA.
 //
 // Loads the REAL built extension into Chrome for Testing, renders each fixture
-// page over http://127.0.0.1, screenshots the full page, and pixel-diffs
+// page over localhost or a mocked search-site URL, screenshots it, and pixel-diffs
 // against a committed baseline. Two modes:
 //
 //   npm run test:visual          compare against baselines, exit 1 on any diff
@@ -30,6 +30,7 @@ import {
   buildSyncSeed,
   classifyPageRequest,
   isBlockedWorkerHost,
+  mockWorkerRequest,
   RETRACTION_MAP,
   RET_MAP_KEY,
 } from "./mocks.js";
@@ -77,14 +78,30 @@ const DETERMINISM_CSS = `
 interface Fixture {
   /** Baseline file name (without extension) and console label. */
   name: string;
-  /** Path served by the static server, relative to a fixtures root. */
+  /** Saved HTML file, relative to a fixtures root. */
   urlPath: string;
+  /** A mocked site URL, so Chrome injects the real host-specific content script. */
+  pageUrl?: string;
+  /** Exact extension UI expected in the settled screenshot. */
+  expectedUi?: {selector: string; count: number};
+  /** Exercise an SPA results-to-record handoff before the screenshot. */
+  openRecord?: boolean;
   outage?: boolean;
 }
 
 const FIXTURES: Fixture[] = [
   {name: "provider-unavailable", urlPath: "provider-unavailable.html", outage: true},
-  // New visual fixtures (served from tests/visual/fixtures).
+  {name: "pubmed-results", urlPath: "pubmed-results.html",
+    pageUrl: "https://pubmed.ncbi.nlm.nih.gov/?term=flora-visual",
+    expectedUi: {selector: "article.full-docsum [data-flora-panel]", count: 2}},
+  {name: "openalex-results", urlPath: "openalex-results.html",
+    pageUrl: "https://openalex.org/works?filter=default.search:flora-visual",
+    expectedUi: {selector: ".result-item [data-flora-panel]", count: 2}},
+  {name: "openalex-record-after-results", urlPath: "openalex-results.html",
+    pageUrl: "https://openalex.org/works?filter=default.search:flora-visual",
+    openRecord: true,
+    expectedUi: {selector: "[data-flora-title-pill]", count: 1}},
+  // Visual fixtures saved in tests/visual/fixtures.
   { name: "ref-list-flex", urlPath: "ref-list-flex.html" },
   { name: "ref-list-grid", urlPath: "ref-list-grid.html" },
   { name: "table-bibliography", urlPath: "table-bibliography.html" },
@@ -142,7 +159,14 @@ async function attachWorkerFetchBlock(target: Target): Promise<CDPSession> {
   await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*" }] });
   cdp.on("Fetch.requestPaused", (event) => {
     const { requestId, request } = event as { requestId: string; request: { url: string } };
-    if (isBlockedWorkerHost(request.url)) {
+    const mocked = mockWorkerRequest(request.url);
+    if (mocked) {
+      cdp.send("Fetch.fulfillRequest", {
+        requestId, responseCode: mocked.status,
+        responseHeaders: [{name: "Content-Type", value: mocked.contentType}],
+        body: Buffer.from(mocked.body).toString("base64"),
+      }).catch(() => {});
+    } else if (isBlockedWorkerHost(request.url)) {
       cdp.send("Fetch.failRequest", { requestId, errorReason: "Failed" }).catch(() => {});
     } else {
       cdp.send("Fetch.continueRequest", { requestId }).catch(() => {});
@@ -184,10 +208,16 @@ async function reseedBeforeFixture(target: Target): Promise<void> {
 }
 
 // ── Per-page request interception (page context) ────────────────────────────
-async function installPageInterception(page: Page, outage = false): Promise<void> {
+async function installPageInterception(page: Page, fixture: Fixture): Promise<void> {
   await page.setRequestInterception(true);
   page.on("request", (req) => {
-    if (outage && ["pubpeer.com", "api.unpaywall.org"].includes(new URL(req.url()).hostname)) {
+    if (fixture.pageUrl && req.isNavigationRequest() && req.frame() === page.mainFrame()
+        && req.url() === fixture.pageUrl) {
+      void req.respond({status: 200, contentType: "text/html; charset=utf-8",
+        body: readFileSync(path.join(NEW_FIXTURES_DIR, fixture.urlPath))}).catch(() => {});
+      return;
+    }
+    if (fixture.outage && ["pubpeer.com", "api.unpaywall.org"].includes(new URL(req.url()).hostname)) {
       void req.respond({status: 503, body: "Provider unavailable"}).catch(() => {});
       return;
     }
@@ -256,7 +286,7 @@ async function captureFixture(
   const page = await browser.newPage();
   try {
     await page.setViewport(VIEWPORT);
-    await installPageInterception(page, fixture.outage);
+    await installPageInterception(page, fixture);
 
     // The content script defers all work until the tab is visible — make it the
     // foreground tab (the extension opens a walkthrough tab on install).
@@ -267,7 +297,7 @@ async function captureFixture(
       page.on("requestfailed", (r) => console.log(`   reqfail ${r.url()} ${r.failure()?.errorText}`));
       page.on("pageerror", (e) => console.log(`   pageerror ${(e as Error).message}`));
     }
-    const resp = await page.goto(`${origin}/${fixture.urlPath}`, { waitUntil: "load", timeout: 30000 });
+    const resp = await page.goto(fixture.pageUrl ?? `${origin}/${fixture.urlPath}`, { waitUntil: "load", timeout: 30000 });
     if (process.env.VR_DEBUG) console.log(`   goto ${fixture.urlPath}: status=${resp?.status()} ok=${resp?.ok()}`);
     // A fixture registered without its HTML serves a 404 page. Refuse any
     // non-OK response rather than blessing an error screen as a baseline,
@@ -288,6 +318,26 @@ async function captureFixture(
     // every glyph on the page.
     await page.evaluate(() => (document as Document).fonts.ready.then(() => undefined));
     await waitForSettle(page);
+    if (fixture.openRecord) {
+      await page.evaluate(() => {
+        const main = document.querySelector("main");
+        const record = document.querySelector<HTMLTemplateElement>("#record-page");
+        if (!main || !record) throw new Error("OpenAlex record fixture is missing its template");
+        history.pushState(null, "", "/works/W2142773608");
+        main.replaceChildren(record.content.cloneNode(true));
+        const doi = document.createElement("meta");
+        doi.name = "citation_doi";
+        doi.content = "10.5555/flora.article.0006";
+        document.head.append(doi);
+      });
+      await waitForSettle(page);
+    }
+    if (fixture.expectedUi) {
+      const found = await page.evaluate(selector => document.querySelectorAll(selector).length,
+        fixture.expectedUi.selector);
+      if (found !== fixture.expectedUi.count) throw new Error(
+        `Expected ${fixture.expectedUi.count} ${fixture.expectedUi.selector} elements, found ${found}`);
+    }
     if (fixture.outage) {
       await page.waitForSelector(".flora-indicator-pill", {timeout: 12000});
       await page.click(".flora-indicator-pill");

@@ -42,7 +42,7 @@ function main(): void {
   }).join("");
   write(`<h1>Visual PR review</h1><p>Inspect placement, clipping, readability, and missing badges. Open the PNG files for full resolution.</p>
 <p>Captured ${results.length} fixture${results.length === 1 ? "" : "s"}: ${changed.length} changed, ${added.length} new, ${unchanged.length} unchanged.</p>
-<p>Coverage: these fixtures exercise article and reference layouts. They do not test search-result pages or same-tab navigation between results and records.</p>
+<p>Coverage is limited to the saved fixtures listed below. Live sites and interactions outside those fixtures are not tested.</p>
 ${changed.length ? `<h2>Changed visuals</h2>${changed.map(r => row(r, ["before", "actual", "diff"])).join("")}` : ""}
 ${added.length ? `<h2>New visuals</h2>${added.map(r => row(r, ["actual"])).join("")}` : ""}
 ${!changed.length && !added.length && unchanged.length === results.length ? "<p>All captured fixtures match the base pixel for pixel.</p>" : ""}

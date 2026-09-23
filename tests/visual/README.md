@@ -6,9 +6,9 @@ because placement of the injected pills/badges is the top source of bug
 reports, and those bugs only show up in a rendered layout — not in unit tests.
 
 The harness loads the actual MV3 extension into **Chrome for Testing**, serves
-fixture pages over `http://127.0.0.1`, waits for FLoRA to finish injecting, and
-captures the page. Everything the extension would fetch is mocked, so pass/fail
-never depends on the network.
+article fixtures over `http://127.0.0.1` and search fixtures at mocked site
+URLs, waits for FLoRA to finish injecting, and captures the page. Everything
+the extension would fetch is mocked, so pass/fail never depends on the network.
 
 The browser runs **headless** (`headless: true`), which loads MV3 extensions and
 renders pixel-for-pixel the same as a headful window — no window opens while the
@@ -41,10 +41,14 @@ ditto -x -k *.zip mac_arm-<version>/
 
 ## What gets tested
 
-14 fixtures (viewport 1280×900, `deviceScaleFactor` 1):
+17 fixtures (viewport 1280×900, `deviceScaleFactor` 1):
 
 | Fixture | Exercises |
 | --- | --- |
+| `provider-unavailable` | Visible pill popover when external providers fail |
+| `pubmed-results` | PubMed result rows with DOI, replication and retraction panels |
+| `openalex-results` | OpenAlex result rows with worker-resolved IDs and replication panels |
+| `openalex-record-after-results` | Same-tab OpenAlex results-to-record navigation and general article pill |
 | `ref-list-flex` | Reference list as flex rows with action links |
 | `ref-list-grid` | Reference list in a two-column CSS grid |
 | `table-bibliography` | `<table>`-based bibliography |
@@ -58,7 +62,6 @@ ditto -x -k *.zip mac_arm-<version>/
 | `doi-in-text` | Reused — DOI in running prose |
 | `retracted` | Reused — Springer article page, notice beside the DOI-bearing masthead link |
 | `publisher-styled-link-row` | Reference row whose publisher styling (separator borders) must stay off the pill |
-| `provider-unavailable` | Article when replication and notice providers are unavailable |
 
 Each fixture uses DOIs seeded to a known state (has replications, reproductions,
 retracted, expression of concern, or no data) so the injected UI is fully
@@ -87,15 +90,15 @@ Two mechanisms, both in `mocks.ts`, guarantee no real network dependence:
      script's own lookups are also cache hits.
 
 2. **Request interception.**
-   - **Page context** (`page.setRequestInterception`): localhost is allowed; the
-     doi.org Handle API, PubPeer POST, and Unpaywall are served canned JSON; any
-     other external request is aborted.
-   - **Worker context**: every http(s) request the service worker makes to
-     anything but the local fixture server (FORRT rep-api, Crossref, OpenAlex,
-     the GitHub retraction sync, Google Docs, PMC, …) is failed via a CDP
-     `Fetch` session attached to the `service_worker` target — page-level
-     interception does not cover worker requests. The extension's own packaged
-     resources pass through.
+   - **Page context** (`page.setRequestInterception`): localhost is allowed;
+     saved search HTML is returned for its real site URL, so the browser injects
+     the matching site script. The doi.org Handle API, PubPeer POST, and
+     Unpaywall receive canned JSON; other external requests are aborted.
+   - **Worker context**: OpenAlex ID resolution for the saved results receives
+     canned JSON. Other external http(s) requests (FORRT rep-api, Crossref,
+     GitHub retraction sync, Google Docs, PMC, …) fail via a CDP `Fetch`
+     session attached to the `service_worker` target. Page-level interception
+     does not cover worker requests. Packaged extension resources pass through.
 
 The retraction map + settings are re-seeded immediately before each fixture as
 insurance against a stray install-time sync.
@@ -191,14 +194,15 @@ visual or capture setup changes pass `Visual approval` automatically.
 
 Committed macOS baselines do not determine CI results. Changes to committed
 baseline PNGs cannot hide a change between the actual base and head builds.
-Both link-only and text-only DOI fixtures now contain real reference layouts;
-the old minimal unit fixtures produced no visible extension UI.
+Both link-only and text-only DOI fixtures contain reference layouts, and the
+search fixtures show result panels and a results-to-record transition.
 
 The capture waits for nonempty extension UI, stable contents and geometry,
 and removal of the work toast. A timeout is a failure, including in update
 mode. This is a readiness guard, not a claim that every async interaction is
-covered. Popovers, keyboard interaction, popup/options, search-site layouts,
-and narrow viewports still need additional visual scenarios.
+covered. Other search providers, keyboard interaction, popup/options, and
+narrow viewports still need visual scenarios. These saved pages may need
+refreshing when live sites change their DOM.
 
 The visual review gate uses exact raw RGBA equality: even a one-channel change
 within the local perceptual budget requires visual approval.
