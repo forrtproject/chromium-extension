@@ -17,7 +17,7 @@ function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42
   return {id, html_url: `https://github.com/o/r/pull/215#issuecomment-${id}`,
     created_at: created,
     user: {login: 'github-actions[bot]', type: 'Bot'},
-    body: `### Visual review\n<!-- flora-visual-review:${head}:${run}:${attempt}:${time}:part=${part}:total=${total} -->\n\n` +
+    body: `### Visual review\n<!-- flora-visual-review:${head}:${run}:${attempt}:${time}:part=${part}:total=${total}:mode=comment -->\n\n` +
       (part === 1 ? 'Add a PR comment containing exactly **visuals ok**.' : '')};
 }
 
@@ -29,7 +29,7 @@ function decision({id = 60, user = 'maintainer', body = 'visuals ok',
 async function scenario({changed = false, files = [], comments = [], failure = false,
   event = 'Visual evidence', head = HEAD, runHead = head, attempt = 1, changedFiles = files.length,
   results, authorBody = 'Author description.', permission = 'write', storeDefault = false,
-  branchExists = false, racedReads = {}, baselineBytes = PNG} = {}) {
+  branchExists = false, racedReads = {}, baselineBytes = PNG, headRepo = 'o/r'} = {}) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-publisher-test-'));
   const previous = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID,
     VISUAL_REPORT_DIR: process.env.VISUAL_REPORT_DIR};
@@ -46,9 +46,9 @@ async function scenario({changed = false, files = [], comments = [], failure = f
   }
   const pr = {number: 215, state: 'open', changed_files: changedFiles, body: authorBody,
     user: {login: 'pr-author'},
-    head: {sha: head, ref: 'feature', repo: {full_name: 'o/r'}},
+    head: {sha: head, ref: 'feature', repo: {full_name: headRepo}},
     base: {sha: 'c'.repeat(40), repo: {full_name: 'o/r'}}};
-  const run = {id: 123, head_sha: runHead, head_repository: {full_name: 'o/r'},
+  const run = {id: 123, head_sha: runHead, head_repository: {full_name: headRepo},
     conclusion: failure ? 'failure' : 'success', run_attempt: attempt,
     updated_at: CAPTURED_AT, html_url: 'https://github.com/o/r/actions/runs/123'};
   const posted = [], deleted = [], bodyUpdates = [], statuses = [], stored = [], gitCalls = [], dispatches = [];
@@ -135,7 +135,6 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.match(confirmed.status.description, /maintainer/);
     for (const candidate of [
       decision({created: '2026-09-23T00:04:00Z'}),
-      decision({created: POSTED_AT}),
       decision({body: 'Looks good, visuals ok'}),
       {...decision(), user: {login: 'bot', type: 'Bot'}},
     ]) {
@@ -146,6 +145,8 @@ test('visual evidence is reviewed in the PR', async t => {
       comments: [comment(), decision()], permission: 'read'})).status.state, 'pending');
     assert.equal((await scenario({files: [SETUP_FILE], event: 'Visual comment',
       comments: [comment(), decision({body: '  VISUALS OK  '})]})).status.state, 'success');
+    assert.equal((await scenario({files: [SETUP_FILE], event: 'Visual comment',
+      comments: [comment(), decision({created: POSTED_AT})]})).status.state, 'success');
     assert.equal((await scenario({files: [SETUP_FILE], event: 'Visual comment',
       comments: [comment(), decision({user: 'pr-author'})]})).status.state, 'success');
   });
@@ -188,6 +189,11 @@ test('visual evidence is reviewed in the PR', async t => {
       baselineBytes: Buffer.from('different')});
     assert.equal(mismatch.status.state, 'pending');
     assert.equal(mismatch.posted.length, 1);
+    const fork = await scenario({changed: true, event: 'Visual comment', headRepo: 'fork/r',
+      comments: [comment(), decision({user: 'pr-author'})]});
+    assert.equal(fork.status.state, 'pending');
+    assert.match(fork.status.description, /same repository|this repository/);
+    assert.equal(fork.dispatches.length, 0);
   });
 
   await t.test('new capture or commit requires new evidence and confirmation', async () => {
@@ -262,13 +268,14 @@ test('visual evidence is reviewed in the PR', async t => {
     const next = await scenario({changed: true, storeDefault: true, branchExists: true});
     assert.deepEqual(next.gitCalls.map(([name]) => name), ['blob', 'blob', 'tree', 'commit', 'update']);
     assert.deepEqual(next.gitCalls.find(([name]) => name === 'commit')[1].parents, ['d'.repeat(40)]);
+    assert.equal(next.gitCalls.find(([name]) => name === 'tree')[1].base_tree, 'parent-tree');
   });
 
   await t.test('replaces old bot evidence and removes the PR-body checklist', async () => {
     const body = 'Author text.\n\n<!-- flora-visual:start -->\n### Visual review\n' +
       '<!-- flora-visual:evidence:old:123:1:old -->\n- [ ] checkbox\n<!-- flora-visual:end -->';
     const legacy = {...comment({run: 99, id: 8})};
-    legacy.body = legacy.body.replace(':total=1', '');
+    legacy.body = legacy.body.replace(':total=1:mode=comment', '');
     const result = await scenario({changed: true,
       comments: [comment({run: 99, id: 7}), legacy], authorBody: body});
     assert.deepEqual(result.deleted, [7, 8]);
@@ -278,7 +285,7 @@ test('visual evidence is reviewed in the PR', async t => {
 
   await t.test('replaces current-head evidence that still asks for an approval review', async () => {
     const old = {...comment({id: 7})};
-    old.body = old.body.replace('Add a PR comment containing exactly **visuals ok**.',
+    old.body = old.body.replace(':mode=comment', '').replace('Add a PR comment containing exactly **visuals ok**.',
       'Submit a GitHub **Approve** review.');
     const result = await scenario({changed: true, comments: [old]});
     assert.equal(result.posted.length, 1);

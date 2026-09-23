@@ -44,14 +44,17 @@ jobs:
               pr = prs.find(p => p.head.sha === run.head_sha && p.head.repo?.full_name === run.head_repository.full_name);
             }
             if (!pr || pr.state !== 'open') return;
+            if (context.eventName === 'issue_comment') {
+              const bodies = [context.payload.comment?.body, context.payload.changes?.body?.from];
+              const decision = bodies.some(body => /^(visuals ok|visuals not ok)$/i.test(String(body ?? '').trim()));
+              const evidence = bodies.some(body => /<!-- flora-visual-(review|baselines):/.test(String(body ?? '')));
+              if (!decision && !evidence) return;
+            }
             if (run?.name === 'Visual evidence' &&
                 (pr.head.sha !== run.head_sha ||
                  pr.head.repo.full_name !== run.head_repository?.full_name ||
                  !(run.pull_requests?.some(p => p.number === pr.number) ||
                    (run.event === 'workflow_dispatch' && run.head_branch === pr.head.ref)))) return;
-            await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
-              context: 'Visual approval', state: 'pending', target_url: pr.html_url,
-              description: 'Checking current visual evidence and PR comments'});
             let capture = run?.name === 'Visual evidence' ? run : null;
             if (!capture) {
               const runs = await github.rest.actions.listWorkflowRuns({owner, repo,
@@ -62,6 +65,9 @@ jobs:
                  (r.event === 'workflow_dispatch' && r.head_branch === pr.head.ref)));
             }
             if (!capture || capture.status !== 'completed') return;
+            await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+              context: 'Visual approval', state: 'pending', target_url: pr.html_url,
+              description: 'Checking current visual evidence and PR comments'});
             core.setOutput('run-id', String(capture.id));
             core.setOutput('pr', String(pr.number));
   describe:
@@ -75,8 +81,7 @@ jobs:
       statuses: write
     if: needs.select.outputs.run-id
     concurrency:
-      # The evidence branch is shared by PRs; serialize its commits.
-      group: visual-publish-${{ github.repository }}
+      group: visual-publish-${{ github.repository }}-${{ needs.select.outputs.pr }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     steps:

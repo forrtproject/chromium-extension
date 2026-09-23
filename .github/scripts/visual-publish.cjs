@@ -1,8 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const MARKER = /<!-- flora-visual-review:([0-9a-f]{40}):(\d+):(\d+):([^ ]+):part=(\d+):total=(\d+) -->/;
-const OWN_MARKER = /<!-- flora-visual-review:[0-9a-f]{40}:\d+:\d+:[^ ]+:part=\d+(?::total=\d+)? -->/;
+const MARKER = /<!-- flora-visual-review:([0-9a-f]{40}):(\d+):(\d+):([^ ]+):part=(\d+):total=(\d+):mode=comment -->/;
+const OWN_MARKER = /<!-- flora-visual-review:[0-9a-f]{40}:\d+:\d+:[^ ]+:part=\d+(?::total=\d+)?(?::mode=comment)? -->/;
 const BASELINE_MARKER = /<!-- flora-visual-baselines:([0-9a-f]{40}):([0-9a-f]{40}):(\d+):(\d+):(\d+):([a-z0-9,-]+) -->/;
 const BOT = 'github-actions[bot]';
 const MAX_ATTACHMENTS = 40;
@@ -85,28 +85,38 @@ async function defaultStoreImages({github, owner, repo, pr, run, files}) {
       content: fs.readFileSync(file).toString('base64'), encoding: 'base64'});
     tree.push({path: `${folder}/${path.basename(file)}`, mode: '100644', type: 'blob', sha: blob.sha});
   }
-  const {data: writtenTree} = await github.rest.git.createTree({owner, repo, tree});
-  let parent, exists = true;
-  try {
-    const {data: ref} = await github.rest.git.getRef({owner, repo, ref: 'heads/visual-evidence'});
-    parent = ref.object.sha;
-  } catch (error) {
-    if (error.status !== 404) throw error;
-    parent = pr.base.sha;
-    exists = false;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    let parent, exists = true, baseTree;
+    try {
+      const {data: ref} = await github.rest.git.getRef({owner, repo, ref: 'heads/visual-evidence'});
+      parent = ref.object.sha;
+      const {data: previous} = await github.rest.git.getCommit({owner, repo, commit_sha: parent});
+      baseTree = previous.tree.sha;
+    } catch (error) {
+      if (error.status !== 404) throw error;
+      parent = pr.base.sha;
+      exists = false;
+    }
+    const {data: writtenTree} = await github.rest.git.createTree({owner, repo,
+      ...(baseTree ? {base_tree: baseTree} : {}), tree});
+    const {data: commit} = await github.rest.git.createCommit({owner, repo,
+      message: `Visual evidence for PR #${pr.number} at ${pr.head.sha.slice(0, 7)}`,
+      tree: writtenTree.sha, parents: [parent]});
+    try {
+      if (exists) await github.rest.git.updateRef({owner, repo, ref: 'heads/visual-evidence',
+        sha: commit.sha, force: false});
+      else await github.rest.git.createRef({owner, repo, ref: 'refs/heads/visual-evidence', sha: commit.sha});
+      return new Map(unique.map(file => [file,
+        `https://raw.githubusercontent.com/${owner}/${repo}/${commit.sha}/${encodePath(folder + '/' + path.basename(file))}`]));
+    } catch (error) {
+      if (attempt === 3 || ![409, 422].includes(error.status)) throw error;
+    }
   }
-  const {data: commit} = await github.rest.git.createCommit({owner, repo,
-    message: `Visual evidence for PR #${pr.number} at ${pr.head.sha.slice(0, 7)}`,
-    tree: writtenTree.sha, parents: [parent]});
-  if (exists) await github.rest.git.updateRef({owner, repo, ref: 'heads/visual-evidence', sha: commit.sha});
-  else await github.rest.git.createRef({owner, repo, ref: 'refs/heads/visual-evidence', sha: commit.sha});
-  return new Map(unique.map(file => [file,
-    `https://raw.githubusercontent.com/${owner}/${repo}/${commit.sha}/${encodePath(folder + '/' + path.basename(file))}`]));
 }
 
 function evidenceTime(evidence, ownComments) {
   const marker = MARKER.exec(evidence?.body ?? '');
-  if (!marker) return NaN;
+  if (!marker) return null;
   const parts = ownComments.filter(part => {
     const other = MARKER.exec(part.body ?? '');
     return other && other[1] === marker[1] && other[2] === marker[2] &&
@@ -114,15 +124,19 @@ function evidenceTime(evidence, ownComments) {
   });
   if (parts.length !== Number(marker[6]) ||
       new Set(parts.map(part => Number(MARKER.exec(part.body)[5]))).size !== Number(marker[6]) ||
-      !parts.every(part => Number.isFinite(Date.parse(part.created_at)))) return NaN;
-  return Math.max(...parts.map(part => Date.parse(part.created_at)));
+      !parts.every(part => Number.isFinite(Date.parse(part.created_at)))) return null;
+  const last = parts.reduce((a, b) => Date.parse(a.created_at) > Date.parse(b.created_at) ||
+    (a.created_at === b.created_at && a.id > b.id) ? a : b);
+  return {time: Date.parse(last.created_at), id: last.id};
 }
 
 async function visualDecision({comments, evidence, ownComments, github, owner, repo}) {
   const after = evidenceTime(evidence, ownComments);
-  if (!Number.isFinite(after)) return {confirmedBy: null, decision: null};
+  if (!after) return {confirmedBy: null, decision: null};
   const decisions = comments.filter(comment => comment.user?.type === 'User' &&
-    Number.isFinite(Date.parse(comment.created_at)) && Date.parse(comment.created_at) > after &&
+    Number.isFinite(Date.parse(comment.created_at)) &&
+    (Date.parse(comment.created_at) > after.time ||
+      (Date.parse(comment.created_at) === after.time && comment.id > after.id)) &&
     ['visuals ok', 'visuals not ok'].includes(String(comment.body ?? '').trim().toLowerCase()));
   const latest = new Map();
   for (const decision of decisions) {
@@ -140,7 +154,9 @@ async function visualDecision({comments, evidence, ownComments, github, owner, r
       if (!['write', 'maintain', 'admin'].includes(permission.permission)) continue;
       if (decision.body.trim().toLowerCase() === 'visuals not ok') objection = true;
       else confirmation = decision;
-    } catch { /* A former collaborator's comment cannot confirm this capture. */ }
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
   }
   return objection ? {confirmedBy: null, decision: null} :
     {confirmedBy: confirmation?.user.login ?? null, decision: confirmation};
@@ -216,7 +232,7 @@ function commentParts({pr, run, results, screenshotReview, setupReview, baseline
   return batches.map((batch, index) => ({
     attachments: batch.attachments,
     body: `### Visual review — ${pr.head.sha.slice(0, 7)}${batches.length > 1 ? ` (${index + 1}/${batches.length})` : ''}\n\n` +
-      `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${time}:part=${index + 1}:total=${batches.length} -->\n\n` +
+      `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${time}:part=${index + 1}:total=${batches.length}:mode=comment -->\n\n` +
       (index === 0 ? summary : '') +
       (batch.sections.length ? `### Captured pages\n\n${batch.sections.join('\n\n')}\n\n` : '') +
       (index === 0 ? `[Capture logs](${run.html_url})` : ''),
@@ -264,7 +280,9 @@ module.exports = async ({github, context, postComment = defaultPostComment,
         try {
           const {data: baseline} = await github.rest.repos.getContent({owner, repo,
             path: `tests/visual/baselines/${name}.png`, ref: pr.head.sha});
-          if (baseline.encoding !== 'base64' || !Buffer.from(baseline.content, 'base64')
+          const image = baseline.encoding === 'base64' ? baseline :
+            (await github.rest.git.getBlob({owner, repo, file_sha: baseline.sha})).data;
+          if (image.encoding !== 'base64' || !Buffer.from(image.content, 'base64')
             .equals(fs.readFileSync(imageFile(reportDir, name, 'actual')))) matches = false;
         } catch { matches = false; }
       }
@@ -284,8 +302,7 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   const current = ownComments.find(c => {
     const m = MARKER.exec(c.body ?? '');
     if (m?.[1] !== pr.head.sha || Number(m[2]) !== run_id ||
-        Number(m[3]) !== (run.run_attempt ?? 1) || Number(m[5]) !== 1 ||
-        !c.body.includes('containing exactly **visuals ok**')) return false;
+        Number(m[3]) !== (run.run_attempt ?? 1) || Number(m[5]) !== 1) return false;
     const parts = ownComments.filter(part => {
       const other = MARKER.exec(part.body ?? '');
       return other && other[1] === m[1] && other[2] === m[2] && other[3] === m[3] &&
@@ -319,7 +336,7 @@ module.exports = async ({github, context, postComment = defaultPostComment,
       evidence = postedComments[0];
     } else if (!captured) {
       const body = `### Visual capture failed — ${pr.head.sha.slice(0, 7)}\n\n` +
-        `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${now()}:part=1:total=1 -->\n\n` +
+        `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${now()}:part=1:total=1:mode=comment -->\n\n` +
         `The screenshots could not be captured. [Inspect the capture logs](${run.html_url}) and rerun the workflow.`;
       evidence = await postComment({github, owner, repo, pull_number, body, attachments: []});
     }
