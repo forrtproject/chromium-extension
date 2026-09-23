@@ -1,58 +1,98 @@
 name: Attach visual evidence
 on:
   workflow_run:
-    workflows: [Visual evidence]
+    workflows: [Visual evidence, Visual review decision]
     types: [completed]
-  pull_request_target:
-    types: [edited]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to refresh
+        required: true
+        type: number
 jobs:
   select:
     permissions:
       contents: read
       actions: read
       pull-requests: read
+      statuses: write
     if: >-
-      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
-      (github.event_name == 'pull_request_target' && github.event.changes.body && github.event.sender.type == 'User')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       (github.event.workflow_run.name == 'Visual evidence' ||
+        (github.event.workflow_run.name == 'Visual review decision' &&
+         github.event.workflow_run.conclusion != 'skipped')))
     runs-on: ubuntu-24.04
     outputs:
       run-id: ${{ steps.capture.outputs.run-id }}
       pr: ${{ steps.capture.outputs.pr }}
     steps:
+      - uses: actions/download-artifact@v4
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Visual review decision'
+        continue-on-error: true
+        with:
+          name: visual-review-event
+          path: ${{ runner.temp }}/review-event
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
       - uses: actions/github-script@v7
         id: capture
+        env:
+          REVIEW_EVENT_FILE: ${{ runner.temp }}/review-event/event.json
         with:
           script: |
+            const fs = require('node:fs');
             const {owner, repo} = context.repo;
             const run = context.payload.workflow_run;
-            const number = context.payload.pull_request?.number ?? run?.pull_requests?.[0]?.number;
+            const reviewEvent = fs.existsSync(process.env.REVIEW_EVENT_FILE)
+              ? JSON.parse(fs.readFileSync(process.env.REVIEW_EVENT_FILE, 'utf8')) : null;
+            const number = Number(context.payload.inputs?.pr ?? reviewEvent?.pr ?? run?.pull_requests?.[0]?.number);
             let pr;
             if (number) {
               ({data: pr} = await github.rest.pulls.get({owner, repo, pull_number: number}));
-            } else {
+            } else if (run?.name === 'Visual evidence') {
               const prs = await github.paginate(github.rest.pulls.list, {owner, repo, state: 'open'});
               pr = prs.find(p => p.head.sha === run.head_sha && p.head.repo?.full_name === run.head_repository.full_name);
             }
             if (!pr || pr.state !== 'open') return;
+            if (run?.name === 'Visual review decision' && pr.head.sha === run.head_sha &&
+                (run.conclusion !== 'success' || !reviewEvent)) {
+              await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+                context: 'Visual approval', state: 'failure', target_url: run.html_url,
+                description: 'Visual review event failed; rerun it before merging'});
+              return;
+            }
+            if (reviewEvent && (reviewEvent.pr !== pr.number || reviewEvent.head !== pr.head.sha)) return;
+            if (run?.name === 'Visual review decision' &&
+                String(reviewEvent?.state).toLowerCase() === 'commented') return;
+            if (run?.name === 'Visual evidence' && pr.head.sha !== run.head_sha) return;
+            await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+              context: 'Visual approval', state: 'pending', target_url: pr.html_url,
+              description: 'Checking current visual evidence and PR review'});
             const runs = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: 'visual.yml', event: 'pull_request', head_sha: pr.head.sha, per_page: 100});
-            const capture = runs.data.workflow_runs.find(r => r.head_repository.full_name === pr.head.repo.full_name);
+            const capture = runs.data.workflow_runs.find(r =>
+              r.head_repository.full_name === pr.head.repo.full_name &&
+              r.pull_requests?.some(p => p.number === pr.number));
             if (!capture || capture.status !== 'completed') return;
             core.setOutput('run-id', String(capture.id));
             core.setOutput('pr', String(pr.number));
   describe:
     needs: select
     permissions:
-      contents: read
+      # The trusted publisher writes generated PNGs to the visual-evidence branch.
+      contents: write
       actions: read
       pull-requests: write
+      issues: write
       statuses: write
     if: needs.select.outputs.run-id
     concurrency:
-      group: visual-publish-${{ github.repository }}-${{ needs.select.outputs.pr }}
+      # The evidence branch is shared by PRs; serialize its commits.
+      group: visual-publish-${{ github.repository }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     steps:
-      # Both triggers execute default-branch code, never the PR's scripts.
+      # The trusted workflow executes default-branch code, never the PR's scripts.
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
@@ -74,3 +114,29 @@ jobs:
           script: |
             const publish = require('./.github/scripts/visual-publish.cjs');
             await publish({github, context});
+      - uses: actions/github-script@v7
+        if: failure()
+        env:
+          VISUAL_PR: ${{ needs.select.outputs.pr }}
+          VISUAL_RUN_ID: ${{ needs.select.outputs.run-id }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const pull_number = Number(process.env.VISUAL_PR);
+            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number});
+            const {data: run} = await github.rest.actions.getWorkflowRun({
+              owner, repo, run_id: Number(process.env.VISUAL_RUN_ID),
+            });
+            if (pr.state !== 'open' || pr.head.sha !== run.head_sha) return;
+            await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+              context: 'Visual approval', state: 'failure',
+              target_url: `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`,
+              description: 'Visual evidence could not be posted'});
+            const body = `### Visual evidence publishing failed — ${pr.head.sha.slice(0, 7)}\n\n` +
+              `The images could not be posted. [Inspect the publishing run](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}) and rerun it.`;
+            const {data: comment} = await github.rest.issues.createComment({
+              owner, repo, issue_number: pull_number, body,
+            });
+            await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+              context: 'Visual approval', state: 'failure', target_url: comment.html_url,
+              description: 'Visual evidence could not be posted'});
