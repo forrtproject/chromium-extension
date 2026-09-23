@@ -326,7 +326,7 @@ describe("progress toast", () => {
         expect(toast()).toBeNull();
     });
 
-    it("dismisses the toast for the pass and shows it again on the next one", () => {
+    it("keeps a dismissed toast hidden for later passes until the page changes", () => {
         beginWorkIndicator();
         reportWorkStage("scan", "Scanning this page for DOIs…");
         settle();
@@ -336,9 +336,27 @@ describe("progress toast", () => {
         reportWorkStage("lookup", "Looking up 10 DOIs in FLoRA…");
         settle();
         expect(toast()).toBeNull();
-
         endWorkIndicator();
+
+        // A DOM mutation or lazy-loaded reference list starts another pass.
         beginWorkIndicator();
+        reportWorkStage("scan", "Scanning this page for DOIs…");
+        settle();
+        expect(toast()).toBeNull();
+        endWorkIndicator();
+
+        resetWorkSummary(); // navigation to a new page
+        beginWorkIndicator();
+        settle();
+        expect(toast()).not.toBeNull();
+    });
+
+    it("shows the toast again on a page change during a pass it was dismissed in", () => {
+        beginWorkIndicator();
+        settle();
+        button("close").click();
+        resetWorkSummary();
+        reportWorkStage("scan", "Scanning this page for DOIs…");
         settle();
         expect(toast()).not.toBeNull();
     });
@@ -911,6 +929,11 @@ describe("progress toast", () => {
         resumeAutomaticWork(); // an explicit Retry action
         expect(isWorkCancelled()).toBe(false);
         expect(canStartAutomaticWork()).toBe(true);
+        beginWorkIndicator();
+        settle();
+        expect(toast(), "the retried pass shows its progress").not.toBeNull();
+        endWorkIndicator();
+        vi.advanceTimersByTime(1000);
 
         cancelPass();
         history.replaceState(null, "", "/next-page"); // a page switch
