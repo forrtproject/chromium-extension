@@ -6,22 +6,15 @@
 import type {DoiString} from "@shared/types";
 import {normaliseDOI} from "@shared/doi-normalise";
 import {debugLog} from "@shared/debug";
+import {SEARCH_SITES} from "@shared/search-sites";
 import type {RowExtraction, SearchSiteAdapter} from "./types";
 import css from "./scholar.css";
 
 const RESULT_ROW = ".gs_r.gs_or.gs_scl";
 
 export const SCHOLAR: SearchSiteAdapter = {
-    id: "scholar",
+    ...SEARCH_SITES.scholar,
     label: "Scholar",
-    hostnames: [
-        "scholar.google.com", "scholar.google.co.uk", "scholar.google.co.in",
-        "scholar.google.co.jp", "scholar.google.co.kr", "scholar.google.co.za",
-        "scholar.google.co.id", "scholar.google.co.th", "scholar.google.co.il",
-        "scholar.google.ca", "scholar.google.de", "scholar.google.fr",
-        "scholar.google.es", "scholar.google.it", "scholar.google.com.br",
-        "scholar.google.com.au",
-    ],
     resultRow: RESULT_ROW,
     css,
     extractRow,

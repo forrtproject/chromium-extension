@@ -14,20 +14,18 @@
 // paging and re-sorting (checked live), which the observer's "new rows" trigger
 // covers.
 //
-// content-general also runs on semanticscholar.org on purpose: paper pages
-// (/paper/…) print the DOI, which that script annotates, and result rows print
-// no DOI for it to pick up.
+// content-general handles paper pages (/paper/…); see @shared/search-sites.
 
 import {debugLog} from "@shared/debug";
 import {resolveSemanticScholarIdsViaWorker} from "@shared/messages";
 import {normaliseSemanticScholarId} from "@shared/semanticscholar-resolve";
+import {SEARCH_SITES} from "@shared/search-sites";
 import type {RowExtraction, SearchSiteAdapter} from "./types";
 import css from "./semanticscholar.css";
 
 export const SEMANTIC_SCHOLAR: SearchSiteAdapter = {
-    id: "semanticscholar",
+    ...SEARCH_SITES.semanticscholar,
     label: "Semantic Scholar",
-    hostnames: ["semanticscholar.org"],
     resultRow: ".cl-paper-row.serp-papers__paper-row",
     css,
     extractRow,

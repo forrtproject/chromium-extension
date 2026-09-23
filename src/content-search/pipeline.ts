@@ -18,7 +18,7 @@ import {applyPlacement} from "@shared/site-adapters";
 import {showToast} from "@shared/toast";
 import {isSetupComplete} from "@shared/settings";
 import {fetchOpenAccess} from "@shared/openaccess";
-import {activeWorkSignal, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
+import {abortWorkForNavigation, activeWorkSignal, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {
@@ -88,6 +88,9 @@ function syncRetractionPage(): void {
     retractionPage = currentPageEntry();
     if (isSamePage(previous, retractionPage)) return;
     searchNavigationGeneration++;
+    // The running pass belongs to the old page. Aborting its requests ends it
+    // and its toast now, before content-general can start on a record page.
+    abortWorkForNavigation();
     resetWorkSummary();
     retryingSearchChecks = null;
     unavailableRetractionDois.clear();

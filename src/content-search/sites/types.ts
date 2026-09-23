@@ -8,6 +8,7 @@
 
 import type {DoiString} from "@shared/types";
 import type {PlacementRule} from "@shared/site-adapters";
+import type {SearchSite} from "@shared/search-sites";
 
 /** What one result row tells us before any network call. */
 export interface RowExtraction {
@@ -26,12 +27,10 @@ export interface RowExtraction {
     siteId?: string;
 }
 
-export interface SearchSiteAdapter {
-    id: string;
+/** id, hostnames and ownsUrl come from the site's entry in @shared/search-sites. */
+export interface SearchSiteAdapter extends SearchSite {
     /** Human name for logs and the progress toast ("Reading 10 OpenAlex results…"). */
     label: string;
-    /** Bare hostnames; subdomains and www. match too. */
-    hostnames: string[];
     /** Selector for one result row. Rows are processed once they can be read, then marked. */
     resultRow: string;
     /** Stylesheet injected once per page: panel placement, sizing and any

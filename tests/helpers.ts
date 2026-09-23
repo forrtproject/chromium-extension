@@ -1,5 +1,25 @@
 import type { DoiString, ReplicationResult, ReplicationEntry, OriginalEntry } from "../src/shared/types";
 
+/** Chrome match pattern → RegExp. Host `*.foo` also matches bare `foo`;
+ *  `<all_urls>` matches any http(s) URL. */
+export function patternToRegExp(pattern: string): RegExp {
+  if (pattern === "<all_urls>") return /^https?:\/\//;
+  const [, scheme, host, pathPart] = pattern.match(/^(\*|https?):\/\/([^/]+)(\/.*)$/)!;
+  const schemeRe = scheme === "*" ? "https?" : scheme;
+  const hostRe = host === "*"
+    ? "[^/]+"
+    : host.startsWith("*.")
+      ? `(?:[^/]+\\.)?${host.slice(2).replace(/\./g, "\\.")}`
+      : host.replace(/\./g, "\\.");
+  // `?` is a literal in match patterns, and Chrome matches the pattern's path
+  // against path + query string.
+  const pathRe = pathPart.replace(/[.+^${}()|[\]\\?]/g, "\\$&").replace(/\*/g, ".*");
+  // Chrome matches scheme and host case-insensitively but the path
+  // case-sensitively; the `i` flag also relaxes the path, which only matters
+  // for patterns or test URLs with uppercase paths.
+  return new RegExp(`^${schemeRe}://${hostRe}${pathRe}$`, "i");
+}
+
 export function doi(s: string): DoiString {
   return s as DoiString;
 }

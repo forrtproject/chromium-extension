@@ -12,21 +12,20 @@
 // converter — which only knows articles with a PMC record, so unresolved
 // PMIDs drop through to a title search.
 //
-// Search results live at the site root with a query string, so content-general
-// is excluded from `/?*` only (see manifest.json): it would otherwise annotate
-// the same printed DOIs a second time. Article pages `/<pmid>/` keep it.
+// Search results live at the site root with a query string. content-general
+// handles article pages (/<pmid>/); see @shared/search-sites.
 
 import {normaliseDOI} from "@shared/doi-normalise";
 import {resolvePmcIdsViaWorker} from "@shared/messages";
 import {normalisePmid} from "@shared/pmc-resolve";
 import type {DoiString} from "@shared/types";
+import {SEARCH_SITES} from "@shared/search-sites";
 import type {RowExtraction, SearchSiteAdapter} from "./types";
 import css from "./pubmed.css";
 
 export const PUBMED: SearchSiteAdapter = {
-    id: "pubmed",
+    ...SEARCH_SITES.pubmed,
     label: "PubMed",
-    hostnames: ["pubmed.ncbi.nlm.nih.gov"],
     resultRow: "article.full-docsum",
     css,
     extractRow,

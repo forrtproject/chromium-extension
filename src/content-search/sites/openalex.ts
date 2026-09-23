@@ -6,20 +6,18 @@
 // Paging and re-sorting replace the row elements (checked live), so the
 // observer's "new rows" trigger covers client-side navigation.
 //
-// content-general also runs on openalex.org on purpose: work pages
-// (/works/W…) link the DOI, which that script annotates, and result rows print
-// no DOI for it to pick up.
+// content-general handles work pages (/works/W…); see @shared/search-sites.
 
 import {debugLog} from "@shared/debug";
 import {resolveOpenAlexIdsViaWorker} from "@shared/messages";
 import {normaliseOpenAlexId} from "@shared/openalex-resolve";
+import {SEARCH_SITES} from "@shared/search-sites";
 import type {RowExtraction, SearchSiteAdapter} from "./types";
 import css from "./openalex.css";
 
 export const OPENALEX: SearchSiteAdapter = {
-    id: "openalex",
+    ...SEARCH_SITES.openalex,
     label: "OpenAlex",
-    hostnames: ["openalex.org"],
     resultRow: ".result-item",
     css,
     extractRow,

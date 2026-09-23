@@ -240,6 +240,22 @@ export interface MockResponse {
   body: string;
 }
 
+/** OpenAlex's ID resolver for the two saved search rows. No live API request runs. */
+export function mockWorkerRequest(url: string): MockResponse | null {
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return null; }
+  if (parsed.hostname !== "api.openalex.org" || parsed.pathname !== "/works") return null;
+  const ids = parsed.searchParams.get("filter")?.replace(/^openalex:/, "").split("|") ?? [];
+  const mapped: Record<string, string> = {
+    W2142773606: DOIS.replications,
+    W2142773607: DOIS.reproductions,
+  };
+  if (ids.length === 0 || ids.some(id => !(id in mapped))) return null;
+  return {status: 200, contentType: "application/json", body: JSON.stringify({
+    results: ids.map(id => ({id: `https://openalex.org/${id}`, doi: `https://doi.org/${mapped[id]}`})),
+  })};
+}
+
 /**
  * Decide how to answer a page-context request. Returns a canned response for
  * the known external APIs, "allow" for localhost, or "abort" for anything
@@ -276,10 +292,8 @@ export function classifyPageRequest(url: string): MockResponse | "allow" | "abor
 
 /**
  * Worker-context requests that must never reach the network (failed via CDP
- * Fetch). Everything the service worker asks for over http(s) is refused unless
- * it is the local fixture server: the seeds above already answer every lookup a
- * fixture needs, so a request that gets here is an unmocked path and must fail
- * loudly rather than call a live API. The extension's own packaged resources
+ * Fetch). The OpenAlex ID resolver is fulfilled by mockWorkerRequest first;
+ * other external http(s) requests fail. The extension's own packaged resources
  * (`chrome-extension://…`) are not http(s) and pass through.
  */
 export function isBlockedWorkerHost(url: string): boolean {

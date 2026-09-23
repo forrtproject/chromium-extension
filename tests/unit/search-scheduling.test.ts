@@ -5,7 +5,7 @@ import type {SearchSiteAdapter} from "../../src/content-search/sites/types";
 let visible = true;
 const send = vi.fn();
 const adapter: SearchSiteAdapter = {
-    id: "test", label: "Test", hostnames: [], css: "", resultRow: ".result", panelPlacement: [],
+    id: "test", label: "Test", hostnames: [], ownsUrl: () => true, css: "", resultRow: ".result", panelPlacement: [],
     extractRow: row => ({doi: row.dataset.doi as DoiString, confident: true, title: "Paper", firstAuthor: null, year: null, sourceUrl: null}),
 };
 const addRow = (id: string) => document.body.insertAdjacentHTML("beforeend", `<div class="result" data-doi="10.1234/${id}"></div>`);
