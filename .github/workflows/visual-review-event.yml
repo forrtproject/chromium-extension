@@ -8,10 +8,6 @@ permissions: {}
 
 jobs:
   relay:
-    if: >-
-      github.event.action == 'dismissed' ||
-      github.event.review.state == 'approved' ||
-      github.event.review.state == 'changes_requested'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/github-script@v7
@@ -21,7 +17,9 @@ jobs:
           script: |
             const fs = require('node:fs');
             const pr = context.payload.pull_request;
-            fs.writeFileSync(process.env.EVENT_FILE, JSON.stringify({pr: pr.number, head: pr.head.sha}));
+            fs.writeFileSync(process.env.EVENT_FILE, JSON.stringify({
+              pr: pr.number, head: pr.head.sha, state: context.payload.review.state,
+            }));
       - uses: actions/upload-artifact@v4
         with:
           name: visual-review-event
