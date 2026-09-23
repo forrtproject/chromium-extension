@@ -34,11 +34,19 @@ function main(): void {
     existsSync(path.join(dir, `${r.name}.actual.png`));
   const changed = results.filter(r => (r.changed || r.status === "fail") && !isNew(r));
   const added = results.filter(isNew);
+  const unchanged = results.filter(r => r.status === "pass" && !r.changed && !isNew(r));
   const row = (r: Result, kinds: string[]) => `<section><h3>${escape(r.name)} — ${escape(r.detail ?? r.status)}</h3><div class="shots ${kinds.length === 1 ? "single" : ""}">${kinds.map((kind) => `<div><h4>${kind === "actual" ? "PR" : kind}</h4>${picture(r.name, kind)}</div>`).join("")}</div></section>`;
+  const unchangedLinks = unchanged.map(r => {
+    const name = encodeURIComponent(r.name);
+    return `<li>${escape(r.name)} — <a href="${name}.before.png">base PNG</a> · <a href="${name}.actual.png">PR PNG</a></li>`;
+  }).join("");
   write(`<h1>Visual PR review</h1><p>Inspect placement, clipping, readability, and missing badges. Open the PNG files for full resolution.</p>
+<p>Captured ${results.length} fixture${results.length === 1 ? "" : "s"}: ${changed.length} changed, ${added.length} new, ${unchanged.length} unchanged.</p>
+<p>Coverage: these fixtures exercise article and reference layouts. They do not test search-result pages or same-tab navigation between results and records.</p>
 ${changed.length ? `<h2>Changed visuals</h2>${changed.map(r => row(r, ["before", "actual", "diff"])).join("")}` : ""}
 ${added.length ? `<h2>New visuals</h2>${added.map(r => row(r, ["actual"])).join("")}` : ""}
-${!changed.length && !added.length ? "<p>No visual changes to review.</p>" : ""}`);
+${!changed.length && !added.length && unchanged.length === results.length ? "<p>All captured fixtures match the base pixel for pixel.</p>" : ""}
+${unchanged.length ? `<details><summary>${unchanged.length} unchanged fixture${unchanged.length === 1 ? "" : "s"} (open PNGs)</summary><ul>${unchangedLinks}</ul></details>` : ""}`);
 }
 
 main();
