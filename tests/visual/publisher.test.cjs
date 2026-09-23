@@ -20,7 +20,7 @@ function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42
 async function scenario({changed = false, files = [], reviews = [], comments = [], failure = false,
   event = 'Visual evidence', head = HEAD, runHead = head, attempt = 1, changedFiles = files.length,
   results, authorBody = 'Author description.', permission = 'write', storeDefault = false,
-  branchExists = false} = {}) {
+  branchExists = false, racedReads = {}} = {}) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-publisher-test-'));
   const previous = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID,
     VISUAL_REPORT_DIR: process.env.VISUAL_REPORT_DIR};
@@ -42,9 +42,14 @@ async function scenario({changed = false, files = [], reviews = [], comments = [
     conclusion: failure ? 'failure' : 'success', run_attempt: attempt,
     updated_at: CAPTURED_AT, html_url: 'https://github.com/o/r/actions/runs/123'};
   const posted = [], deleted = [], bodyUpdates = [], statuses = [], stored = [], gitCalls = [];
+  let prReads = 0;
+  const readPr = () => {
+    const override = racedReads[++prReads] ?? {};
+    return {...pr, ...override, head: override.head ? {...pr.head, ...override.head} : pr.head};
+  };
   const methods = {files: () => files, comments: () => comments, reviews: () => reviews};
   const github = {paginate: async method => methods[method](), rest: {
-    pulls: {get: async () => ({data: pr}), listFiles: 'files', listReviews: 'reviews',
+    pulls: {get: async () => ({data: readPr()}), listFiles: 'files', listReviews: 'reviews',
       update: async input => {bodyUpdates.push(input.body); return {data: {...pr, body: input.body}};}},
     actions: {getWorkflowRun: async () => ({data: run})},
     issues: {listComments: 'comments', deleteComment: async input => {deleted.push(input.comment_id);},
@@ -220,5 +225,18 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.deepEqual(result.deleted, [7]);
     assert.equal(result.bodyUpdates.length, 1);
     assert.equal(result.bodyUpdates[0], 'Author text.');
+  });
+
+  await t.test('a moved head or concurrent PR-body edit is preserved', async () => {
+    const moved = await scenario({changed: true, racedReads: {2: {head: {sha: NEW_HEAD}}}});
+    assert.equal(moved.posted.length, 0);
+    assert.equal(moved.status, undefined);
+    const body = 'Author text.\n\n<!-- flora-visual:start -->\n### Visual review\n' +
+      '<!-- flora-visual:evidence:old:123:1:old -->\nold\n<!-- flora-visual:end -->';
+    const edited = await scenario({changed: true, authorBody: body,
+      racedReads: {3: {body: body + '\nNew author note.'}}});
+    assert.equal(edited.posted.length, 1);
+    assert.equal(edited.bodyUpdates.length, 0);
+    assert.equal(edited.status.state, 'pending');
   });
 });

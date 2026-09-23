@@ -19,7 +19,8 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
        (github.event.workflow_run.name == 'Visual evidence' ||
-        github.event.workflow_run.name == 'Visual review decision'))
+        (github.event.workflow_run.name == 'Visual review decision' &&
+         github.event.workflow_run.conclusion == 'success')))
     runs-on: ubuntu-24.04
     outputs:
       run-id: ${{ steps.capture.outputs.run-id }}
@@ -54,13 +55,16 @@ jobs:
             if (!pr || pr.state !== 'open') return;
             if (reviewEvent && (reviewEvent.pr !== pr.number || reviewEvent.head !== pr.head.sha)) return;
             const runs = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: 'visual.yml', event: 'pull_request', head_sha: pr.head.sha, per_page: 100});
-            const capture = runs.data.workflow_runs.find(r => r.head_repository.full_name === pr.head.repo.full_name);
+            const capture = runs.data.workflow_runs.find(r =>
+              r.head_repository.full_name === pr.head.repo.full_name &&
+              r.pull_requests?.some(p => p.number === pr.number));
             if (!capture || capture.status !== 'completed') return;
             core.setOutput('run-id', String(capture.id));
             core.setOutput('pr', String(pr.number));
   describe:
     needs: select
     permissions:
+      # The trusted publisher writes generated PNGs to the visual-evidence branch.
       contents: write
       actions: read
       pull-requests: write

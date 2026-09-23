@@ -8,6 +8,10 @@ permissions: {}
 
 jobs:
   relay:
+    if: >-
+      github.event.action == 'dismissed' ||
+      github.event.review.state == 'approved' ||
+      github.event.review.state == 'changes_requested'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/github-script@v7
