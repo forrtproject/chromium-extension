@@ -510,6 +510,22 @@ describe("service-worker", () => {
             expect(mockStorageSync).not.toHaveBeenCalled();
         });
 
+        it("caches a storage read that completes after its last caller cancelled", async () => {
+            blockRetractionMapReads();
+            const sender = {tab: {id: 1}, documentId: "late-read"};
+            const request = {type: "FLORA_RET_CHECK", dois: ["10.1234/paper"], requestId: "gave-up"};
+            const response = new Promise<RetractionCheckResponse>(resolve => messageHandler(request, sender, resolve as (r: unknown) => void));
+            await vi.waitFor(() => expect(pendingMapReads).toHaveLength(1));
+            messageHandler({type: "FLORA_CANCEL_REQUEST", requestId: "gave-up"}, sender, () => {});
+            expect((await response).error).toBeTruthy();
+
+            releaseMapRead(0, {retractions: {"10.1234/paper": "10.1234/notice"}, concerns: {}});
+            await new Promise(resolve => setTimeout(resolve, 0));
+            const next = await sendRetractionCheck([doi("10.1234/paper")]);
+            expect(next.results).toEqual([{originDoi: "10.1234/paper", doi: "10.1234/notice", kind: "retraction"}]);
+            expect(pendingMapReads).toHaveLength(1);
+        });
+
         it("shares fallback transport, aborts only when the last check cancels, and permits retry", async () => {
             let transport!: AbortSignal;
             const fetchMock = vi.fn(globalThis.fetch).mockImplementationOnce((_url, init) => {
