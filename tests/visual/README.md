@@ -172,8 +172,8 @@ within the local perceptual budget requires visual approval.
 
 CI stores before/after PNGs, diff images and JSON results in a `visual-report`
 artifact for the trusted publisher and for troubleshooting. Reviewers work in
-the PR conversation: the publisher uploads changed captures as GitHub comment
-attachments and posts base/PR images inline. Added or modified committed
+the PR conversation: the publisher stores changed captures on the
+`visual-evidence` branch and posts base/PR images inline. Added or modified committed
 screenshots appear in the same comment as images from the two commits. When
 only the capture setup changed, the comment shows representative captured
 pages and links to the setup diff. Large reviews may span several comments.
@@ -193,7 +193,7 @@ generated images in an immutable commit on the `visual-evidence` branch and
 embeds them from GitHub in the PR comment; the artifact is only the machine
 handoff. A `pull_request_review` event is relayed through a read-only workflow
 to the trusted publisher so reviews on fork PRs can update the status.
-The status links to the PR comment. If the PR's file listing is incomplete,
+When review is required, the status links to the PR comment. If the PR's file listing is incomplete,
 review remains required. Changes to visual fixtures, capture/publisher
 workflows, the publisher script, package manifests/lockfile, build
 configuration or extension manifest also require review.

@@ -11,10 +11,12 @@ const CAPTURED_AT = '2026-09-23T00:00:00Z';
 const POSTED_AT = '2026-09-23T00:05:00Z';
 const PNG = Buffer.from('89504e470d0a1a0a', 'hex');
 
-function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42} = {}) {
+function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42,
+  part = 1, total = 1, created = time} = {}) {
   return {id, html_url: `https://github.com/o/r/pull/215#issuecomment-${id}`,
+    created_at: created,
     user: {login: 'github-actions[bot]', type: 'Bot'},
-    body: `### Visual review\n<!-- flora-visual-review:${head}:${run}:${attempt}:${time}:part=1 -->`};
+    body: `### Visual review\n<!-- flora-visual-review:${head}:${run}:${attempt}:${time}:part=${part}:total=${total} -->`};
 }
 
 async function scenario({changed = false, files = [], reviews = [], comments = [], failure = false,
@@ -132,8 +134,11 @@ test('visual evidence is reviewed in the PR', async t => {
       comments: [comment()], permission: 'read', reviews: [{user: {login: 'reader', type: 'User'},
         commit_id: HEAD, submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'}]})).status.state, 'pending');
     assert.equal((await scenario({changed: true, event: 'Visual review decision',
-      comments: [comment({time: '2026-09-23T00:05:00.500Z'})], reviews: [{user: {login: 'maintainer', type: 'User'},
-        commit_id: HEAD, submitted_at: '2026-09-23T00:05:00Z', state: 'APPROVED'}]})).status.state, 'success');
+      comments: [comment({created: '2026-09-23T00:05:00Z'})], reviews: [{user: {login: 'maintainer', type: 'User'},
+        commit_id: HEAD, submitted_at: '2026-09-23T00:05:00Z', state: 'APPROVED'}]})).status.state, 'pending');
+    assert.equal((await scenario({changed: true, event: 'Visual review decision',
+      comments: [comment({created: '2026-09-23T00:05:00Z'})], reviews: [{user: {login: 'maintainer', type: 'User'},
+        commit_id: HEAD, submitted_at: '2026-09-23T00:05:01Z', state: 'APPROVED'}]})).status.state, 'success');
   });
 
   await t.test('later change request or dismissed approval revokes that reviewer', async () => {
@@ -193,6 +198,14 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.match(result.posted[0].body, /\(1\/2\)/);
     assert.match(result.posted[1].body, /\(2\/2\)/);
     assert.equal(result.status.state, 'pending');
+    const approval = {user: {login: 'maintainer', type: 'User'}, commit_id: HEAD,
+      submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'};
+    const incomplete = await scenario({results: rows, event: 'Visual review decision',
+      comments: [comment({total: 2})], reviews: [approval]});
+    assert.equal(incomplete.status.state, 'pending');
+    const complete = await scenario({results: rows, event: 'Visual review decision',
+      comments: [comment({total: 2}), comment({id: 43, part: 2, total: 2})], reviews: [approval]});
+    assert.equal(complete.status.state, 'success');
   });
 
   await t.test('failed or malformed captures cannot be approved', async () => {

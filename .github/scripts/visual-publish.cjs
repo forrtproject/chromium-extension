@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const MARKER = /<!-- flora-visual-review:([0-9a-f]{40}):(\d+):(\d+):([^ ]+):part=(\d+) -->/;
+const MARKER = /<!-- flora-visual-review:([0-9a-f]{40}):(\d+):(\d+):([^ ]+):part=(\d+):total=(\d+) -->/;
 const BOT = 'github-actions[bot]';
 const MAX_ATTACHMENTS = 40;
 
@@ -146,7 +146,7 @@ function commentParts({pr, run, results, screenshotReview, setupReview, baseline
   return batches.map((batch, index) => ({
     attachments: batch.attachments,
     body: `### Visual review — ${pr.head.sha.slice(0, 7)}${batches.length > 1 ? ` (${index + 1}/${batches.length})` : ''}\n\n` +
-      `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${time}:part=${index + 1} -->\n\n` +
+      `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${time}:part=${index + 1}:total=${batches.length} -->\n\n` +
       (index === 0 ? summary : '') +
       (batch.sections.length ? `### Captured pages\n\n${batch.sections.join('\n\n')}\n\n` : '') +
       (index === 0 ? `[Capture logs](${run.html_url})` : ''),
@@ -179,12 +179,21 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   const ownComments = comments.filter(c => c.user?.login === BOT && MARKER.test(c.body ?? ''));
   const current = ownComments.find(c => {
     const m = MARKER.exec(c.body ?? '');
-    return m?.[1] === pr.head.sha && Number(m[2]) === run_id &&
-      Number(m[3]) === (run.run_attempt ?? 1) && Number(m[5]) === 1;
+    if (m?.[1] !== pr.head.sha || Number(m[2]) !== run_id ||
+        Number(m[3]) !== (run.run_attempt ?? 1) || Number(m[5]) !== 1) return false;
+    const parts = ownComments.filter(part => {
+      const other = MARKER.exec(part.body ?? '');
+      return other && other[1] === m[1] && other[2] === m[2] && other[3] === m[3] &&
+        other[4] === m[4] && other[6] === m[6];
+    });
+    return parts.length === Number(m[6]) &&
+      new Set(parts.map(part => Number(MARKER.exec(part.body)[5]))).size === Number(m[6]) &&
+      parts.every(part => Number.isFinite(Date.parse(part.created_at)));
   });
   const publish = context.eventName === 'workflow_dispatch' ||
     (context.eventName === 'workflow_run' && context.payload.workflow_run?.name === 'Visual evidence');
   let evidence = current;
+  let postedComments = [];
   if (publish && !current) {
     const {data: fresh} = await github.rest.pulls.get({owner, repo, pull_number});
     if (fresh.head.sha !== pr.head.sha) return;
@@ -193,7 +202,6 @@ module.exports = async ({github, context, postComment = defaultPostComment,
         setupReview, baselineFiles, captureFiles, listingIncomplete, reportDir, time: now()});
       const images = await storeImages({github, owner, repo, pr, run,
         files: parts.flatMap(part => part.attachments)});
-      const posted = [];
       for (const part of parts) {
         let body = part.body;
         for (const file of part.attachments) {
@@ -201,12 +209,12 @@ module.exports = async ({github, context, postComment = defaultPostComment,
           if (!url) throw new Error(`No published image for ${path.basename(file)}`);
           body = body.replaceAll(`(${file})`, `(${url})`);
         }
-        posted.push(await postComment({github, owner, repo, pull_number, body}));
+        postedComments.push(await postComment({github, owner, repo, pull_number, body}));
       }
-      evidence = posted[0];
+      evidence = postedComments[0];
     } else if (!captured) {
       const body = `### Visual capture failed — ${pr.head.sha.slice(0, 7)}\n\n` +
-        `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${now()}:part=1 -->\n\n` +
+        `<!-- flora-visual-review:${pr.head.sha}:${run.id}:${run.run_attempt ?? 1}:${now()}:part=1:total=1 -->\n\n` +
         `The screenshots could not be captured. [Inspect the capture logs](${run.html_url}) and rerun the workflow.`;
       evidence = await postComment({github, owner, repo, pull_number, body, attachments: []});
     }
@@ -222,14 +230,23 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   let approvedBy = null;
   if (captured && needsApproval && evidence) {
     const marker = MARKER.exec(evidence.body ?? '');
-    const after = marker?.[4];
-    if (after && Number.isFinite(Date.parse(after)) && marker[1] === pr.head.sha && Number(marker[2]) === run_id &&
+    const parts = ownComments.filter(part => {
+      const other = MARKER.exec(part.body ?? '');
+      return other && marker && other[1] === marker[1] && other[2] === marker[2] &&
+        other[3] === marker[3] && other[4] === marker[4] && other[6] === marker[6];
+    });
+    if (publish && !current && evidence) parts.push(...postedComments);
+    const complete = marker && parts.length === Number(marker[6]) &&
+      new Set(parts.map(part => Number(MARKER.exec(part.body)[5]))).size === Number(marker[6]);
+    const after = complete && parts.every(part => Number.isFinite(Date.parse(part.created_at)))
+      ? Math.max(...parts.map(part => Date.parse(part.created_at))) : NaN;
+    if (Number.isFinite(after) && marker[1] === pr.head.sha && Number(marker[2]) === run_id &&
         Number(marker[3]) === (run.run_attempt ?? 1)) {
       const reviews = await github.paginate(github.rest.pulls.listReviews, {owner, repo, pull_number});
       const latest = new Map();
       for (const review of reviews) {
         if (review.user?.type !== 'User' || review.commit_id !== pr.head.sha ||
-            !review.submitted_at || Date.parse(review.submitted_at) < Math.floor(Date.parse(after) / 1000) * 1000 ||
+            !review.submitted_at || Date.parse(review.submitted_at) <= after ||
             !['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) continue;
         const prev = latest.get(review.user.login);
         if (!prev || review.submitted_at > prev.submitted_at) latest.set(review.user.login, review);

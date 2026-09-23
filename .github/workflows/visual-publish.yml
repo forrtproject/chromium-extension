@@ -114,3 +114,25 @@ jobs:
           script: |
             const publish = require('./.github/scripts/visual-publish.cjs');
             await publish({github, context});
+      - uses: actions/github-script@v7
+        if: failure()
+        env:
+          VISUAL_PR: ${{ needs.select.outputs.pr }}
+          VISUAL_RUN_ID: ${{ needs.select.outputs.run-id }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const pull_number = Number(process.env.VISUAL_PR);
+            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number});
+            const {data: run} = await github.rest.actions.getWorkflowRun({
+              owner, repo, run_id: Number(process.env.VISUAL_RUN_ID),
+            });
+            if (pr.state !== 'open' || pr.head.sha !== run.head_sha) return;
+            const body = `### Visual evidence publishing failed — ${pr.head.sha.slice(0, 7)}\n\n` +
+              `The images could not be posted. [Inspect the publishing run](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}) and rerun it.`;
+            const {data: comment} = await github.rest.issues.createComment({
+              owner, repo, issue_number: pull_number, body,
+            });
+            await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
+              context: 'Visual approval', state: 'failure', target_url: comment.html_url,
+              description: 'Visual evidence could not be posted'});
