@@ -167,7 +167,7 @@ mode. This is a readiness guard, not a claim that every async interaction is
 covered. Popovers, keyboard interaction, popup/options, search-site layouts,
 and narrow viewports still need additional visual scenarios.
 
-The PR approval gate uses exact raw RGBA equality: even a one-channel change
+The visual review gate uses exact raw RGBA equality: even a one-channel change
 within the local perceptual budget requires visual approval.
 
 CI stores before/after PNGs, diff images and JSON results in a `visual-report`
@@ -179,29 +179,28 @@ only the capture setup changed, the comment shows representative captured
 pages and links to the setup diff. Large reviews may span several comments.
 There is no report download or PR-body checkbox in the approval path.
 
-A collaborator with write access inspects the PR comment and submits a normal
-GitHub **Approve** review. The trusted publisher checks that the review was
-submitted after the comment for the current head commit and capture attempt.
-A later change request or dismissal revokes that reviewer's approval. A new
-commit or recapture posts fresh evidence and needs a fresh review. A failed
-capture fails the status regardless of reviews. When neither screenshots nor
+A collaborator with write access other than the PR author inspects the evidence
+and adds a PR conversation comment containing exactly `visuals ok`. The trusted
+publisher checks that the comment follows the complete evidence for the current
+head commit and capture attempt. Editing or deleting the comment revokes it;
+`visuals not ok` blocks confirmation while that collaborator's objection stands.
+A new commit or recapture posts fresh evidence and needs a fresh comment. A failed
+capture fails the status regardless of comments. When neither screenshots nor
 capture inputs changed, `Visual approval` succeeds automatically.
 
 The publisher runs only default-branch code, validates artifact data and
 image files, and checks the PR head and repository before posting. It stores
 generated images in an immutable commit on the `visual-evidence` branch and
 embeds them from GitHub in the PR comment; the artifact is only the machine
-handoff. A `pull_request_review` event is relayed through a read-only workflow
-to the trusted publisher so reviews on fork PRs can update the status.
+handoff. `issue_comment` events update the status directly, including on fork PRs.
 When review is required, the status links to the PR comment. If the PR's file listing is incomplete,
 review remains required. Changes to visual fixtures, capture/publisher
 workflows, the publisher script, package manifests/lockfile, build
 configuration or extension manifest also require review.
 
-**Activation:** merge the trusted workflows to the default branch, then make
-`Visual approval` a required status check for `main` in branch protection or a
-repository ruleset. A pending status does not block merging until that rule is
-active. This conditional check avoids requiring a review for unrelated PRs.
+`Visual approval` is a required status check for `main`. A pending visual
+confirmation blocks merging. This conditional check succeeds automatically for
+unrelated PRs.
 
 For local base/head captures, the harness also accepts `VR_REPO_ROOT` (built
 extension root), `VR_BASELINE_DIR`, and `VR_OUTPUT_DIR`. `--review` treats pixel

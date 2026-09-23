@@ -138,9 +138,10 @@ function commentParts({pr, run, results, screenshotReview, setupReview, baseline
   const filesLink = `https://github.com/${pr.base.repo.full_name}/pull/${pr.number}/files`;
   const summary = `Captured ${results.length} fixtures; ${changed.length} base-to-PR visual changes.\n\n` +
     `Review required: ${[screenshotReview && 'screenshots', setupReview && 'capture setup'].filter(Boolean).join(' and ')}. ` +
-    `Inspect the images below${setupReview ? ` and the [capture setup diff](${filesLink})` : ''}, then submit a GitHub **Approve** review. ` +
-    `Approval must follow this evidence and apply to commit ${pr.head.sha.slice(0, 7)}.\n\n` +
-    (listingIncomplete ? `**The PR lists ${pr.changed_files} changed files, but only ${pr._listedFiles} were returned. Review the full file list before approving.**\n\n` : '') +
+    `Inspect the images below${setupReview ? ` and the [capture setup diff](${filesLink})` : ''}, then add a PR comment containing exactly **visuals ok**. ` +
+    `A maintainer other than the PR author must comment after this evidence for commit ${pr.head.sha.slice(0, 7)}. ` +
+    `To revoke it, edit or delete that comment, or comment **visuals not ok**.\n\n` +
+    (listingIncomplete ? `**The PR lists ${pr.changed_files} changed files, but only ${pr._listedFiles} were returned. Review the full file list before commenting.**\n\n` : '') +
     (captureFiles.length ? `Capture setup files: ${captureFiles.slice(0, 20).map(f => `<code>${safeLabel(f.filename)}</code>`).join(', ')}` +
       (captureFiles.length > 20 ? `, and ${captureFiles.length - 20} more in the diff` : '') + `.\n\n` : '') +
     (!parts.length ? `Captured fixtures: ${results.map(r => `\`${r.name}\``).join(', ')}.\n\n` : '');
@@ -181,7 +182,8 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   const current = ownComments.find(c => {
     const m = MARKER.exec(c.body ?? '');
     if (m?.[1] !== pr.head.sha || Number(m[2]) !== run_id ||
-        Number(m[3]) !== (run.run_attempt ?? 1) || Number(m[5]) !== 1) return false;
+        Number(m[3]) !== (run.run_attempt ?? 1) || Number(m[5]) !== 1 ||
+        !c.body.includes('containing exactly **visuals ok**')) return false;
     const parts = ownComments.filter(part => {
       const other = MARKER.exec(part.body ?? '');
       return other && other[1] === m[1] && other[2] === m[2] && other[3] === m[3] &&
@@ -228,7 +230,7 @@ module.exports = async ({github, context, postComment = defaultPostComment,
     }
   }
 
-  let approvedBy = null;
+  let confirmedBy = null;
   if (captured && needsApproval && evidence) {
     const marker = MARKER.exec(evidence.body ?? '');
     const parts = (current ? ownComments : postedComments).filter(part => {
@@ -242,34 +244,36 @@ module.exports = async ({github, context, postComment = defaultPostComment,
       ? Math.max(...parts.map(part => Date.parse(part.created_at))) : NaN;
     if (Number.isFinite(after) && marker[1] === pr.head.sha && Number(marker[2]) === run_id &&
         Number(marker[3]) === (run.run_attempt ?? 1)) {
-      const reviews = await github.paginate(github.rest.pulls.listReviews, {owner, repo, pull_number});
+      const decisions = comments.filter(comment =>
+        comment.user?.type === 'User' && comment.user.login !== pr.user.login &&
+        Number.isFinite(Date.parse(comment.created_at)) && Date.parse(comment.created_at) > after &&
+        ['visuals ok', 'visuals not ok'].includes(String(comment.body ?? '').trim().toLowerCase()));
       const latest = new Map();
-      for (const review of reviews) {
-        if (review.user?.type !== 'User' || review.commit_id !== pr.head.sha ||
-            !review.submitted_at || Date.parse(review.submitted_at) <= after ||
-            !['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) continue;
-        const prev = latest.get(review.user.login);
-        if (!prev || review.submitted_at > prev.submitted_at) latest.set(review.user.login, review);
+      for (const decision of decisions) {
+        const prev = latest.get(decision.user.login);
+        if (!prev || Date.parse(decision.created_at) > Date.parse(prev.created_at) ||
+            (decision.created_at === prev.created_at && decision.id > prev.id))
+          latest.set(decision.user.login, decision);
       }
-      let changesRequested = false;
-      for (const review of latest.values()) {
+      let objection = false;
+      for (const decision of latest.values()) {
         try {
           const {data: permission} = await github.rest.repos.getCollaboratorPermissionLevel({
-            owner, repo, username: review.user.login,
+            owner, repo, username: decision.user.login,
           });
           if (!['write', 'maintain', 'admin'].includes(permission.permission)) continue;
-          if (review.state === 'CHANGES_REQUESTED') changesRequested = true;
-          if (review.state === 'APPROVED') approvedBy = review.user.login;
-        } catch { /* A former collaborator's review cannot approve this capture. */ }
+          if (decision.body.trim().toLowerCase() === 'visuals not ok') objection = true;
+          else confirmedBy = decision.user.login;
+        } catch { /* A former collaborator's comment cannot confirm this capture. */ }
       }
-      if (changesRequested) approvedBy = null;
+      if (objection) confirmedBy = null;
     }
   }
   await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha, context: 'Visual approval',
     target_url: evidence?.html_url ?? run.html_url,
-    state: !captured || (needsApproval && !evidence) ? 'failure' : !needsApproval || approvedBy ? 'success' : 'pending',
+    state: !captured || (needsApproval && !evidence) ? 'failure' : !needsApproval || confirmedBy ? 'success' : 'pending',
     description: !captured ? 'Visual capture failed' : !needsApproval ? 'No visual review needed' :
-      !evidence ? 'Visual evidence missing; rerun publisher' : approvedBy ? `Visuals approved by @${approvedBy}` :
-        'Review images in PR comment, then approve this PR',
+      !evidence ? 'Visual evidence missing; rerun publisher' : confirmedBy ? `Visuals confirmed by @${confirmedBy}` :
+        'Review images, then comment visuals ok on this PR',
   });
 };

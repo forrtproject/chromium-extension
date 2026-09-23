@@ -16,10 +16,16 @@ function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42
   return {id, html_url: `https://github.com/o/r/pull/215#issuecomment-${id}`,
     created_at: created,
     user: {login: 'github-actions[bot]', type: 'Bot'},
-    body: `### Visual review\n<!-- flora-visual-review:${head}:${run}:${attempt}:${time}:part=${part}:total=${total} -->`};
+    body: `### Visual review\n<!-- flora-visual-review:${head}:${run}:${attempt}:${time}:part=${part}:total=${total} -->\n\n` +
+      (part === 1 ? 'Add a PR comment containing exactly **visuals ok**.' : '')};
 }
 
-async function scenario({changed = false, files = [], reviews = [], comments = [], failure = false,
+function decision({id = 60, user = 'maintainer', body = 'visuals ok',
+  created = '2026-09-23T00:06:00Z'} = {}) {
+  return {id, user: {login: user, type: 'User'}, body, created_at: created};
+}
+
+async function scenario({changed = false, files = [], comments = [], failure = false,
   event = 'Visual evidence', head = HEAD, runHead = head, attempt = 1, changedFiles = files.length,
   results, authorBody = 'Author description.', permission = 'write', storeDefault = false,
   branchExists = false, racedReads = {}} = {}) {
@@ -38,6 +44,7 @@ async function scenario({changed = false, files = [], reviews = [], comments = [
     }
   }
   const pr = {number: 215, state: 'open', changed_files: changedFiles, body: authorBody,
+    user: {login: 'pr-author'},
     head: {sha: head, repo: {full_name: 'o/r'}},
     base: {sha: 'c'.repeat(40), repo: {full_name: 'o/r'}}};
   const run = {id: 123, head_sha: runHead, head_repository: {full_name: 'o/r'},
@@ -49,9 +56,9 @@ async function scenario({changed = false, files = [], reviews = [], comments = [
     const override = racedReads[++prReads] ?? {};
     return {...pr, ...override, head: override.head ? {...pr.head, ...override.head} : pr.head};
   };
-  const methods = {files: () => files, comments: () => comments, reviews: () => reviews};
+  const methods = {files: () => files, comments: () => comments};
   const github = {paginate: async method => methods[method](), rest: {
-    pulls: {get: async () => ({data: readPr()}), listFiles: 'files', listReviews: 'reviews',
+    pulls: {get: async () => ({data: readPr()}), listFiles: 'files',
       update: async input => {bodyUpdates.push(input.body); return {data: {...pr, body: input.body}};}},
     actions: {getWorkflowRun: async () => ({data: run})},
     issues: {listComments: 'comments', deleteComment: async input => {deleted.push(input.comment_id);},
@@ -73,7 +80,8 @@ async function scenario({changed = false, files = [], reviews = [], comments = [
   let result;
   try {
     const options = {github, context: {repo: {owner: 'o', repo: 'r'},
-      eventName: 'workflow_run', payload: {workflow_run: {name: event}}},
+      eventName: event === 'Visual evidence' ? 'workflow_run' : 'issue_comment',
+      payload: event === 'Visual evidence' ? {workflow_run: {name: event}} : {issue: {number: 215}}},
       now: () => POSTED_AT,
       postComment: async input => {
         posted.push(input);
@@ -111,55 +119,49 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.match(result.posted[0].body, /\| Base \| PR \|/);
     assert.match(result.posted[0].body, /raw\.githubusercontent\.com\/o\/r\//);
     assert.doesNotMatch(result.posted[0].body, /\/private\/tmp\//);
-    assert.match(result.posted[0].body, /submit a GitHub \*\*Approve\*\* review/);
+    assert.match(result.posted[0].body, /containing exactly \*\*visuals ok\*\*/);
     assert.doesNotMatch(result.posted[0].body, /Download visual report|artifacts\/123/);
   });
 
-  await t.test('fresh authorized approval clears the pending status', async () => {
-    const approved = await scenario({changed: true, event: 'Visual review decision',
-      comments: [comment()], reviews: [{user: {login: 'maintainer', type: 'User'},
-        commit_id: HEAD, submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'}]});
-    assert.equal(approved.posted.length, 0);
-    assert.equal(approved.status.state, 'success');
-    assert.match(approved.status.description, /maintainer/);
-    for (const review of [
-      {user: {login: 'maintainer', type: 'User'}, commit_id: HEAD, submitted_at: '2026-09-23T00:04:00Z', state: 'APPROVED'},
-      {user: {login: 'maintainer', type: 'User'}, commit_id: NEW_HEAD, submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'},
-      {user: {login: 'bot', type: 'Bot'}, commit_id: HEAD, submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'},
+  await t.test('only a fresh authorized human comment clears the pending status', async () => {
+    const confirmed = await scenario({changed: true, event: 'Visual comment',
+      comments: [comment(), decision()]});
+    assert.equal(confirmed.posted.length, 0);
+    assert.equal(confirmed.status.state, 'success');
+    assert.match(confirmed.status.description, /maintainer/);
+    for (const candidate of [
+      decision({created: '2026-09-23T00:04:00Z'}),
+      decision({created: POSTED_AT}),
+      decision({user: 'pr-author'}),
+      decision({body: 'Looks good, visuals ok'}),
+      {...decision(), user: {login: 'bot', type: 'Bot'}},
     ]) {
-      assert.equal((await scenario({changed: true, event: 'Visual review decision',
-        comments: [comment()], reviews: [review]})).status.state, 'pending');
+      assert.equal((await scenario({changed: true, event: 'Visual comment',
+        comments: [comment(), candidate]})).status.state, 'pending');
     }
-    assert.equal((await scenario({changed: true, event: 'Visual review decision',
-      comments: [comment()], permission: 'read', reviews: [{user: {login: 'reader', type: 'User'},
-        commit_id: HEAD, submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'}]})).status.state, 'pending');
-    assert.equal((await scenario({changed: true, event: 'Visual review decision',
-      comments: [comment({created: '2026-09-23T00:05:00Z'})], reviews: [{user: {login: 'maintainer', type: 'User'},
-        commit_id: HEAD, submitted_at: '2026-09-23T00:05:00Z', state: 'APPROVED'}]})).status.state, 'pending');
-    assert.equal((await scenario({changed: true, event: 'Visual review decision',
-      comments: [comment({created: '2026-09-23T00:05:00Z'})], reviews: [{user: {login: 'maintainer', type: 'User'},
-        commit_id: HEAD, submitted_at: '2026-09-23T00:05:01Z', state: 'APPROVED'}]})).status.state, 'success');
+    assert.equal((await scenario({changed: true, event: 'Visual comment',
+      comments: [comment(), decision()], permission: 'read'})).status.state, 'pending');
+    assert.equal((await scenario({changed: true, event: 'Visual comment',
+      comments: [comment(), decision({body: '  VISUALS OK  '})]})).status.state, 'success');
   });
 
-  await t.test('later change request or dismissed approval revokes that reviewer', async () => {
-    const approval = {user: {login: 'maintainer', type: 'User'}, commit_id: HEAD,
-      submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'};
-    for (const state of ['CHANGES_REQUESTED', 'DISMISSED']) {
-      const result = await scenario({changed: true, event: 'Visual review decision', comments: [comment()],
-        reviews: [approval, {...approval, submitted_at: '2026-09-23T00:07:00Z', state}]});
+  await t.test('editing, deleting, or objecting revokes visual confirmation', async () => {
+    for (const comments of [
+      [comment()],
+      [comment(), decision({body: 'Needs work'})],
+      [comment(), decision(), decision({id: 61, body: 'visuals not ok', created: '2026-09-23T00:07:00Z'})],
+      [comment(), decision(), decision({id: 61, user: 'second-maintainer', body: 'visuals not ok',
+        created: '2026-09-23T00:07:00Z'})],
+    ]) {
+      const result = await scenario({changed: true, event: 'Visual comment', comments});
       assert.equal(result.status.state, 'pending');
     }
-    const objection = await scenario({changed: true, event: 'Visual review decision', comments: [comment()],
-      reviews: [approval, {...approval, user: {login: 'second-maintainer', type: 'User'},
-        submitted_at: '2026-09-23T00:07:00Z', state: 'CHANGES_REQUESTED'}]});
-    assert.equal(objection.status.state, 'pending');
   });
 
-  await t.test('new capture or commit requires new evidence and approval', async () => {
+  await t.test('new capture or commit requires new evidence and confirmation', async () => {
     for (const options of [{attempt: 2}, {head: NEW_HEAD}]) {
-      const result = await scenario({changed: true, event: 'Visual review decision',
-        comments: [comment()], reviews: [{user: {login: 'maintainer', type: 'User'},
-          commit_id: options.head ?? HEAD, submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'}],
+      const result = await scenario({changed: true, event: 'Visual comment',
+        comments: [comment(), decision()],
         ...options});
       assert.equal(result.status.state, 'failure');
     }
@@ -198,13 +200,11 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.match(result.posted[0].body, /\(1\/2\)/);
     assert.match(result.posted[1].body, /\(2\/2\)/);
     assert.equal(result.status.state, 'pending');
-    const approval = {user: {login: 'maintainer', type: 'User'}, commit_id: HEAD,
-      submitted_at: '2026-09-23T00:06:00Z', state: 'APPROVED'};
-    const incomplete = await scenario({results: rows, event: 'Visual review decision',
-      comments: [comment({total: 2})], reviews: [approval]});
+    const incomplete = await scenario({results: rows, event: 'Visual comment',
+      comments: [comment({total: 2}), decision()]});
     assert.equal(incomplete.status.state, 'failure');
-    const complete = await scenario({results: rows, event: 'Visual review decision',
-      comments: [comment({total: 2}), comment({id: 43, part: 2, total: 2})], reviews: [approval]});
+    const complete = await scenario({results: rows, event: 'Visual comment',
+      comments: [comment({total: 2}), comment({id: 43, part: 2, total: 2}), decision()]});
     assert.equal(complete.status.state, 'success');
   });
 
@@ -241,6 +241,16 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.deepEqual(result.deleted, [7, 8]);
     assert.equal(result.bodyUpdates.length, 1);
     assert.equal(result.bodyUpdates[0], 'Author text.');
+  });
+
+  await t.test('replaces current-head evidence that still asks for an approval review', async () => {
+    const old = {...comment({id: 7})};
+    old.body = old.body.replace('Add a PR comment containing exactly **visuals ok**.',
+      'Submit a GitHub **Approve** review.');
+    const result = await scenario({changed: true, comments: [old]});
+    assert.equal(result.posted.length, 1);
+    assert.deepEqual(result.deleted, [7]);
+    assert.match(result.posted[0].body, /containing exactly \*\*visuals ok\*\*/);
   });
 
   await t.test('a moved head or concurrent PR-body edit is preserved', async () => {
