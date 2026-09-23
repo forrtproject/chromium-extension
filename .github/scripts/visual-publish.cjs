@@ -1,7 +1,5 @@
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
-const {execFileSync} = require('node:child_process');
 
 const MARKER = /<!-- flora-visual-review:([0-9a-f]{40}):(\d+):(\d+):([^ ]+):part=(\d+) -->/;
 const BOT = 'github-actions[bot]';
@@ -69,23 +67,39 @@ function legacyBodyWithoutBlock(body) {
   return text;
 }
 
-async function defaultPostComment({github, owner, repo, pull_number, body, attachments}) {
-  if (!attachments.length) {
-    const {data} = await github.rest.issues.createComment({owner, repo, issue_number: pull_number, body});
-    return data;
+async function defaultPostComment({github, owner, repo, pull_number, body}) {
+  const {data} = await github.rest.issues.createComment({owner, repo, issue_number: pull_number, body});
+  return data;
+}
+
+/** Keep the latest images on one branch; old evidence stays reachable by its commit SHA. */
+async function defaultStoreImages({github, owner, repo, pr, run, files}) {
+  if (!files.length) return new Map();
+  const unique = [...new Set(files)];
+  const folder = `pr-${pr.number}/${pr.head.sha}-${run.id}-${run.run_attempt ?? 1}`;
+  const tree = [];
+  for (const file of unique) {
+    const {data: blob} = await github.rest.git.createBlob({owner, repo,
+      content: fs.readFileSync(file).toString('base64'), encoding: 'base64'});
+    tree.push({path: `${folder}/${path.basename(file)}`, mode: '100644', type: 'blob', sha: blob.sha});
   }
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-visual-comment-'));
+  const {data: writtenTree} = await github.rest.git.createTree({owner, repo, tree});
+  let parent, exists = true;
   try {
-    const draft = path.join(dir, 'comment.md');
-    fs.writeFileSync(draft, body);
-    const args = ['pr', 'comment', String(pull_number), '-R', `${owner}/${repo}`, '--body-file', draft];
-    for (const file of attachments) args.push('--attach', file);
-    const output = execFileSync(process.env.GH_BIN ?? 'gh', args, {encoding: 'utf8'});
-    const id = /issuecomment-(\d+)/.exec(output)?.[1];
-    if (!id) throw new Error('GitHub CLI did not return the attached comment URL');
-    const {data} = await github.rest.issues.getComment({owner, repo, comment_id: Number(id)});
-    return data;
-  } finally { fs.rmSync(dir, {recursive: true, force: true}); }
+    const {data: ref} = await github.rest.git.getRef({owner, repo, ref: 'heads/visual-evidence'});
+    parent = ref.object.sha;
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    parent = pr.base.sha;
+    exists = false;
+  }
+  const {data: commit} = await github.rest.git.createCommit({owner, repo,
+    message: `Visual evidence for PR #${pr.number} at ${pr.head.sha.slice(0, 7)}`,
+    tree: writtenTree.sha, parents: [parent]});
+  if (exists) await github.rest.git.updateRef({owner, repo, ref: 'heads/visual-evidence', sha: commit.sha});
+  else await github.rest.git.createRef({owner, repo, ref: 'refs/heads/visual-evidence', sha: commit.sha});
+  return new Map(unique.map(file => [file,
+    `https://raw.githubusercontent.com/${owner}/${repo}/${commit.sha}/${encodePath(folder + '/' + path.basename(file))}`]));
 }
 
 function commentParts({pr, run, results, screenshotReview, setupReview, baselineFiles, captureFiles, listingIncomplete,
@@ -139,7 +153,8 @@ function commentParts({pr, run, results, screenshotReview, setupReview, baseline
   }));
 }
 
-module.exports = async ({github, context, postComment = defaultPostComment, now = () => new Date().toISOString()}) => {
+module.exports = async ({github, context, postComment = defaultPostComment,
+  storeImages = defaultStoreImages, now = () => new Date().toISOString()}) => {
   const {owner, repo} = context.repo;
   const pull_number = Number(process.env.VISUAL_PR);
   const run_id = Number(process.env.VISUAL_RUN_ID);
@@ -176,8 +191,18 @@ module.exports = async ({github, context, postComment = defaultPostComment, now 
     if (captured && needsApproval) {
       const parts = commentParts({pr: {...pr, _listedFiles: files.length}, run, results, screenshotReview,
         setupReview, baselineFiles, captureFiles, listingIncomplete, reportDir, time: now()});
+      const images = await storeImages({github, owner, repo, pr, run,
+        files: parts.flatMap(part => part.attachments)});
       const posted = [];
-      for (const part of parts) posted.push(await postComment({github, owner, repo, pull_number, ...part}));
+      for (const part of parts) {
+        let body = part.body;
+        for (const file of part.attachments) {
+          const url = images.get(file);
+          if (!url) throw new Error(`No published image for ${path.basename(file)}`);
+          body = body.replaceAll(`(${file})`, `(${url})`);
+        }
+        posted.push(await postComment({github, owner, repo, pull_number, body}));
+      }
       evidence = posted[0];
     } else if (!captured) {
       const body = `### Visual capture failed — ${pr.head.sha.slice(0, 7)}\n\n` +

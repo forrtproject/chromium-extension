@@ -68,7 +68,8 @@ jobs:
       statuses: write
     if: needs.select.outputs.run-id
     concurrency:
-      group: visual-publish-${{ github.repository }}-${{ needs.select.outputs.pr }}
+      # The evidence branch is shared by PRs; serialize its commits.
+      group: visual-publish-${{ github.repository }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     steps:
@@ -101,23 +102,8 @@ jobs:
               await github.rest.repos.createCommitStatus({owner, repo, sha: pr.head.sha,
                 context: 'Visual approval', state: 'pending', target_url: pr.html_url,
                 description: 'Publishing screenshots in the PR conversation'});
-      - name: Install GitHub CLI with image attachments
-        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'Visual evidence'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/gh-cli"
-          gh release download v2.99.0 -R cli/cli \
-            --pattern gh_2.99.0_linux_amd64.tar.gz \
-            --pattern gh_2.99.0_checksums.txt \
-            --dir "$RUNNER_TEMP/gh-cli"
-          cd "$RUNNER_TEMP/gh-cli"
-          sha256sum --check <(grep ' gh_2.99.0_linux_amd64.tar.gz$' gh_2.99.0_checksums.txt)
-          tar -xzf gh_2.99.0_linux_amd64.tar.gz
-          echo "$RUNNER_TEMP/gh-cli/gh_2.99.0_linux_amd64/bin" >> "$GITHUB_PATH"
       - uses: actions/github-script@v7
         env:
-          GH_TOKEN: ${{ github.token }}
           VISUAL_RUN_ID: ${{ needs.select.outputs.run-id }}
           VISUAL_PR: ${{ needs.select.outputs.pr }}
           VISUAL_REPORT_DIR: ${{ runner.temp }}/visual-report

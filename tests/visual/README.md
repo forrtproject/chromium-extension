@@ -188,8 +188,9 @@ capture fails the status regardless of reviews. When neither screenshots nor
 capture inputs changed, `Visual approval` succeeds automatically.
 
 The publisher runs only default-branch code, validates artifact data and
-image files, and checks the PR head and repository before posting. GitHub CLI
-2.99 uploads the images to GitHub directly; the artifact is only the machine
+image files, and checks the PR head and repository before posting. It stores
+generated images in an immutable commit on the `visual-evidence` branch and
+embeds them from GitHub in the PR comment; the artifact is only the machine
 handoff. A `pull_request_review` event is relayed through a read-only workflow
 to the trusted publisher so reviews on fork PRs can update the status.
 The status links to the PR comment. If the PR's file listing is incomplete,

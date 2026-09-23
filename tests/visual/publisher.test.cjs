@@ -19,7 +19,7 @@ function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42
 
 async function scenario({changed = false, files = [], reviews = [], comments = [], failure = false,
   event = 'Visual evidence', head = HEAD, runHead = head, attempt = 1, changedFiles = files.length,
-  results, authorBody = 'Author description.', permission = 'write'} = {}) {
+  results, authorBody = 'Author description.', permission = 'write', storeDefault = false} = {}) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-publisher-test-'));
   const previous = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID,
     VISUAL_REPORT_DIR: process.env.VISUAL_REPORT_DIR};
@@ -40,7 +40,7 @@ async function scenario({changed = false, files = [], reviews = [], comments = [
   const run = {id: 123, head_sha: runHead, head_repository: {full_name: 'o/r'},
     conclusion: failure ? 'failure' : 'success', run_attempt: attempt,
     updated_at: CAPTURED_AT, html_url: 'https://github.com/o/r/actions/runs/123'};
-  const posted = [], deleted = [], bodyUpdates = [], statuses = [];
+  const posted = [], deleted = [], bodyUpdates = [], statuses = [], stored = [], gitCalls = [];
   const methods = {files: () => files, comments: () => comments, reviews: () => reviews};
   const github = {paginate: async method => methods[method](), rest: {
     pulls: {get: async () => ({data: pr}), listFiles: 'files', listReviews: 'reviews',
@@ -50,17 +50,30 @@ async function scenario({changed = false, files = [], reviews = [], comments = [
       createComment: async input => ({data: {...comment({id: 80}), body: input.body}})},
     repos: {createCommitStatus: async input => {statuses.push(input);},
       getCollaboratorPermissionLevel: async () => ({data: {permission}})},
+    git: {
+      createBlob: async input => {gitCalls.push(['blob', input]); return {data: {sha: `blob-${gitCalls.length}`}};},
+      createTree: async input => {gitCalls.push(['tree', input]); return {data: {sha: 'tree-sha'}};},
+      getRef: async () => {const error = new Error('missing'); error.status = 404; throw error;},
+      createCommit: async input => {gitCalls.push(['commit', input]); return {data: {sha: 'e'.repeat(40)}};},
+      createRef: async input => {gitCalls.push(['ref', input]);},
+    },
   }};
   let result;
   try {
-    await publish({github, context: {repo: {owner: 'o', repo: 'r'},
+    const options = {github, context: {repo: {owner: 'o', repo: 'r'},
       eventName: 'workflow_run', payload: {workflow_run: {name: event}}},
       now: () => POSTED_AT,
       postComment: async input => {
         posted.push(input);
         return {...comment({id: 81 + posted.length}), body: input.body};
-      }});
-    result = {posted, deleted, bodyUpdates, status: statuses.at(-1)};
+      }};
+    if (!storeDefault) options.storeImages = async input => {
+      stored.push(input);
+      return new Map(input.files.map(file => [file,
+        `https://raw.githubusercontent.com/o/r/${'e'.repeat(40)}/${path.basename(file)}`]));
+    };
+    await publish(options);
+    result = {posted, deleted, bodyUpdates, stored, gitCalls, status: statuses.at(-1)};
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
@@ -82,8 +95,10 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.equal(result.status.state, 'pending');
     assert.equal(result.status.target_url, 'https://github.com/o/r/pull/215#issuecomment-82');
     assert.equal(result.posted.length, 1);
-    assert.equal(result.posted[0].attachments.length, 2);
+    assert.equal(result.stored[0].files.length, 2);
     assert.match(result.posted[0].body, /\| Base \| PR \|/);
+    assert.match(result.posted[0].body, /raw\.githubusercontent\.com\/o\/r\//);
+    assert.doesNotMatch(result.posted[0].body, /\/private\/tmp\//);
     assert.match(result.posted[0].body, /submit a GitHub \*\*Approve\*\* review/);
     assert.doesNotMatch(result.posted[0].body, /Download visual report|artifacts\/123/);
   });
@@ -145,13 +160,13 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.match(result.posted[0].body, /raw\.githubusercontent\.com\/o\/r\//);
     assert.match(result.posted[0].body, /capture setup diff/);
     assert.match(result.posted[0].body, /tests\/visual\/run\.ts/);
-    assert.equal(result.posted[0].attachments.length, 0);
+    assert.equal(result.stored[0].files.length, 0);
   });
 
   await t.test('setup-only changes show captured examples and incomplete listings require review', async () => {
     const setup = await scenario({files: [{filename: 'tests/visual/run.ts', status: 'modified'}]});
     assert.equal(setup.status.state, 'pending');
-    assert.equal(setup.posted[0].attachments.length, 1);
+    assert.equal(setup.stored[0].files.length, 1);
     const incomplete = await scenario({changedFiles: 3});
     assert.equal(incomplete.status.state, 'pending');
     assert.match(incomplete.posted[0].body, /only 0 were returned/);
@@ -162,7 +177,9 @@ test('visual evidence is reviewed in the PR', async t => {
       detail: 'changed', changed: true}));
     const result = await scenario({results: rows});
     assert.equal(result.posted.length, 2);
-    assert.deepEqual(result.posted.map(p => p.attachments.length), [40, 10]);
+    assert.equal(result.stored[0].files.length, 50);
+    assert.equal((result.posted[0].body.match(/raw\.githubusercontent\.com/g) ?? []).length, 40);
+    assert.equal((result.posted[1].body.match(/raw\.githubusercontent\.com/g) ?? []).length, 10);
     assert.match(result.posted[0].body, /\(1\/2\)/);
     assert.match(result.posted[1].body, /\(2\/2\)/);
     assert.equal(result.status.state, 'pending');
@@ -177,6 +194,15 @@ test('visual evidence is reviewed in the PR', async t => {
       {name: 'same', status: 'pass', detail: '0 px differ'},
     ]});
     assert.equal(duplicate.status.state, 'failure');
+  });
+
+  await t.test('image storage writes a commit on the evidence branch', async () => {
+    const result = await scenario({changed: true, storeDefault: true});
+    assert.deepEqual(result.gitCalls.map(([name]) => name), ['blob', 'blob', 'tree', 'commit', 'ref']);
+    const tree = result.gitCalls.find(([name]) => name === 'tree')[1].tree;
+    assert.equal(tree.length, 2);
+    assert.ok(tree.every(entry => entry.path.startsWith(`pr-215/${HEAD}-123-1/`)));
+    assert.match(result.posted[0].body, new RegExp(`raw\\.githubusercontent\\.com/o/r/${'e'.repeat(40)}/pr-215/`));
   });
 
   await t.test('replaces old bot evidence and removes the PR-body checklist', async () => {
