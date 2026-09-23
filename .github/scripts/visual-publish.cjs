@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const MARKER = /<!-- flora-visual-review:([0-9a-f]{40}):(\d+):(\d+):([^ ]+):part=(\d+):total=(\d+) -->/;
+const OWN_MARKER = /<!-- flora-visual-review:[0-9a-f]{40}:\d+:\d+:[^ ]+:part=\d+(?::total=\d+)? -->/;
 const BOT = 'github-actions[bot]';
 const MAX_ATTACHMENTS = 40;
 
@@ -176,7 +177,7 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   const setupReview = captureFiles.length > 0 || listingIncomplete;
   const needsApproval = screenshotReview || setupReview;
   const comments = await github.paginate(github.rest.issues.listComments, {owner, repo, issue_number: pull_number});
-  const ownComments = comments.filter(c => c.user?.login === BOT && MARKER.test(c.body ?? ''));
+  const ownComments = comments.filter(c => c.user?.login === BOT && OWN_MARKER.test(c.body ?? ''));
   const current = ownComments.find(c => {
     const m = MARKER.exec(c.body ?? '');
     if (m?.[1] !== pr.head.sha || Number(m[2]) !== run_id ||

@@ -234,8 +234,11 @@ test('visual evidence is reviewed in the PR', async t => {
   await t.test('replaces old bot evidence and removes the PR-body checklist', async () => {
     const body = 'Author text.\n\n<!-- flora-visual:start -->\n### Visual review\n' +
       '<!-- flora-visual:evidence:old:123:1:old -->\n- [ ] checkbox\n<!-- flora-visual:end -->';
-    const result = await scenario({changed: true, comments: [comment({run: 99, id: 7})], authorBody: body});
-    assert.deepEqual(result.deleted, [7]);
+    const legacy = {...comment({run: 99, id: 8})};
+    legacy.body = legacy.body.replace(':total=1', '');
+    const result = await scenario({changed: true,
+      comments: [comment({run: 99, id: 7}), legacy], authorBody: body});
+    assert.deepEqual(result.deleted, [7, 8]);
     assert.equal(result.bodyUpdates.length, 1);
     assert.equal(result.bodyUpdates[0], 'Author text.');
   });
