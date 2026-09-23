@@ -19,7 +19,8 @@ function comment({head = HEAD, run = 123, attempt = 1, time = POSTED_AT, id = 42
 
 async function scenario({changed = false, files = [], reviews = [], comments = [], failure = false,
   event = 'Visual evidence', head = HEAD, runHead = head, attempt = 1, changedFiles = files.length,
-  results, authorBody = 'Author description.', permission = 'write', storeDefault = false} = {}) {
+  results, authorBody = 'Author description.', permission = 'write', storeDefault = false,
+  branchExists = false} = {}) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'flora-publisher-test-'));
   const previous = {VISUAL_PR: process.env.VISUAL_PR, VISUAL_RUN_ID: process.env.VISUAL_RUN_ID,
     VISUAL_REPORT_DIR: process.env.VISUAL_REPORT_DIR};
@@ -53,9 +54,13 @@ async function scenario({changed = false, files = [], reviews = [], comments = [
     git: {
       createBlob: async input => {gitCalls.push(['blob', input]); return {data: {sha: `blob-${gitCalls.length}`}};},
       createTree: async input => {gitCalls.push(['tree', input]); return {data: {sha: 'tree-sha'}};},
-      getRef: async () => {const error = new Error('missing'); error.status = 404; throw error;},
+      getRef: async () => {
+        if (branchExists) return {data: {object: {sha: 'd'.repeat(40)}}};
+        const error = new Error('missing'); error.status = 404; throw error;
+      },
       createCommit: async input => {gitCalls.push(['commit', input]); return {data: {sha: 'e'.repeat(40)}};},
       createRef: async input => {gitCalls.push(['ref', input]);},
+      updateRef: async input => {gitCalls.push(['update', input]);},
     },
   }};
   let result;
@@ -203,6 +208,9 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.equal(tree.length, 2);
     assert.ok(tree.every(entry => entry.path.startsWith(`pr-215/${HEAD}-123-1/`)));
     assert.match(result.posted[0].body, new RegExp(`raw\\.githubusercontent\\.com/o/r/${'e'.repeat(40)}/pr-215/`));
+    const next = await scenario({changed: true, storeDefault: true, branchExists: true});
+    assert.deepEqual(next.gitCalls.map(([name]) => name), ['blob', 'blob', 'tree', 'commit', 'update']);
+    assert.deepEqual(next.gitCalls.find(([name]) => name === 'commit')[1].parents, ['d'.repeat(40)]);
   });
 
   await t.test('replaces old bot evidence and removes the PR-body checklist', async () => {
