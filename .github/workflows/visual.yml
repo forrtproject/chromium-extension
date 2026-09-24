@@ -69,12 +69,16 @@ jobs:
           VR_REPO_ROOT: ${{ github.workspace }}/base
           VR_BASELINE_DIR: ${{ runner.temp }}/visual-base
           VR_OUTPUT_DIR: ${{ runner.temp }}/visual-base-log
-        run: npm run test:visual:update
+        # Keep the base renders that succeed. The compare step reports a
+        # fixture without a base image as new or as a failed base capture.
+        run: npm run test:visual:update -- --partial
       - name: Capture PR and compare
         working-directory: head
         env:
           VR_BASELINE_DIR: ${{ runner.temp }}/visual-base
           VR_OUTPUT_DIR: ${{ github.workspace }}/visual-report
+          VR_BASE_ROOT: ${{ github.workspace }}/base
+          VR_BASE_RESULTS: ${{ runner.temp }}/visual-base-log/results.json
         run: npm run test:visual -- --review
       - name: Build review page
         if: always()

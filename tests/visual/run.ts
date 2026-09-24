@@ -2,10 +2,14 @@
 //
 // Loads the REAL built extension into Chrome for Testing, renders each fixture
 // page over localhost or a mocked search-site URL, screenshots it, and pixel-diffs
-// against a committed baseline. Two modes:
+// against a committed baseline. Modes:
 //
-//   npm run test:visual          compare against baselines, exit 1 on any diff
-//   npm run test:visual:update   regenerate baselines (never fails on diff)
+//   npm run test:visual          compare against baselines. On Linux, exit 1 on
+//                                any diff. Elsewhere, write a report and fail
+//                                only on capture errors.
+//   npm run test:visual:update   regenerate baselines (Linux, or with VR_BASELINE_DIR)
+//   --review                     pixel diffs are evidence, not failures (CI)
+//   --partial                    with --update, keep the renders that succeed (CI base)
 //
 // See tests/visual/README.md for the full picture. The extension is loaded
 // from the REPO ROOT (manifest.json there references dist/*), so run
@@ -25,6 +29,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { startServer } from "./server.js";
+import { writeReport } from "./report.js";
 import {
   buildLocalSeed,
   buildSyncSeed,
@@ -58,7 +63,7 @@ const VIEWPORT = { width: 1280, height: 900, deviceScaleFactor: 1 };
 const PIXEL_THRESHOLD = 0.1;
 const MAX_DIFF_PIXELS = 100;
 
-// CSS injected before any page script runs: kill animations/transitions/
+// CSS injected once the page has loaded: kill animations/transitions/
 // carets/smooth-scroll and remove the transient "scanning" toast, so a
 // screenshot captures a stable end state.
 const DETERMINISM_CSS = `
@@ -123,11 +128,27 @@ const FLORA_SELECTOR =
   ".flora-indicator-pill, .flora-notice-pill, #flora-pubpeer-panel";
 
 const UPDATE = process.argv.includes("--update");
-const REVIEW = process.argv.includes("--review");
+// Baselines are Ubuntu renders from CI. Other systems rasterise text
+// differently, so a local compare there reports differences without failing.
+const LOCAL_REPORT = process.platform !== "linux" && !UPDATE;
+const REVIEW = process.argv.includes("--review") || LOCAL_REPORT;
+// Base capture in CI: keep every render that succeeds. A fixture the base
+// build cannot render is then reported as missing on base instead of
+// failing the whole capture.
+const PARTIAL = process.argv.includes("--partial");
+// Base-side context for describing a missing base image (CI only).
+const BASE_ROOT = process.env.VR_BASE_ROOT;
+const BASE_RESULTS = process.env.VR_BASE_RESULTS;
+
+if (UPDATE && process.platform !== "linux" && !process.env.VR_BASELINE_DIR) {
+  console.error("Baselines are rendered on Ubuntu by CI. Run the 'Visual baselines' workflow instead of a local update.");
+  process.exit(1);
+}
 
 // A fixture that fails mid-run must not leave a baseline set that mixes old and
 // new renders, so `--update` stages every render outside the repository and
-// copies it into the baseline directory only once all fixtures have succeeded.
+// copies it into the baseline directory only once all fixtures have succeeded
+// (with `--partial`, it copies the renders that succeeded).
 const STAGING_DIR = UPDATE ? mkdtempSync(path.join(os.tmpdir(), "flora-visual-baselines-")) : "";
 // Covers every way the run can end, including a capture that throws before the
 // baselines are copied across.
@@ -275,6 +296,8 @@ interface FixtureResult {
   status: "pass" | "fail" | "written";
   detail?: string;
   changed?: boolean;
+  /** CI only: an existing fixture whose base capture failed. */
+  baseFailed?: boolean;
 }
 
 async function captureFixture(
@@ -392,7 +415,8 @@ async function captureFixture(
     writeFileSync(path.join(OUTPUT_DIR, `${fixture.name}.actual.png`), PNG.sync.write(actual));
 
     if (!existsSync(baselinePath)) {
-      mkdirSync(OUTPUT_DIR, { recursive: true });
+      if (BASE_ROOT) return { name: fixture.name, status: "fail", changed: true, ...describeMissingBase(fixture.name) };
+      if (REVIEW) return { name: fixture.name, status: "fail", changed: true, detail: "No baseline yet" };
       return { name: fixture.name, status: "fail", detail: "no baseline (run test:visual:update)" };
     }
 
@@ -429,6 +453,24 @@ async function captureFixture(
   } finally {
     await page.close().catch(() => {});
   }
+}
+
+/**
+ * Explain why CI has no base image for a fixture. A fixture with a committed
+ * baseline on the base branch rendered before, so its failure points at the
+ * base build or the capture. A fixture without one is new in this PR.
+ */
+function describeMissingBase(name: string): Pick<FixtureResult, "detail" | "baseFailed"> {
+  let reason = "unknown error";
+  try {
+    const base: FixtureResult[] = JSON.parse(readFileSync(BASE_RESULTS ?? "", "utf8"));
+    reason = base.find((r) => r.name === name)?.detail ?? reason;
+  } catch {
+    // Base results unavailable; keep the generic reason.
+  }
+  return existsSync(path.join(BASE_ROOT!, "tests", "visual", "baselines", `${name}.png`))
+    ? { baseFailed: true, detail: `No base image: the base capture failed on this existing fixture (${reason})` }
+    : { detail: `New fixture: no baseline on the base branch; the base capture failed (${reason})` };
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -515,8 +557,10 @@ async function main(): Promise<void> {
   mkdirSync(OUTPUT_DIR, { recursive: true });
   writeFileSync(path.join(OUTPUT_DIR, "results.json"), JSON.stringify(results, null, 2));
   if (UPDATE) {
-    if (failures.length === 0) {
-      const missing = results.filter((r) => !existsSync(path.join(STAGING_DIR, `${r.name}.png`)));
+    // A partial capture still needs at least one base image to compare with.
+    if (failures.length === 0 || (PARTIAL && results.some((r) => r.status === "written"))) {
+      const rendered = results.filter((r) => r.status === "written");
+      const missing = rendered.filter((r) => !existsSync(path.join(STAGING_DIR, `${r.name}.png`)));
       if (missing.length > 0) {
         console.log(`FAILED: staged render missing for ${missing.map((r) => r.name).join(", ")}. Baselines left unchanged.`);
         process.exit(1);
@@ -524,21 +568,28 @@ async function main(): Promise<void> {
       mkdirSync(BASELINE_DIR, { recursive: true });
       const written: string[] = [];
       try {
-        for (const r of results) {
+        for (const r of rendered) {
           copyFileSync(path.join(STAGING_DIR, `${r.name}.png`), path.join(BASELINE_DIR, `${r.name}.png`));
           written.push(r.name);
         }
       } catch (err) {
-        console.log(`FAILED: copying baselines stopped at ${written.length}/${results.length} — ${String(err)}`);
+        console.log(`FAILED: copying baselines stopped at ${written.length}/${rendered.length} — ${String(err)}`);
         console.log(`Baselines already replaced: ${written.join(", ") || "none"}. Re-run to finish.`);
         process.exit(1);
       }
-      console.log(`Baselines written: ${results.length}. Inspect before committing.`);
+      console.log(`Baselines written: ${rendered.length}.`);
+      for (const f of failures) console.log(`  not captured: ${f.name}: ${f.detail}`);
       return;
     }
     console.log(`FAILED: ${failures.length}/${results.length} fixture(s) could not be captured. Baselines left unchanged.`);
     for (const f of failures) console.log(`  ✗ ${f.name}: ${f.detail}`);
     process.exit(1);
+  }
+  if (LOCAL_REPORT) {
+    writeReport(OUTPUT_DIR);
+    console.log(`Compared with the Ubuntu baselines from CI. Text renders differently on ${process.platform}, ` +
+      `so pixel differences here are expected and do not fail the run.`);
+    console.log(`Report: ${path.join(OUTPUT_DIR, "index.html")}`);
   }
   if (REVIEW && failures.every((r) => r.changed)) {
     console.log(`Visual review: ${results.filter(r => r.changed).length} changed fixture(s).`);
