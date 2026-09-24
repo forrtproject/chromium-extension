@@ -2,7 +2,8 @@ import {activeWorkSignal} from "@shared/work-cancellation";
 import {isWordOnline} from "@shared/word-online";
 import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
 import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
-import {waitForWorkToFinish} from "@shared/progress-toast";
+import {reportNothingFound, waitForWorkToFinish} from "@shared/progress-toast";
+import {withdrawNothingFound} from "@shared/progress-tab";
 import {
     beginDomScanPass,
     classifyPageDois,
@@ -282,10 +283,11 @@ let nothingToFlagReportedFor: string | null = null;
 
 function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
     const examined = new Set(dois).size;
+    if (flagged) withdrawNothingFound();
     if (examined === 0 || flagged || unavailableRetractionDois.size > 0 || dois.some(doi => pageState.get(doi)?.status === "error")) return;
     if (nothingToFlagReportedFor === pageUrl(location.href)) return;
     nothingToFlagReportedFor = pageUrl(location.href);
-    showToast(`Checked ${count(examined, "paper")} — no flags in available results`, {tone: "success"});
+    reportNothingFound(examined);
 }
 
 /**
@@ -647,7 +649,9 @@ async function runScanPass(): Promise<void> {
         if (floraHidden || isWorkCancelled()) return;
 
         try {
-            reportWorkStage("report", "Generating report…");
+            if (isSheets) reportWorkStage("report", "Generating report…");
+            else if (extractPrimaryDOI(document) || isDocumentEditor()) reportWorkStage("lookup", "Marking up the page…");
+            else reportWorkStage("report", "Marking up the page…");
             // Collect matched DOIs for display
             // On Sheets, skip the "still in DOM" re-check — the canvas DOM is unreliable
             const currentDois = isSheets ? null : new Set(dois);
@@ -690,7 +694,7 @@ async function runScanPass(): Promise<void> {
                 if (refsPending > 0) {
                     // Verdict waits for the references still being resolved.
                     pendingNothingToFlag = {dois, flagged};
-                    reportWorkStage("report", "Resolving references without a DOI…");
+                    reportWorkStage("augment", "Resolving references without a DOI…");
                 } else {
                     reportNothingToFlag(dois, flagged);
                 }
@@ -1074,6 +1078,7 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
                 },
             );
         const unavailableReferences = new Set<string>();
+        reportWorkStage("lookup", `Checking PubPeer for ${count(referenceDois.length + (primaryDoi ? 1 : 0), "paper")}…`);
         const [article, refFeedbackByDoi, articleTitle] = await Promise.all([
             articlePromise,
             lookupPubPeerForDois(referenceDois, unavailableReferences, signal),
@@ -1081,6 +1086,8 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
+        if (article.feedbacks.some((f) => f.total_comments > 0)
+            || [...refFeedbackByDoi.values()].some((f) => f.total_comments > 0)) withdrawNothingFound();
         articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
         lastArticleFeedbacks = article.feedbacks;
         lastReferenceDoiKey = refKey;
@@ -1101,6 +1108,7 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         }));
 
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
+        reportWorkStage("report", "Generating report…");
         lastRenderedPageStateVersion = pageStateVersion;
         renderSidePanel(article.feedbacks, panelRefs, pageState, doiContext, refFeedbackByDoi, redacts, articleTitle,
             articlePubPeerUnavailable ? async () => {

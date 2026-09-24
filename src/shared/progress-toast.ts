@@ -1,5 +1,5 @@
 import {beginCancellableWork, endCancellableWork, cancelWork, resumeAutomaticWork, workSignal} from "./work-cancellation";
-// Progress toast — the bottom-right indicator shown while ORE works a page.
+// Progress toast — the bottom-right debug-mode indicator shown while ORE works a page.
 // Stage-weighted, not item-counted: each stage is one batched worker call.
 //
 // Collapsed it is a spinner, a label and a bar. The chevron opens a panel with
@@ -13,6 +13,15 @@ import {buildDebugReport} from "@shared/debug-report";
 import {writeClipboard} from "@shared/clipboard";
 import {blockDomain, snoozeDomain} from "@shared/domains";
 import {getSettings} from "@shared/settings";
+import {
+    _resetProgressTabForTesting,
+    finishTabProgress,
+    isTabProgressShown,
+    markTabWorkStarted,
+    noteNothingFound,
+    resetTabProgress,
+    showTabProgress,
+} from "@shared/progress-tab";
 
 export const WORK_TOAST_ID = "flora-working-toast";
 export const SETUP_PROMPT_ID = "flora-setup-prompt";
@@ -67,6 +76,7 @@ const STAGE_LABEL: Record<WorkStage, string> = {
 };
 
 const DEFAULT_LABEL = "ORE is looking up the papers on this page…";
+const SETTLING_LABEL = "Checks finished, waiting for late results…";
 
 const HOST_STYLE =
     "position:fixed;right:18px;z-index:2147483647;" +
@@ -138,6 +148,7 @@ const KEYFRAMES =
 
 // The DOM listener runs a pass per mutation; a cached one is over in millis.
 const SHOW_DELAY_MS = 250;
+const TAB_DONE_DELAY_MS = 500;
 // Batch flush (800 ms) plus the store's persist debounce, so the report the
 // copy renders includes the lines the pass wrote as it finished.
 const COPY_LOG_WAIT_MS = 1500;
@@ -176,6 +187,7 @@ let passTimesBeforePageChange = new Map<string, number>();
 let finishTimer: ReturnType<typeof setTimeout> | null = null;
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
+let tabDoneTimer: ReturnType<typeof setTimeout> | null = null;
 let removeTimer: ReturnType<typeof setTimeout> | null = null;
 let elapsedTimer: ReturnType<typeof setInterval> | null = null;
 let renderFrame: number | null = null;
@@ -199,12 +211,12 @@ let segmentStartedAt = 0;
 let passOtherMs = 0;
 
 function clearTimers(): void {
-    for (const timer of [showTimer, hideTimer, removeTimer, finishTimer]) {
+    for (const timer of [showTimer, hideTimer, removeTimer, finishTimer, tabDoneTimer]) {
         if (timer) clearTimeout(timer);
     }
     cancelQueuedRender();
     stopElapsedTicker();
-    showTimer = hideTimer = removeTimer = finishTimer = null;
+    showTimer = hideTimer = removeTimer = finishTimer = tabDoneTimer = null;
 }
 
 function cancelQueuedRender(): void {
@@ -329,6 +341,7 @@ async function pauseSite(
 ): Promise<void> {
     clearTimers();
     removeToast();
+    resetTabProgress();
     dismissed = true;
     try {
         await write;
@@ -403,12 +416,10 @@ function buildFooter(): HTMLElement {
     footer.style.cssText =
         "display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center;padding-top:6px;";
 
-    if (isDebugEnabled()) {
-        const copy = textButton("Copy log");
-        copy.setAttribute("data-flora-work-copy", "");
-        copy.addEventListener("click", () => void copyLog(copy));
-        footer.append(copy);
-    }
+    const copy = textButton("Copy log");
+    copy.setAttribute("data-flora-work-copy", "");
+    copy.addEventListener("click", () => void copyLog(copy));
+    footer.append(copy);
 
     const cancel = textButton("Cancel");
     cancel.setAttribute("data-flora-work-cancel", "");
@@ -418,6 +429,7 @@ function buildFooter(): HTMLElement {
         cancelWork();
         clearTimers();
         removeToast();
+        resetTabProgress();
     });
     footer.append(cancel);
     return footer;
@@ -662,27 +674,27 @@ function paint(host: HTMLElement): void {
 }
 
 onDebugChange((enabled) => {
-    if (!enabled && refCount === 0 && !finished) {
-        clearTimers();
+    if (!enabled) {
+        if (finishTimer) clearTimeout(finishTimer);
+        finishTimer = null;
+        finished = false;
         removeToast();
         return;
     }
-    if (document.getElementById(WORK_TOAST_ID)) renderNow();
+    if (refCount > 0 && indicatorShown()) renderNow();
 });
 
-function dropToastBuiltForOtherDebugState(): void {
-    const host = document.getElementById(WORK_TOAST_ID);
-    if (!host) return;
-    const hasCopy = host.querySelector("[data-flora-work-copy]") !== null;
-    if (hasCopy !== isDebugEnabled()) removeToast();
+function indicatorShown(): boolean {
+    return isTabProgressShown() || document.getElementById(WORK_TOAST_ID) !== null;
 }
 
 function renderNow(): void {
-    if (suppressed || dismissed || cancelled) return;
+    if (suppressed || cancelled) return;
     if (refCount === 0 && !finished) return;
     // An immediate stage update supersedes any deferred item update.
     cancelQueuedRender();
-    dropToastBuiltForOtherDebugState();
+    if (refCount > 0 && !summaryInvalidated) showTabProgress(progress, labelText);
+    if (dismissed || !isDebugEnabled()) return;
     const host = ensureToast();
     host.style.bottom = `${floatingBottom()}px`;
     const label = host.querySelector<HTMLElement>("[data-flora-work-label]");
@@ -709,9 +721,9 @@ function queueRender(): void {
 
 /** Update now if requested; item bursts can defer to the next animation frame. */
 function render(immediate = true): void {
-    if (suppressed || dismissed || cancelled) return;
+    if (suppressed || cancelled) return;
     if (refCount === 0 && !finished) return;
-    if (document.getElementById(WORK_TOAST_ID)) {
+    if (indicatorShown()) {
         if (immediate) renderNow();
         else queueRender();
         return;
@@ -770,8 +782,9 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
             finishTimer = null;
         }
         beginCancellableWork();
+        markTabWorkStarted();
         const host = document.getElementById(WORK_TOAST_ID);
-        if (finished && host) setRunningControls(host, true);
+        if (host) setRunningControls(host, true);
         progress = 0;
         labelText = DEFAULT_LABEL;
         cancelled = false;
@@ -792,6 +805,10 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
     if (hideTimer) {
         clearTimeout(hideTimer);
         hideTimer = null;
+    }
+    if (tabDoneTimer) {
+        clearTimeout(tabDoneTimer);
+        tabDoneTimer = null;
     }
     if (removeTimer) {
         clearTimeout(removeTimer);
@@ -877,6 +894,7 @@ export function endWorkIndicator(): void {
     debugLog(`Work: pass done in ${inMs(endedAt - passStartedAt)} (time as current stage — ${formatBreakdown(times, inMs)})`);
 
     clearTimers(); // a pass that finished before the toast appeared stays silent
+    const wasCancelled = cancelled;
     const hidden = dismissed || cancelled;
     cancelled = false;
 
@@ -890,12 +908,15 @@ export function endWorkIndicator(): void {
         for (const [name, ms] of times) addPageTime(name, ms - (passTimesBeforePageChange.get(name) ?? 0));
         pageEndedAt = endedAt;
     }
+    if (invalidated || wasCancelled || suppressed) resetTabProgress();
+    else settleTab();
     if (isDebugEnabled() && !hidden && !suppressed && !invalidated) {
         const stagesLeft = stages.filter((entry) => !entry.ran);
         const quiet = stagesLeft.length ? QUIET_WITH_STAGES_LEFT_MS : QUIET_BEFORE_DONE_MS;
         if (stagesLeft.length) {
             debugLog(`Work: holding the summary — ${stagesLeft.map((e) => e.stage).join(", ")} never ran`);
         }
+        showSettling();
         finishTimer = setTimeout(() => {
             finishTimer = null;
             finished = true;
@@ -922,6 +943,32 @@ export function endWorkIndicator(): void {
     hideTimer = setTimeout(fadeOut, 500);
 }
 
+function showSettling(): void {
+    progress = 1;
+    labelText = SETTLING_LABEL;
+    const host = document.getElementById(WORK_TOAST_ID);
+    if (!host) return;
+    const label = host.querySelector<HTMLElement>("[data-flora-work-label]");
+    if (label) label.textContent = labelText;
+    paint(host);
+    showFinishedState(host);
+    shieldToastColours(host);
+}
+
+function settleTab(): void {
+    if (isTabProgressShown()) showTabProgress(1, labelText);
+    tabDoneTimer = setTimeout(() => {
+        tabDoneTimer = null;
+        finishTabProgress();
+    }, TAB_DONE_DELAY_MS);
+}
+
+export function reportNothingFound(papers: number): void {
+    if (suppressed) return;
+    noteNothingFound(papers);
+    if (refCount === 0 && tabDoneTimer === null) finishTabProgress();
+}
+
 function addPageTime(name: string, ms: number): void {
     pageTimes.set(name, (pageTimes.get(name) ?? 0) + ms);
 }
@@ -940,6 +987,7 @@ export function resetWorkSummary(): void {
         finishTimer = null;
     }
     finished = false;
+    resetTabProgress();
     if (refCount > 0) {
         summaryInvalidated = true;
         closeSegment(now());
@@ -955,6 +1003,7 @@ export function hideWorkIndicator(): void {
     suppressed = true;
     clearTimers();
     removeToast();
+    resetTabProgress();
 }
 
 /** Popup restored FLoRA UI — back if a pass is still running. */
@@ -987,4 +1036,5 @@ export function _resetWorkIndicatorForTesting(): void {
     items = [];
     passStartedAt = segmentStartedAt = passOtherMs = 0;
     removeToast();
+    _resetProgressTabForTesting();
 }
