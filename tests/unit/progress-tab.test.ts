@@ -210,6 +210,20 @@ describe("progress tab", () => {
         expect(tab()?.querySelector("[data-flora-tab-no-results]") ?? null).toBeNull();
     });
 
+    it("takes down a nothing-found note already on screen once flags turn up", () => {
+        beginWorkIndicator();
+        settle();
+        reportNothingFound(12);
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(note()).not.toBeNull();
+        expect(tab()!.hasAttribute("data-flora-tab-done")).toBe(true);
+
+        withdrawNothingFound();
+        expect(note()).toBeNull();
+        expect(tab()).toBeNull();
+    });
+
     it("lets an open report close while a later pass runs", () => {
         const panelTab = renderPanel();
         panelTab.click();
