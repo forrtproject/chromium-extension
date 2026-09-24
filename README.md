@@ -15,11 +15,13 @@ When you visit an article page (PubMed, journal websites, preprint servers, etc.
 - **DOI popover**: Each DOI pill has a hover popover showing the full DOI string with a copy-to-clipboard button.
 - **Clicking badges/links**: Opens the [FORRT replication landing page](https://forrt.org/flora-replication-atlas/) for the relevant DOI(s).
 
-## Installation (developer mode)
+## Installation
 
-Since this extension is not yet on the Chrome Web Store, you'll need to load it manually.
+**[Install FORRT ORE from the Chrome Web Store](https://chromewebstore.google.com/detail/kdbmghoddafabpjdnjhocollhjefcnco)** — works in Chrome and Edge.
 
-### Quick install
+### Manual install (developer mode)
+
+To run the latest build before it reaches the store, load it manually:
 
 1. **[Download flora-extension.zip](https://github.com/forrtproject/chromium-extension/releases)** (built automatically from the latest code)
 2. **Unzip** it to a folder on your computer
