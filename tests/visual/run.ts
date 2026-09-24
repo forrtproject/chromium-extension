@@ -296,6 +296,8 @@ interface FixtureResult {
   status: "pass" | "fail" | "written";
   detail?: string;
   changed?: boolean;
+  /** CI only: an existing fixture whose base capture failed. */
+  baseFailed?: boolean;
 }
 
 async function captureFixture(
@@ -413,10 +415,9 @@ async function captureFixture(
     writeFileSync(path.join(OUTPUT_DIR, `${fixture.name}.actual.png`), PNG.sync.write(actual));
 
     if (!existsSync(baselinePath)) {
-      if (!REVIEW || !BASE_ROOT) {
-        return { name: fixture.name, status: "fail", detail: "no baseline (run test:visual:update)" };
-      }
-      return { name: fixture.name, status: "fail", changed: true, detail: describeMissingBase(fixture.name) };
+      if (BASE_ROOT) return { name: fixture.name, status: "fail", changed: true, ...describeMissingBase(fixture.name) };
+      if (REVIEW) return { name: fixture.name, status: "fail", changed: true, detail: "No baseline yet" };
+      return { name: fixture.name, status: "fail", detail: "no baseline (run test:visual:update)" };
     }
 
     writeFileSync(path.join(OUTPUT_DIR, `${fixture.name}.before.png`), readFileSync(baselinePath));
@@ -457,10 +458,9 @@ async function captureFixture(
 /**
  * Explain why CI has no base image for a fixture. A fixture with a committed
  * baseline on the base branch rendered before, so its failure points at the
- * base build or the capture. A fixture without one is new in this PR, and
- * the base build does not yet show FLoRA UI on it.
+ * base build or the capture. A fixture without one is new in this PR.
  */
-function describeMissingBase(name: string): string {
+function describeMissingBase(name: string): Pick<FixtureResult, "detail" | "baseFailed"> {
   let reason = "unknown error";
   try {
     const base: FixtureResult[] = JSON.parse(readFileSync(BASE_RESULTS ?? "", "utf8"));
@@ -469,8 +469,8 @@ function describeMissingBase(name: string): string {
     // Base results unavailable; keep the generic reason.
   }
   return existsSync(path.join(BASE_ROOT!, "tests", "visual", "baselines", `${name}.png`))
-    ? `No base image: the base capture failed on this existing fixture (${reason})`
-    : `New fixture: the base build shows no FLoRA UI on it (${reason})`;
+    ? { baseFailed: true, detail: `No base image: the base capture failed on this existing fixture (${reason})` }
+    : { detail: `New fixture: no baseline on the base branch; the base capture failed (${reason})` };
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -557,7 +557,8 @@ async function main(): Promise<void> {
   mkdirSync(OUTPUT_DIR, { recursive: true });
   writeFileSync(path.join(OUTPUT_DIR, "results.json"), JSON.stringify(results, null, 2));
   if (UPDATE) {
-    if (failures.length === 0 || PARTIAL) {
+    // A partial capture still needs at least one base image to compare with.
+    if (failures.length === 0 || (PARTIAL && results.some((r) => r.status === "written"))) {
       const rendered = results.filter((r) => r.status === "written");
       const missing = rendered.filter((r) => !existsSync(path.join(STAGING_DIR, `${r.name}.png`)));
       if (missing.length > 0) {

@@ -104,6 +104,13 @@ jobs:
                 content: fs.readFileSync(path.join(DIR, file)).toString('base64'), encoding: 'base64'});
               tree.push({path: `tests/visual/baselines/${file}`, mode: '100644', type: 'blob', sha: blob.sha});
             }
+            // Remove committed baselines whose fixture no longer exists.
+            const {data: committed} = await github.rest.repos.getContent({owner, repo,
+              path: 'tests/visual/baselines', ref: SHA}).catch(() => ({data: []}));
+            for (const f of committed) {
+              if (f.type === 'file' && f.name.endsWith('.png') && !files.includes(f.name))
+                tree.push({path: f.path, mode: '100644', type: 'blob', sha: null});
+            }
             const {data: parent} = await github.rest.git.getCommit({owner, repo, commit_sha: SHA});
             const {data: newTree} = await github.rest.git.createTree({owner, repo, base_tree: parent.tree.sha, tree});
             if (newTree.sha === parent.tree.sha) {
@@ -119,12 +126,18 @@ jobs:
             } else {
               branch = `visual-baselines-${context.runId}`;
               await github.rest.git.createRef({owner, repo, ref: `refs/heads/${branch}`, sha: commit.sha});
-              const {data: pr} = await github.rest.pulls.create({owner, repo, head: branch,
-                base: context.payload.repository.default_branch,
-                title: 'Render visual baselines on Ubuntu',
-                body: 'Replaces `tests/visual/baselines/` with Ubuntu renders from the `Visual baselines` workflow. ' +
-                  'Check the before/after images in the visual review comment, then comment `visuals ok`.'});
-              number = pr.number;
+              try {
+                const {data: pr} = await github.rest.pulls.create({owner, repo, head: branch,
+                  base: context.payload.repository.default_branch,
+                  title: 'Render visual baselines on Ubuntu',
+                  body: 'Replaces `tests/visual/baselines/` with Ubuntu renders from the `Visual baselines` workflow. ' +
+                    'Check the before/after images in the visual review comment, then comment `visuals ok`.'});
+                number = pr.number;
+              } catch (error) {
+                // Leave no orphan branch behind.
+                await github.rest.git.deleteRef({owner, repo, ref: `heads/${branch}`}).catch(() => {});
+                throw error;
+              }
             }
             // A push with this workflow's token does not start the PR workflows.
             await github.rest.actions.createWorkflowDispatch({owner, repo,

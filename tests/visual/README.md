@@ -18,9 +18,10 @@ npm run test:visual   # render every fixture and compare with tests/visual/basel
 The baselines are Ubuntu renders from CI. Text renders differently on macOS
 and Windows, so there every fixture shows pixel differences. On those systems
 `npm run test:visual` writes a report to `tests/visual/output/index.html`
-with base, new and diff images side by side, and exits 0. It fails only if a
-fixture cannot be captured. On Linux it exits 1 when a fixture differs by
-more than 100 pixels.
+with base, new and diff images side by side, and exits 0. A fixture without a
+baseline appears in the report as new. The run fails only if a fixture cannot
+be captured. On Linux it exits 1 when a fixture differs by more than 100
+pixels or has no baseline.
 
 `npm run test:visual:update` replaces the baselines. It runs only on Linux,
 so baselines always come from the same system. To update them, use the
@@ -30,9 +31,12 @@ The first run downloads Chrome for Testing 152.0.7977.75 into
 `~/.cache/puppeteer`. Installed Chrome cannot be used because it ignores
 `--load-extension`. The browser runs headless, so no window opens.
 
-Each run writes `<fixture>.actual.png`, `<fixture>.before.png`, a
-`<fixture>.diff.png` for every changed fixture, and `results.json` to
-`tests/visual/output/` (gitignored).
+Each run writes these files to `tests/visual/output/` (gitignored):
+
+- `<fixture>.actual.png` for every captured fixture
+- `<fixture>.before.png` when a baseline of the same size exists
+- `<fixture>.diff.png` when that baseline and the new render differ
+- `results.json`
 
 If Chrome fails to start on macOS with `dlopen … Framework: no such file`, the
 download was unpacked without its framework symlinks. Unpack it again with
@@ -154,9 +158,9 @@ If the base build cannot capture a fixture, CI keeps the other base renders.
 The PR comment shows that fixture's PR screenshot alone, with one of two
 reasons:
 
-- **New fixture: the base build shows no FLoRA UI on it.** The fixture has no
-  committed baseline on the base branch. This is expected when a PR adds a
-  fixture for a new feature.
+- **New fixture: no baseline on the base branch.** This is expected when a PR
+  adds a fixture for a new feature that the base build does not have. The
+  base error is shown in brackets.
 - **No base image: the base capture failed on this existing fixture.** The
   fixture has a baseline on the base branch, so it rendered before. Check
   the error in brackets before confirming.
