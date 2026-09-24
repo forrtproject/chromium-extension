@@ -11,20 +11,28 @@ looks at any changed screenshots and confirms them with a PR comment.
 ## Run locally
 
 ```bash
-npm run build               # the extension is loaded from the repo root, which needs dist/
-npm run test:visual         # compare with tests/visual/baselines/; exits 1 on a difference
-npm run test:visual:update  # replace the baselines with new renders
+npm run build         # the extension is loaded from the repo root, which needs dist/
+npm run test:visual   # render every fixture and compare with tests/visual/baselines/
 ```
+
+The baselines are Ubuntu renders from CI. Text renders differently on macOS
+and Windows, so there every fixture shows pixel differences. On those systems
+`npm run test:visual` writes a report to `tests/visual/output/index.html`
+with base, new and diff images side by side, and exits 0. It fails only if a
+fixture cannot be captured. On Linux it exits 1 when a fixture differs by
+more than 100 pixels.
+
+`npm run test:visual:update` replaces the baselines. It runs only on Linux,
+so baselines always come from the same system. To update them, use the
+`Visual baselines` workflow (see [Baselines](#baselines)).
 
 The first run downloads Chrome for Testing 152.0.7977.75 into
 `~/.cache/puppeteer`. Installed Chrome cannot be used because it ignores
 `--load-extension`. The browser runs headless, so no window opens.
 
-Each compare run writes `<fixture>.actual.png`, `<fixture>.before.png`, a
+Each run writes `<fixture>.actual.png`, `<fixture>.before.png`, a
 `<fixture>.diff.png` for every changed fixture, and `results.json` to
-`tests/visual/output/` (gitignored). To build an HTML page with all of them,
-run `npx tsx tests/visual/report.ts`, then open
-`tests/visual/output/index.html`.
+`tests/visual/output/` (gitignored).
 
 If Chrome fails to start on macOS with `dlopen … Framework: no such file`, the
 download was unpacked without its framework symlinks. Unpack it again with
@@ -104,8 +112,8 @@ and the page shows the "unavailable" state.
   until FLoRA's pills and panels exist and have not changed for 700 ms. If
   that does not happen within 12 s, the fixture fails. The search fixtures
   also fail if the number of FLoRA panels differs from the expected count.
-- A local compare fails a fixture if more than 100 pixels differ (pixelmatch
-  threshold 0.1). A fixed count catches a moved pill on a tall page, where a
+- On Linux, a local compare fails a fixture if more than 100 pixels differ
+  (pixelmatch threshold 0.1). A fixed count catches a moved pill on a tall page, where a
   percentage would not. CI uses exact equality instead.
 
 ## Pull requests
@@ -142,25 +150,37 @@ Review is needed when:
   `tsconfig*.json` or `.npmrc`. A PR controls its own capture. Without this
   rule, a PR could weaken the capture and then report no changes.
 
-Limits:
+If the base build cannot capture a fixture, CI keeps the other base renders.
+The PR comment shows that fixture's PR screenshot alone, with one of two
+reasons:
 
-- A new fixture must also show FLoRA UI on the base build. If it does not,
-  the base capture fails and the whole check fails.
-- The action can only commit to branches in this repository. For a fork PR
-  with changed screenshots, move the branch into this repository.
+- **New fixture: the base build shows no FLoRA UI on it.** The fixture has no
+  committed baseline on the base branch. This is expected when a PR adds a
+  fixture for a new feature.
+- **No base image: the base capture failed on this existing fixture.** The
+  fixture has a baseline on the base branch, so it rendered before. Check
+  the error in brackets before confirming.
+
+The action can only commit to branches in this repository. For a fork PR
+with changed screenshots, move the branch into this repository.
 
 `.github/workflows/test.yml` runs the publisher's tests with
 `node --test tests/visual/publisher.test.cjs`.
 
 ## Baselines
 
+All baselines are Ubuntu renders from CI. They get there in two ways:
+
+- **Through a PR.** After `visuals ok`, CI commits the PR's screenshots of
+  the changed fixtures (step 4 above).
+- **With the `Visual baselines` workflow** (`visual-baselines.yml`). It renders
+  all fixtures and commits every PNG. Start it from the Actions tab or with
+  `gh workflow run visual-baselines.yml`. With `-f pr=<number>`, it commits to
+  that PR's branch. Without it, it opens a new PR from `main`. Either way, the
+  PR then needs a `visuals ok` comment.
+
 `test:visual:update` renders all fixtures into a temporary folder. It copies
 them into `baselines/` only if every fixture succeeds.
-
-Baselines committed by CI are rendered on Ubuntu. Baselines from a local
-update are rendered on the machine that ran it. Fonts render differently on
-each system, so a local compare only passes against baselines from the same
-system.
 
 ## Files
 
@@ -171,9 +191,15 @@ system.
 | `server.ts` | Static server for the article fixtures |
 | `report.ts` | Builds `index.html` from an output folder |
 | `publisher.test.cjs` | Tests for `.github/scripts/visual-publish.cjs` |
-| `baselines/` | Reference screenshots |
+| `baselines/` | Reference screenshots (Ubuntu renders from CI) |
 | `fixtures/` | Fixture pages for these tests |
 
-CI uses three environment variables to capture two builds: `VR_REPO_ROOT`
-(extension folder), `VR_BASELINE_DIR` and `VR_OUTPUT_DIR`. The `--review` flag
-makes a pixel difference exit 0, so only capture errors fail the run.
+CI uses these options to capture two builds:
+
+- `VR_REPO_ROOT`: extension folder to load.
+- `VR_BASELINE_DIR`, `VR_OUTPUT_DIR`: where baselines are read or written, and
+  where results go.
+- `VR_BASE_ROOT`, `VR_BASE_RESULTS`: base checkout and base `results.json`.
+  They are used to explain a missing base image.
+- `--review`: a pixel difference exits 0, so only capture errors fail the run.
+- `--partial` (with `--update`): keep the renders that succeed.

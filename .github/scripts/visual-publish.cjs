@@ -196,7 +196,8 @@ function commentParts({pr, run, results, screenshotReview, setupReview, baseline
     const before = fs.existsSync(beforeFile) ? imageFile(reportDir, r.name, 'before') : null;
     parts.push({attachments: before ? [before, actual] : [actual], text: before
       ? `<details open><summary>${safeLabel(r.name)} — base and PR</summary>\n\n| Base | PR |\n| --- | --- |\n| ![Base ${r.name}](${before}) | ![PR ${r.name}](${actual}) |\n\n</details>`
-      : `<details open><summary>${safeLabel(r.name)} — new capture</summary>\n\n![PR ${r.name}](${actual})\n\n</details>`});
+      // The harness explains a missing base image: new fixture or failed base capture.
+      : `<details open><summary>${safeLabel(r.name)} — ${safeLabel(r.detail || 'new capture')}</summary>\n\n![PR ${r.name}](${actual})\n\n</details>`});
   }
   if (!changed.length && !baselineFiles.length && setupReview) {
     for (const r of results.slice(0, 4)) {
