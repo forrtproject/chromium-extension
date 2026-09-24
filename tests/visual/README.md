@@ -1,237 +1,209 @@
-# Visual regression harness
+# Visual regression tests
 
-Renders FLoRA's on-page UI in a **real browser with the real built extension**
-and pixel-diffs full-page screenshots against committed baselines. It exists
-because placement of the injected pills/badges is the top source of bug
-reports, and those bugs only show up in a rendered layout — not in unit tests.
+Most bug reports are about where FLoRA places its pills and badges on a page.
+Unit tests cannot see layout, so these tests load the built extension into a
+real browser, open fixture pages, take screenshots and compare them pixel by
+pixel.
 
-The harness loads the actual MV3 extension into **Chrome for Testing**, serves
-article fixtures over `http://127.0.0.1` and search fixtures at mocked site
-URLs, waits for FLoRA to finish injecting, and captures the page. Everything
-the extension would fetch is mocked, so pass/fail never depends on the network.
+On a pull request, CI compares the PR build with the base build. A person
+looks at any changed screenshots and confirms them with a PR comment.
 
-The browser runs **headless** (`headless: true`), which loads MV3 extensions and
-renders pixel-for-pixel the same as a headful window — no window opens while the
-tests run.
-
-## Running
+## Run locally
 
 ```bash
-npm run build            # dist/ must exist — the extension is loaded from the repo root
-npm run test:visual        # compare against baselines; exits 1 on any diff
-npm run test:visual:update # regenerate baselines (after an intentional UI change)
+npm run build         # the extension is loaded from the repo root, which needs dist/
+npm run test:visual   # render every fixture and compare with tests/visual/baselines/
 ```
 
-On first run the harness auto-installs its pinned Chrome for Testing version into the default
-puppeteer cache (`~/.cache/puppeteer`, **outside the repo**). Nothing is written
-into the working tree except baselines (on update) and `output/` (on failure).
+The baselines are Ubuntu renders from CI. Text renders differently on macOS
+and Windows, so there every fixture shows pixel differences. On those systems
+`npm run test:visual` writes a report to `tests/visual/output/index.html`
+with base, new and diff images side by side, and exits 0. A fixture without a
+baseline appears in the report as new. The run fails only if a fixture cannot
+be captured. On Linux it exits 1 when a fixture differs by more than 100
+pixels or has no baseline.
 
-### First-run note (macOS)
+`npm run test:visual:update` replaces the baselines. It runs only on Linux,
+so baselines always come from the same system. To update them, use the
+`Visual baselines` workflow (see [Baselines](#baselines)).
 
-`@puppeteer/browsers` occasionally extracts the Chrome `.app` bundle without its
-`Frameworks/` symlinks, and the browser then fails to launch
-(`dlopen … Framework: no such file`). If that happens, re-extract the cached zip
-with macOS `ditto`, which handles app bundles correctly:
+The first run downloads Chrome for Testing 152.0.7977.75 into
+`~/.cache/puppeteer`. Installed Chrome cannot be used because it ignores
+`--load-extension`. The browser runs headless, so no window opens.
+
+Each run writes these files to `tests/visual/output/` (gitignored):
+
+- `<fixture>.actual.png` for every captured fixture
+- `<fixture>.before.png` when a baseline of the same size exists
+- `<fixture>.diff.png` when that baseline and the new render differ
+- `results.json`
+
+If Chrome fails to start on macOS with `dlopen … Framework: no such file`, the
+download was unpacked without its framework symlinks. Unpack it again with
+`ditto`:
 
 ```bash
 cd ~/.cache/puppeteer/chrome
 rm -rf mac_arm-*/chrome-mac-arm64
-ditto -x -k *.zip mac_arm-<version>/
+ditto -x -k *.zip mac_arm-152.0.7977.75/
 ```
 
-## What gets tested
+## Fixtures
 
-17 fixtures (viewport 1280×900, `deviceScaleFactor` 1):
+Every page is captured at 1280×900. Pages taller than the viewport are
+captured full-page. Pages that fit are captured as the viewport only, because
+Chrome's full-page capture shifts `dir="rtl"` pages sideways.
 
-| Fixture | Exercises |
+| Fixture | Page |
 | --- | --- |
-| `provider-unavailable` | Visible pill popover when external providers fail |
-| `pubmed-results` | PubMed result rows with DOI, replication and retraction panels |
-| `openalex-results` | OpenAlex result rows with worker-resolved IDs and replication panels |
-| `openalex-record-after-results` | Same-tab OpenAlex results-to-record navigation and general article pill |
-| `ref-list-flex` | Reference list as flex rows with action links |
+| `provider-unavailable` | PubPeer and Unpaywall return 503. The test clicks the pill and captures the open popover. |
+| `pubmed-results` | PubMed results page with FLoRA panels on two rows |
+| `openalex-results` | OpenAlex results page with FLoRA panels on two rows |
+| `openalex-record-after-results` | The OpenAlex results page switches to a record page in the same tab, and the record gets a title pill |
+| `ref-list-flex` | Reference list built from flex rows with action links |
 | `ref-list-grid` | Reference list in a two-column CSS grid |
-| `table-bibliography` | `<table>`-based bibliography |
-| `rtl-article` | `dir="rtl"` Arabic article with DOIs (pill mirroring) |
-| `editor-textarea` | `contenteditable` editor + `<textarea>` with DOIs |
-| `long-article-sticky` | Long article, sticky header + fixed footer, side panel |
-| `shared-block-anchor` | Several matched DOIs sharing one block anchor (one badge each) |
-| `article-with-dois` | Reused unit fixture — meta DOI + doi.org ref links |
-| `doi-in-href` | Reused — DOI only in a link href |
-| `doi-in-table` | Reused — DOI in a cell / prose inside a table |
-| `doi-in-text` | Reused — DOI in running prose |
-| `retracted` | Reused — Springer article page, notice beside the DOI-bearing masthead link |
-| `publisher-styled-link-row` | Reference row whose publisher styling (separator borders) must stay off the pill |
+| `table-bibliography` | Bibliography in a `<table>` |
+| `rtl-article` | Arabic article with `dir="rtl"` |
+| `editor-textarea` | `contenteditable` editor and a `<textarea>` that contain DOIs |
+| `long-article-sticky` | Long article with a sticky header, fixed footer and side panel |
+| `shared-block-anchor` | Several DOIs in one block, one badge each |
+| `publisher-styled-link-row` | Reference row with publisher separator borders that must not reach the pill |
+| `doi-in-href` | Reference list where DOIs appear only in link `href`s |
+| `doi-in-text` | Reference list where DOIs appear only as plain text |
+| `article-with-dois` | Article with a meta-tag DOI and doi.org reference links |
+| `doi-in-table` | DOIs in table cells and in prose inside a table |
+| `retracted` | Springer article page with a retraction notice next to the masthead DOI |
 
-Each fixture uses DOIs seeded to a known state (has replications, reproductions,
-retracted, expression of concern, or no data) so the injected UI is fully
-determined by the mocks.
+The last three pages are unit-test fixtures from `tests/fixtures/`. The others
+are in `tests/visual/fixtures/`. Article pages are served from `127.0.0.1`.
+The PubMed and OpenAlex pages are saved HTML, served at the real site URL, so
+Chrome injects the site-specific content script. They may need to be saved
+again when those sites change their HTML.
 
-## How the mocks work (hermetic)
+To add a fixture, add the HTML file, add an entry to `FIXTURES` in `run.ts`,
+and seed its DOIs in `mocks.ts`. The page must show FLoRA UI, or the capture
+times out and fails.
 
-Two mechanisms, both in `mocks.ts`, guarantee no real network dependence:
+## No network access
 
-1. **Pre-seeded `chrome.storage`.** Before any fixture loads, the harness writes
-   into the service worker's storage via `worker.evaluate(() => chrome.storage…)`:
-   - **FLoRA replication cache** — the worker caches lookups through
-     `LocalCache` (prefix `"flora"`); entries are `{"flora:<doi>": {data, expiresAt}}`
-     (see `src/shared/cache.ts`). Every fixture DOI is seeded, so each lookup is a
-     cache hit and the FORRT rep-api is never called.
-   - **Retraction map** — stored under `RET_MAP_KEY` (`"RetractionLookupLocal"`,
-     `src/shared/data-extract.ts`) as `{retractions, concerns}`, mapping the
-     retracted / concern fixture DOIs to notice DOIs. `synctime` is set to "now"
-     so the weekly GitHub sync never fires.
-   - **Settings** — `flora_settings` in `chrome.storage.sync` with an email set,
-     so `isSetupComplete()` is true and the setup prompt never overlays a
-     screenshot.
-   - **Page-side `BlobCache`s** (`chrome.storage.local`): doi.org validation
-     (`flora_doival_blob`), PubPeer (`flora_pubpeer_blob`), and Unpaywall Open
-     Access (`flora_oa_blob`) — one entry per fixture DOI, so the content
-     script's own lookups are also cache hits.
+Every lookup is answered locally, so results never depend on live services.
 
-2. **Request interception.**
-   - **Page context** (`page.setRequestInterception`): localhost is allowed;
-     saved search HTML is returned for its real site URL, so the browser injects
-     the matching site script. The doi.org Handle API, PubPeer POST, and
-     Unpaywall receive canned JSON; other external requests are aborted.
-   - **Worker context**: OpenAlex ID resolution for the saved results receives
-     canned JSON. Other external http(s) requests (FORRT rep-api, Crossref,
-     GitHub retraction sync, Google Docs, PMC, …) fail via a CDP `Fetch`
-     session attached to the `service_worker` target. Page-level interception
-     does not cover worker requests. Packaged extension resources pass through.
+- **Seeded storage.** Before the first page loads, `run.ts` writes the
+  contents of `mocks.ts` into the service worker's `chrome.storage`: FLoRA
+  replication results for every fixture DOI, the retraction and
+  expression-of-concern map, the doi.org, PubPeer and Unpaywall caches, and
+  settings with an email address so the setup prompt does not appear. The
+  retraction map and settings are written again before each page, in case a
+  background sync replaced them.
+- **Page requests.** The doi.org handle API, PubPeer and Unpaywall get canned
+  JSON responses. Requests to `127.0.0.1` pass. All other requests are aborted.
+- **Service worker requests.** A DevTools `Fetch` session on the worker
+  answers the OpenAlex ID lookup for the two saved OpenAlex rows. It fails
+  every other http(s) request that does not go to `127.0.0.1`. The
+  extension's own packaged files load normally.
 
-The retraction map + settings are re-seeded immediately before each fixture as
-insurance against a stray install-time sync.
+The `provider-unavailable` DOI is not seeded, so its lookups hit these blocks
+and the page shows the "unavailable" state.
 
-## Determinism
+## Stable pixels
 
-- **One raster path.** macOS Chrome flaps between GPU and software
-  rasterisation across page loads, which shifts the anti-aliasing of *every
-  glyph* on the page — runs would pass or fail different fixtures at random
-  with whole-page text diffs (~0.2–2 % of pixels). The launch flags pin a
-  single software raster path: `--disable-gpu` (the primary fix) plus
-  `--disable-gpu-compositing --force-device-scale-factor=1
-  --disable-font-subpixel-positioning --disable-partial-raster
-  --disable-skia-runtime-opts`.
-- **Viewport capture where the page fits.** `fullPage` on a `dir="rtl"`
-  document captures from the wrong horizontal origin — content comes out
-  shifted right and clipped at the right edge even though nothing overflows
-  the viewport, which hid every RTL placement the fixture exists to check.
-  The harness captures the viewport directly whenever the page already fits
-  in it, and falls back to `fullPage` only for the taller fixtures.
-- Rendering flags: `--force-color-profile=srgb --hide-scrollbars
-  --disable-lcd-text --font-render-hinting=none`.
-- A stylesheet injected after load disables all animations/transitions, hides the
-  caret, and removes the transient "scanning" toast.
-- Fixtures use an explicit system font stack and load no external
-  fonts/images/scripts; `document.fonts.ready` is awaited before capture.
-- After navigation the harness polls the injected FLoRA selectors
-  (`.flora-indicator-pill, .flora-notice-pill, #flora-pubpeer-panel`)
-  until their contents and geometry are stable for 700 ms, at least one
-  element exists, and the work toast is gone, then waits a short settle.
-  Failure to reach this state within 12 seconds fails the fixture.
+- Chrome starts with `--disable-gpu` and related flags. Without them, macOS
+  Chrome switches between GPU and software rendering between page loads, and
+  the text anti-aliasing changes across the whole page.
+- After load, a stylesheet turns off animations, transitions and the text
+  caret, and hides the "scanning" toast.
+- Before the screenshot, the harness waits for fonts to load. Then it waits
+  until FLoRA's pills and panels exist and have not changed for 700 ms. If
+  that does not happen within 12 s, the fixture fails. The search fixtures
+  also fail if the number of FLoRA panels differs from the expected count.
+- On Linux, a local compare fails a fixture if more than 100 pixels differ
+  (pixelmatch threshold 0.1). A fixed count catches a moved pill on a tall page, where a
+  percentage would not. CI uses exact equality instead.
 
-Stability bar: after regenerating baselines, `npm run test:visual` must report
-**0 px difference on every fixture across five consecutive runs** before the
-baselines are committed.
+## Pull requests
 
-Local comparison uses `pixelmatch` at a per-pixel threshold of `0.1`; a fixture fails
-if more than **100 pixels** differ. The budget is an absolute count so that it
-stays meaningful on a tall full-page shot, where a percentage would leave room
-for a whole pill to move. On failure the actual and diff images are written to
-`output/` (gitignored).
+1. **Capture.** The `Visual evidence` workflow (`visual.yml`) builds the base
+   branch and the PR on the same Ubuntu runner. It renders both with the PR's
+   harness and fixtures and compares them pixel for pixel. The committed
+   baselines play no part in this comparison.
+2. **Post.** The `Attach visual evidence` workflow (`visual-publish.yml`)
+   runs `.github/scripts/visual-publish.cjs` from `main`. It posts a PR
+   comment with base and PR screenshots for every changed fixture. The images
+   are stored on the `visual-evidence` branch.
+3. **Confirm.** The PR author or another collaborator with write access
+   checks the images and posts a comment that contains exactly `visuals ok`.
+   A later `visuals not ok` blocks the PR. Editing or deleting the
+   `visuals ok` comment withdraws it. A new commit needs a new confirmation.
+4. **Commit.** If any fixture changed, the action commits the PR's
+   screenshots to `tests/visual/baselines/` on the PR branch. It then starts
+   a new capture and checks that the committed PNGs match it.
 
-## Baselines are platform-specific
+The required `Visual approval` status on `main` is green when nothing needs
+review, or when the capture succeeded and a valid `visuals ok` exists. It is
+red if the capture failed.
 
-Baselines in `baselines/` were rendered on **macOS**. Font rasterisation differs
-across operating systems, so baselines generated on macOS will not match a Linux
-CI run pixel-for-pixel. Local comparisons need baselines generated on the same
-platform; CI uses its own base/head captures for PR review.
+Review is needed when:
 
-## Updating baselines
+- any fixture renders differently on the PR,
+- the PR changes images in `tests/visual/baselines/`, `docs/img/` or
+  `assets/icons/`, or
+- the PR changes the capture setup: other files in `tests/visual/`, the three
+  reused fixtures, the visual workflows and publisher,
+  `scripts/docs-screenshots.ts`, `scripts/make-icons.ts`, `package.json`,
+  `package-lock.json`, `esbuild.config.ts`, `manifest.json`,
+  `tsconfig*.json` or `.npmrc`. A PR controls its own capture. Without this
+  rule, a PR could weaken the capture and then report no changes.
 
-For local work, `npm run test:visual:update` regenerates `baselines/`. The
-renders are staged in a temporary directory and copied in only when every
-fixture succeeds. CI commits approved baseline updates to the PR itself, as
-described below. A local update is useful while editing a fixture; it is not
-a step in the PR confirmation flow.
+If the base build cannot capture a fixture, CI keeps the other base renders.
+The PR comment shows that fixture's PR screenshot alone, with one of two
+reasons:
 
-## PR visual review flow
+- **New fixture: no baseline on the base branch.** This is expected when a PR
+  adds a fixture for a new feature that the base build does not have. The
+  base error is shown in brackets.
+- **No base image: the base capture failed on this existing fixture.** The
+  fixture has a baseline on the base branch, so it rendered before. Check
+  the error in brackets before confirming.
 
-1. **Capture.** `Visual evidence` builds the PR base and head on the same
-   Ubuntu runner and renders both with the PR's fixtures and pinned Chrome
-   152.0.7977.75. The trusted publisher posts base/PR captures and any setup
-   diff link directly in the PR conversation. Inspect those images for
-   placement, clipping, readability and missing indicators. The
-   `visual-report` artifact is a machine handoff and troubleshooting aid.
-2. **Confirm.** After all evidence comments for the current PR head and
-   capture attempt are present, the PR author or another collaborator with
-   write access posts a PR conversation comment containing exactly
-   `visuals ok` (case and surrounding whitespace are ignored). A thumbs-up
-   reaction, PR review approval or checkbox does not count. A later
-   `visuals not ok` from a write collaborator blocks confirmation. Editing
-   or deleting the confirming comment revokes it. New evidence after a code
-   change needs a new comment.
-3. **Commit approved captures.** If base and PR renders differ, the trusted
-   action commits the approved PR captures as
-   `tests/visual/baselines/<fixture>.png` on that same-repository PR branch
-   and posts a commit link. The author does not run a local baseline update
-   or make this commit by hand.
-4. **Verify.** The action explicitly starts another `Visual evidence` run
-   because its own token's branch push does not start the PR workflow. The
-   publisher compares that run's actual PNG bytes with the committed PNGs.
-   The required `Visual approval` check succeeds only when the capture
-   succeeds, the images match, and the confirming comment remains valid. A
-   mismatch posts new evidence for review; a failed capture fails the check.
-   If review concerns setup or committed images but the captures do not
-   differ, the comment clears the check without an extra commit.
+The action can only commit to branches in this repository. For a fork PR
+with changed screenshots, move the branch into this repository.
 
-Automatic baseline commits need a PR branch in this repository. For a fork
-PR with changed captures, move the branch here to use this flow. PRs with no
-visual or capture setup changes pass `Visual approval` automatically.
+`.github/workflows/test.yml` runs the publisher's tests with
+`node --test tests/visual/publisher.test.cjs`.
 
-### What CI compares
+## Baselines
 
-Committed macOS baselines do not determine CI results. Changes to committed
-baseline PNGs cannot hide a change between the actual base and head builds.
-Both link-only and text-only DOI fixtures contain reference layouts, and the
-search fixtures show result panels and a results-to-record transition.
+All baselines are Ubuntu renders from CI. They get there in two ways:
 
-The capture waits for nonempty extension UI, stable contents and geometry,
-and removal of the work toast. A timeout is a failure, including in update
-mode. This is a readiness guard, not a claim that every async interaction is
-covered. Other search providers, keyboard interaction, popup/options, and
-narrow viewports still need visual scenarios. These saved pages may need
-refreshing when live sites change their DOM.
+- **Through a PR.** After `visuals ok`, CI commits the PR's screenshots of
+  the changed fixtures (step 4 above).
+- **With the `Visual baselines` workflow** (`visual-baselines.yml`). It renders
+  all fixtures and commits every PNG. Start it from the Actions tab or with
+  `gh workflow run visual-baselines.yml`. With `-f pr=<number>`, it commits to
+  that PR's branch. Without it, it opens a new PR from `main`. Either way, the
+  PR then needs a `visuals ok` comment.
 
-The visual review gate uses exact raw RGBA equality: even a one-channel change
-within the local perceptual budget requires visual approval.
+`test:visual:update` renders all fixtures into a temporary folder. It copies
+them into `baselines/` only if every fixture succeeds.
 
-CI stores before/after PNGs, diff images and JSON results in the
-`visual-report` artifact. The publisher stores images on the
-`visual-evidence` branch for inline PR comments. Added or modified committed
-screenshots appear as images from the two commits. When only capture setup
-changed, the comment shows representative pages and links to the setup diff.
-Large reviews may span several comments.
+## Files
 
-The publisher runs only default-branch code, validates artifact data and
-image files, and checks the PR head and repository before posting. It stores
-generated images in an immutable commit on the `visual-evidence` branch and
-embeds them from GitHub in the PR comment. Relevant `issue_comment` events
-update the status directly, including on fork PRs.
-When review is required, the status links to the PR comment. If the PR's file listing is incomplete,
-review remains required. Changes to visual fixtures, capture/publisher
-workflows, the publisher script, package manifests/lockfile, build
-configuration or extension manifest also require review.
+| File | Purpose |
+| --- | --- |
+| `run.ts` | Starts Chrome, seeds storage, captures and compares each fixture |
+| `mocks.ts` | Fixture DOIs, storage seeds and request rules |
+| `server.ts` | Static server for the article fixtures |
+| `report.ts` | Builds `index.html` from an output folder |
+| `publisher.test.cjs` | Tests for `.github/scripts/visual-publish.cjs` |
+| `baselines/` | Reference screenshots (Ubuntu renders from CI) |
+| `fixtures/` | Fixture pages for these tests |
 
-`Visual approval` is a required status check for `main`. A pending visual
-confirmation blocks merging.
+CI uses these options to capture two builds:
 
-For local base/head captures, the harness also accepts `VR_REPO_ROOT` (built
-extension root), `VR_BASELINE_DIR`, and `VR_OUTPUT_DIR`. `--review` treats pixel
-changes as reviewable evidence while still failing capture errors. These are
-optional; the existing local comparison/update commands still work.
-
-Changed committed baseline PNGs require review even when the base and PR builds
-render identically with the new fixture catalogue. A PR cannot weaken its own
-capture and use an all-pass artifact as evidence that review is unnecessary.
+- `VR_REPO_ROOT`: extension folder to load.
+- `VR_BASELINE_DIR`, `VR_OUTPUT_DIR`: where baselines are read or written, and
+  where results go.
+- `VR_BASE_ROOT`, `VR_BASE_RESULTS`: base checkout and base `results.json`.
+  They are used to explain a missing base image.
+- `--review`: a pixel difference exits 0, so only capture errors fail the run.
+- `--partial` (with `--update`): keep the renders that succeed.
