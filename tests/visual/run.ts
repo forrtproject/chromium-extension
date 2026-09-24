@@ -59,7 +59,7 @@ const PIXEL_THRESHOLD = 0.1;
 const MAX_DIFF_PIXELS = 100;
 
 // CSS injected before any page script runs: kill animations/transitions/
-// carets/smooth-scroll and remove the transient "scanning" toast, so a
+// carets/smooth-scroll and remove the transient scanning indicators, so a
 // screenshot captures a stable end state.
 const DETERMINISM_CSS = `
   *, *::before, *::after {
@@ -71,7 +71,7 @@ const DETERMINISM_CSS = `
     scroll-behavior: auto !important;
   }
   html { -webkit-font-smoothing: antialiased; }
-  #flora-working-toast { display: none !important; }
+  #flora-working-toast, #flora-progress-tab, #flora-nothing-found { display: none !important; }
 `;
 
 // ── Fixture catalogue ───────────────────────────────────────────────────────
@@ -249,7 +249,7 @@ async function waitForSettle(page: Page): Promise<void> {
       const elements = [...document.querySelectorAll(sel)];
       return {
         count: elements.length,
-        busy: !!document.getElementById("flora-working-toast"),
+        busy: !!document.querySelector("#flora-working-toast, [data-flora-tab-busy]"),
         content: JSON.stringify(elements.map((el) => [
           el.outerHTML, el.shadowRoot?.innerHTML, el.getBoundingClientRect().toJSON(),
         ])),

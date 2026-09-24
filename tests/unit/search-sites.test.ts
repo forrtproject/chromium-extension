@@ -195,23 +195,23 @@ describe("search pipeline on OpenAlex rows", () => {
         expect(document.querySelector("[data-flora-panel]")).toBeNull();
     });
 
-    it("ends a running pass and removes its toast when the tab moves to a record page", async () => {
+    it("ends a running pass and removes its progress tab when the tab moves to a record page", async () => {
         const navigation = Object.assign(new EventTarget(), {currentEntry: {key: "results"}});
         vi.stubGlobal("navigation", navigation);
         const send = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
         send.mockImplementation(() => new Promise(() => {})); // the worker never answers
         const {processSearchResults} = await import("../../src/content-search/pipeline");
-        const {WORK_TOAST_ID} = await import("../../src/shared/progress-toast");
+        const {PROGRESS_TAB_ID} = await import("../../src/shared/progress-tab");
         const {OPENALEX: adapter} = await import("../../src/content-search/sites/openalex");
         const pass = processSearchResults(adapter, document);
-        await vi.waitFor(() => expect(document.getElementById(WORK_TOAST_ID)).not.toBeNull());
+        await vi.waitFor(() => expect(document.getElementById(PROGRESS_TAB_ID)).not.toBeNull());
 
         history.pushState(null, "", "/works/W2142773606");
         navigation.currentEntry = {key: "record"};
         navigation.dispatchEvent(new Event("currententrychange"));
         await pass;
 
-        expect(document.getElementById(WORK_TOAST_ID)).toBeNull();
+        expect(document.getElementById(PROGRESS_TAB_ID)).toBeNull();
         vi.unstubAllGlobals();
     });
 });

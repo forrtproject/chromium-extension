@@ -153,6 +153,8 @@ it("keeps rows usable when notices fail and retries the failed check without rep
     expect(document.querySelector("[data-flora-panel]")).not.toBeNull();
     const retry = document.querySelector<HTMLButtonElement>("#flora-alert-toast button")!;
     expect(retry.textContent).toBe("Retry");
+    const {setDebug} = await import("../../src/shared/debug");
+    setDebug(true);
     const {beginWorkIndicator, endWorkIndicator, isWorkCancelled} = await import("../../src/shared/progress-toast");
     beginWorkIndicator(); // An older pass has not unwound its last work item yet.
     await vi.waitFor(() => expect(document.querySelector("[data-flora-work-cancel]")).not.toBeNull());
@@ -224,6 +226,8 @@ it("does not resume a queued Retry after the user subsequently cancels", async (
     const nextPass = processSearchResults(mixedAdapter, document);
     await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
     document.querySelector<HTMLButtonElement>("#flora-alert-toast button")!.click();
+    const {setDebug} = await import("../../src/shared/debug");
+    setDebug(true);
     const {canStartAutomaticWork} = await import("../../src/shared/work-cancellation");
     await vi.waitFor(() => expect(document.querySelector("[data-flora-work-cancel]")).not.toBeNull());
     document.querySelector<HTMLButtonElement>("[data-flora-work-cancel]")!.click();
@@ -300,6 +304,8 @@ it("keeps cancellation stopped but restores recovery after cancelling a queued R
     const {processSearchResults} = await import("../../src/content-search/pipeline");
     await processSearchResults(adapter, document);
     await vi.waitFor(() => expect(document.querySelector("#flora-alert-toast button")).not.toBeNull());
+    const {setDebug} = await import("../../src/shared/debug");
+    setDebug(true);
     const {beginWorkIndicator, endWorkIndicator, isWorkCancelled} = await import("../../src/shared/progress-toast");
     beginWorkIndicator();
     await vi.waitFor(() => expect(document.querySelector("[data-flora-work-cancel]")).not.toBeNull());

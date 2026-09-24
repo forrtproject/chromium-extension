@@ -14,6 +14,7 @@ import {
     floatingBottom,
     SETUP_PROMPT_ID,
 } from "../../src/shared/progress-toast";
+import {PROGRESS_TAB_ID} from "../../src/shared/progress-tab";
 import {canStartAutomaticWork, resumeAutomaticWork} from "../../src/shared/work-cancellation";
 import {setDebug, _resetDebugForTesting} from "../../src/shared/debug";
 import {buildDebugReport} from "../../src/shared/debug-report";
@@ -78,10 +79,15 @@ function settle(): void {
     vi.advanceTimersByTime(300);
 }
 
+function progressTab(): HTMLElement | null {
+    return document.getElementById(PROGRESS_TAB_ID);
+}
+
 describe("progress toast", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.spyOn(console, "log").mockImplementation(() => {});
+        setDebug(true);
     });
 
     afterEach(() => {
@@ -147,9 +153,11 @@ describe("progress toast", () => {
         expect(toast()).not.toBeNull();
 
         endWorkIndicator();
-        expect(percent()).toBe("100");
+        expect(progressTab()?.getAttribute("aria-valuenow")).toBe("100");
         vi.advanceTimersByTime(1000);
-        expect(toast()).toBeNull();
+        expect(progressTab()).toBeNull();
+        vi.advanceTimersByTime(10_000);
+        expect(label()).toMatch(/^Done in /);
     });
 
     it("starts the bar over for a pass that begins while the last one fades", () => {
@@ -157,7 +165,7 @@ describe("progress toast", () => {
         reportWorkStage("report", "Generating report…");
         settle();
         endWorkIndicator();
-        expect(percent()).toBe("100");
+        expect(progressTab()?.getAttribute("aria-valuenow")).toBe("100");
 
         // Inside the fade-out delay — the toast element is still on the page.
         beginWorkIndicator();
@@ -386,15 +394,20 @@ describe("progress toast", () => {
         expect(pauseRow.querySelector<HTMLElement>("button")!.style.pointerEvents).toBe("auto");
     });
 
-    it("offers the copy-log button only while debug logging is on", () => {
+    it("shows only the progress tab while debug logging is off", async () => {
+        setDebug(false);
         beginWorkIndicator();
+        reportWorkStage("scan", "Scanning this page for DOIs…");
         settle();
-        expand();
-        expect(toast()!.querySelector("[data-flora-work-copy]")).toBeNull();
+        expect(toast()).toBeNull();
+        expect(progressTab()).not.toBeNull();
 
         endWorkIndicator();
-        vi.advanceTimersByTime(1000);
-        setDebug(true);
+        await vi.advanceTimersByTimeAsync(12_000);
+        expect(toast(), "no Done summary outside debug mode").toBeNull();
+    });
+
+    it("offers copy-log and cancel in the debug toast", () => {
         beginWorkIndicator();
         settle();
         expand();
@@ -453,20 +466,6 @@ describe("progress toast", () => {
         await vi.advanceTimersByTimeAsync(10_000);
 
         button("close").click();
-
-        expect(toast()).toBeNull();
-    });
-
-    it("still fades the toast out when debug logging is off", async () => {
-        setDebug(false);
-        settings.offerLogCopyAfterPass = false;
-        beginWorkIndicator();
-        await vi.advanceTimersByTimeAsync(0);
-        reportWorkStage("scan", "Scanning this page for DOIs…");
-        settle();
-
-        endWorkIndicator();
-        await vi.advanceTimersByTimeAsync(10_000);
 
         expect(toast()).toBeNull();
     });
@@ -694,12 +693,14 @@ describe("progress toast", () => {
         expect(elapsed()).toBe("0:05");
         await vi.advanceTimersByTimeAsync(129_000);
         expect(elapsed()).toBe("2:14");
+        const timers = vi.getTimerCount();
         reportWorkStage("report", "Marking up…"); // a re-render must not add a second interval
-        expect(vi.getTimerCount()).toBe(1);
+        await vi.advanceTimersByTimeAsync(1_000);
+        expect(vi.getTimerCount()).toBe(timers);
 
         button("close").click();
         expect(toast()).toBeNull();
-        expect(vi.getTimerCount(), "dismissal stops the clock").toBe(0);
+        expect(vi.getTimerCount(), "dismissal stops the clock").toBe(timers - 1);
         await vi.advanceTimersByTimeAsync(5_000);
         expect(toast(), "the tick never brings a dismissed toast back").toBeNull();
         endWorkIndicator();
@@ -707,12 +708,14 @@ describe("progress toast", () => {
 
     it("stops the elapsed clock when the pass ends", async () => {
         vi.spyOn(performance, "now").mockImplementation(() => Date.now());
+        const elapsed = () => toast()?.querySelector<HTMLElement>("[data-flora-work-elapsed]");
         beginWorkIndicator();
         reportWorkStage("lookup", "Looking up…");
         await vi.advanceTimersByTimeAsync(6_000);
+        expect(elapsed()!.textContent).not.toBe("");
         endWorkIndicator();
-        await vi.advanceTimersByTimeAsync(1_000);
-        expect(toast()).toBeNull();
+        await vi.advanceTimersByTimeAsync(15_000);
+        expect(elapsed()!.style.display).toBe("none");
         expect(vi.getTimerCount()).toBe(0);
     });
 
@@ -839,6 +842,24 @@ describe("progress toast", () => {
         expect(label(), "but it cannot wait forever").toMatch(/^Done in /);
     });
 
+    it("stops claiming work once the pass ends, while the summary waits", async () => {
+        beginWorkIndicator({stages: ["scan", "augment", "report"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("report", "Generating report…");
+        settle();
+        endWorkIndicator();
+
+        expect(label()).toBe("Checks finished, waiting for late results…");
+        expect(button("spinner").style.display).toBe("none");
+        expect(percent()).toBe("100");
+
+        beginWorkIndicator({stages: ["augment"]});
+        reportWorkStage("augment", "Augmenting 3 references without a DOI…");
+        expect(label()).toBe("Augmenting 3 references without a DOI…");
+        expect(button("spinner").style.display).toBe("");
+        endWorkIndicator();
+    });
+
     it("lets the late stage land inside that longer wait", async () => {
         setDebug(true);
         beginWorkIndicator({stages: ["scan", "augment", "report"]});
@@ -897,19 +918,17 @@ describe("progress toast", () => {
         expect(toast(), "a new page starts without the last one's summary").toBeNull();
     });
 
-    it("rebuilds the toast when debug mode arrives after it was built", async () => {
+    it("brings the toast in when debug mode is turned on mid-pass", async () => {
         setDebug(false);
         settings.offerLogCopyAfterPass = true;
         beginWorkIndicator({stages: ["scan"]});
         await vi.advanceTimersByTimeAsync(0);
         reportWorkStage("scan", "Scanning…");
         settle();
-        expand();
-        expect(toast()!.querySelector("[data-flora-work-copy]"), "no log to copy yet").toBeNull();
+        expect(toast()).toBeNull();
 
         setDebug(true);
-        reportWorkStage("scan", "Still scanning…");
-        settle();
+        expand();
 
         expect(toast()!.querySelector("[data-flora-work-copy]"),
             "debug mode must bring the Copy log button with it").not.toBeNull();
@@ -918,7 +937,7 @@ describe("progress toast", () => {
         settings.offerLogCopyAfterPass = false;
     });
 
-    it("refreshes a held summary when debug mode is toggled under it", async () => {
+    it("drops a held summary when debug mode is turned off under it", async () => {
         setDebug(true);
         settings.offerLogCopyAfterPass = true;
         beginWorkIndicator({stages: ["scan"]});
@@ -932,8 +951,7 @@ describe("progress toast", () => {
 
         setDebug(false);
 
-        expect(toast()?.querySelector("[data-flora-work-copy]"),
-            "the held toast must drop the Copy log button with debug mode").toBeNull();
+        expect(toast(), "the summary is a debug-mode view").toBeNull();
         settings.offerLogCopyAfterPass = false;
     });
 

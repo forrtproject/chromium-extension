@@ -11,6 +11,8 @@ import { showToast } from "@shared/toast";
 import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
 import { ensureFocusStyle, FLORA_OWNED_SELECTOR, FLORA_UI_SELECTOR } from "@shared/flora-ui";
 import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
+import { hasCustomTabTop, positionTabOnRightEdge, saveCustomTabTop } from "@shared/tab-position";
+import { adoptPanelTab, isTabBusy, releasePanelTab, setTabLabel } from "@shared/progress-tab";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -572,8 +574,6 @@ const PANEL_WIDTH = 500;
 
 // ── Smart tab positioning + drag ──────────────────────────────────────────
 
-const TAB_STORAGE_KEY = "flora_tab_top_v1";
-
 let _tabPositionObserver: MutationObserver | null = null;
 let _tabResizeHandler: (() => void) | null = null;
 let _tabDragCleanup: (() => void) | null = null;
@@ -598,14 +598,6 @@ function setPanelZIndex(zIndex: string): void {
   }
   _panelZIndexStyle.textContent = `#scite-popup,#unpaywall{z-index:${zIndex} !important;}`;
 }
-// null = never set by user; number = user-dragged position in px from top
-let _customTabTop: number | null = (() => {
-  try {
-    const v = localStorage.getItem(TAB_STORAGE_KEY);
-    return v !== null ? Number(v) : null;
-  } catch { return null; }
-})();
-
 function cleanupTabPositioning(): void {
   _tabPositionObserver?.disconnect();
   _tabPositionObserver = null;
@@ -619,85 +611,6 @@ function cleanupTabPositioning(): void {
     clearTimeout(_tabRepositionTimer);
     _tabRepositionTimer = null;
   }
-}
-
-const RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS = 750;
-let _lastSweep = { at: 0, vw: 0, vh: 0, top: "" };
-
-function positionTabOnRightEdge(tab: HTMLElement): void {
-  // Respect user-dragged position
-  if (_customTabTop !== null) {
-    const clamped = Math.max(0, Math.min(window.innerHeight - (tab.offsetHeight || 80), _customTabTop));
-    tab.style.top = `${Math.round(clamped)}px`;
-    return;
-  }
-
-  const now = Date.now();
-  if (
-    _lastSweep.top !== "" &&
-    now - _lastSweep.at < RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS &&
-    _lastSweep.vw === window.innerWidth &&
-    _lastSweep.vh === window.innerHeight
-  ) {
-    tab.style.top = _lastSweep.top;
-    return;
-  }
-
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const TAB_H = tab.offsetHeight || 80;
-  const MARGIN = 16;
-
-  // Collect occupied vertical ranges from ALL elements near the right edge.
-  // Use getBoundingClientRect so we catch fixed/sticky/absolute inside fixed containers.
-  const occupied: Array<[number, number]> = [];
-  for (const el of document.querySelectorAll<HTMLElement>("*")) {
-    if (el === tab || tab.contains(el) || el.contains(tab)) continue;
-    const rect = el.getBoundingClientRect();
-    // Element must touch the right edge (right side within 8px of viewport right)
-    if (rect.right < vw - 8) continue;
-    // Must have real size and be visible in the viewport
-    if (rect.width < 4 || rect.height < 4) continue;
-    if (rect.bottom < 0 || rect.top > vh) continue;
-    // Only count elements that are actually rendered (not hidden)
-    const cs = window.getComputedStyle(el);
-    if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") continue;
-    occupied.push([rect.top, rect.bottom]);
-  }
-
-  occupied.sort((a, b) => a[0] - b[0]);
-
-  // Merge overlapping/adjacent intervals
-  const merged: Array<[number, number]> = [];
-  for (const [t, b] of occupied) {
-    if (merged.length && t <= merged[merged.length - 1][1] + MARGIN) {
-      merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], b);
-    } else {
-      merged.push([t, b]);
-    }
-  }
-
-  // Find free vertical gaps
-  const gaps: Array<[number, number]> = [];
-  let prev = 0;
-  for (const [t, b] of merged) {
-    if (t - prev >= TAB_H + 2 * MARGIN) gaps.push([prev, t]);
-    prev = b;
-  }
-  if (vh - prev >= TAB_H + 2 * MARGIN) gaps.push([prev, vh]);
-
-  const center = vh / 2;
-  let bestTop = center - TAB_H / 2;
-
-  if (gaps.length > 0) {
-    gaps.sort((a, b) => Math.abs((a[0] + a[1]) / 2 - center) - Math.abs((b[0] + b[1]) / 2 - center));
-    const [gs, ge] = gaps[0];
-    bestTop = Math.max(gs + MARGIN, Math.min(center - TAB_H / 2, ge - TAB_H - MARGIN));
-  }
-
-  const top = `${Math.round(bestTop)}px`;
-  tab.style.top = top;
-  _lastSweep = { at: Date.now(), vw: window.innerWidth, vh: window.innerHeight, top };
 }
 
 function attachTabDrag(tab: HTMLElement): void {
@@ -736,9 +649,8 @@ function attachTabDrag(tab: HTMLElement): void {
     tab.style.transition = "right 0.3s cubic-bezier(0.4,0,0.2,1),filter 0.15s";
     if (didDrag) {
       tab.dataset.dragged = "1"; // click handler reads this to ignore the synthetic click after mouseup
-      _customTabTop = parseInt(tab.style.top);
       try {
-        localStorage.setItem(TAB_STORAGE_KEY, String(_customTabTop));
+        saveCustomTabTop(parseInt(tab.style.top));
       } catch (err) {
         debugWarn("PubPeer tab: position did not persist —", err);
       }
@@ -762,7 +674,7 @@ function setupTabPositioning(tab: HTMLElement): void {
   attachTabDrag(tab);
 
   const reposition = (): void => {
-    if (_customTabTop !== null) return; // user has a preferred spot
+    if (hasCustomTabTop()) return; // user has a preferred spot
     if (_tabRepositionTimer) clearTimeout(_tabRepositionTimer);
     _tabRepositionTimer = setTimeout(() => positionTabOnRightEdge(tab), 200);
   };
@@ -1056,6 +968,7 @@ export function renderSidePanel(
     "color:rgba(255,255,255,0.9);font-size:16px;line-height:1;" +
     "transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);pointer-events:none;";
   arrow.textContent = "‹";
+  arrow.setAttribute("data-flora-tab-arrow", "");
 
   tab.appendChild(grip);
   tab.appendChild(tabLabel);
@@ -1779,7 +1692,7 @@ export function renderSidePanel(
     panel.style.transform = "translateX(0)";
     tab.style.right = `${PANEL_WIDTH}px`;
     arrow.style.transform = "rotate(180deg)";
-    tab.setAttribute("aria-label", "Close FLoRA panel");
+    setTabLabel(tab, "Close FLoRA panel");
     setPanelZIndex("2147483646");
   };
 
@@ -1790,7 +1703,7 @@ export function renderSidePanel(
     panel.style.transform = "translateX(100%)";
     tab.style.right = "0";
     arrow.style.transform = "rotate(0deg)";
-    tab.setAttribute("aria-label", "Open the FORRT ORE panel");
+    setTabLabel(tab, "Open the FORRT ORE panel");
     setPanelZIndex("2147483647");
   };
 
@@ -1799,7 +1712,8 @@ export function renderSidePanel(
   // so we read it off the tab element via a data attribute instead.
   tab.addEventListener("click", () => {
     if (tab.dataset.dragged === "1") { tab.dataset.dragged = ""; return; }
-    if (isOpen) closePanel(); else openPanel();
+    if (isOpen) closePanel();
+    else if (!isTabBusy(tab)) openPanel();
   });
   closeBtn.addEventListener("click", () => closePanel());
 
@@ -1809,6 +1723,7 @@ export function renderSidePanel(
   debugLog(`renderSidePanel: panel rendered (${references.length} reference row(s), reopened=${wasOpen})`);
 
   setupTabPositioning(tab);
+  adoptPanelTab(tab);
 
   if (wasOpen) {
     // The panel was already open before this re-render (e.g. references
@@ -1827,6 +1742,7 @@ export function renderSidePanel(
 }
 
 export function removeSidePanel(): void {
+  releasePanelTab();
   cleanupTabPositioning();
   runPanelCleanups();
   const host = document.getElementById(PUBPEER_PANEL_ID);
