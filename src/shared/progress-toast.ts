@@ -693,7 +693,7 @@ function renderNow(): void {
     if (refCount === 0 && !finished) return;
     // An immediate stage update supersedes any deferred item update.
     cancelQueuedRender();
-    if (refCount > 0) showTabProgress(progress, labelText);
+    if (refCount > 0 && !summaryInvalidated) showTabProgress(progress, labelText);
     if (dismissed || !isDebugEnabled()) return;
     const host = ensureToast();
     host.style.bottom = `${floatingBottom()}px`;

@@ -3,6 +3,7 @@ import {isWordOnline} from "@shared/word-online";
 import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
 import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
 import {reportNothingFound, waitForWorkToFinish} from "@shared/progress-toast";
+import {withdrawNothingFound} from "@shared/progress-tab";
 import {
     beginDomScanPass,
     classifyPageDois,
@@ -282,6 +283,7 @@ let nothingToFlagReportedFor: string | null = null;
 
 function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
     const examined = new Set(dois).size;
+    if (flagged) withdrawNothingFound();
     if (examined === 0 || flagged || unavailableRetractionDois.size > 0 || dois.some(doi => pageState.get(doi)?.status === "error")) return;
     if (nothingToFlagReportedFor === pageUrl(location.href)) return;
     nothingToFlagReportedFor = pageUrl(location.href);
@@ -1084,6 +1086,8 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
+        if (article.feedbacks.some((f) => f.total_comments > 0)
+            || [...refFeedbackByDoi.values()].some((f) => f.total_comments > 0)) withdrawNothingFound();
         articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
         lastArticleFeedbacks = article.feedbacks;
         lastReferenceDoiKey = refKey;

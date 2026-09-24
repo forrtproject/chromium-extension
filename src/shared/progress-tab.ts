@@ -126,6 +126,7 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
 
         const arrow = tab.querySelector<HTMLElement>("[data-flora-tab-arrow]");
         if (arrow) arrow.style.display = "none";
+        delete tab.dataset.floraTabPulsed;
         tab.prepend(fill, edge);
         tab.append(spinner);
         ensureKeyframes();
@@ -175,6 +176,8 @@ function clearBusy(tab: HTMLElement): void {
 function pulse(tab: HTMLElement): void {
     if (tab.dataset.floraTabPulsed === "1") return;
     tab.dataset.floraTabPulsed = "1";
+    tab.style.animation = "none";
+    void tab.offsetWidth;
     tab.style.animation = PANEL_TAB_PULSE;
 }
 
@@ -258,6 +261,8 @@ function showNothingFound(tab: HTMLElement, papers: number, hideTab: boolean): v
 
 export function markTabWorkStarted(): void {
     workStarted = true;
+    lastFraction = 0;
+    lastLabel = "";
 }
 
 export function isTabProgressShown(): boolean {
@@ -283,8 +288,14 @@ export function noteNothingFound(papers: number): void {
     nothingFoundCount = papers;
 }
 
+export function withdrawNothingFound(): void {
+    nothingFoundCount = null;
+    removeNote();
+    const tab = standalone();
+    if (tab?.hasAttribute("data-flora-tab-done")) tab.remove();
+}
+
 export function finishTabProgress(): void {
-    const wasBusy = busy;
     busy = false;
     workStarted = false;
     const papers = nothingFoundCount;
@@ -292,7 +303,7 @@ export function finishTabProgress(): void {
 
     if (panelTab?.isConnected) {
         removeStandalone();
-        if (wasBusy) clearBusy(panelTab);
+        clearBusy(panelTab);
         pulse(panelTab);
         if (papers !== null) showNothingFound(panelTab, papers, false);
         return;
@@ -329,7 +340,6 @@ export function adoptPanelTab(tab: HTMLElement): void {
         return;
     }
     tab.style.animation = PANEL_TAB_ENTER;
-    if (!busy) return;
     removeStandalone();
     paintBusy(tab, lastFraction, lastLabel);
 }

@@ -4,12 +4,13 @@ const RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS = 750;
 // null = never set by user; number = user-dragged position in px from top
 let customTabTop: number | null = (() => {
   try {
-    const v = localStorage.getItem(TAB_STORAGE_KEY);
-    return v !== null ? Number(v) : null;
+    const v = localStorage.getItem(TAB_STORAGE_KEY)?.trim();
+    const top = v ? Number(v) : NaN;
+    return Number.isFinite(top) ? top : null;
   } catch { return null; }
 })();
 
-let lastSweep = { at: 0, vw: 0, vh: 0, top: "" };
+let lastSweep = { at: 0, vw: 0, vh: 0, h: 0, top: "" };
 
 export function hasCustomTabTop(): boolean {
   return customTabTop !== null;
@@ -28,19 +29,20 @@ export function positionTabOnRightEdge(tab: HTMLElement): void {
   }
 
   const now = Date.now();
+  const vw = document.documentElement.clientWidth || window.innerWidth;
+  const vh = window.innerHeight;
+  const TAB_H = tab.offsetHeight || 80;
   if (
     lastSweep.top !== "" &&
     now - lastSweep.at < RIGHT_EDGE_SWEEP_MIN_INTERVAL_MS &&
-    lastSweep.vw === window.innerWidth &&
-    lastSweep.vh === window.innerHeight
+    lastSweep.vw === vw &&
+    lastSweep.vh === vh &&
+    Math.abs(lastSweep.h - TAB_H) <= 4
   ) {
     tab.style.top = lastSweep.top;
     return;
   }
 
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const TAB_H = tab.offsetHeight || 80;
   const MARGIN = 16;
 
   // Collect occupied vertical ranges from ALL elements near the right edge.
@@ -57,6 +59,7 @@ export function positionTabOnRightEdge(tab: HTMLElement): void {
     if (rect.bottom < 0 || rect.top > vh) continue;
     // Only count elements that are actually rendered (not hidden)
     const cs = window.getComputedStyle(el);
+    if (cs.position !== "fixed" && cs.position !== "sticky") continue;
     if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") continue;
     occupied.push([rect.top, rect.bottom]);
   }
@@ -93,5 +96,5 @@ export function positionTabOnRightEdge(tab: HTMLElement): void {
 
   const top = `${Math.round(bestTop)}px`;
   tab.style.top = top;
-  lastSweep = { at: Date.now(), vw: window.innerWidth, vh: window.innerHeight, top };
+  lastSweep = { at: Date.now(), vw, vh, h: TAB_H, top };
 }

@@ -9,7 +9,7 @@ import {
     WORK_TOAST_ID,
     _resetWorkIndicatorForTesting,
 } from "../../src/shared/progress-toast";
-import {NOTHING_FOUND_ID, PROGRESS_TAB_ID} from "../../src/shared/progress-tab";
+import {NOTHING_FOUND_ID, PROGRESS_TAB_ID, withdrawNothingFound} from "../../src/shared/progress-tab";
 import {removeSidePanel, renderSidePanel} from "../../src/content-general/injector";
 import {_resetDebugForTesting} from "../../src/shared/debug";
 import type {PubPeerFeedback} from "../../src/shared/pubpeer-api";
@@ -170,6 +170,46 @@ describe("progress tab", () => {
         expect(panelTab.style.animation).toContain("flora-tab-pulse");
     });
 
+    it("keeps a report built early in a pass from opening before progress shows", () => {
+        beginWorkIndicator();
+        const panelTab = renderPanel();
+        panelTab.click();
+        expect(panelOpen()).toBe(false);
+        expect(panelTab.getAttribute("aria-disabled")).toBe("true");
+    });
+
+    it("pulses the report tab again after a later pass greys it", () => {
+        const panelTab = renderPanel();
+        beginWorkIndicator();
+        settle();
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(panelTab.dataset.floraTabPulsed).toBe("1");
+
+        panelTab.style.animation = "";
+        beginWorkIndicator();
+        settle();
+        expect(panelTab.dataset.floraTabPulsed).toBeUndefined();
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(panelTab.style.animation).toContain("flora-tab-pulse");
+    });
+
+    it("drops a pending nothing-found verdict once flags turn up", () => {
+        beginWorkIndicator();
+        settle();
+        reportNothingFound(12);
+        endWorkIndicator();
+        vi.advanceTimersByTime(200);
+
+        beginWorkIndicator();
+        withdrawNothingFound();
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(note()).toBeNull();
+        expect(tab()?.querySelector("[data-flora-tab-no-results]") ?? null).toBeNull();
+    });
+
     it("lets an open report close while a later pass runs", () => {
         const panelTab = renderPanel();
         panelTab.click();
@@ -202,7 +242,11 @@ describe("progress tab", () => {
         resetWorkSummary();
         expect(tab()).toBeNull();
 
-        reportWorkStage("scan", "Scanning…");
+        reportWorkStage("scan", "Scanning the page we left…");
+        settle();
+        expect(tab(), "the old page's pass must not repaint the new page").toBeNull();
+
+        beginWorkIndicator();
         settle();
         expect(tab()).not.toBeNull();
 
