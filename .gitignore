@@ -1,4 +1,6 @@
 /node_modules
 /dist
 /tests/visual/output
+/tests/live/output
+/tests/live/.profile
 /chrome

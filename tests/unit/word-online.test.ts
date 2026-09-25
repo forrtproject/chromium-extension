@@ -109,7 +109,47 @@ describe("Word Online", () => {
         const scan = vi.fn();
         const observer = startDomListener({scanWholePage: scan, getLastUrl: () => location.href});
         document.querySelector("p")!.firstChild!.textContent = "Changed citation text";
-        await vi.waitFor(() => expect(scan).toHaveBeenCalled(), {timeout: 1500});
+        await vi.waitFor(() => expect(scan).toHaveBeenCalled(), {timeout: 3000});
         observer.disconnect();
+    });
+
+    it("skips a rescan when Word re-renders a paragraph without changing its text", async () => {
+        vi.useFakeTimers();
+        const scan = vi.fn();
+        const observer = startDomListener({scanWholePage: scan, getLastUrl: () => location.href});
+        try {
+            const p = document.querySelector("p")!;
+            p.firstChild!.textContent = "Changed citation text";
+            await vi.advanceTimersByTimeAsync(2000);
+            expect(scan).toHaveBeenCalledTimes(1);
+
+            for (let i = 0; i < 5; i++) {
+                p.replaceChildren(document.createTextNode(p.textContent ?? ""));
+                await vi.advanceTimersByTimeAsync(2000);
+            }
+            expect(scan).toHaveBeenCalledTimes(1);
+        } finally {
+            observer.disconnect();
+            vi.useRealTimers();
+        }
+    });
+
+    it("waits for a pause in typing before rescanning", async () => {
+        vi.useFakeTimers();
+        const scan = vi.fn();
+        const observer = startDomListener({scanWholePage: scan, getLastUrl: () => location.href});
+        try {
+            const text = document.querySelector("p")!.firstChild!;
+            for (let i = 0; i < 10; i++) {
+                text.textContent = `Typing ${"x".repeat(i)}`;
+                await vi.advanceTimersByTimeAsync(400);
+            }
+            expect(scan, "no rescan while the author keeps typing").not.toHaveBeenCalled();
+            await vi.advanceTimersByTimeAsync(1600);
+            expect(scan).toHaveBeenCalledTimes(1);
+        } finally {
+            observer.disconnect();
+            vi.useRealTimers();
+        }
     });
 });

@@ -43,7 +43,7 @@ import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
-import {getSnooze, isDomainBlocked} from "@shared/domains";
+import {getSnooze, isDomainBlocked, onDomainPauseChange} from "@shared/domains";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
@@ -118,6 +118,7 @@ const isGoogleSheets = location.href.includes("docs.google.com/spreadsheets");
 const isSheets = isGoogleSheets || isExcel;
 // Track whether the popup has hidden FLoRA UI on this page (session only)
 let floraHidden = false;
+let pausedBySettings = false;
 
 // A FORRT Retry on a pill or panel row writes into pageState from outside a
 // scan pass, so it carries this page's identity and reports back when it lands.
@@ -150,11 +151,13 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 
     if (type === "FLORA_HIDE_UI") {
         floraHidden = true;
+        pausedBySettings = false;
         hideAllFloraUI();
         reportInactive();
         sendResponse({ok: true});
     } else if (type === "FLORA_SHOW_UI") {
         floraHidden = false;
+        pausedBySettings = false;
         resumeAutomaticWork();
         repaintBadges();
         showAllFloraUI();
@@ -170,10 +173,39 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 // itself, then announces it here so this page clears immediately instead of
 // waiting for a reload.
 document.addEventListener("flora-pause-site", () => {
+    if (!floraHidden) pausedBySettings = true;
     floraHidden = true;
     hideAllFloraUI();
     reportInactive();
 });
+
+function pauseHosts(): string[] {
+    const hosts = [location.hostname];
+    if ((isWordOnline() || isExcel) && document.referrer) hosts.push(new URL(document.referrer).hostname);
+    return hosts;
+}
+
+function followDomainPause(): void {
+    onDomainPauseChange(pauseHosts, ({blocked, snoozedUntil}) => {
+        if (blocked || snoozedUntil !== null) {
+            if (!floraHidden) pausedBySettings = true;
+            floraHidden = true;
+            hideAllFloraUI();
+            if (blocked) reportBlocked();
+            else reportActiveState(false, snoozedUntil);
+            debugLog(`General: ${blocked ? "disabled" : "snoozed"} on this domain from another tab — ORE hidden`);
+            return;
+        }
+        if (!pausedBySettings) return;
+        pausedBySettings = false;
+        floraHidden = false;
+        resumeAutomaticWork();
+        repaintBadges();
+        showAllFloraUI();
+        void scanWholePage().catch((err) => debugError("General: pass after re-enabling failed —", err));
+        reportActiveState(true);
+    });
+}
 
 const invalidDois = new Set<DoiString>();
 
@@ -1250,6 +1282,7 @@ async function fetchSheetDois(): Promise<void> {
     }
     // Applicable page — mark the toolbar icon active for this tab.
     reportActiveState(true);
+    followDomainPause();
     // Show setup prompt if email not configured (non-blocking — extension still runs)
     if (!(await isSetupComplete())) {
         renderSetupPrompt().catch((err) => debugError("Setup prompt failed to render —", err));

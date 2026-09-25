@@ -157,3 +157,28 @@ export async function getSnooze(hostname: string): Promise<number | null> {
 export async function isDomainSnoozed(hostname: string): Promise<boolean> {
   return (await getSnooze(hostname)) !== null;
 }
+
+export interface DomainPause {
+  blocked: boolean;
+  snoozedUntil: number | null;
+}
+
+export function onDomainPauseChange(hostnames: () => string[], listener: (pause: DomainPause) => void): void {
+  installDomainInvalidation();
+  try {
+    chrome.storage.onChanged?.addListener((changes, area) => {
+      if (!(area === "sync" && changes[BLACKLIST_KEY]) && !(area === "local" && changes[SNOOZE_KEY])) return;
+      void (async () => {
+        let blocked = false;
+        let snoozedUntil: number | null = null;
+        for (const host of hostnames()) {
+          blocked ||= await isDomainBlocked(host);
+          snoozedUntil ??= await getSnooze(host);
+        }
+        listener({ blocked, snoozedUntil });
+      })().catch((err) => debugError("Domain pause: re-check after a settings change failed —", err));
+    });
+  } catch {
+    return;
+  }
+}

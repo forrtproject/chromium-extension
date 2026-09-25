@@ -1,0 +1,18 @@
+[
+  {"id": "science", "publisher": "Science (AAAS)", "url": "https://www.science.org/doi/10.1126/science.aac4716"},
+  {"id": "sage", "publisher": "SAGE Journals", "url": "https://journals.sagepub.com/doi/10.1177/13634615211043764"},
+  {"id": "springer", "publisher": "Springer", "url": "https://link.springer.com/article/10.1007/s12144-024-05626-0"},
+  {"id": "wiley", "publisher": "Wiley Online Library", "url": "https://onlinelibrary.wiley.com/doi/full/10.1002/job.2278"},
+  {"id": "tandf", "publisher": "Taylor & Francis", "url": "https://www.tandfonline.com/doi/full/10.1080/13678868.2017.1336692"},
+  {"id": "nature", "publisher": "Nature Portfolio", "url": "https://www.nature.com/articles/sdata201618"},
+  {"id": "pmc", "publisher": "PubMed Central", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6427092/"},
+  {"id": "pubmed", "publisher": "PubMed", "url": "https://pubmed.ncbi.nlm.nih.gov/20565167/"},
+  {"id": "frontiers", "publisher": "Frontiers", "url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2017.00879/full"},
+  {"id": "apa", "publisher": "APA PsycNet", "url": "https://psycnet.apa.org/doi/10.1037/a0029709"},
+  {"id": "annualreviews", "publisher": "Annual Reviews", "url": "https://www.annualreviews.org/content/journals/10.1146/annurev-psych-020821-114157"},
+  {"id": "bmj", "publisher": "BMJ", "url": "https://www.bmj.com/content/372/bmj.n71"},
+  {"id": "sciencedirect", "publisher": "ScienceDirect (Elsevier)", "url": "https://www.sciencedirect.com/science/article/pii/S0895435621000408"},
+  {"id": "jmir", "publisher": "JMIR Research Protocols", "url": "https://www.researchprotocols.org/2021/2/e22505/"},
+  {"id": "ieee", "publisher": "IEEE Xplore", "url": "https://ieeexplore.ieee.org/abstract/document/9413901/"},
+  {"id": "arxiv", "publisher": "arXiv", "url": "https://arxiv.org/abs/2308.07661"}
+]

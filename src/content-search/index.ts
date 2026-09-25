@@ -8,7 +8,7 @@ import {isSearchHidden, retryUnansweredSearchResults, setSearchHidden} from "./p
 import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
-import {getSnooze, isDomainBlocked} from "@shared/domains";
+import {getSnooze, isDomainBlocked, onDomainPauseChange} from "@shared/domains";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 
@@ -46,6 +46,7 @@ function injectSiteStyle(css: string): void {
             return;
         }
         reportActiveState(true);
+        followDomainPause(adapter);
 
         if (!(await isSetupComplete())) {
             renderSetupPrompt();
@@ -73,6 +74,27 @@ function injectSiteStyle(css: string): void {
     }
 })();
 
+let pausedBySettings = false;
+
+function followDomainPause(adapter: NonNullable<ReturnType<typeof resolveSearchSite>>): void {
+    onDomainPauseChange(() => [location.hostname], ({blocked, snoozedUntil}) => {
+        if (blocked || snoozedUntil !== null) {
+            if (!isSearchHidden()) pausedBySettings = true;
+            setSearchHidden(true);
+            hideAllFloraUI();
+            if (blocked) reportBlocked();
+            else reportActiveState(false, snoozedUntil);
+            return;
+        }
+        if (!pausedBySettings) return;
+        pausedBySettings = false;
+        setSearchHidden(false);
+        showAllFloraUI();
+        reportActiveState(true);
+        processIfResultsPage(adapter, "pass after re-enabling");
+    });
+}
+
 // hideAllFloraUI/showAllFloraUI already sweep the indicator panels, which are
 // the only per-result UI search rows carry.
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
@@ -80,11 +102,13 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     const type = (message as { type?: string }).type;
 
     if (type === "FLORA_HIDE_UI") {
+        pausedBySettings = false;
         setSearchHidden(true);
         hideAllFloraUI();
         reportInactive();
         sendResponse({ ok: true });
     } else if (type === "FLORA_SHOW_UI") {
+        pausedBySettings = false;
         setSearchHidden(false);
         showAllFloraUI();
         reportActiveState(true);
@@ -102,6 +126,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 // itself, then announces it here so this page clears immediately instead of
 // waiting for a reload.
 document.addEventListener("flora-pause-site", () => {
+    if (!isSearchHidden()) pausedBySettings = true;
     setSearchHidden(true);
     hideAllFloraUI();
     reportInactive();
