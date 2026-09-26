@@ -100,3 +100,149 @@ describe("domain snooze", () => {
     expect(syncStore[BLACKLIST_KEY]).toEqual(["example.com"]);
   });
 });
+
+describe("following a pause set in another tab", () => {
+  async function watch(hosts: string[], current = {blocked: false, snoozedUntil: null as number | null}) {
+    const hostnames = vi.fn(() => hosts);
+    const addListener = vi.mocked(chrome.storage.onChanged.addListener);
+    const before = addListener.mock.calls.length;
+    const domains = await loadDomains();
+    for (const host of hosts) {
+      await domains.isDomainBlocked(host);
+      await domains.getSnooze(host);
+    }
+    const seen: {blocked: boolean; snoozedUntil: number | null}[] = [];
+    domains.onDomainPauseChange(hostnames, (pause) => seen.push(pause), current);
+    const listeners = addListener.mock.calls.slice(before).map(([listener]) => listener);
+    const fire = (area: "local" | "sync", key: string, value: unknown) => {
+      const store = area === "local" ? localStore : syncStore;
+      for (const listener of listeners) listener({[key]: {oldValue: store[key], newValue: value}}, area);
+    };
+    const change = async (area: "local" | "sync", key: string, value: unknown) => {
+      fire(area, key, value);
+      await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0));
+      (area === "local" ? localStore : syncStore)[key] = value;
+    };
+    return {seen, change, fire, hostnames};
+  }
+
+  it("reports a domain disabled from another tab", async () => {
+    const {seen, change} = await watch(["www.example.org"]);
+    await change("sync", BLACKLIST_KEY, ["example.org"]);
+    expect(seen.at(-1)).toEqual({blocked: true, snoozedUntil: null});
+  });
+
+  it("reports a snooze set from another tab", async () => {
+    const {seen, change} = await watch(["example.org"]);
+    const until = Date.now() + 3_600_000;
+    await change("local", SNOOZE_KEY, {"example.org": until});
+    expect(seen.at(-1)).toEqual({blocked: false, snoozedUntil: until});
+  });
+
+  it("reports the domain as active again once it is re-enabled", async () => {
+    syncStore[BLACKLIST_KEY] = ["example.org"];
+    const {seen, change} = await watch(["example.org"], {blocked: true, snoozedUntil: null});
+    await change("sync", BLACKLIST_KEY, []);
+    expect(seen.at(-1)).toEqual({blocked: false, snoozedUntil: null});
+  });
+
+  it("reports the snooze that ends last when several hosts are paused", async () => {
+    const {seen, change} = await watch(["word-edit.officeapps.live.com", "contoso.sharepoint.com"]);
+    const soon = Date.now() + 60_000;
+    const later = Date.now() + 3_600_000;
+    await change("local", SNOOZE_KEY, {"officeapps.live.com": soon, "contoso.sharepoint.com": later});
+    expect(seen.at(-1)).toEqual({blocked: false, snoozedUntil: later});
+  });
+
+  it("checks again when a snooze runs out, without a settings change", async () => {
+    vi.useFakeTimers();
+    try {
+      const until = Date.now() + 60_000;
+      localStore[SNOOZE_KEY] = {"example.org": until};
+      const domains = await loadDomains();
+      const listener = vi.fn();
+      domains.onDomainPauseChange(() => ["example.org"], listener, {blocked: false, snoozedUntil: until});
+      await vi.advanceTimersByTimeAsync(59_000);
+      expect(listener).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(3_000);
+      expect(listener).toHaveBeenCalledWith({blocked: false, snoozedUntil: null});
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("tells the page once when a snooze runs out, although tidying storage fires another change", async () => {
+    vi.useFakeTimers();
+    try {
+      const until = Date.now() + 60_000;
+      localStore[SNOOZE_KEY] = {"example.org": until};
+      const addListener = vi.mocked(chrome.storage.onChanged.addListener);
+      const before = addListener.mock.calls.length;
+      const domains = await loadDomains();
+      const listener = vi.fn();
+      domains.onDomainPauseChange(() => ["example.org"], listener, {blocked: false, snoozedUntil: until});
+      const registered = addListener.mock.calls.slice(before).map(([l]) => l);
+      vi.mocked(chrome.storage.local.set).mockImplementation(((items: Record<string, unknown>) => {
+        Object.assign(localStore, items);
+        for (const l of registered) l({[SNOOZE_KEY]: {newValue: items[SNOOZE_KEY]}}, "local");
+        return Promise.resolve();
+      }) as unknown as typeof chrome.storage.local.set);
+      await vi.advanceTimersByTimeAsync(62_000);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith({blocked: false, snoozedUntil: null});
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stays quiet when another domain's pause changes", async () => {
+    const {seen, fire, hostnames} = await watch(["example.org"]);
+    fire("sync", BLACKLIST_KEY, ["other.org"]);
+    await vi.waitFor(() => expect(hostnames).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(seen).toEqual([]);
+  });
+
+  it("does not spin on a snooze too far ahead for a timer", async () => {
+    vi.useFakeTimers();
+    try {
+      const until = Date.now() + 100 * 86_400_000;
+      localStore[SNOOZE_KEY] = {"example.org": until};
+      const domains = await loadDomains();
+      const hostnames = vi.fn(() => ["example.org"]);
+      domains.onDomainPauseChange(hostnames, () => {}, {blocked: false, snoozedUntil: until});
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(hostnames).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("logs a failing host lookup instead of throwing from the storage listener", async () => {
+    const addListener = vi.mocked(chrome.storage.onChanged.addListener);
+    const before = addListener.mock.calls.length;
+    const domains = await loadDomains();
+    const {recentDebugEntries} = await import("../../src/shared/debug");
+    const listener = vi.fn();
+    domains.onDomainPauseChange(() => { throw new Error("bad referrer"); }, listener);
+    for (const [registered] of addListener.mock.calls.slice(before)) {
+      expect(() => registered({[BLACKLIST_KEY]: {newValue: ["example.org"]}}, "sync")).not.toThrow();
+    }
+    await vi.waitFor(() => expect(recentDebugEntries().some((e) =>
+      e.level === "error" && e.msg.includes("Domain pause: re-check failed") && e.msg.includes("bad referrer"))).toBe(true));
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("ignores changes to other settings", async () => {
+    const addListener = vi.mocked(chrome.storage.onChanged.addListener);
+    const before = addListener.mock.calls.length;
+    const domains = await loadDomains();
+    const listener = vi.fn();
+    domains.onDomainPauseChange(() => ["example.org"], listener);
+    for (const [registered] of addListener.mock.calls.slice(before)) {
+      registered({flora_settings: {newValue: {email: "a@b.c"}}}, "sync");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
