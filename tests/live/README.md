@@ -1,13 +1,27 @@
 # Live publisher check
 
-Loads real article pages from `publishers.json` in Chrome for Testing with the built extension, and records what ORE did on each one.
+Loads real article pages in Chrome for Testing with the built extension, and records what ORE did on each one.
 
 ```bash
 npm run build
-npm run test:live                       # all publishers, in a visible Chrome window
-npm run test:live -- --only=pmc,nature  # a subset, by id
-npm run test:live -- --headless         # no window; most publishers will block it
+npm run test:live -- --top=20                   # the 20 domains with the most FReD DOIs
+npm run test:live                               # every domain (several hours)
+npm run test:live -- --refresh                  # rebuild the domain list from FReD, then run
+npm run test:live -- --only=www-nature-com,psycnet-apa-org
+npm run test:live -- --headless                 # no window; most publishers will block it
 ```
+
+## Which pages are tested
+
+`publishers.json` lists one page per website that hosts papers in the FORRT Replication Database. `--refresh` rebuilds it:
+
+1. Downloads `output/flora.csv` from [forrtproject/FReD-data](https://github.com/forrtproject/FReD-data) (`--csv=<file>` uses a local copy instead).
+2. Collects every original and replication DOI.
+3. Looks up each DOI's registered landing page through the DOI system (`doi.org/api/handles`), without visiting publisher sites. Results are cached in `tests/live/.cache`, so later refreshes only look up new DOIs.
+4. Groups the DOIs by website. Redirect services such as `linkinghub.elsevier.com` count as the site they lead to.
+5. Picks, for each website, the original study with the most replications, and tests its `https://doi.org/…` link.
+
+The list is sorted by how many FReD DOIs each website hosts. Entries added by hand, for websites FReD does not point to, are kept on refresh.
 
 Results go to `tests/live/output/`:
 
@@ -30,7 +44,7 @@ A page that fails, times out or errors is tried once more before it is reported.
 
 ## Bot checks
 
-Several publishers block automated browsers, and nearly all of them block headless ones. The runner does not try to get around this. By default it opens a visible Chrome window, and when a check appears it waits up to two minutes for you to complete it.
+Several publishers block automated browsers, and nearly all of them block headless ones. The runner does not try to get around this. By default it opens a visible Chrome window, and when a check appears it waits 20 seconds, which is enough for checks that clear themselves or that you click through. If the check is still there, the page is recorded as Blocked and the run moves on. `--check-wait=<seconds>` changes the wait; `--check-wait=0` skips it. Headless runs never wait.
 
 The browser profile is kept in `tests/live/.profile`, so checks you have cleared and your cookie choices carry over to the next run. Use `--profile=<dir>` to keep it somewhere else, or delete the folder to start fresh. `--headless` runs without a window and is used automatically on CI.
 

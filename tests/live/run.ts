@@ -4,6 +4,7 @@ import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from "node:f
 import os from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
+import {refreshPublishers} from "./publishers";
 
 declare const chrome: any;
 
@@ -11,6 +12,8 @@ interface Publisher {
     id: string;
     publisher: string;
     url: string;
+    domain?: string;
+    doisInFred?: number;
 }
 
 type Verdict = "pass" | "fail" | "blocked" | "timeout" | "no-doi" | "error";
@@ -19,6 +22,8 @@ interface Result {
     id: string;
     publisher: string;
     url: string;
+    domain: string;
+    doisInFred: number | null;
     finalUrl: string;
     verdict: Verdict;
     reason: string;
@@ -49,13 +54,18 @@ const VIEWPORT = {width: 1280, height: 900};
 const NAVIGATION_TIMEOUT_MS = 45_000;
 const SETTLE_TIMEOUT_MS = 75_000;
 const IDLE_GIVE_UP_MS = 20_000;
-const HUMAN_WAIT_MS = 120_000;
+const DEFAULT_CHECK_WAIT_S = 20;
 const PAUSE_BETWEEN_PAGES_MS = 4_000;
 const BLOCK_PATTERN = /just a moment|verify you are human|are you a robot|unusual traffic|access denied|captcha|attention required|request unsuccessful|bot detection/i;
 
 const args = process.argv.slice(2);
 const headed = !args.includes("--headless") && !process.env.CI;
 const only = args.find((a) => a.startsWith("--only="))?.slice("--only=".length).split(",");
+const refresh = args.includes("--refresh");
+const csvPath = args.find((a) => a.startsWith("--csv="))?.slice("--csv=".length);
+const top = Number(args.find((a) => a.startsWith("--top="))?.slice("--top=".length)) || null;
+const checkWaitArg = args.find((a) => a.startsWith("--check-wait="))?.slice("--check-wait=".length);
+const checkWaitMs = headed ? Math.max(0, Number(checkWaitArg ?? DEFAULT_CHECK_WAIT_S) || 0) * 1000 : 0;
 const profileDir = args.find((a) => a.startsWith("--profile="))?.slice("--profile=".length)
     ?? (headed ? path.join(HERE, ".profile") : undefined);
 
@@ -193,11 +203,14 @@ function pause(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isBlocked(state: PageState, httpStatus: number | null): boolean {
+function isBotWall(state: PageState, httpStatus: number | null): boolean {
     return (httpStatus !== null && httpStatus >= 400)
         || BLOCK_PATTERN.test(state.pageTitle)
-        || BLOCK_PATTERN.test(state.bodyText.slice(0, 600))
-        || state.bodyText.trim().length < 40;
+        || BLOCK_PATTERN.test(state.bodyText.slice(0, 600));
+}
+
+function isBlocked(state: PageState, httpStatus: number | null): boolean {
+    return isBotWall(state, httpStatus) || state.bodyText.trim().length < 40;
 }
 
 async function readState(page: Page): Promise<PageState> {
@@ -212,17 +225,18 @@ async function dismissConsent(page: Page): Promise<void> {
     }
 }
 
-async function waitForHuman(page: Page): Promise<void> {
-    console.log(`\n    Bot check shown — complete it in the browser window (waiting up to ${HUMAN_WAIT_MS / 1000} s)…`);
+async function waitForCheck(page: Page): Promise<boolean> {
+    process.stdout.write(`bot check — waiting up to ${checkWaitMs / 1000} s … `);
     const started = Date.now();
-    while (Date.now() - started < HUMAN_WAIT_MS) {
-        await pause(2000);
+    while (Date.now() - started < checkWaitMs) {
+        await pause(1000);
         try {
-            if (!isBlocked(await readState(page), null)) return;
+            if (!isBotWall(await readState(page), null)) return true;
         } catch {
             continue;
         }
     }
+    return false;
 }
 
 async function waitForOre(page: Page): Promise<{state: PageState; sawNothingFound: boolean; settled: boolean}> {
@@ -278,6 +292,7 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
 
     const base = {
         id: entry.id, publisher: entry.publisher, url: entry.url, finalUrl: entry.url,
+        domain: entry.domain ?? new URL(entry.url).hostname, doisInFred: entry.doisInFred ?? null,
         httpStatus: null as number | null, pageTitle: "", pageDoi: null as string | null,
         titlePill: false, indicatorPills: 0, noticePills: 0, reportPanel: false, nothingFound: false,
         doneIn: null as string | null, loadMs: 0, oreErrors, oreLog, screenshot: null as string | null,
@@ -292,11 +307,16 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
         base.httpStatus = response?.status() ?? null;
         base.loadMs = Date.now() - started;
         await pause(1500);
-        let early = await readState(page).catch(() => EMPTY_STATE);
-        if (headed && isBlocked(early, base.httpStatus)) {
-            await waitForHuman(page);
-            early = await readState(page).catch(() => EMPTY_STATE);
-            if (!isBlocked(early, null)) base.httpStatus = 200;
+        const early = await readState(page).catch(() => EMPTY_STATE);
+        if (isBotWall(early, base.httpStatus)) {
+            const cleared = checkWaitMs > 0 && await waitForCheck(page);
+            if (!cleared) {
+                base.finalUrl = page.url();
+                base.pageTitle = early.pageTitle;
+                base.screenshot = await capture(page, shot(""));
+                return {...base, ...judge(base, false, true), attempts: attemptNumber};
+            }
+            base.httpStatus = 200;
         }
         await dismissConsent(page);
 
@@ -368,7 +388,8 @@ function writeReport(results: Result[], startedAt: Date, extensionVersion: strin
         .map((v) => `<span class="chip" style="background:${VERDICT_COLOUR[v]}">${counts[v]} ${VERDICT_LABEL[v]}</span>`)
         .join(" ");
     const rows = results.map((r) => `<tr>
-<td><a href="#${r.id}">${escape(r.publisher)}</a></td>
+<td><a href="#${r.id}">${escape(r.domain)}</a><br><span class="sub">${escape(r.publisher)}</span></td>
+<td class="num">${r.doisInFred ?? "—"}</td>
 <td><span class="chip" style="background:${VERDICT_COLOUR[r.verdict]}">${VERDICT_LABEL[r.verdict]}</span></td>
 <td>${r.titlePill ? "Yes" : "No"}</td>
 <td class="num">${r.indicatorPills}</td>
@@ -378,9 +399,10 @@ function writeReport(results: Result[], startedAt: Date, extensionVersion: strin
 <td class="num">${r.oreErrors.length}</td>
 </tr>`).join("\n");
     const sections = results.map((r) => `<section id="${r.id}">
-<h2>${escape(r.publisher)} <span class="chip" style="background:${VERDICT_COLOUR[r.verdict]}">${VERDICT_LABEL[r.verdict]}</span></h2>
+<h2>${escape(r.domain)} <span class="chip" style="background:${VERDICT_COLOUR[r.verdict]}">${VERDICT_LABEL[r.verdict]}</span></h2>
 <p>${escape(r.reason)}</p>
 <dl>
+<dt>Publisher</dt><dd>${escape(r.publisher)}${r.doisInFred ? ` · ${r.doisInFred} DOI(s) in FReD` : ""}</dd>
 <dt>URL</dt><dd><a href="${escape(r.url)}">${escape(r.url)}</a>${r.finalUrl !== r.url ? `<br>Redirected to ${escape(r.finalUrl)}` : ""}</dd>
 <dt>Page</dt><dd>${escape(r.pageTitle || "—")} (HTTP ${r.httpStatus ?? "—"}, loaded in ${(r.loadMs / 1000).toFixed(1)} s)</dd>
 <dt>Page DOI</dt><dd>${escape(r.pageDoi ?? "none declared")}</dd>
@@ -403,12 +425,12 @@ section{border-top:2px solid #e4dce1;padding:18px 0;break-inside:avoid-page}
 dl{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;margin:8px 0}dt{color:#5f6368}dd{margin:0;overflow-wrap:anywhere}
 pre{white-space:pre-wrap;background:#f6f4f5;padding:8px;font-size:11px;margin:0}
 .shots{display:grid;grid-template-columns:1fr 1fr;gap:10px}.shots img{width:100%;border:1px solid #d0c7cc}
-a{color:#853953}
+a{color:#853953}.sub{color:#5f6368;font-size:12px}
 </style></head><body>
 <h1>ORE publisher check</h1>
 <p class="meta">ORE ${escape(extensionVersion)} · Chrome for Testing ${CHROME_BUILD} · ${escape(startedAt.toISOString().replace("T", " ").slice(0, 16))} UTC · ${results.length} publisher(s)</p>
 <p>${summary}</p>
-<table><thead><tr><th>Publisher</th><th>Result</th><th>Title pill</th><th class="num">Pills</th><th class="num">Notices</th><th>Report</th><th class="num">Finished in</th><th class="num">ORE warnings</th></tr></thead>
+<table><thead><tr><th>Domain</th><th class="num">FReD DOIs</th><th>Result</th><th>Title pill</th><th class="num">Pills</th><th class="num">Notices</th><th>Report</th><th class="num">Finished in</th><th class="num">ORE warnings</th></tr></thead>
 <tbody>${rows}</tbody></table>
 ${sections}
 </body></html>`;
@@ -433,8 +455,10 @@ async function main(): Promise<void> {
     if (!existsSync(path.join(REPO_ROOT, "dist", "background.js"))) {
         throw new Error("dist/ missing — run `npm run build` first");
     }
+    if (refresh) await refreshPublishers(csvPath);
     const all: Publisher[] = JSON.parse(readFileSync(path.join(HERE, "publishers.json"), "utf8"));
-    const publishers = only ? all.filter((p) => only.includes(p.id)) : all;
+    const chosen = only ? all.filter((p) => only.includes(p.id)) : all;
+    const publishers = top ? chosen.slice(0, top) : chosen;
     if (publishers.length === 0) throw new Error(`No publishers match --only=${only?.join(",")}`);
 
     rmSync(OUTPUT_DIR, {recursive: true, force: true});
@@ -447,7 +471,7 @@ async function main(): Promise<void> {
     try {
         await prepareExtension(browser);
         for (const entry of publishers) {
-            process.stdout.write(`  ${entry.publisher.padEnd(28)} `);
+            process.stdout.write(`  ${(entry.domain ?? entry.publisher).slice(0, 34).padEnd(35)} `);
             if (results.length > 0) await pause(PAUSE_BETWEEN_PAGES_MS);
             const result = await checkPublisher(browser, entry);
             results.push(result);

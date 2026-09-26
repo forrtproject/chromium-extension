@@ -1,18 +1,2351 @@
 [
-  {"id": "science", "publisher": "Science (AAAS)", "url": "https://www.science.org/doi/10.1126/science.aac4716"},
-  {"id": "sage", "publisher": "SAGE Journals", "url": "https://journals.sagepub.com/doi/10.1177/13634615211043764"},
-  {"id": "springer", "publisher": "Springer", "url": "https://link.springer.com/article/10.1007/s12144-024-05626-0"},
-  {"id": "wiley", "publisher": "Wiley Online Library", "url": "https://onlinelibrary.wiley.com/doi/full/10.1002/job.2278"},
-  {"id": "tandf", "publisher": "Taylor & Francis", "url": "https://www.tandfonline.com/doi/full/10.1080/13678868.2017.1336692"},
-  {"id": "nature", "publisher": "Nature Portfolio", "url": "https://www.nature.com/articles/sdata201618"},
-  {"id": "pmc", "publisher": "PubMed Central", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6427092/"},
-  {"id": "pubmed", "publisher": "PubMed", "url": "https://pubmed.ncbi.nlm.nih.gov/20565167/"},
-  {"id": "frontiers", "publisher": "Frontiers", "url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2017.00879/full"},
-  {"id": "apa", "publisher": "APA PsycNet", "url": "https://psycnet.apa.org/doi/10.1037/a0029709"},
-  {"id": "annualreviews", "publisher": "Annual Reviews", "url": "https://www.annualreviews.org/content/journals/10.1146/annurev-psych-020821-114157"},
-  {"id": "bmj", "publisher": "BMJ", "url": "https://www.bmj.com/content/372/bmj.n71"},
-  {"id": "sciencedirect", "publisher": "ScienceDirect (Elsevier)", "url": "https://www.sciencedirect.com/science/article/pii/S0895435621000408"},
-  {"id": "jmir", "publisher": "JMIR Research Protocols", "url": "https://www.researchprotocols.org/2021/2/e22505/"},
-  {"id": "ieee", "publisher": "IEEE Xplore", "url": "https://ieeexplore.ieee.org/abstract/document/9413901/"},
-  {"id": "arxiv", "publisher": "arXiv", "url": "https://arxiv.org/abs/2308.07661"}
+  {
+    "id": "journals-sagepub-com",
+    "publisher": "SAGE Publications",
+    "url": "https://doi.org/10.1111/j.1467-9280.2008.02227.x",
+    "domain": "journals.sagepub.com",
+    "doi": "10.1111/j.1467-9280.2008.02227.x",
+    "doisInFred": 614,
+    "source": "fred"
+  },
+  {
+    "id": "sciencedirect-com",
+    "publisher": "Elsevier BV",
+    "url": "https://doi.org/10.1016/j.cogdev.2010.09.001",
+    "domain": "www.sciencedirect.com",
+    "doi": "10.1016/j.cogdev.2010.09.001",
+    "doisInFred": 583,
+    "source": "fred"
+  },
+  {
+    "id": "onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1111/j.1468-0068.2010.00795.x",
+    "domain": "onlinelibrary.wiley.com",
+    "doi": "10.1111/j.1468-0068.2010.00795.x",
+    "doisInFred": 559,
+    "source": "fred"
+  },
+  {
+    "id": "psycnet-apa-org",
+    "publisher": "American Psychological Association (APA)",
+    "url": "https://doi.org/10.1037/a0021524",
+    "domain": "psycnet.apa.org",
+    "doi": "10.1037/a0021524",
+    "doisInFred": 440,
+    "source": "fred"
+  },
+  {
+    "id": "tandfonline-com",
+    "publisher": "Informa UK Limited",
+    "url": "https://doi.org/10.1080/0958519032000114237",
+    "domain": "www.tandfonline.com",
+    "doi": "10.1080/0958519032000114237",
+    "doisInFred": 287,
+    "source": "fred"
+  },
+  {
+    "id": "link-springer-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.3758/bf03197186",
+    "domain": "link.springer.com",
+    "doi": "10.3758/bf03197186",
+    "doisInFred": 249,
+    "source": "fred"
+  },
+  {
+    "id": "academic-oup-com",
+    "publisher": "Oxford University Press (OUP)",
+    "url": "https://doi.org/10.1086/597030",
+    "domain": "academic.oup.com",
+    "doi": "10.1086/597030",
+    "doisInFred": 225,
+    "source": "fred"
+  },
+  {
+    "id": "osf-io",
+    "publisher": "OSF",
+    "url": "https://doi.org/10.31234/osf.io/5gskw",
+    "domain": "osf.io",
+    "doi": "10.31234/osf.io/5gskw",
+    "doisInFred": 201,
+    "source": "fred"
+  },
+  {
+    "id": "cambridge-org",
+    "publisher": "Cambridge University Press (CUP)",
+    "url": "https://doi.org/10.1017/xps.2017.21",
+    "domain": "www.cambridge.org",
+    "doi": "10.1017/xps.2017.21",
+    "doisInFred": 196,
+    "source": "fred"
+  },
+  {
+    "id": "nature-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1038/nature11467",
+    "domain": "www.nature.com",
+    "doi": "10.1038/nature11467",
+    "doisInFred": 148,
+    "source": "fred"
+  },
+  {
+    "id": "pubs-aeaweb-org",
+    "publisher": "American Economic Association",
+    "url": "https://doi.org/10.1257/aer.101.7.3221",
+    "domain": "pubs.aeaweb.org",
+    "doi": "10.1257/aer.101.7.3221",
+    "doisInFred": 139,
+    "source": "fred"
+  },
+  {
+    "id": "journals-plos-org",
+    "publisher": "Public Library of Science (PLoS)",
+    "url": "https://doi.org/10.1371/journal.pbio.0060202",
+    "domain": "journals.plos.org",
+    "doi": "10.1371/journal.pbio.0060202",
+    "doisInFred": 81,
+    "source": "fred"
+  },
+  {
+    "id": "pnas-org",
+    "publisher": "Proceedings of the National Academy of Sciences",
+    "url": "https://doi.org/10.1073/pnas.1118373109",
+    "domain": "pnas.org",
+    "doi": "10.1073/pnas.1118373109",
+    "doisInFred": 78,
+    "source": "fred"
+  },
+  {
+    "id": "frontiersin-org",
+    "publisher": "Frontiers Media SA",
+    "url": "https://doi.org/10.3389/fpsyg.2014.01276",
+    "domain": "www.frontiersin.org",
+    "doi": "10.3389/fpsyg.2014.01276",
+    "doisInFred": 72,
+    "source": "fred"
+  },
+  {
+    "id": "journals-uchicago-edu",
+    "publisher": "University of Chicago Press",
+    "url": "https://doi.org/10.1086/698750",
+    "domain": "www.journals.uchicago.edu",
+    "doi": "10.1086/698750",
+    "doisInFred": 66,
+    "source": "fred"
+  },
+  {
+    "id": "science-org",
+    "publisher": "American Association for the Advancement of Science (AAAS)",
+    "url": "https://doi.org/10.1126/science.1239918",
+    "domain": "www.science.org",
+    "doi": "10.1126/science.1239918",
+    "doisInFred": 49,
+    "source": "fred"
+  },
+  {
+    "id": "econtent-hogrefe-com",
+    "publisher": "Hogrefe Publishing Group",
+    "url": "https://doi.org/10.1024/1010-0652.21.3.305",
+    "domain": "econtent.hogrefe.com",
+    "doi": "10.1024/1010-0652.21.3.305",
+    "doisInFred": 39,
+    "source": "fred"
+  },
+  {
+    "id": "direct-mit-edu",
+    "publisher": "MIT Press - Journals",
+    "url": "https://doi.org/10.1162/0033553053970214",
+    "domain": "direct.mit.edu",
+    "doi": "10.1162/0033553053970214",
+    "doisInFred": 33,
+    "source": "fred"
+  },
+  {
+    "id": "royalsocietypublishing-org",
+    "publisher": "The Royal Society",
+    "url": "https://doi.org/10.1098/rsos.160384",
+    "domain": "royalsocietypublishing.org",
+    "doi": "10.1098/rsos.160384",
+    "doisInFred": 32,
+    "source": "fred"
+  },
+  {
+    "id": "jstor-org",
+    "publisher": "JSTOR",
+    "url": "https://doi.org/10.2307/1128199",
+    "domain": "www.jstor.org",
+    "doi": "10.2307/1128199",
+    "doisInFred": 32,
+    "source": "fred"
+  },
+  {
+    "id": "ovid-com",
+    "publisher": "Ovid Technologies (Wolters Kluwer Health)",
+    "url": "https://doi.org/10.1249/mss.0000000000000818",
+    "domain": "www.ovid.com",
+    "doi": "10.1249/mss.0000000000000818",
+    "doisInFred": 31,
+    "source": "fred"
+  },
+  {
+    "id": "dl-acm-org",
+    "publisher": "ACM",
+    "url": "https://doi.org/10.1145/1368088.1368161",
+    "domain": "dl.acm.org",
+    "doi": "10.1145/1368088.1368161",
+    "doisInFred": 26,
+    "source": "fred"
+  },
+  {
+    "id": "online-ucpress-edu",
+    "publisher": "University of California Press",
+    "url": "https://doi.org/10.1525/collabra.117",
+    "domain": "online.ucpress.edu",
+    "doi": "10.1525/collabra.117",
+    "doisInFred": 25,
+    "source": "fred"
+  },
+  {
+    "id": "degruyterbrill-com",
+    "publisher": "Walter de Gruyter GmbH",
+    "url": "https://doi.org/10.1515/iral.1994.32.1.41",
+    "domain": "www.degruyterbrill.com",
+    "doi": "10.1515/iral.1994.32.1.41",
+    "doisInFred": 24,
+    "source": "fred"
+  },
+  {
+    "id": "elifesciences-org",
+    "publisher": "eLife Sciences Publications, Ltd",
+    "url": "https://doi.org/10.7554/elife.10012",
+    "domain": "elifesciences.org",
+    "doi": "10.7554/elife.10012",
+    "doisInFred": 22,
+    "source": "fred"
+  },
+  {
+    "id": "sms-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1002/smj.2108",
+    "domain": "sms.onlinelibrary.wiley.com",
+    "doi": "10.1002/smj.2108",
+    "doisInFred": 22,
+    "source": "fred"
+  },
+  {
+    "id": "emerald-com",
+    "publisher": "Emerald",
+    "url": "https://doi.org/10.1108/09578230410554052",
+    "domain": "www.emerald.com",
+    "doi": "10.1108/09578230410554052",
+    "doisInFred": 21,
+    "source": "fred"
+  },
+  {
+    "id": "ieeexplore-ieee-org",
+    "publisher": "IEEE",
+    "url": "https://doi.org/10.1109/32.988711",
+    "domain": "ieeexplore.ieee.org",
+    "doi": "10.1109/32.988711",
+    "doisInFred": 20,
+    "source": "fred"
+  },
+  {
+    "id": "muse-jhu-edu",
+    "publisher": "Project MUSE",
+    "url": "https://doi.org/10.1017/s0043887112000032",
+    "domain": "muse.jhu.edu",
+    "doi": "10.1017/s0043887112000032",
+    "doisInFred": 18,
+    "source": "fred"
+  },
+  {
+    "id": "papers-ssrn-com",
+    "publisher": "Elsevier BV",
+    "url": "https://doi.org/10.2139/ssrn.1099464",
+    "domain": "papers.ssrn.com",
+    "doi": "10.2139/ssrn.1099464",
+    "doisInFred": 17,
+    "source": "fred"
+  },
+  {
+    "id": "pubsonline-informs-org",
+    "publisher": "Institute for Operations Research and the Management Sciences (INFORMS)",
+    "url": "https://doi.org/10.1287/isre.1040.0032",
+    "domain": "pubsonline.informs.org",
+    "doi": "10.1287/isre.1040.0032",
+    "doisInFred": 17,
+    "source": "fred"
+  },
+  {
+    "id": "journals-aom-org",
+    "publisher": "Academy of Management",
+    "url": "https://doi.org/10.5465/amj.2016.0086",
+    "domain": "journals.aom.org",
+    "doi": "10.5465/amj.2016.0086",
+    "doisInFred": 15,
+    "source": "fred"
+  },
+  {
+    "id": "mdpi-com",
+    "publisher": "MDPI AG",
+    "url": "https://doi.org/10.3390/biomedicines8020034",
+    "domain": "www.mdpi.com",
+    "doi": "10.3390/biomedicines8020034",
+    "doisInFred": 15,
+    "source": "fred"
+  },
+  {
+    "id": "nowpublishers-com",
+    "publisher": "Emerald",
+    "url": "https://doi.org/10.1561/104.00000052",
+    "domain": "www.nowpublishers.com",
+    "doi": "10.1561/104.00000052",
+    "doisInFred": 15,
+    "source": "fred"
+  },
+  {
+    "id": "tqmp-org",
+    "publisher": "The Quantitative Methods for Psychology",
+    "url": "https://doi.org/10.20982/tqmp.11.1.r001",
+    "domain": "www.tqmp.org",
+    "doi": "10.20982/tqmp.11.1.r001",
+    "doisInFred": 15,
+    "source": "fred"
+  },
+  {
+    "id": "aisel-aisnet-org",
+    "publisher": "Association for Information Systems",
+    "url": "https://doi.org/10.17705/1cais.02729",
+    "domain": "aisel.aisnet.org",
+    "doi": "10.17705/1cais.02729",
+    "doisInFred": 14,
+    "source": "fred"
+  },
+  {
+    "id": "bpspsychub-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1111/bjc.12069",
+    "domain": "bpspsychub.onlinelibrary.wiley.com",
+    "doi": "10.1111/bjc.12069",
+    "doisInFred": 14,
+    "source": "fred"
+  },
+  {
+    "id": "nber-org",
+    "publisher": "Journal of Public Economics",
+    "url": "https://doi.org/10.3386/w8004",
+    "domain": "www.nber.org",
+    "doi": "10.3386/w8004",
+    "doisInFred": 14,
+    "source": "fred"
+  },
+  {
+    "id": "journals-lww-com",
+    "publisher": "Ovid Technologies (Wolters Kluwer Health)",
+    "url": "https://doi.org/10.1097/00006842-200103000-00012",
+    "domain": "journals.lww.com",
+    "doi": "10.1097/00006842-200103000-00012",
+    "doisInFred": 13,
+    "source": "fred"
+  },
+  {
+    "id": "jneurosci-org",
+    "publisher": "Society for Neuroscience",
+    "url": "https://doi.org/10.1523/jneurosci.0411-11.2011",
+    "domain": "www.jneurosci.org",
+    "doi": "10.1523/jneurosci.0411-11.2011",
+    "doisInFred": 12,
+    "source": "fred"
+  },
+  {
+    "id": "zenodo-org",
+    "publisher": "Clearer Thinking",
+    "url": "https://doi.org/10.5281/zenodo.17705056",
+    "domain": "zenodo.org",
+    "doi": "10.5281/zenodo.17705056",
+    "doisInFred": 12,
+    "source": "fred"
+  },
+  {
+    "id": "jov-arvojournals-org",
+    "publisher": "Association for Research in Vision and Ophthalmology (ARVO)",
+    "url": "https://doi.org/10.1167/16.13.4",
+    "domain": "jov.arvojournals.org",
+    "doi": "10.1167/16.13.4",
+    "doisInFred": 11,
+    "source": "fred"
+  },
+  {
+    "id": "open-lnu-se",
+    "publisher": "Linnaeus University",
+    "url": "https://doi.org/10.15626/mp.2018.1481",
+    "domain": "open.lnu.se",
+    "doi": "10.15626/mp.2018.1481",
+    "doisInFred": 10,
+    "source": "fred"
+  },
+  {
+    "id": "peerj-com",
+    "publisher": "PeerJ",
+    "url": "https://doi.org/10.7717/peerj.1232",
+    "domain": "peerj.com",
+    "doi": "10.7717/peerj.1232",
+    "doisInFred": 10,
+    "source": "fred"
+  },
+  {
+    "id": "biorxiv-org",
+    "publisher": "openRxiv",
+    "url": "https://doi.org/10.1101/144733",
+    "domain": "biorxiv.org",
+    "doi": "10.1101/144733",
+    "doisInFred": 8,
+    "source": "fred"
+  },
+  {
+    "id": "misq-umn-edu",
+    "publisher": "MIS Quarterly",
+    "url": "https://doi.org/10.2307/249688",
+    "domain": "misq.umn.edu",
+    "doi": "10.2307/249688",
+    "doisInFred": 8,
+    "source": "fred"
+  },
+  {
+    "id": "read-dukeupress-edu",
+    "publisher": "Duke University Press",
+    "url": "https://doi.org/10.1007/s13524-018-0725-0",
+    "domain": "read.dukeupress.edu",
+    "doi": "10.1007/s13524-018-0725-0",
+    "doisInFred": 7,
+    "source": "fred"
+  },
+  {
+    "id": "journalofcognition-org",
+    "publisher": "Ubiquity Press, Ltd.",
+    "url": "https://doi.org/10.5334/joc.91",
+    "domain": "www.journalofcognition.org",
+    "doi": "10.5334/joc.91",
+    "doisInFred": 7,
+    "source": "fred"
+  },
+  {
+    "id": "arxiv-org",
+    "publisher": "arXiv",
+    "url": "https://doi.org/10.48550/arxiv.2302.02083",
+    "domain": "arxiv.org",
+    "doi": "10.48550/arxiv.2302.02083",
+    "doisInFred": 6,
+    "source": "fred"
+  },
+  {
+    "id": "guilfordjournals-com",
+    "publisher": "Guilford Publications",
+    "url": "https://doi.org/10.1521/jsyt.2012.31.2.21",
+    "domain": "guilfordjournals.com",
+    "doi": "10.1521/jsyt.2012.31.2.21",
+    "doisInFred": 6,
+    "source": "fred"
+  },
+  {
+    "id": "hdl-handle-net",
+    "publisher": "National Foreign Language Resource Center",
+    "url": "https://doi.org/10.1596/1813-9450-5159",
+    "domain": "hdl.handle.net",
+    "doi": "10.1596/1813-9450-5159",
+    "doisInFred": 6,
+    "source": "fred"
+  },
+  {
+    "id": "psychiatryonline-org",
+    "publisher": "American Psychiatric Association Publishing",
+    "url": "https://doi.org/10.1176/appi.ajp.159.3.443",
+    "domain": "psychiatryonline.org",
+    "doi": "10.1176/appi.ajp.159.3.443",
+    "doisInFred": 6,
+    "source": "fred"
+  },
+  {
+    "id": "publications-aaahq-org",
+    "publisher": "American Accounting Association",
+    "url": "https://doi.org/10.2308/acch-50181",
+    "domain": "publications.aaahq.org",
+    "doi": "10.2308/acch-50181",
+    "doisInFred": 6,
+    "source": "fred"
+  },
+  {
+    "id": "jbe-platform-com",
+    "publisher": "John Benjamins Publishing Company",
+    "url": "https://doi.org/10.1075/arcl.7.07gri",
+    "domain": "www.jbe-platform.com",
+    "doi": "10.1075/arcl.7.07gri",
+    "doisInFred": 6,
+    "source": "fred"
+  },
+  {
+    "id": "rips-irsp-com",
+    "publisher": "Ubiquity Press, Ltd.",
+    "url": "https://doi.org/10.5334/irsp.522",
+    "domain": "www.rips-irsp.com",
+    "doi": "10.5334/irsp.522",
+    "doisInFred": 6,
+    "source": "fred"
+  },
+  {
+    "id": "archpsyc-jamanetwork-com",
+    "publisher": "American Medical Association (AMA)",
+    "url": "https://doi.org/10.1001/archgenpsychiatry.2009.153",
+    "domain": "archpsyc.jamanetwork.com",
+    "doi": "10.1001/archgenpsychiatry.2009.153",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "bmcmedgenet-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/1471-2350-11-119",
+    "domain": "bmcmedgenet.biomedcentral.com",
+    "doi": "10.1186/1471-2350-11-119",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "brill-com",
+    "publisher": "Walter de Gruyter GmbH",
+    "url": "https://doi.org/10.1163/156853706776931222",
+    "domain": "brill.com",
+    "doi": "10.1163/156853706776931222",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "journals-asm-org",
+    "publisher": "American Society for Microbiology",
+    "url": "https://doi.org/10.1128/jvi.00741-11",
+    "domain": "journals.asm.org",
+    "doi": "10.1128/jvi.00741-11",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "econometricsociety-org",
+    "publisher": "The Econometric Society",
+    "url": "https://doi.org/10.3982/ecta14370",
+    "domain": "www.econometricsociety.org",
+    "doi": "10.3982/ecta14370",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "hindawi-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1155/2013/639702",
+    "domain": "www.hindawi.com",
+    "doi": "10.1155/2013/639702",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "jcr-econ-org",
+    "publisher": "Journal of Comments and Replications in Economics (JCRE)",
+    "url": "https://doi.org/10.18718/81781.23",
+    "domain": "www.jcr-econ.org",
+    "doi": "10.18718/81781.23",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "pdcnet-org",
+    "publisher": "Philosophy Documentation Center",
+    "url": "https://doi.org/10.1111/j.1475-4975.2007.00150.x",
+    "domain": "www.pdcnet.org",
+    "doi": "10.1111/j.1475-4975.2007.00150.x",
+    "doisInFred": 5,
+    "source": "fred"
+  },
+  {
+    "id": "acamh-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1111/camh.12052",
+    "domain": "acamh.onlinelibrary.wiley.com",
+    "doi": "10.1111/camh.12052",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "journals-humankinetics-com",
+    "publisher": "Human Kinetics",
+    "url": "https://doi.org/10.1123/ijspp.2019-0098",
+    "domain": "journals.humankinetics.com",
+    "doi": "10.1123/ijspp.2019-0098",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "medrxiv-org",
+    "publisher": "openRxiv",
+    "url": "https://doi.org/10.1101/2020.03.30.20048090",
+    "domain": "medrxiv.org",
+    "doi": "10.1101/2020.03.30.20048090",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "pubs-acs-org",
+    "publisher": "American Chemical Society (ACS)",
+    "url": "https://doi.org/10.1021/acscentsci.8b00879",
+    "domain": "pubs.acs.org",
+    "doi": "10.1021/acscentsci.8b00879",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "pubs-aip-org",
+    "publisher": "Acoustical Society of America (ASA)",
+    "url": "https://doi.org/10.1121/1.1894649",
+    "domain": "pubs.aip.org",
+    "doi": "10.1121/1.1894649",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "eneuro-org",
+    "publisher": "Society for Neuroscience",
+    "url": "https://doi.org/10.1523/eneuro.0150-20.2020",
+    "domain": "www.eneuro.org",
+    "doi": "10.1523/eneuro.0150-20.2020",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "jstage-jst-go-jp",
+    "publisher": "Pharmaceutical Society of Japan",
+    "url": "https://doi.org/10.1248/bpb.b19-00527",
+    "domain": "www.jstage.jst.go.jp",
+    "doi": "10.1248/bpb.b19-00527",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "nejm-org",
+    "publisher": "Massachusetts Medical Society",
+    "url": "https://doi.org/10.1056/nejmoa073493",
+    "domain": "www.nejm.org",
+    "doi": "10.1056/nejmoa073493",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "taylorfrancis-com",
+    "publisher": "Psychology Press",
+    "url": "https://doi.org/10.4324/9780203865972-24",
+    "domain": "www.taylorfrancis.com",
+    "doi": "10.4324/9780203865972-24",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "thieme-connect-de",
+    "publisher": "Georg Thieme Verlag KG",
+    "url": "https://doi.org/10.1055/s-0030-1249773",
+    "domain": "www.thieme-connect.de",
+    "doi": "10.1055/s-0030-1249773",
+    "doisInFred": 4,
+    "source": "fred"
+  },
+  {
+    "id": "benjamins-com",
+    "publisher": "John Benjamins Publishing Company",
+    "url": "https://doi.org/10.1075/sibil.9.05bre",
+    "domain": "benjamins.com",
+    "doi": "10.1075/sibil.9.05bre",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "bmcgeriatr-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/1471-2318-14-29",
+    "domain": "bmcgeriatr.biomedcentral.com",
+    "doi": "10.1186/1471-2318-14-29",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "bmchealthservres-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s12913-017-2744-8",
+    "domain": "bmchealthservres.biomedcentral.com",
+    "doi": "10.1186/s12913-017-2744-8",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "bmcmusculoskeletdisord-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/1471-2474-15-38",
+    "domain": "bmcmusculoskeletdisord.biomedcentral.com",
+    "doi": "10.1186/1471-2474-15-38",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "connect-springerpub-com",
+    "publisher": "Springer Publishing Company",
+    "url": "https://doi.org/10.1891/0886-6708.26.6.703",
+    "domain": "connect.springerpub.com",
+    "doi": "10.1891/0886-6708.26.6.703",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "dergipark-org-tr",
+    "publisher": "Eurasian Journal of Applied Linguistics",
+    "url": "https://doi.org/10.18466/cbayarfbe.489291",
+    "domain": "dergipark.org.tr",
+    "doi": "10.18466/cbayarfbe.489291",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "jama-jamanetwork-com",
+    "publisher": "American Medical Association (AMA)",
+    "url": "https://doi.org/10.1001/jama.2010.574",
+    "domain": "jama.jamanetwork.com",
+    "doi": "10.1001/jama.2010.574",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "jhr-uwpress-org",
+    "publisher": "University of Wisconsin Press",
+    "url": "https://doi.org/10.3368/jhr.xxxviii.1.111",
+    "domain": "jhr.uwpress.org",
+    "doi": "10.3368/jhr.xxxviii.1.111",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "jmg-bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/jmedgenet-2013-101705",
+    "domain": "jmg.bmj.com",
+    "doi": "10.1136/jmedgenet-2013-101705",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "jnc-psychopen-eu",
+    "publisher": "Leibniz Institute for Psychology (ZPID)",
+    "url": "https://doi.org/10.5964/jnc.6063",
+    "domain": "jnc.psychopen.eu",
+    "doi": "10.5964/jnc.6063",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "learnmem-cshlp-org",
+    "publisher": "Cold Spring Harbor Laboratory",
+    "url": "https://doi.org/10.1101/lm.035493.114",
+    "domain": "learnmem.cshlp.org",
+    "doi": "10.1101/lm.035493.114",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "link-aps-org",
+    "publisher": "American Physical Society (APS)",
+    "url": "https://doi.org/10.1103/physrevphyseducres.14.020109",
+    "domain": "link.aps.org",
+    "doi": "10.1103/physrevphyseducres.14.020109",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "myscp-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1002/jcpy.1028",
+    "domain": "myscp.onlinelibrary.wiley.com",
+    "doi": "10.1002/jcpy.1028",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "ojs-ub-uni-konstanz-de",
+    "publisher": "European Survey Research Association",
+    "url": "https://doi.org/10.18148/srm/2013.v7i3.5458",
+    "domain": "ojs.ub.uni-konstanz.de",
+    "doi": "10.18148/srm/2013.v7i3.5458",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "cogitatiopress-com",
+    "publisher": "Cogitatio",
+    "url": "https://doi.org/10.17645/mac.7666",
+    "domain": "www.cogitatiopress.com",
+    "doi": "10.17645/mac.7666",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "lifescied-org",
+    "publisher": "American Society for Cell Biology (ASCB)",
+    "url": "https://doi.org/10.1187/cbe.16-10-0294",
+    "domain": "www.lifescied.org",
+    "doi": "10.1187/cbe.16-10-0294",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "oncotarget-com",
+    "publisher": "Impact Journals, LLC",
+    "url": "https://doi.org/10.18632/oncotarget.12648",
+    "domain": "www.oncotarget.com",
+    "doi": "10.18632/oncotarget.12648",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "physiology-org",
+    "publisher": "American Physiological Society",
+    "url": "https://doi.org/10.1152/japplphysiol.01095.2004",
+    "domain": "www.physiology.org",
+    "doi": "10.1152/japplphysiol.01095.2004",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "researchsquare-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.21203/rs.3.rs-6613854/v1",
+    "domain": "www.researchsquare.com",
+    "doi": "10.21203/rs.3.rs-6613854/v1",
+    "doisInFred": 3,
+    "source": "fred"
+  },
+  {
+    "id": "aclanthology-org",
+    "publisher": "Association for Computational Linguistics",
+    "url": "https://doi.org/10.18653/v1/2020.findings-emnlp.139",
+    "domain": "aclanthology.org",
+    "doi": "10.18653/v1/2020.findings-emnlp.139",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "aclweb-org",
+    "publisher": "Association for Computational Linguistics",
+    "url": "https://doi.org/10.18653/v1/p16-2067",
+    "domain": "aclweb.org",
+    "doi": "10.18653/v1/p16-2067",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "akjournals-com",
+    "publisher": "Akademiai Kiado Zrt.",
+    "url": "https://doi.org/10.1556/jba.2.2013.003",
+    "domain": "akjournals.com",
+    "doi": "10.1556/jba.2.2013.003",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "alz-journals-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1016/j.jalz.2011.05.2412",
+    "domain": "alz-journals.onlinelibrary.wiley.com",
+    "doi": "10.1016/j.jalz.2011.05.2412",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "appstate-figshare-com",
+    "publisher": "Appalachian State University",
+    "url": "https://doi.org/10.71889/5fylantbak.29863007",
+    "domain": "appstate.figshare.com",
+    "doi": "10.71889/5fylantbak.29863007",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "arthritis-research-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/ar2695",
+    "domain": "arthritis-research.biomedcentral.com",
+    "doi": "10.1186/ar2695",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "bmcophthalmol-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/1471-2415-14-140",
+    "domain": "bmcophthalmol.biomedcentral.com",
+    "doi": "10.1186/1471-2415-14-140",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "bmcpsychiatry-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/1471-244x-11-129",
+    "domain": "bmcpsychiatry.biomedcentral.com",
+    "doi": "10.1186/1471-244x-11-129",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "cipp-ug-edu-pl",
+    "publisher": "Termedia Sp. z.o.o.",
+    "url": "https://doi.org/10.5114/cipp.2021.110948",
+    "domain": "cipp.ug.edu.pl",
+    "doi": "10.5114/cipp.2021.110948",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "diabetesjournals-org",
+    "publisher": "American Diabetes Association",
+    "url": "https://doi.org/10.2337/diabetes.53.9.2467",
+    "domain": "diabetesjournals.org",
+    "doi": "10.2337/diabetes.53.9.2467",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "digitalcommons-georgiasouthern-edu",
+    "publisher": "Georgia Southern University",
+    "url": "https://doi.org/10.20429/ijsotl.2013.070218",
+    "domain": "digitalcommons.georgiasouthern.edu",
+    "doi": "10.20429/ijsotl.2013.070218",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "digitalcommons-pepperdine-edu",
+    "publisher": "Pepperdine Libraries",
+    "url": "https://doi.org/10.57229/2373-1761.1142",
+    "domain": "digitalcommons.pepperdine.edu",
+    "doi": "10.57229/2373-1761.1142",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "elibrary-worldbank-org",
+    "publisher": "The World Bank",
+    "url": "https://doi.org/10.1596/1813-9450-1690",
+    "domain": "elibrary.worldbank.org",
+    "doi": "10.1596/1813-9450-1690",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "escholarship-org",
+    "publisher": "International Society of Comparative Psychology",
+    "url": "https://doi.org/10.46867/ijcp.2018.31.01.13",
+    "domain": "escholarship.org",
+    "doi": "10.46867/ijcp.2018.31.01.13",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "f1000research-com",
+    "publisher": "F1000 Research Ltd",
+    "url": "https://doi.org/10.12688/f1000research.25573.2",
+    "domain": "f1000research.com",
+    "doi": "10.12688/f1000research.25573.2",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "humanfactors-jmir-org",
+    "publisher": "JMIR Publications Inc.",
+    "url": "https://doi.org/10.2196/45481",
+    "domain": "humanfactors.jmir.org",
+    "doi": "10.2196/45481",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "iovs-arvojournals-org",
+    "publisher": "Association for Research in Vision and Ophthalmology (ARVO)",
+    "url": "https://doi.org/10.1167/iovs.10-6497",
+    "domain": "iovs.arvojournals.org",
+    "doi": "10.1167/iovs.10-6497",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "journalofscientificexploration-org",
+    "publisher": "Society for Scientific Exploration",
+    "url": "https://doi.org/10.31275/20211903",
+    "domain": "journalofscientificexploration.org",
+    "doi": "10.31275/20211903",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "journals-shareok-org",
+    "publisher": "University of Oklahoma Libraries",
+    "url": "https://doi.org/10.15763/issn.1936-9298.2024.1.1.15-35",
+    "domain": "journals.shareok.org",
+    "doi": "10.15763/issn.1936-9298.2024.1.1.15-35",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "molecularautism-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s13229-020-00389-4",
+    "domain": "molecularautism.biomedcentral.com",
+    "doi": "10.1186/s13229-020-00389-4",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "molecularneurodegeneration-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/1750-1326-8-18",
+    "domain": "molecularneurodegeneration.biomedcentral.com",
+    "doi": "10.1186/1750-1326-8-18",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "msurjonline-mcgill-ca",
+    "publisher": "McGill University Library and Archives",
+    "url": "https://doi.org/10.26443/msurj.v15i1.10",
+    "domain": "msurjonline.mcgill.ca",
+    "doi": "10.26443/msurj.v15i1.10",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "pubs-asha-org",
+    "publisher": "American Speech Language Hearing Association",
+    "url": "https://doi.org/10.1044/jshd.4301.47",
+    "domain": "pubs.asha.org",
+    "doi": "10.1044/jshd.4301.47",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "pubs-rsc-org",
+    "publisher": "Royal Society of Chemistry (RSC)",
+    "url": "https://doi.org/10.1039/c7rp00238f",
+    "domain": "pubs.rsc.org",
+    "doi": "10.1039/c7rp00238f",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "scholarworks-sjsu-edu",
+    "publisher": "San Jose State University Library",
+    "url": "https://doi.org/10.31979/etd.eh36-m2wx",
+    "domain": "scholarworks.sjsu.edu",
+    "doi": "10.31979/etd.eh36-m2wx",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "utppublishing-com",
+    "publisher": "University of Toronto Press Inc. (UTPress)",
+    "url": "https://doi.org/10.3138/cmlr.3831",
+    "domain": "utppublishing.com",
+    "doi": "10.3138/cmlr.3831",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "ahajournals-org",
+    "publisher": "Ovid Technologies (Wolters Kluwer Health)",
+    "url": "https://doi.org/10.1161/circresaha.117.310628",
+    "domain": "www.ahajournals.org",
+    "doi": "10.1161/circresaha.117.310628",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/bmj.d3313",
+    "domain": "www.bmj.com",
+    "doi": "10.1136/bmj.d3313",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "demographic-research-org",
+    "publisher": "Max Planck Institute for Demographic Research",
+    "url": "https://doi.org/10.4054/demres.2019.40.2",
+    "domain": "www.demographic-research.org",
+    "doi": "10.4054/demres.2019.40.2",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "elgaronline-com",
+    "publisher": "Edward Elgar Publishing",
+    "url": "https://doi.org/10.4337/9781848442764.00018",
+    "domain": "www.elgaronline.com",
+    "doi": "10.4337/9781848442764.00018",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "federalreserve-gov",
+    "publisher": "Board of Governors of the Federal Reserve System",
+    "url": "https://doi.org/10.17016/ifdp.1995.498",
+    "domain": "www.federalreserve.gov",
+    "doi": "10.17016/ifdp.1995.498",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "inderscience-com",
+    "publisher": "Inderscience Publishers",
+    "url": "https://doi.org/10.1504/ijewm.2016.078598",
+    "domain": "www.inderscience.com",
+    "doi": "10.1504/ijewm.2016.078598",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "ingentaconnect-com",
+    "publisher": "Scientific Journal Publishers Ltd",
+    "url": "https://doi.org/10.2224/sbp.2008.36.6.753",
+    "domain": "www.ingentaconnect.com",
+    "doi": "10.2224/sbp.2008.36.6.753",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "jmir-org",
+    "publisher": "JMIR Publications Inc.",
+    "url": "https://doi.org/10.2196/jmir.2551",
+    "domain": "www.jmir.org",
+    "doi": "10.2196/jmir.2551",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "neurology-org",
+    "publisher": "Ovid Technologies (Wolters Kluwer Health)",
+    "url": "https://doi.org/10.1212/wnl.0000000000213905",
+    "domain": "www.neurology.org",
+    "doi": "10.1212/wnl.0000000000213905",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "psicothema-com",
+    "publisher": "Grupo Editorial Psicofundación",
+    "url": "https://doi.org/10.7334/psicothema2016.24",
+    "domain": "www.psicothema.com",
+    "doi": "10.7334/psicothema2016.24",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "psycharchives-org",
+    "publisher": "PsychArchives",
+    "url": "https://doi.org/10.23668/psycharchives.21850",
+    "domain": "www.psycharchives.org",
+    "doi": "10.23668/psycharchives.21850",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "sociologicalscience-com",
+    "publisher": "Society for Sociological Science",
+    "url": "https://doi.org/10.15195/v11.a32",
+    "domain": "www.sociologicalscience.com",
+    "doi": "10.15195/v11.a32",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "surveypractice-org",
+    "publisher": "Survey Practice",
+    "url": "https://doi.org/10.29115/sp-2022-0009",
+    "domain": "www.surveypractice.org",
+    "doi": "10.29115/sp-2022-0009",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "tib-op-org",
+    "publisher": "TIB Open Publishing",
+    "url": "https://doi.org/10.52825/gjae.v74i.2635",
+    "domain": "www.tib-op.org",
+    "doi": "10.52825/gjae.v74i.2635",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "worldscientific-com",
+    "publisher": "World Scientific Pub Co Pte Ltd",
+    "url": "https://doi.org/10.1142/s1363919608001947",
+    "domain": "www.worldscientific.com",
+    "doi": "10.1142/s1363919608001947",
+    "doisInFred": 2,
+    "source": "fred"
+  },
+  {
+    "id": "aacrjournals-org",
+    "publisher": "American Association for Cancer Research (AACR)",
+    "url": "https://doi.org/10.1158/1055-9965.epi-11-0870-t",
+    "domain": "aacrjournals.org",
+    "doi": "10.1158/1055-9965.epi-11-0870-t",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "account-pmejournal-org",
+    "publisher": "Ubiquity Press, Ltd.",
+    "url": "https://doi.org/10.1007/s40037-020-00611-2",
+    "domain": "account.pmejournal.org",
+    "doi": "10.1007/s40037-020-00611-2",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "acrjournals-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1002/art.39932",
+    "domain": "acrjournals.onlinelibrary.wiley.com",
+    "doi": "10.1002/art.39932",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "actacommercii-co-za",
+    "publisher": "AOSIS",
+    "url": "https://doi.org/10.4102/ac.v19i1.690",
+    "domain": "actacommercii.co.za",
+    "doi": "10.4102/ac.v19i1.690",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ageconsearch-umn-edu",
+    "publisher": "Unknown",
+    "url": "https://doi.org/10.22004/ag.econ.139020",
+    "domain": "ageconsearch.umn.edu",
+    "doi": "10.22004/ag.econ.139020",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "alzres-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s13195-015-0154-x",
+    "domain": "alzres.biomedcentral.com",
+    "doi": "10.1186/s13195-015-0154-x",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "apertureneuro-org",
+    "publisher": "Organization for Human Brain Mapping",
+    "url": "https://doi.org/10.52294/001c.165402",
+    "domain": "apertureneuro.org",
+    "doi": "10.52294/001c.165402",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "articlegateway-com",
+    "publisher": "North American Business Press",
+    "url": "https://doi.org/10.33423/jop.v24i1.6861",
+    "domain": "articlegateway.com",
+    "doi": "10.33423/jop.v24i1.6861",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "benthamopen-com",
+    "publisher": "Bentham Science Publishers Ltd.",
+    "url": "https://doi.org/10.2174/1874402800902010006",
+    "domain": "benthamopen.com",
+    "doi": "10.2174/1874402800902010006",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "bera-journals-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1080/01411926.2010.538468",
+    "domain": "bera-journals.onlinelibrary.wiley.com",
+    "doi": "10.1080/01411926.2010.538468",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "besjournals-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1111/2041-210x.13602",
+    "domain": "besjournals.onlinelibrary.wiley.com",
+    "doi": "10.1111/2041-210x.13602",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "biocomm-spbu-ru",
+    "publisher": "Saint Petersburg State University",
+    "url": "https://doi.org/10.21638/spbu03.2024.303",
+    "domain": "biocomm.spbu.ru",
+    "doi": "10.21638/spbu03.2024.303",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "bmcmededuc-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s12909-022-03665-4",
+    "domain": "bmcmededuc.biomedcentral.com",
+    "doi": "10.1186/s12909-022-03665-4",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "bmcmedinformdecismak-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s12911-023-02389-9",
+    "domain": "bmcmedinformdecismak.biomedcentral.com",
+    "doi": "10.1186/s12911-023-02389-9",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "bmjopen-bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/bmjopen-2024-093080",
+    "domain": "bmjopen.bmj.com",
+    "doi": "10.1136/bmjopen-2024-093080",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "cdr-lib-unc-edu",
+    "publisher": "The University of North Carolina at Chapel Hill University Libraries",
+    "url": "https://doi.org/10.17615/q9na-cr13",
+    "domain": "cdr.lib.unc.edu",
+    "doi": "10.17615/q9na-cr13",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "clinicalepigeneticsjournal-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s13148-019-0699-9",
+    "domain": "clinicalepigeneticsjournal.biomedcentral.com",
+    "doi": "10.1186/s13148-019-0699-9",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "content-apa-org",
+    "publisher": "American Psychological Association (APA)",
+    "url": "https://doi.org/10.1037//0022-0663.67.6.882",
+    "domain": "content.apa.org",
+    "doi": "10.1037//0022-0663.67.6.882",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "cpe-psychopen-eu",
+    "publisher": "Leibniz Institute for Psychology (ZPID)",
+    "url": "https://doi.org/10.32872/cpe.v2i4.2593",
+    "domain": "cpe.psychopen.eu",
+    "doi": "10.32872/cpe.v2i4.2593",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "crimesciencejournal-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s40163-021-00141-0",
+    "domain": "crimesciencejournal.biomedcentral.com",
+    "doi": "10.1186/s40163-021-00141-0",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "cris-maastrichtuniversity-nl",
+    "publisher": "Maastricht University",
+    "url": "https://doi.org/10.26481/umagsb.2025008",
+    "domain": "cris.maastrichtuniversity.nl",
+    "doi": "10.26481/umagsb.2025008",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "digital-library-unt-edu",
+    "publisher": "digital.library.unt.edu",
+    "url": "https://doi.org/10.12794/metadc2415972",
+    "domain": "digital.library.unt.edu",
+    "doi": "10.12794/metadc2415972",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "digitalcommons-wku-edu",
+    "publisher": "International Journal of Exercise Science, L.L.C.",
+    "url": "https://doi.org/10.70252/nkky8370",
+    "domain": "digitalcommons.wku.edu",
+    "doi": "10.70252/nkky8370",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "digitalscholarship-unlv-edu",
+    "publisher": "University of Nevada, Las Vegas",
+    "url": "https://doi.org/10.34917/2824168",
+    "domain": "digitalscholarship.unlv.edu",
+    "doi": "10.34917/2824168",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "dl-gi-de",
+    "publisher": "Gesellschaft für Informatik e.V.",
+    "url": "https://doi.org/10.18420/muc2017-up-0002",
+    "domain": "dl.gi.de",
+    "doi": "10.18420/muc2017-up-0002",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "doi-library-ubc-ca",
+    "publisher": "University of British Columbia",
+    "url": "https://doi.org/10.14288/1.0372317",
+    "domain": "doi.library.ubc.ca",
+    "doi": "10.14288/1.0372317",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "doi-org",
+    "publisher": "Columbia University Libraries",
+    "url": "https://doi.org/10.7916/d8f76r2r",
+    "domain": "doi.org",
+    "doi": "10.7916/d8f76r2r",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "dom-pubs-pericles-prod-literatumonline-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1111/dom.70448",
+    "domain": "dom-pubs.pericles-prod.literatumonline.com",
+    "doi": "10.1111/dom.70448",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "educationaltechnologyjournal-springeropen-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s41239-025-00533-1",
+    "domain": "educationaltechnologyjournal.springeropen.com",
+    "doi": "10.1186/s41239-025-00533-1",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ejop-psychopen-eu",
+    "publisher": "Leibniz Institute for Psychology (ZPID)",
+    "url": "https://doi.org/10.5964/ejop.8375",
+    "domain": "ejop.psychopen.eu",
+    "doi": "10.5964/ejop.8375",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ejournals-uni-muenster-de",
+    "publisher": "Replication Research",
+    "url": "https://doi.org/10.17879/replicationresearch-2026-9414",
+    "domain": "ejournals.uni-muenster.de",
+    "doi": "10.17879/replicationresearch-2026-9414",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "faseb-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1096/fj.07-9261com",
+    "domain": "faseb.onlinelibrary.wiley.com",
+    "doi": "10.1096/fj.07-9261com",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "fis-uni-bamberg-de",
+    "publisher": "Universitatsbibliothek Bamberg",
+    "url": "https://doi.org/10.20378/irb-49996",
+    "domain": "fis.uni-bamberg.de",
+    "doi": "10.20378/irb-49996",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "fraser-stlouisfed-org",
+    "publisher": "Federal Reserve Bank of Atlanta",
+    "url": "https://doi.org/10.29338/wp2019-15",
+    "domain": "fraser.stlouisfed.org",
+    "doi": "10.29338/wp2019-15",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "genome-cshlp-org",
+    "publisher": "Cold Spring Harbor Laboratory",
+    "url": "https://doi.org/10.1101/gr.126516.111",
+    "domain": "genome.cshlp.org",
+    "doi": "10.1101/gr.126516.111",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "genominfo-org",
+    "publisher": "Korea Genome Organization",
+    "url": "https://doi.org/10.5808/gi.2016.14.3.85",
+    "domain": "genominfo.org",
+    "doi": "10.5808/gi.2016.14.3.85",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "globalizationandhealth-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/1744-8603-10-19",
+    "domain": "globalizationandhealth.biomedcentral.com",
+    "doi": "10.1186/1744-8603-10-19",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "gut-bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/gut.2003.030205",
+    "domain": "gut.bmj.com",
+    "doi": "10.1136/gut.2003.030205",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "heiup-uni-heidelberg-de",
+    "publisher": "Heidelberg University Publishing",
+    "url": "https://doi.org/10.17885/heiup.1157.c19369",
+    "domain": "heiup.uni-heidelberg.de",
+    "doi": "10.17885/heiup.1157.c19369",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "highdilution-org",
+    "publisher": "International Journal of High Dilution Research - IJHDR",
+    "url": "https://doi.org/10.51910/ijhdr.v11i40.598",
+    "domain": "highdilution.org",
+    "doi": "10.51910/ijhdr.v11i40.598",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "hrcak-srce-hr",
+    "publisher": "Faculty of Humanities and Social Sciences University of Rijeka",
+    "url": "https://doi.org/10.31820/pt.28.3.7",
+    "domain": "hrcak.srce.hr",
+    "doi": "10.31820/pt.28.3.7",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ila-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1002/rrq.027",
+    "domain": "ila.onlinelibrary.wiley.com",
+    "doi": "10.1002/rrq.027",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "immunityageing-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s12979-019-0146-y",
+    "domain": "immunityageing.biomedcentral.com",
+    "doi": "10.1186/s12979-019-0146-y",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "implementationscience-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s13012-015-0364-4",
+    "domain": "implementationscience.biomedcentral.com",
+    "doi": "10.1186/s13012-015-0364-4",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "injuryprevention-bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/injuryprev-2018-043127",
+    "domain": "injuryprevention.bmj.com",
+    "doi": "10.1136/injuryprev-2018-043127",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "insight-jci-org",
+    "publisher": "American Society for Clinical Investigation",
+    "url": "https://doi.org/10.1172/jci.insight.89376",
+    "domain": "insight.jci.org",
+    "doi": "10.1172/jci.insight.89376",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ir-canterbury-ac-nz",
+    "publisher": "University of Canterbury",
+    "url": "https://doi.org/10.26021/11892",
+    "domain": "ir.canterbury.ac.nz",
+    "doi": "10.26021/11892",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ir-library-illinoisstate-edu",
+    "publisher": "ir.library.illinoisstate.edu",
+    "url": "https://doi.org/10.30707/etd2019.george.a",
+    "domain": "ir.library.illinoisstate.edu",
+    "doi": "10.30707/etd2019.george.a",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "jamanetworkopen-jamanetwork-com",
+    "publisher": "American Medical Association (AMA)",
+    "url": "https://doi.org/10.1001/jamanetworkopen.2019.0570",
+    "domain": "jamanetworkopen.jamanetwork.com",
+    "doi": "10.1001/jamanetworkopen.2019.0570",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "jasss-soc-surrey-ac-uk",
+    "publisher": "Journal of Artificial Societies and Social Simulation",
+    "url": "https://doi.org/10.18564/jasss.4219",
+    "domain": "jasss.soc.surrey.ac.uk",
+    "doi": "10.18564/jasss.4219",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "jeps-efpsa-org",
+    "publisher": "European Federation of Psychology Students’ Associations",
+    "url": "https://doi.org/10.5334/jeps.450",
+    "domain": "jeps.efpsa.org",
+    "doi": "10.5334/jeps.450",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "jneuroinflammation-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s12974-014-0181-8",
+    "domain": "jneuroinflammation.biomedcentral.com",
+    "doi": "10.1186/s12974-014-0181-8",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "jnnp-bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/jnnp.2004.047357",
+    "domain": "jnnp.bmj.com",
+    "doi": "10.1136/jnnp.2004.047357",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "josr-online-biomedcentral-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s13018-018-0769-2",
+    "domain": "josr-online.biomedcentral.com",
+    "doi": "10.1186/s13018-018-0769-2",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-charlotte-edu",
+    "publisher": "J. Murrey Atkins Library, University of North Carolina at Charlotte",
+    "url": "https://doi.org/10.55370/urj.v2i1.1423",
+    "domain": "journals.charlotte.edu",
+    "doi": "10.55370/urj.v2i1.1423",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-eco-vector-com",
+    "publisher": "ECO-Vector LLC",
+    "url": "https://doi.org/10.17816/nb100176",
+    "domain": "journals.eco-vector.com",
+    "doi": "10.17816/nb100176",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-healio-com",
+    "publisher": "SLACK, Inc.",
+    "url": "https://doi.org/10.3928/0048-5713-19951201-07",
+    "domain": "journals.healio.com",
+    "doi": "10.3928/0048-5713-19951201-07",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-library-ualberta-ca",
+    "publisher": "University of Alberta Libraries",
+    "url": "https://doi.org/10.18438/eblip30968",
+    "domain": "journals.library.ualberta.ca",
+    "doi": "10.18438/eblip30968",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-linguisticsociety-org",
+    "publisher": "Linguistic Society of America",
+    "url": "https://doi.org/10.3765/exabs.v0i0.603",
+    "domain": "journals.linguisticsociety.org",
+    "doi": "10.3765/exabs.v0i0.603",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-newprairiepress-org",
+    "publisher": "Kansas State University",
+    "url": "https://doi.org/10.4148/1944-9771.1299",
+    "domain": "journals.newprairiepress.org",
+    "doi": "10.4148/1944-9771.1299",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-physiology-org",
+    "publisher": "American Physiological Society",
+    "url": "https://doi.org/10.1152/jn.00412.2024",
+    "domain": "journals.physiology.org",
+    "doi": "10.1152/jn.00412.2024",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-publisso-de",
+    "publisher": "German Medical Science GMS Publishing House",
+    "url": "https://doi.org/10.3205/zma000997",
+    "domain": "journals.publisso.de",
+    "doi": "10.3205/zma000997",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-uclpress-co-uk",
+    "publisher": "UCL Press",
+    "url": "https://doi.org/10.14324/111.444/ucloe.000051",
+    "domain": "journals.uclpress.co.uk",
+    "doi": "10.14324/111.444/ucloe.000051",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journals-ue-poznan-pl",
+    "publisher": "Poznań University of Economics and Business",
+    "url": "https://doi.org/10.18559/ebr.2021.2.2",
+    "domain": "journals.ue.poznan.pl",
+    "doi": "10.18559/ebr.2021.2.2",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "karger-com",
+    "publisher": "S. Karger AG",
+    "url": "https://doi.org/10.1159/000054847",
+    "domain": "karger.com",
+    "doi": "10.1159/000054847",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "kuis-kandagaigo-ac-jp",
+    "publisher": "Kanda University of International Studies",
+    "url": "https://doi.org/10.37237/relay/010204",
+    "domain": "kuis.kandagaigo.ac.jp",
+    "doi": "10.37237/relay/010204",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "labourmarketresearch-springeropen-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s12651-022-00306-7",
+    "domain": "labourmarketresearch.springeropen.com",
+    "doi": "10.1186/s12651-022-00306-7",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "lebs-hbesj-org",
+    "publisher": "Human Behavior and Evolution Society of Japan",
+    "url": "https://doi.org/10.5178/lebs.2024.118",
+    "domain": "lebs.hbesj.org",
+    "doi": "10.5178/lebs.2024.118",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "mental-jmir-org",
+    "publisher": "JMIR Publications Inc.",
+    "url": "https://doi.org/10.2196/26134",
+    "domain": "mental.jmir.org",
+    "doi": "10.2196/26134",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "meridian-allenpress-com",
+    "publisher": "Informa UK Limited",
+    "url": "https://doi.org/10.1352/1934-9556-56.6.442",
+    "domain": "meridian.allenpress.com",
+    "doi": "10.1352/1934-9556-56.6.442",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "misinforeview-hks-harvard-edu",
+    "publisher": "Shorenstein Center for Media, Politics, and Public Policy",
+    "url": "https://doi.org/10.37016/mr-2020-47",
+    "domain": "misinforeview.hks.harvard.edu",
+    "doi": "10.37016/mr-2020-47",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "nsojournals-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1111/jav.03365",
+    "domain": "nsojournals.onlinelibrary.wiley.com",
+    "doi": "10.1111/jav.03365",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "obgyn-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1016/j.ijgo.2016.06.008",
+    "domain": "obgyn.onlinelibrary.wiley.com",
+    "doi": "10.1016/j.ijgo.2016.06.008",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "oem-bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/oemed-2021-107617",
+    "domain": "oem.bmj.com",
+    "doi": "10.1136/oemed-2021-107617",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ojs-utlib-ee",
+    "publisher": "Scandinavian Journal of Laboratory Animal Sciences",
+    "url": "https://doi.org/10.23675/sjlas.v45i0.614",
+    "domain": "ojs.utlib.ee",
+    "doi": "10.23675/sjlas.v45i0.614",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "open-research-europe-ec-europa-eu",
+    "publisher": "F1000 Research Ltd",
+    "url": "https://doi.org/10.12688/openreseurope.17749.1",
+    "domain": "open-research-europe.ec.europa.eu",
+    "doi": "10.12688/openreseurope.17749.1",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "physoc-onlinelibrary-wiley-com",
+    "publisher": "Wiley",
+    "url": "https://doi.org/10.1113/expphysiol.2008.045138",
+    "domain": "physoc.onlinelibrary.wiley.com",
+    "doi": "10.1113/expphysiol.2008.045138",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "polipapers-upv-es",
+    "publisher": "Universitat Politecnica de Valencia",
+    "url": "https://doi.org/10.4995/muse.2019.10390",
+    "domain": "polipapers.upv.es",
+    "doi": "10.4995/muse.2019.10390",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "prc-springeropen-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s41155-024-00291-5",
+    "domain": "prc.springeropen.com",
+    "doi": "10.1186/s41155-024-00291-5",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "psm-sagepub-com",
+    "publisher": "Vathek Publishing",
+    "url": "https://doi.org/10.1350/ijps.2014.16.4.346",
+    "domain": "psm.sagepub.com",
+    "doi": "10.1350/ijps.2014.16.4.346",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "publicationsncte-org",
+    "publisher": "National Council of Teachers of English",
+    "url": "https://doi.org/10.58680/rte20076014",
+    "domain": "publicationsncte.org",
+    "doi": "10.58680/rte20076014",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "publichealth-jmir-org",
+    "publisher": "JMIR Publications Inc.",
+    "url": "https://doi.org/10.2196/20572",
+    "domain": "publichealth.jmir.org",
+    "doi": "10.2196/20572",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "pubs-nctm-org",
+    "publisher": "National Council of Teachers of Mathematics",
+    "url": "https://doi.org/10.5951/jresematheduc.29.5.0503",
+    "domain": "pubs.nctm.org",
+    "doi": "10.5951/jresematheduc.29.5.0503",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "reunido-uniovi-es",
+    "publisher": "Universidad de Oviedo",
+    "url": "https://doi.org/10.17811/ebl.12.3.2023.241-247",
+    "domain": "reunido.uniovi.es",
+    "doi": "10.17811/ebl.12.3.2023.241-247",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "revista-crcsc-org-br",
+    "publisher": "Revista Catarinense da Ciencia Contabil",
+    "url": "https://doi.org/10.16930/2237-7662202131531",
+    "domain": "revista.crcsc.org.br",
+    "doi": "10.16930/2237-7662202131531",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ricl-aelinco-es",
+    "publisher": "Research in Corpus Linguistics",
+    "url": "https://doi.org/10.32714/ricl.10.01.08",
+    "domain": "ricl.aelinco.es",
+    "doi": "10.32714/ricl.10.01.08",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "scholarworks-umass-edu",
+    "publisher": "University of Massachusetts Amherst",
+    "url": "https://doi.org/10.7275/11867619",
+    "domain": "scholarworks.umass.edu",
+    "doi": "10.7275/11867619",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "sisaljournal-org",
+    "publisher": "Kanda University of International Studies",
+    "url": "https://doi.org/10.37237/150205",
+    "domain": "sisaljournal.org",
+    "doi": "10.37237/150205",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "sportsmedicine-open-springeropen-com",
+    "publisher": "Springer Science and Business Media LLC",
+    "url": "https://doi.org/10.1186/s40798-020-00243-0",
+    "domain": "sportsmedicine-open.springeropen.com",
+    "doi": "10.1186/s40798-020-00243-0",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "storkjournals-org",
+    "publisher": "University of Ottawa Library",
+    "url": "https://doi.org/10.51224/cik.v1i2.39",
+    "domain": "storkjournals.org",
+    "doi": "10.51224/cik.v1i2.39",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "tobaccocontrol-bmj-com",
+    "publisher": "BMJ",
+    "url": "https://doi.org/10.1136/tobaccocontrol-2021-056528",
+    "domain": "tobaccocontrol.bmj.com",
+    "doi": "10.1136/tobaccocontrol-2021-056528",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "uknowledge-uky-edu",
+    "publisher": "University of Kentucky Libraries",
+    "url": "https://doi.org/10.13023/etd.2019.180",
+    "domain": "uknowledge.uky.edu",
+    "doi": "10.13023/etd.2019.180",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "vavilov-elpub-ru",
+    "publisher": "Institute of Cytology and Genetics, SB RAS",
+    "url": "https://doi.org/10.18699/vjgb-25-91",
+    "domain": "vavilov.elpub.ru",
+    "doi": "10.18699/vjgb-25-91",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "versita-metapress-com",
+    "publisher": "Index Copernicus",
+    "url": "https://doi.org/10.2478/v10036-009-0039-9",
+    "domain": "versita.metapress.com",
+    "doi": "10.2478/v10036-009-0039-9",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "web-archive-org",
+    "publisher": "Journal of Rehabilitation Research & Development",
+    "url": "https://doi.org/10.1682/jrrd.2013.05.0104",
+    "domain": "web.archive.org",
+    "doi": "10.1682/jrrd.2013.05.0104",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "wellcomeopenresearch-org",
+    "publisher": "F1000 Research Ltd",
+    "url": "https://doi.org/10.12688/wellcomeopenres.15486.2",
+    "domain": "wellcomeopenresearch.org",
+    "doi": "10.12688/wellcomeopenres.15486.2",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "aup-online-com",
+    "publisher": "Amsterdam University Press",
+    "url": "https://doi.org/10.5117/2017.045.002.002",
+    "domain": "www.aup-online.com",
+    "doi": "10.5117/2017.045.002.002",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "bloomsburycollections-com",
+    "publisher": "Bloomsbury Publishing Plc",
+    "url": "https://doi.org/10.5040/9781472594150.ch-005",
+    "domain": "www.bloomsburycollections.com",
+    "doi": "10.5040/9781472594150.ch-005",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "cabidigitallibrary-org",
+    "publisher": "CABI Publishing",
+    "url": "https://doi.org/10.1079/hai.2018.0021",
+    "domain": "www.cabidigitallibrary.org",
+    "doi": "10.1079/hai.2018.0021",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "cafyd-com",
+    "publisher": "Revista Internacional de Ciencias del Deporte (RICYDE)",
+    "url": "https://doi.org/10.5232/ricyde2010.01804",
+    "domain": "www.cafyd.com",
+    "doi": "10.5232/ricyde2010.01804",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "castledown-com",
+    "publisher": "Castledown Publishers",
+    "url": "https://doi.org/10.7820/vli.v02.1.ishii",
+    "domain": "www.castledown.com",
+    "doi": "10.7820/vli.v02.1.ishii",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "cbbjournal-ro",
+    "publisher": "Babes-Bolyai University Cluj-Napoca",
+    "url": "https://doi.org/10.24193/cbb.2022.26.09",
+    "domain": "www.cbbjournal.ro",
+    "doi": "10.24193/cbb.2022.26.09",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ccsenet-org",
+    "publisher": "Canadian Center of Science and Education",
+    "url": "https://doi.org/10.5539/ibr.v5n4p71",
+    "domain": "www.ccsenet.org",
+    "doi": "10.5539/ibr.v5n4p71",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "cjournal-cz",
+    "publisher": "Tomas Bata University in Zlin",
+    "url": "https://doi.org/10.7441/joc.2019.02.01",
+    "domain": "www.cjournal.cz",
+    "doi": "10.7441/joc.2019.02.01",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ejmste-com",
+    "publisher": "Modestum Publishing Ltd",
+    "url": "https://doi.org/10.12973/eurasia.2014.948a",
+    "domain": "www.ejmste.com",
+    "doi": "10.12973/eurasia.2014.948a",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "fulcrum-org",
+    "publisher": "University of Michigan Press",
+    "url": "https://doi.org/10.3998/mpub.9946611",
+    "domain": "www.fulcrum.org",
+    "doi": "10.3998/mpub.9946611",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "healthaffairs-org",
+    "publisher": "Health Affairs Publishing, LLC",
+    "url": "https://doi.org/10.1377/hlthaff.2012.0393",
+    "domain": "www.healthaffairs.org",
+    "doi": "10.1377/hlthaff.2012.0393",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "icpsr-umich-edu",
+    "publisher": "ICPSR - Interuniversity Consortium for Political and Social Research",
+    "url": "https://doi.org/10.3886/icpsr01218.v1",
+    "domain": "www.icpsr.umich.edu",
+    "doi": "10.3886/icpsr01218.v1",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "ijfmr-com",
+    "publisher": "International Journal for Multidisciplinary Research (IJFMR)",
+    "url": "https://doi.org/10.36948/ijfmr.2025.v07i06.61995",
+    "domain": "www.ijfmr.com",
+    "doi": "10.36948/ijfmr.2025.v07i06.61995",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "joctec-net",
+    "publisher": "Journal of Communication Technology",
+    "url": "https://doi.org/10.51548/joctec-2021-016",
+    "domain": "www.joctec.net",
+    "doi": "10.51548/joctec-2021-016",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "journal-bpa-org",
+    "publisher": "Center for Experimental and Behavioral Public Administration",
+    "url": "https://doi.org/10.30636/jbpa.12.34",
+    "domain": "www.journal-bpa.org",
+    "doi": "10.30636/jbpa.12.34",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "jrheum-org",
+    "publisher": "The Journal of Rheumatology",
+    "url": "https://doi.org/10.3899/jrheum.131548",
+    "domain": "www.jrheum.org",
+    "doi": "10.3899/jrheum.131548",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "jsad-com",
+    "publisher": "Alcohol Research Documentation, Inc.",
+    "url": "https://doi.org/10.15288/jsa.2006.67.169",
+    "domain": "www.jsad.com",
+    "doi": "10.15288/jsa.2006.67.169",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "kansascityfed-org",
+    "publisher": "Federal Reserve Bank of Kansas City",
+    "url": "https://doi.org/10.18651/rwp2018-04",
+    "domain": "www.kansascityfed.org",
+    "doi": "10.18651/rwp2018-04",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "kci-go-kr",
+    "publisher": "언어연구",
+    "url": "https://doi.org/10.17250/khisli.43.1.202603.001",
+    "domain": "www.kci.go.kr",
+    "doi": "10.17250/khisli.43.1.202603.001",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "noiseandhealth-org",
+    "publisher": "Medknow",
+    "url": "https://doi.org/10.4103/1463-1741.70502",
+    "domain": "www.noiseandhealth.org",
+    "doi": "10.4103/1463-1741.70502",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "pedocs-de",
+    "publisher": "IPN - Leibniz-Institut für die Pädagogik der Naturwissenschaften und Mathematik : Kiel",
+    "url": "https://doi.org/10.25656/01:31701",
+    "domain": "www.pedocs.de",
+    "doi": "10.25656/01:31701",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "preprints-org",
+    "publisher": "MDPI AG",
+    "url": "https://doi.org/10.20944/preprints202101.0592.v1",
+    "domain": "www.preprints.org",
+    "doi": "10.20944/preprints202101.0592.v1",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "psichi-org",
+    "publisher": "Psi Chi, the International Honor Society in Psychology",
+    "url": "https://doi.org/10.24839/2325-7342.jn26.4.422",
+    "domain": "www.psichi.org",
+    "doi": "10.24839/2325-7342.jn26.4.422",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "qeios-com",
+    "publisher": "Qeios Ltd",
+    "url": "https://doi.org/10.32388/e37rhf",
+    "domain": "www.qeios.com",
+    "doi": "10.32388/e37rhf",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "researchgate-net",
+    "publisher": "Unpublished",
+    "url": "https://doi.org/10.13140/2.1.4432.0644",
+    "domain": "www.researchgate.net",
+    "doi": "10.13140/2.1.4432.0644",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "researchprotocols-org",
+    "publisher": "JMIR Publications Inc.",
+    "url": "https://doi.org/10.2196/37954",
+    "domain": "www.researchprotocols.org",
+    "doi": "10.2196/37954",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "sav-sk",
+    "publisher": "Central Library of the Slovak Academy of Sciences",
+    "url": "https://doi.org/10.31577/sp.2021.02.823",
+    "domain": "www.sav.sk",
+    "doi": "10.31577/sp.2021.02.823",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "scielo-br",
+    "publisher": "FapUNIFESP (SciELO)",
+    "url": "https://doi.org/10.1590/s1415-47572010005000056",
+    "domain": "www.scielo.br",
+    "doi": "10.1590/s1415-47572010005000056",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "spiedigitallibrary-org",
+    "publisher": "SPIE",
+    "url": "https://doi.org/10.1117/12.2546895",
+    "domain": "www.spiedigitallibrary.org",
+    "doi": "10.1117/12.2546895",
+    "doisInFred": 1,
+    "source": "fred"
+  },
+  {
+    "id": "pmc",
+    "publisher": "PubMed Central",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6427092/",
+    "domain": "pmc.ncbi.nlm.nih.gov",
+    "doi": "",
+    "doisInFred": 0,
+    "source": "manual"
+  },
+  {
+    "id": "pubmed",
+    "publisher": "PubMed",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/20565167/",
+    "domain": "pubmed.ncbi.nlm.nih.gov",
+    "doi": "",
+    "doisInFred": 0,
+    "source": "manual"
+  },
+  {
+    "id": "annualreviews",
+    "publisher": "Annual Reviews",
+    "url": "https://www.annualreviews.org/content/journals/10.1146/annurev-psych-020821-114157",
+    "domain": "www.annualreviews.org",
+    "doi": "",
+    "doisInFred": 0,
+    "source": "manual"
+  }
 ]
