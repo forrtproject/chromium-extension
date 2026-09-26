@@ -163,20 +163,41 @@ export interface DomainPause {
   snoozedUntil: number | null;
 }
 
-export function onDomainPauseChange(hostnames: () => string[], listener: (pause: DomainPause) => void): void {
+export async function getDomainPause(hostnames: string[]): Promise<DomainPause> {
+  let blocked = false;
+  let snoozedUntil: number | null = null;
+  for (const host of hostnames) {
+    blocked ||= await isDomainBlocked(host);
+    const until = await getSnooze(host);
+    if (until !== null && (snoozedUntil === null || until > snoozedUntil)) snoozedUntil = until;
+  }
+  return { blocked, snoozedUntil };
+}
+
+export function onDomainPauseChange(
+  hostnames: () => string[],
+  listener: (pause: DomainPause) => void,
+  snoozedUntil: number | null = null,
+): void {
   installDomainInvalidation();
+  let expiryTimer: ReturnType<typeof setTimeout> | null = null;
+  const recheckAt = (until: number | null): void => {
+    if (expiryTimer) clearTimeout(expiryTimer);
+    expiryTimer = until === null ? null : setTimeout(emit, Math.max(0, until - Date.now()) + 1000);
+  };
+  const emit = (): void => {
+    void getDomainPause(hostnames())
+      .then((pause) => {
+        recheckAt(pause.snoozedUntil);
+        listener(pause);
+      })
+      .catch((err) => debugError("Domain pause: re-check failed —", err));
+  };
+  recheckAt(snoozedUntil);
   try {
     chrome.storage.onChanged?.addListener((changes, area) => {
       if (!(area === "sync" && changes[BLACKLIST_KEY]) && !(area === "local" && changes[SNOOZE_KEY])) return;
-      void (async () => {
-        let blocked = false;
-        let snoozedUntil: number | null = null;
-        for (const host of hostnames()) {
-          blocked ||= await isDomainBlocked(host);
-          snoozedUntil ??= await getSnooze(host);
-        }
-        listener({ blocked, snoozedUntil });
-      })().catch((err) => debugError("Domain pause: re-check after a settings change failed —", err));
+      emit();
     });
   } catch {
     return;

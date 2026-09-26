@@ -40,7 +40,7 @@ Each page gets one of these results:
 | Timed out | ORE showed no activity before the time limit |
 | Error | The page could not be loaded |
 
-A page that fails, times out or errors is tried once more before it is reported.
+A page that fails, finds no DOI, times out or errors is tried once more before it is reported.
 
 ## Bot checks
 

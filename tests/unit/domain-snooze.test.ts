@@ -102,19 +102,23 @@ describe("domain snooze", () => {
 });
 
 describe("following a pause set in another tab", () => {
-  async function watch(host: string) {
+  async function watch(...hosts: string[]) {
     const addListener = vi.mocked(chrome.storage.onChanged.addListener);
     const before = addListener.mock.calls.length;
     const domains = await loadDomains();
+    for (const host of hosts) {
+      await domains.isDomainBlocked(host);
+      await domains.getSnooze(host);
+    }
     const seen: {blocked: boolean; snoozedUntil: number | null}[] = [];
-    domains.onDomainPauseChange(() => [host], (pause) => seen.push(pause));
+    domains.onDomainPauseChange(() => hosts, (pause) => seen.push(pause));
     const listeners = addListener.mock.calls.slice(before).map(([listener]) => listener);
     const change = async (area: "local" | "sync", key: string, value: unknown) => {
       const store = area === "local" ? localStore : syncStore;
       const oldValue = store[key];
-      store[key] = value;
       for (const listener of listeners) listener({[key]: {oldValue, newValue: value}}, area);
       await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0));
+      store[key] = value;
     };
     return {seen, change};
   }
@@ -137,6 +141,31 @@ describe("following a pause set in another tab", () => {
     const {seen, change} = await watch("example.org");
     await change("sync", BLACKLIST_KEY, []);
     expect(seen.at(-1)).toEqual({blocked: false, snoozedUntil: null});
+  });
+
+  it("reports the snooze that ends last when several hosts are paused", async () => {
+    const {seen, change} = await watch("word-edit.officeapps.live.com", "contoso.sharepoint.com");
+    const soon = Date.now() + 60_000;
+    const later = Date.now() + 3_600_000;
+    await change("local", SNOOZE_KEY, {"officeapps.live.com": soon, "contoso.sharepoint.com": later});
+    expect(seen.at(-1)).toEqual({blocked: false, snoozedUntil: later});
+  });
+
+  it("checks again when a snooze runs out, without a settings change", async () => {
+    vi.useFakeTimers();
+    try {
+      const until = Date.now() + 60_000;
+      localStore[SNOOZE_KEY] = {"example.org": until};
+      const domains = await loadDomains();
+      const listener = vi.fn();
+      domains.onDomainPauseChange(() => ["example.org"], listener, until);
+      await vi.advanceTimersByTimeAsync(59_000);
+      expect(listener).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(3_000);
+      expect(listener).toHaveBeenCalledWith({blocked: false, snoozedUntil: null});
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("ignores changes to other settings", async () => {

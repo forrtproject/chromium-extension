@@ -43,7 +43,7 @@ import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
-import {getSnooze, isDomainBlocked, onDomainPauseChange} from "@shared/domains";
+import {getDomainPause, onDomainPauseChange} from "@shared/domains";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
@@ -56,7 +56,7 @@ import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {fetchSheetCsv, parseSheetsUrl, sheetTabKey} from "./sheets";
-import {canStartAutomaticWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
+import {canStartAutomaticWork, cancelWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
@@ -190,6 +190,7 @@ function followDomainPause(): void {
         if (blocked || snoozedUntil !== null) {
             if (!floraHidden) pausedBySettings = true;
             floraHidden = true;
+            cancelWork();
             hideAllFloraUI();
             if (blocked) reportBlocked();
             else reportActiveState(false, snoozedUntil);
@@ -1232,54 +1233,7 @@ async function fetchSheetDois(): Promise<void> {
 }
 
 
-(async () => {
-  let editorAllowed = false;
-  try {
-    if (window !== window.top && !isWordOnline() && !isExcel) return;
-    installErrorReporting();
-
-    // A Cloudflare challenge is served at the article's own URL, so the DOI in
-    // that URL resolves and FLoRA would pill an interstitial. Render nothing
-    // and stop — clearing the challenge loads the real document, and the
-    // content script starts over there.
-    if (isOwnRepoUrl(location.href)) {
-        reportActiveState(false);
-        return;
-    }
-
-    if (isBotCheckPage()) {
-        debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
-        reportActiveState(false);
-        return;
-    }
-
-    if (isAuthGatewayPage()) {
-        debugLog("Sign-in step — FLoRA renders nothing on this page");
-        reportActiveState(false);
-        return;
-    }
-
-    if (await isDomainBlocked(location.hostname)) {
-        debugLog("Domain is blocked:", location.hostname);
-        reportBlocked();
-        return;
-    }
-
-    // The popup pauses/blocks the outer SharePoint site. Respect that host in
-    // the Word iframe as well as the Office host used by its own controls.
-    if ((isWordOnline() || isExcel) && document.referrer) {
-        const outerHost = new URL(document.referrer).hostname;
-        if (await isDomainBlocked(outerHost)) { reportBlocked(); return; }
-        const outerSnooze = await getSnooze(outerHost);
-        if (outerSnooze !== null) { reportActiveState(false, outerSnooze); return; }
-    }
-
-    const snoozedUntil = await getSnooze(location.hostname);
-    if (snoozedUntil !== null) {
-        debugLog("Domain is snoozed:", location.hostname);
-        reportActiveState(false, snoozedUntil);
-        return;
-    }
+async function startOnPage(): Promise<void> {
     // Applicable page — mark the toolbar icon active for this tab.
     reportActiveState(true);
     followDomainPause();
@@ -1287,7 +1241,6 @@ async function fetchSheetDois(): Promise<void> {
     if (!(await isSetupComplete())) {
         renderSetupPrompt().catch((err) => debugError("Setup prompt failed to render —", err));
     }
-    editorAllowed = true;
     const startFlora = (): void => {
         if (isGoogleDocs()) startGoogleDocs(() => {
             if (document.hidden || floraHidden || !canStartAutomaticWork()) return;
@@ -1372,6 +1325,57 @@ async function fetchSheetDois(): Promise<void> {
             }
         });
     }
+}
+
+function startWhenResumed(snoozedUntil: number | null): void {
+    let started = false;
+    onDomainPauseChange(pauseHosts, (pause) => {
+        if (started) return;
+        if (pause.blocked) { reportBlocked(); return; }
+        if (pause.snoozedUntil !== null) { reportActiveState(false, pause.snoozedUntil); return; }
+        started = true;
+        debugLog("General: domain re-enabled — starting ORE on this page");
+        void startOnPage().catch((err) => reportCodeError(`ORE failed to start on ${location.hostname}`, err));
+    }, snoozedUntil);
+}
+
+(async () => {
+  let editorAllowed = false;
+  try {
+    if (window !== window.top && !isWordOnline() && !isExcel) return;
+    installErrorReporting();
+
+    // A Cloudflare challenge is served at the article's own URL, so the DOI in
+    // that URL resolves and FLoRA would pill an interstitial. Render nothing
+    // and stop — clearing the challenge loads the real document, and the
+    // content script starts over there.
+    if (isOwnRepoUrl(location.href)) {
+        reportActiveState(false);
+        return;
+    }
+
+    if (isBotCheckPage()) {
+        debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
+        reportActiveState(false);
+        return;
+    }
+
+    if (isAuthGatewayPage()) {
+        debugLog("Sign-in step — FLoRA renders nothing on this page");
+        reportActiveState(false);
+        return;
+    }
+
+    const pause = await getDomainPause(pauseHosts());
+    if (pause.blocked || pause.snoozedUntil !== null) {
+        debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}:`, pauseHosts().join(", "));
+        if (pause.blocked) reportBlocked();
+        else reportActiveState(false, pause.snoozedUntil);
+        if (!isGoogleDocs() && !isExcel) startWhenResumed(pause.snoozedUntil);
+        return;
+    }
+    editorAllowed = true;
+    await startOnPage();
   } catch (err) {
     reportCodeError(`ORE failed to start on ${location.hostname}`, err);
     reportActiveState(false);

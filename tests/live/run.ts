@@ -103,6 +103,11 @@ async function prepareExtension(browser: Browser): Promise<void> {
         t.type() === "service_worker" && t.url().endsWith("/dist/background.js"), {timeout: 20_000});
     const worker = await target.worker();
     if (!worker) throw new Error("ORE service worker not available");
+    const readyBy = Date.now() + 15_000;
+    while (!(await worker.evaluate("Boolean(globalThis.chrome?.runtime?.id && typeof chrome.storage?.local?.set === 'function')").catch(() => false))) {
+        if (Date.now() > readyBy) throw new Error("ORE service worker did not finish starting");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+    }
     const email = process.env.ORE_TEST_EMAIL?.trim() ?? "";
     await worker.evaluate(async (contact: string) => {
         await chrome.storage.local.set({flora_debug: true});
@@ -395,7 +400,7 @@ function writeReport(results: Result[], startedAt: Date, extensionVersion: strin
 <td class="num">${r.indicatorPills}</td>
 <td class="num">${r.noticePills}</td>
 <td>${r.reportPanel ? "Yes" : "No"}</td>
-<td class="num">${r.doneIn ?? "—"}</td>
+<td class="num">${escape(r.doneIn ?? "—")}</td>
 <td class="num">${r.oreErrors.length}</td>
 </tr>`).join("\n");
     const sections = results.map((r) => `<section id="${r.id}">
@@ -406,7 +411,7 @@ function writeReport(results: Result[], startedAt: Date, extensionVersion: strin
 <dt>URL</dt><dd><a href="${escape(r.url)}">${escape(r.url)}</a>${r.finalUrl !== r.url ? `<br>Redirected to ${escape(r.finalUrl)}` : ""}</dd>
 <dt>Page</dt><dd>${escape(r.pageTitle || "—")} (HTTP ${r.httpStatus ?? "—"}, loaded in ${(r.loadMs / 1000).toFixed(1)} s)</dd>
 <dt>Page DOI</dt><dd>${escape(r.pageDoi ?? "none declared")}</dd>
-<dt>ORE</dt><dd>Title pill: ${r.titlePill ? "yes" : "no"} · ${r.indicatorPills} indicator pill(s) · ${r.noticePills} notice pill(s) · report: ${r.reportPanel ? "yes" : "no"}${r.nothingFound ? " · showed “Nothing found”" : ""} · finished in ${r.doneIn ?? "—"}</dd>
+<dt>ORE</dt><dd>Title pill: ${r.titlePill ? "yes" : "no"} · ${r.indicatorPills} indicator pill(s) · ${r.noticePills} notice pill(s) · report: ${r.reportPanel ? "yes" : "no"}${r.nothingFound ? " · showed “Nothing found”" : ""} · finished in ${escape(r.doneIn ?? "—")}</dd>
 ${r.oreErrors.length ? `<dt>ORE warnings</dt><dd><pre>${escape(r.oreErrors.slice(0, 8).join("\n"))}</pre></dd>` : ""}
 ${r.verdict !== "pass" && r.oreLog.length ? `<dt>ORE log (last 15)</dt><dd><pre>${escape(r.oreLog.slice(-15).join("\n"))}</pre></dd>` : ""}
 </dl>
@@ -439,15 +444,20 @@ ${sections}
     return file;
 }
 
-async function writePdf(browser: Browser, reportFile: string): Promise<string> {
-    const page = await browser.newPage();
+async function writePdf(reportFile: string): Promise<string> {
+    const printer = await puppeteer.launch({
+        executablePath: await ensureChrome(),
+        headless: true,
+        args: process.env.CI ? ["--no-sandbox"] : [],
+    });
     try {
+        const page = await printer.newPage();
         await page.goto(`file://${reportFile}`, {waitUntil: "load"});
         const file = path.join(OUTPUT_DIR, "report.pdf");
         await page.pdf({path: file, format: "A4", printBackground: true, margin: {top: "12mm", bottom: "12mm", left: "10mm", right: "10mm"}});
         return file;
     } finally {
-        await page.close();
+        await printer.close();
     }
 }
 
@@ -479,7 +489,7 @@ async function main(): Promise<void> {
         }
         writeFileSync(path.join(OUTPUT_DIR, "results.json"), JSON.stringify(results, null, 2));
         const reportFile = writeReport(results, startedAt, version);
-        const pdfFile = await writePdf(browser, reportFile);
+        const pdfFile = await writePdf(reportFile);
         console.log(`\nReport: ${reportFile}\nPDF:    ${pdfFile}`);
     } finally {
         await browser.close();

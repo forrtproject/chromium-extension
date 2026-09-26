@@ -124,10 +124,31 @@ describe("Word Online", () => {
             expect(scan).toHaveBeenCalledTimes(1);
 
             for (let i = 0; i < 5; i++) {
-                p.replaceChildren(document.createTextNode(p.textContent ?? ""));
+                p.replaceChildren(...[...p.childNodes].map((node) => node.cloneNode(true)));
                 await vi.advanceTimersByTimeAsync(2000);
             }
             expect(scan).toHaveBeenCalledTimes(1);
+        } finally {
+            observer.disconnect();
+            vi.useRealTimers();
+        }
+    });
+
+    it("rescans when Word re-renders a reference with the same text but a different link", async () => {
+        vi.useFakeTimers();
+        const scan = vi.fn();
+        const observer = startDomListener({scanWholePage: scan, getLastUrl: () => location.href});
+        try {
+            const p = document.querySelector("p")!;
+            p.firstChild!.textContent = "Changed citation text";
+            await vi.advanceTimersByTimeAsync(2000);
+            expect(scan).toHaveBeenCalledTimes(1);
+
+            const link = p.querySelector("a")!.cloneNode(true) as HTMLAnchorElement;
+            link.setAttribute("href", "https://doi.org/10.1037/a0029709");
+            p.replaceChild(link, p.querySelector("a")!);
+            await vi.advanceTimersByTimeAsync(2000);
+            expect(scan).toHaveBeenCalledTimes(2);
         } finally {
             observer.disconnect();
             vi.useRealTimers();
