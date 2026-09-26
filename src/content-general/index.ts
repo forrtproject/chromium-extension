@@ -43,7 +43,7 @@ import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
-import {getSnooze, isDomainBlocked} from "@shared/domains";
+import {getDomainPause, onDomainPauseChange} from "@shared/domains";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
@@ -56,7 +56,7 @@ import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {fetchSheetCsv, parseSheetsUrl, sheetTabKey} from "./sheets";
-import {canStartAutomaticWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
+import {canStartAutomaticWork, cancelWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {SeenDois} from "./seen-dois";
 import {serializeWithRerun} from "./serial-scan";
@@ -118,6 +118,7 @@ const isGoogleSheets = location.href.includes("docs.google.com/spreadsheets");
 const isSheets = isGoogleSheets || isExcel;
 // Track whether the popup has hidden FLoRA UI on this page (session only)
 let floraHidden = false;
+let pausedBySettings = false;
 
 // A FORRT Retry on a pill or panel row writes into pageState from outside a
 // scan pass, so it carries this page's identity and reports back when it lands.
@@ -150,11 +151,13 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 
     if (type === "FLORA_HIDE_UI") {
         floraHidden = true;
+        pausedBySettings = false;
         hideAllFloraUI();
         reportInactive();
         sendResponse({ok: true});
     } else if (type === "FLORA_SHOW_UI") {
         floraHidden = false;
+        pausedBySettings = false;
         resumeAutomaticWork();
         repaintBadges();
         showAllFloraUI();
@@ -170,10 +173,40 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 // itself, then announces it here so this page clears immediately instead of
 // waiting for a reload.
 document.addEventListener("flora-pause-site", () => {
+    if (!floraHidden) pausedBySettings = true;
     floraHidden = true;
     hideAllFloraUI();
     reportInactive();
 });
+
+function pauseHosts(): string[] {
+    const hosts = [location.hostname];
+    if ((isWordOnline() || isExcel) && document.referrer) hosts.push(new URL(document.referrer).hostname);
+    return hosts;
+}
+
+function followDomainPause(): void {
+    onDomainPauseChange(pauseHosts, ({blocked, snoozedUntil}) => {
+        if (blocked || snoozedUntil !== null) {
+            if (!floraHidden) pausedBySettings = true;
+            floraHidden = true;
+            cancelWork();
+            hideAllFloraUI();
+            if (blocked) reportBlocked();
+            else reportActiveState(false, snoozedUntil);
+            debugLog(`General: ${blocked ? "disabled" : "snoozed"} on this domain from another tab — ORE hidden`);
+            return;
+        }
+        if (!pausedBySettings) return;
+        pausedBySettings = false;
+        floraHidden = false;
+        resumeAutomaticWork();
+        repaintBadges();
+        showAllFloraUI();
+        void scanWholePage().catch((err) => debugError("General: pass after re-enabling failed —", err));
+        reportActiveState(true);
+    });
+}
 
 const invalidDois = new Set<DoiString>();
 
@@ -1200,61 +1233,14 @@ async function fetchSheetDois(): Promise<void> {
 }
 
 
-(async () => {
-  let editorAllowed = false;
-  try {
-    if (window !== window.top && !isWordOnline() && !isExcel) return;
-    installErrorReporting();
-
-    // A Cloudflare challenge is served at the article's own URL, so the DOI in
-    // that URL resolves and FLoRA would pill an interstitial. Render nothing
-    // and stop — clearing the challenge loads the real document, and the
-    // content script starts over there.
-    if (isOwnRepoUrl(location.href)) {
-        reportActiveState(false);
-        return;
-    }
-
-    if (isBotCheckPage()) {
-        debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
-        reportActiveState(false);
-        return;
-    }
-
-    if (isAuthGatewayPage()) {
-        debugLog("Sign-in step — FLoRA renders nothing on this page");
-        reportActiveState(false);
-        return;
-    }
-
-    if (await isDomainBlocked(location.hostname)) {
-        debugLog("Domain is blocked:", location.hostname);
-        reportBlocked();
-        return;
-    }
-
-    // The popup pauses/blocks the outer SharePoint site. Respect that host in
-    // the Word iframe as well as the Office host used by its own controls.
-    if ((isWordOnline() || isExcel) && document.referrer) {
-        const outerHost = new URL(document.referrer).hostname;
-        if (await isDomainBlocked(outerHost)) { reportBlocked(); return; }
-        const outerSnooze = await getSnooze(outerHost);
-        if (outerSnooze !== null) { reportActiveState(false, outerSnooze); return; }
-    }
-
-    const snoozedUntil = await getSnooze(location.hostname);
-    if (snoozedUntil !== null) {
-        debugLog("Domain is snoozed:", location.hostname);
-        reportActiveState(false, snoozedUntil);
-        return;
-    }
+async function startOnPage(): Promise<void> {
     // Applicable page — mark the toolbar icon active for this tab.
     reportActiveState(true);
+    followDomainPause();
     // Show setup prompt if email not configured (non-blocking — extension still runs)
     if (!(await isSetupComplete())) {
         renderSetupPrompt().catch((err) => debugError("Setup prompt failed to render —", err));
     }
-    editorAllowed = true;
     const startFlora = (): void => {
         if (isGoogleDocs()) startGoogleDocs(() => {
             if (document.hidden || floraHidden || !canStartAutomaticWork()) return;
@@ -1339,6 +1325,57 @@ async function fetchSheetDois(): Promise<void> {
             }
         });
     }
+}
+
+function startWhenResumed(snoozedUntil: number | null): void {
+    let started = false;
+    onDomainPauseChange(pauseHosts, (pause) => {
+        if (started) return;
+        if (pause.blocked) { reportBlocked(); return; }
+        if (pause.snoozedUntil !== null) { reportActiveState(false, pause.snoozedUntil); return; }
+        started = true;
+        debugLog("General: domain re-enabled — starting ORE on this page");
+        void startOnPage().catch((err) => reportCodeError(`ORE failed to start on ${location.hostname}`, err));
+    }, snoozedUntil);
+}
+
+(async () => {
+  let editorAllowed = false;
+  try {
+    if (window !== window.top && !isWordOnline() && !isExcel) return;
+    installErrorReporting();
+
+    // A Cloudflare challenge is served at the article's own URL, so the DOI in
+    // that URL resolves and FLoRA would pill an interstitial. Render nothing
+    // and stop — clearing the challenge loads the real document, and the
+    // content script starts over there.
+    if (isOwnRepoUrl(location.href)) {
+        reportActiveState(false);
+        return;
+    }
+
+    if (isBotCheckPage()) {
+        debugLog("Bot-check interstitial — FLoRA renders nothing on this page");
+        reportActiveState(false);
+        return;
+    }
+
+    if (isAuthGatewayPage()) {
+        debugLog("Sign-in step — FLoRA renders nothing on this page");
+        reportActiveState(false);
+        return;
+    }
+
+    const pause = await getDomainPause(pauseHosts());
+    if (pause.blocked || pause.snoozedUntil !== null) {
+        debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}:`, pauseHosts().join(", "));
+        if (pause.blocked) reportBlocked();
+        else reportActiveState(false, pause.snoozedUntil);
+        if (!isGoogleDocs() && !isExcel) startWhenResumed(pause.snoozedUntil);
+        return;
+    }
+    editorAllowed = true;
+    await startOnPage();
   } catch (err) {
     reportCodeError(`ORE failed to start on ${location.hostname}`, err);
     reportActiveState(false);

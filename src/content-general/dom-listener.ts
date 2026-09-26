@@ -2,11 +2,13 @@ import {containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extract
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog} from "@shared/debug";
 import {isWordOnline} from "@shared/word-online";
+import {editorContentSnapshot} from "@shared/document-editor";
 import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 
 const MAX_INCREMENTAL_NODES = 50;
 
 const DEBOUNCE_MS = 300;
+const WORD_QUIET_MS = 1500;
 
 /** True when any added subtree introduces DOI-like content or reference entries. */
 export function scanAddedNodes(nodes: Element[]): boolean {
@@ -29,17 +31,30 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     let pendingFullScan = false;
     let missedWhileHidden = false;
     let lastWordScan = -Infinity;
+    let lastWordText: string | number | null = null;
+    let navigated = false;
 
     const flush = (): void => {
-        if (isWordOnline() && pageUrl(location.href) === pageUrl(getLastUrl()) && Date.now() - lastWordScan < 1000) {
+        const samePage = pageUrl(location.href) === pageUrl(getLastUrl());
+        if (isWordOnline() && samePage && Date.now() - lastWordScan < 1000) {
             debounceTimer = setTimeout(flush, 1000 - (Date.now() - lastWordScan));
             return;
         }
         const nodes = pendingNodes;
         const full = pendingFullScan;
+        const wasNavigation = navigated;
         pendingNodes = [];
         pendingFullScan = false;
-        if (full || pageUrl(location.href) !== pageUrl(getLastUrl()) || scanAddedNodes(nodes)) {
+        navigated = false;
+        if (isWordOnline() && samePage && !wasNavigation) {
+            const text = editorContentSnapshot();
+            if (text === lastWordText && !scanAddedNodes(nodes.filter((node) => !node.closest("#WACViewPanel")))) {
+                debugLog("General: Word re-rendered without changing the text — skipped full scan");
+                return;
+            }
+            lastWordText = text;
+        }
+        if (full || !samePage || scanAddedNodes(nodes)) {
             if (isWordOnline()) lastWordScan = Date.now();
             scanWholePage();
         } else {
@@ -54,6 +69,8 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         observed = currentPageEntry();
         if (isSamePage(previous, observed)) return;
         lastWordScan = -Infinity;
+        lastWordText = null;
+        navigated = true;
         pendingFullScan = true;
         if (document.hidden) { missedWhileHidden = true; return; }
         clearTimeout(debounceTimer);
@@ -90,7 +107,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         if (!hasExternalChange) return;
         if (pendingNodes.length > MAX_INCREMENTAL_NODES) pendingFullScan = true;
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(flush, DEBOUNCE_MS);
+        debounceTimer = setTimeout(flush, isWordOnline() ? WORD_QUIET_MS : DEBOUNCE_MS);
     });
     observer.observe(document.body, {childList: true, subtree: true, characterData: isWordOnline()});
     document.addEventListener("visibilitychange", () => {

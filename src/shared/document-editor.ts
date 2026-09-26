@@ -14,5 +14,6 @@ export function editorTitle(): string {
 
 export function editorContentSnapshot(): string | number {
     if (isGoogleDocs()) return googleDocsContentSnapshot();
-    return [...document.querySelectorAll('#WACViewPanel .Paragraph')].map(element => element.textContent).join('\n');
+    return [...document.querySelectorAll('#WACViewPanel .Paragraph')].map(element =>
+        [element.textContent, ...[...element.querySelectorAll('a[href]')].map(link => link.getAttribute('href'))].join(' ')).join('\n');
 }

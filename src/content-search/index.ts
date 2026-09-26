@@ -8,7 +8,8 @@ import {isSearchHidden, retryUnansweredSearchResults, setSearchHidden} from "./p
 import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
-import {getSnooze, isDomainBlocked} from "@shared/domains";
+import {getDomainPause, onDomainPauseChange} from "@shared/domains";
+import {cancelWork, resumeAutomaticWork} from "@shared/work-cancellation";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 
@@ -22,6 +23,46 @@ function injectSiteStyle(css: string): void {
     (document.head ?? document.documentElement).appendChild(style);
 }
 
+type SearchAdapter = NonNullable<ReturnType<typeof resolveSearchSite>>;
+
+async function startSearch(adapter: SearchAdapter): Promise<void> {
+    reportActiveState(true);
+    followDomainPause(adapter);
+
+    if (!(await isSetupComplete())) {
+        renderSetupPrompt();
+    }
+
+    debugLog(`${adapter.label} content script loaded`);
+    injectSiteStyle(adapter.css);
+
+    // Process any results already on the page
+    processIfResultsPage(adapter, "initial pass");
+
+    // Start observing for dynamically loaded results
+    observeSearchResults(adapter);
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+        const settings = changes.flora_settings;
+        if (area !== "sync" || !settings?.newValue?.email?.trim()
+            || settings.newValue.email === settings.oldValue?.email) return;
+        void retryUnansweredSearchResults(adapter, document).catch(err =>
+            debugError(`${adapter.label}: DOI matching after settings change failed —`, err));
+    });
+}
+
+function startWhenResumed(adapter: SearchAdapter, snoozedUntil: number | null): void {
+    let started = false;
+    onDomainPauseChange(() => [location.hostname], (pause) => {
+        if (started) return;
+        if (pause.blocked) { reportBlocked(); return; }
+        if (pause.snoozedUntil !== null) { reportActiveState(false, pause.snoozedUntil); return; }
+        started = true;
+        debugLog("Search: domain re-enabled — starting ORE on this page");
+        void startSearch(adapter).catch((err) => reportCodeError("ORE failed to start on search page", err));
+    }, snoozedUntil);
+}
+
 (async () => {
     try {
         if (window !== window.top) return;
@@ -33,45 +74,43 @@ function injectSiteStyle(css: string): void {
             return;
         }
 
-        if (await isDomainBlocked(location.hostname)) {
-            debugLog("Domain is blocked:", location.hostname);
-            reportBlocked();
+        const pause = await getDomainPause([location.hostname]);
+        if (pause.blocked || pause.snoozedUntil !== null) {
+            debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}:`, location.hostname);
+            if (pause.blocked) reportBlocked();
+            else reportActiveState(false, pause.snoozedUntil);
+            startWhenResumed(adapter, pause.snoozedUntil);
             return;
         }
-
-        const snoozedUntil = await getSnooze(location.hostname);
-        if (snoozedUntil !== null) {
-            debugLog("Domain is snoozed:", location.hostname);
-            reportActiveState(false, snoozedUntil);
-            return;
-        }
-        reportActiveState(true);
-
-        if (!(await isSetupComplete())) {
-            renderSetupPrompt();
-        }
-
-        debugLog(`${adapter.label} content script loaded`);
-        injectSiteStyle(adapter.css);
-
-        // Process any results already on the page
-        processIfResultsPage(adapter, "initial pass");
-
-        // Start observing for dynamically loaded results
-        observeSearchResults(adapter);
-
-        chrome.storage.onChanged.addListener((changes, area) => {
-            const settings = changes.flora_settings;
-            if (area !== "sync" || !settings?.newValue?.email?.trim()
-                || settings.newValue.email === settings.oldValue?.email) return;
-            void retryUnansweredSearchResults(adapter, document).catch(err =>
-                debugError(`${adapter.label}: DOI matching after settings change failed —`, err));
-        });
+        await startSearch(adapter);
     } catch (err) {
         reportCodeError("ORE failed to start on search page", err);
         reportActiveState(false);
     }
 })();
+
+let pausedBySettings = false;
+
+function followDomainPause(adapter: SearchAdapter): void {
+    onDomainPauseChange(() => [location.hostname], ({blocked, snoozedUntil}) => {
+        if (blocked || snoozedUntil !== null) {
+            if (!isSearchHidden()) pausedBySettings = true;
+            setSearchHidden(true);
+            cancelWork();
+            hideAllFloraUI();
+            if (blocked) reportBlocked();
+            else reportActiveState(false, snoozedUntil);
+            return;
+        }
+        if (!pausedBySettings) return;
+        pausedBySettings = false;
+        setSearchHidden(false);
+        resumeAutomaticWork();
+        showAllFloraUI();
+        reportActiveState(true);
+        processIfResultsPage(adapter, "pass after re-enabling");
+    });
+}
 
 // hideAllFloraUI/showAllFloraUI already sweep the indicator panels, which are
 // the only per-result UI search rows carry.
@@ -80,11 +119,13 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     const type = (message as { type?: string }).type;
 
     if (type === "FLORA_HIDE_UI") {
+        pausedBySettings = false;
         setSearchHidden(true);
         hideAllFloraUI();
         reportInactive();
         sendResponse({ ok: true });
     } else if (type === "FLORA_SHOW_UI") {
+        pausedBySettings = false;
         setSearchHidden(false);
         showAllFloraUI();
         reportActiveState(true);
@@ -102,6 +143,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 // itself, then announces it here so this page clears immediately instead of
 // waiting for a reload.
 document.addEventListener("flora-pause-site", () => {
+    if (!isSearchHidden()) pausedBySettings = true;
     setSearchHidden(true);
     hideAllFloraUI();
     reportInactive();

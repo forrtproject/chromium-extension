@@ -126,7 +126,6 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
 
         const arrow = tab.querySelector<HTMLElement>("[data-flora-tab-arrow]");
         if (arrow) arrow.style.display = "none";
-        delete tab.dataset.floraTabPulsed;
         tab.prepend(fill, edge);
         tab.append(spinner);
         ensureKeyframes();
@@ -261,6 +260,7 @@ function showNothingFound(tab: HTMLElement, papers: number, hideTab: boolean): v
 
 export function markTabWorkStarted(): void {
     workStarted = true;
+    if (busy) return;
     lastFraction = 0;
     lastLabel = "";
 }
@@ -273,6 +273,7 @@ export function showTabProgress(fraction: number, label: string): void {
     removeNote();
     const leftover = standalone();
     if (leftover?.hasAttribute("data-flora-tab-done")) leftover.remove();
+    fraction = busy ? Math.max(fraction, lastFraction) : fraction;
     busy = true;
     lastFraction = fraction;
     lastLabel = label;

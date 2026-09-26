@@ -178,21 +178,40 @@ describe("progress tab", () => {
         expect(panelTab.getAttribute("aria-disabled")).toBe("true");
     });
 
-    it("pulses the report tab again after a later pass greys it", () => {
+    it("does not pulse the report tab again for a rescan that leaves the report as it was", () => {
         const panelTab = renderPanel();
         beginWorkIndicator();
         settle();
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(panelTab.dataset.floraTabPulsed).toBe("1");
-
         panelTab.style.animation = "";
+
         beginWorkIndicator();
         settle();
-        expect(panelTab.dataset.floraTabPulsed).toBeUndefined();
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(panelTab.style.animation).toContain("flora-tab-pulse");
+        expect(panelTab.style.animation).not.toContain("flora-tab-pulse");
+    });
+
+    it("keeps the fill from rewinding when a pass starts while the tab is still busy", () => {
+        beginWorkIndicator();
+        reportWorkStage("lookup", "Looking up 10 DOIs…");
+        settle();
+        expect(fillHeight(tab()!)).toBe("72%");
+        endWorkIndicator();
+        vi.advanceTimersByTime(200);
+
+        beginWorkIndicator();
+        reportWorkStage("validate", "Checking 10 DOIs resolve…");
+        settle();
+        expect(fillHeight(tab()!)).toBe("100%");
+        endWorkIndicator();
+        vi.advanceTimersByTime(900);
+
+        beginWorkIndicator();
+        reportWorkStage("scan", "Scanning…");
+        settle();
+        expect(fillHeight(tab()!), "a new round of work starts from the bottom").toBe("8%");
     });
 
     it("drops a pending nothing-found verdict once flags turn up", () => {
