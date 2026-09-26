@@ -2322,7 +2322,7 @@
     "source": "fred"
   },
   {
-    "id": "pmc-ncbi-nlm-nih-gov",
+    "id": "pmc",
     "publisher": "PubMed Central",
     "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6427092/",
     "domain": "pmc.ncbi.nlm.nih.gov",
@@ -2331,7 +2331,7 @@
     "source": "manual"
   },
   {
-    "id": "pubmed-ncbi-nlm-nih-gov",
+    "id": "pubmed",
     "publisher": "PubMed",
     "url": "https://pubmed.ncbi.nlm.nih.gov/20565167/",
     "domain": "pubmed.ncbi.nlm.nih.gov",
@@ -2340,7 +2340,7 @@
     "source": "manual"
   },
   {
-    "id": "annualreviews-org",
+    "id": "annualreviews",
     "publisher": "Annual Reviews",
     "url": "https://www.annualreviews.org/content/journals/10.1146/annurev-psych-020821-114157",
     "domain": "www.annualreviews.org",

@@ -178,6 +178,18 @@ export async function refreshPublishers(csvPath?: string): Promise<void> {
     }
 
     const used = new Set<string>();
+    const manual: Entry[] = [];
+    const previous: Partial<Entry>[] = existsSync(OUTPUT) ? JSON.parse(readFileSync(OUTPUT, "utf8")) : [];
+    for (const old of previous) {
+        if (old.source === "fred" || !old.url || !old.id) continue;
+        const domain = new URL(old.url).hostname.toLowerCase();
+        if (bySite.has(domain.replace(/^www\./, ""))) continue;
+        const id = used.has(old.id) ? slug(old.id, used) : old.id;
+        used.add(id);
+        manual.push({id, publisher: old.publisher ?? domain, url: old.url, domain,
+            doi: old.doi ?? "", doisInFred: 0, source: "manual"});
+    }
+
     const entries: Entry[] = [...bySite.values()]
         .map(({hosts, dois: list}) => {
             const sample = [...list].sort((a, b) => replications.get(b)! - replications.get(a)!)[0];
@@ -188,15 +200,7 @@ export async function refreshPublishers(csvPath?: string): Promise<void> {
         })
         .sort((a, b) => b.doisInFred - a.doisInFred || a.domain.localeCompare(b.domain))
         .map((entry) => ({id: slug(entry.domain, used), ...entry}));
-
-    const previous: Partial<Entry>[] = existsSync(OUTPUT) ? JSON.parse(readFileSync(OUTPUT, "utf8")) : [];
-    for (const old of previous) {
-        if (old.source === "fred" || !old.url || !old.id) continue;
-        const domain = new URL(old.url).hostname.toLowerCase();
-        if (bySite.has(domain.replace(/^www\./, ""))) continue;
-        entries.push({id: slug(domain, used), publisher: old.publisher ?? domain, url: old.url, domain,
-            doi: old.doi ?? "", doisInFred: 0, source: "manual"});
-    }
+    entries.push(...manual);
 
     writeFileSync(OUTPUT, JSON.stringify(entries, null, 2) + "\n");
     console.log(`\n${rows.length} FReD rows → ${dois.length} DOIs → ${bySite.size} websites (${unresolved} DOIs did not resolve).`);

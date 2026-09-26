@@ -103,6 +103,7 @@ describe("domain snooze", () => {
 
 describe("following a pause set in another tab", () => {
   async function watch(hosts: string[], current = {blocked: false, snoozedUntil: null as number | null}) {
+    const hostnames = vi.fn(() => hosts);
     const addListener = vi.mocked(chrome.storage.onChanged.addListener);
     const before = addListener.mock.calls.length;
     const domains = await loadDomains();
@@ -111,7 +112,7 @@ describe("following a pause set in another tab", () => {
       await domains.getSnooze(host);
     }
     const seen: {blocked: boolean; snoozedUntil: number | null}[] = [];
-    domains.onDomainPauseChange(() => hosts, (pause) => seen.push(pause), current);
+    domains.onDomainPauseChange(hostnames, (pause) => seen.push(pause), current);
     const listeners = addListener.mock.calls.slice(before).map(([listener]) => listener);
     const fire = (area: "local" | "sync", key: string, value: unknown) => {
       const store = area === "local" ? localStore : syncStore;
@@ -122,7 +123,7 @@ describe("following a pause set in another tab", () => {
       await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0));
       (area === "local" ? localStore : syncStore)[key] = value;
     };
-    return {seen, change, fire};
+    return {seen, change, fire, hostnames};
   }
 
   it("reports a domain disabled from another tab", async () => {
@@ -195,8 +196,9 @@ describe("following a pause set in another tab", () => {
   });
 
   it("stays quiet when another domain's pause changes", async () => {
-    const {seen, fire} = await watch(["example.org"]);
+    const {seen, fire, hostnames} = await watch(["example.org"]);
     fire("sync", BLACKLIST_KEY, ["other.org"]);
+    await vi.waitFor(() => expect(hostnames).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(seen).toEqual([]);
   });
@@ -220,12 +222,14 @@ describe("following a pause set in another tab", () => {
     const addListener = vi.mocked(chrome.storage.onChanged.addListener);
     const before = addListener.mock.calls.length;
     const domains = await loadDomains();
+    const {recentDebugEntries} = await import("../../src/shared/debug");
     const listener = vi.fn();
     domains.onDomainPauseChange(() => { throw new Error("bad referrer"); }, listener);
     for (const [registered] of addListener.mock.calls.slice(before)) {
       expect(() => registered({[BLACKLIST_KEY]: {newValue: ["example.org"]}}, "sync")).not.toThrow();
     }
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await vi.waitFor(() => expect(recentDebugEntries().some((e) =>
+      e.level === "error" && e.msg.includes("Domain pause: re-check failed") && e.msg.includes("bad referrer"))).toBe(true));
     expect(listener).not.toHaveBeenCalled();
   });
 
