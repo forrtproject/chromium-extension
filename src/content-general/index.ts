@@ -43,7 +43,7 @@ import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
-import {getDomainPause, onDomainPauseChange} from "@shared/domains";
+import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/domains";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
@@ -1235,10 +1235,11 @@ async function fetchSheetDois(): Promise<void> {
 
 async function startOnPage(): Promise<void> {
     // Applicable page — mark the toolbar icon active for this tab.
-    reportActiveState(true);
+    if (floraHidden) reportInactive();
+    else reportActiveState(true);
     followDomainPause();
     // Show setup prompt if email not configured (non-blocking — extension still runs)
-    if (!(await isSetupComplete())) {
+    if (!floraHidden && !(await isSetupComplete())) {
         renderSetupPrompt().catch((err) => debugError("Setup prompt failed to render —", err));
     }
     const startFlora = (): void => {
@@ -1327,7 +1328,7 @@ async function startOnPage(): Promise<void> {
     }
 }
 
-function startWhenResumed(snoozedUntil: number | null): void {
+function startWhenResumed(atLoad: DomainPause): void {
     let started = false;
     onDomainPauseChange(pauseHosts, (pause) => {
         if (started) return;
@@ -1336,7 +1337,7 @@ function startWhenResumed(snoozedUntil: number | null): void {
         started = true;
         debugLog("General: domain re-enabled — starting ORE on this page");
         void startOnPage().catch((err) => reportCodeError(`ORE failed to start on ${location.hostname}`, err));
-    }, snoozedUntil);
+    }, atLoad);
 }
 
 (async () => {
@@ -1371,7 +1372,7 @@ function startWhenResumed(snoozedUntil: number | null): void {
         debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}:`, pauseHosts().join(", "));
         if (pause.blocked) reportBlocked();
         else reportActiveState(false, pause.snoozedUntil);
-        if (!isGoogleDocs() && !isExcel) startWhenResumed(pause.snoozedUntil);
+        if (!isGoogleDocs() && !isExcel) startWhenResumed(pause);
         return;
     }
     editorAllowed = true;

@@ -174,26 +174,33 @@ export async function getDomainPause(hostnames: string[]): Promise<DomainPause> 
   return { blocked, snoozedUntil };
 }
 
+const MAX_TIMER_MS = 2_147_483_647;
+
 export function onDomainPauseChange(
   hostnames: () => string[],
   listener: (pause: DomainPause) => void,
-  snoozedUntil: number | null = null,
+  current: DomainPause = { blocked: false, snoozedUntil: null },
 ): void {
   installDomainInvalidation();
+  let last = current;
   let expiryTimer: ReturnType<typeof setTimeout> | null = null;
   const recheckAt = (until: number | null): void => {
     if (expiryTimer) clearTimeout(expiryTimer);
-    expiryTimer = until === null ? null : setTimeout(emit, Math.max(0, until - Date.now()) + 1000);
+    expiryTimer = until === null ? null
+      : setTimeout(emit, Math.min(Math.max(0, until - Date.now()) + 1000, MAX_TIMER_MS));
   };
   const emit = (): void => {
-    void getDomainPause(hostnames())
+    void Promise.resolve()
+      .then(() => getDomainPause(hostnames()))
       .then((pause) => {
         recheckAt(pause.snoozedUntil);
+        if (pause.blocked === last.blocked && pause.snoozedUntil === last.snoozedUntil) return;
+        last = pause;
         listener(pause);
       })
       .catch((err) => debugError("Domain pause: re-check failed —", err));
   };
-  recheckAt(snoozedUntil);
+  recheckAt(current.snoozedUntil);
   try {
     chrome.storage.onChanged?.addListener((changes, area) => {
       if (!(area === "sync" && changes[BLACKLIST_KEY]) && !(area === "local" && changes[SNOOZE_KEY])) return;

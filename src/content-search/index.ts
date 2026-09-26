@@ -8,7 +8,7 @@ import {isSearchHidden, retryUnansweredSearchResults, setSearchHidden} from "./p
 import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
-import {getDomainPause, onDomainPauseChange} from "@shared/domains";
+import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/domains";
 import {cancelWork, resumeAutomaticWork} from "@shared/work-cancellation";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
@@ -26,10 +26,11 @@ function injectSiteStyle(css: string): void {
 type SearchAdapter = NonNullable<ReturnType<typeof resolveSearchSite>>;
 
 async function startSearch(adapter: SearchAdapter): Promise<void> {
-    reportActiveState(true);
+    if (isSearchHidden()) reportInactive();
+    else reportActiveState(true);
     followDomainPause(adapter);
 
-    if (!(await isSetupComplete())) {
+    if (!isSearchHidden() && !(await isSetupComplete())) {
         renderSetupPrompt();
     }
 
@@ -51,7 +52,7 @@ async function startSearch(adapter: SearchAdapter): Promise<void> {
     });
 }
 
-function startWhenResumed(adapter: SearchAdapter, snoozedUntil: number | null): void {
+function startWhenResumed(adapter: SearchAdapter, atLoad: DomainPause): void {
     let started = false;
     onDomainPauseChange(() => [location.hostname], (pause) => {
         if (started) return;
@@ -60,7 +61,7 @@ function startWhenResumed(adapter: SearchAdapter, snoozedUntil: number | null): 
         started = true;
         debugLog("Search: domain re-enabled — starting ORE on this page");
         void startSearch(adapter).catch((err) => reportCodeError("ORE failed to start on search page", err));
-    }, snoozedUntil);
+    }, atLoad);
 }
 
 (async () => {
@@ -79,7 +80,7 @@ function startWhenResumed(adapter: SearchAdapter, snoozedUntil: number | null): 
             debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}:`, location.hostname);
             if (pause.blocked) reportBlocked();
             else reportActiveState(false, pause.snoozedUntil);
-            startWhenResumed(adapter, pause.snoozedUntil);
+            startWhenResumed(adapter, pause);
             return;
         }
         await startSearch(adapter);
