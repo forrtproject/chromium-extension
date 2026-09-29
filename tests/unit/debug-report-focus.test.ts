@@ -36,6 +36,20 @@ describe("debug report for one page", () => {
         expect(data.entries.map((e) => e.ctx)).toEqual(["osf.io"]);
     });
 
+    it("treats a dotless page host as another tab, not as the extension", async () => {
+        log.entries = [entry("localhost", "local dev page"), entry("background", "worker"), entry("osf.io", "a")];
+        const {data} = await buildDebugReport({pageUrl: "https://osf.io/x"});
+        expect(data.entries.map((e) => e.ctx)).toEqual(["background", "osf.io"]);
+        expect(data.otherTabs).toEqual([{ctx: "localhost", count: 1}]);
+    });
+
+    it("says the page has no entries yet when every entry came from other tabs", async () => {
+        log.entries = [entry("mail.google.com", "b")];
+        const {text} = await buildDebugReport({pageUrl: "https://osf.io/x"});
+        expect(text).toContain("No entries from this page yet");
+        expect(text).not.toContain("Turn debug mode on");
+    });
+
     it("keeps every entry when no page is given", async () => {
         log.entries = [entry("osf.io", "a"), entry("mail.google.com", "b")];
         const {text, data} = await buildDebugReport();

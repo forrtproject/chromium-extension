@@ -1,6 +1,6 @@
 import {containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extractor";
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
-import {debugLog} from "@shared/debug";
+import {debugLog, isDebugEnabled} from "@shared/debug";
 import {isWordOnline} from "@shared/word-online";
 import {editorContentSnapshot} from "@shared/document-editor";
 import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
@@ -38,7 +38,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     const logSkip = (reason: string): void => {
         const entry = skipped.get(reason) ?? {count: 0, loggedAt: -Infinity};
         entry.count++;
-        if (Date.now() - entry.loggedAt >= SKIP_LOG_EVERY_MS) {
+        if (isDebugEnabled() && Date.now() - entry.loggedAt >= SKIP_LOG_EVERY_MS) {
             debugLog(`General: ${reason} — skipped full scan${entry.count > 1 ? ` (${entry.count} times since the last note)` : ""}`);
             entry.count = 0;
             entry.loggedAt = Date.now();

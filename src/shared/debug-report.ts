@@ -145,8 +145,9 @@ export function renderDebugReport(
   ];
 
   if (shown.length === 0) {
-    lines.push(
-      "_No entries captured. Turn debug mode on, reproduce the problem, then copy the report again._"
+    lines.push(others.length
+      ? "_No entries from this page yet. Reload the page, reproduce the problem, then copy the report again._"
+      : "_No entries captured. Turn debug mode on, reproduce the problem, then copy the report again._"
     );
     return redactDebugText(lines.join("\n"));
   }
@@ -205,6 +206,8 @@ function pageHost(pageUrl: string | null | undefined): string | null {
   }
 }
 
+const EXTENSION_CONTEXTS = new Set(["background", "popup", "options", "walkthrough", "extension"]);
+
 function focusOnPage(
   all: DebugLogEntry[],
   pageUrl: string | null | undefined,
@@ -212,7 +215,7 @@ function focusOnPage(
   const host = pageHost(pageUrl);
   if (!host) return { entries: all, otherTabs: [] };
   const belongs = (ctx: string): boolean =>
-    ctx === host || !ctx.includes(".") || ctx.endsWith(".officeapps.live.com");
+    ctx === host || EXTENSION_CONTEXTS.has(ctx) || ctx.endsWith(".officeapps.live.com");
   const entries = all.filter((entry) => belongs(entry.ctx));
   const counts = new Map<string, number>();
   for (const entry of all) if (!belongs(entry.ctx)) counts.set(entry.ctx, (counts.get(entry.ctx) ?? 0) + 1);
