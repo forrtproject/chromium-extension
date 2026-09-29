@@ -183,6 +183,7 @@ let pageTimes = new Map<string, number>();
 let pageIdleMs = 0;
 let pageStages = new Map<WorkStage, {ran: boolean; detail?: string}>();
 let pagePasses = 0;
+let pageScans = 0;
 let stagesReportedThisPass = new Map<WorkStage, string>();
 let summaryInvalidated = false;
 // Pass time charged before a mid-pass page change; it belongs to the page left behind.
@@ -625,8 +626,8 @@ function summaryRow(icon: string, text: string, color: string, ms?: number): HTM
 }
 
 function renderPageSummary(list: HTMLElement): void {
-    if (pagePasses > 1) {
-        const caption = summaryRow("", `Scanned this page ${pagePasses} times`, "rgba(255,255,255,0.6)");
+    if (pageScans > 1) {
+        const caption = summaryRow("", `Scanned this page ${pageScans} times`, "rgba(255,255,255,0.6)");
         caption.setAttribute("data-flora-work-extra", "passes");
         list.append(caption);
     }
@@ -965,6 +966,9 @@ export function endWorkIndicator(): void {
     } else {
         if (pageEndedAt !== null) pageIdleMs += passStartedAt - pageEndedAt;
         for (const [name, ms] of times) addPageTime(name, ms - (passTimesBeforePageChange.get(name) ?? 0));
+        pageEndedAt = endedAt;
+    }
+    if (!invalidated && !wasCancelled) {
         for (const entry of stages) {
             const seen = pageStages.get(entry.stage);
             const reported = stagesReportedThisPass.get(entry.stage);
@@ -974,7 +978,7 @@ export function endWorkIndicator(): void {
             });
         }
         pagePasses++;
-        pageEndedAt = endedAt;
+        if (stagesReportedThisPass.has("scan")) pageScans++;
     }
     if (invalidated || wasCancelled || suppressed) resetTabProgress();
     else settleTab();
@@ -1060,6 +1064,7 @@ function resetPageTimes(): void {
     pageIdleMs = 0;
     pageStages = new Map();
     pagePasses = 0;
+    pageScans = 0;
 }
 
 export function resetWorkSummary(): void {

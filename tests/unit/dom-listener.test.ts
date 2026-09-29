@@ -241,6 +241,37 @@ describe("startDomListener", () => {
 });
 
 describe("skipped-scan logging", () => {
+    it("starts the skip count afresh after an in-page navigation", async () => {
+        vi.useFakeTimers();
+        const {recentDebugEntries, setDebug, _resetDebugForTesting} = await import("../../src/shared/debug");
+        setDebug(true);
+        const notes = () => recentDebugEntries().filter((e) => e.msg.includes("mutation carried no DOI candidates"));
+        const navigation = Object.assign(new EventTarget(), {currentEntry: {key: "first"}});
+        vi.stubGlobal("navigation", navigation);
+        document.body.innerHTML = "<main id='feed'></main>";
+        const feed = document.getElementById("feed")!;
+        const observer = startDomListener({scanWholePage: vi.fn(), getLastUrl: () => location.href});
+        try {
+            for (let i = 0; i < 3; i++) {
+                feed.appendChild(document.createElement("div")).textContent = `old page ${i}`;
+                await vi.advanceTimersByTimeAsync(500);
+            }
+            const before = notes().length;
+            navigation.currentEntry = {key: "second"};
+            navigation.dispatchEvent(new Event("currententrychange"));
+            await vi.advanceTimersByTimeAsync(500);
+            feed.appendChild(document.createElement("div")).textContent = "new page";
+            await vi.advanceTimersByTimeAsync(500);
+            expect(notes().length - before, "the new page gets its own first note").toBe(1);
+            expect(notes().at(-1)?.msg).not.toContain("since the last note");
+        } finally {
+            observer.disconnect();
+            _resetDebugForTesting();
+            vi.unstubAllGlobals();
+            vi.useRealTimers();
+        }
+    });
+
     it("notes the first skip straight after debug mode is switched on", async () => {
         vi.useFakeTimers();
         const {recentDebugEntries, setDebug, _resetDebugForTesting} = await import("../../src/shared/debug");

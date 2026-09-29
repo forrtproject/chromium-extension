@@ -56,6 +56,7 @@ export interface DebugReportData {
 }
 
 const MAX_STACK_CHARS = 2_000;
+const MAX_OTHER_TABS_NAMED = 8;
 
 function errorSection(error: RuntimeErrorInfo): string[] {
   const lines = ["### Error", "", `**${error.message}**`, ""];
@@ -125,9 +126,10 @@ export function renderDebugReport(
       : `### Debug log (${total} ${total === 1 ? "entry" : "entries"})`;
 
   const others = data.otherTabs ?? [];
+  const named = others.slice(0, MAX_OTHER_TABS_NAMED).map((o) => `${o.ctx} (${o.count})`);
+  if (others.length > MAX_OTHER_TABS_NAMED) named.push(`and ${others.length - MAX_OTHER_TABS_NAMED} more`);
   const otherNote = others.length
-    ? [`_Left out ${others.reduce((sum, o) => sum + o.count, 0)} entries from other tabs: ${others
-        .map((o) => `${o.ctx} (${o.count})`).join(", ")}._`, ""]
+    ? [`_Left out ${others.reduce((sum, o) => sum + o.count, 0)} entries from other tabs: ${named.join(", ")}._`, ""]
     : [];
   const lines: string[] = [
     ...(data.error ? errorSection(data.error) : []),
@@ -207,6 +209,7 @@ function pageHost(pageUrl: string | null | undefined): string | null {
 }
 
 const EXTENSION_CONTEXTS = new Set(["background", "popup", "options", "walkthrough", "extension"]);
+const OFFICE_HOSTS = /(^|\.)(sharepoint\.com|onedrive\.live\.com|officeapps\.live\.com|office\.com|cloud\.microsoft)$/;
 
 function focusOnPage(
   all: DebugLogEntry[],
@@ -214,8 +217,10 @@ function focusOnPage(
 ): { entries: DebugLogEntry[]; otherTabs: { ctx: string; count: number }[] } {
   const host = pageHost(pageUrl)?.replace(/^www\./, "");
   if (!host) return { entries: all, otherTabs: [] };
+  const officePage = OFFICE_HOSTS.test(host);
   const belongs = (ctx: string): boolean =>
-    ctx.replace(/^www\./, "") === host || EXTENSION_CONTEXTS.has(ctx) || ctx.endsWith(".officeapps.live.com");
+    ctx.replace(/^www\./, "") === host || EXTENSION_CONTEXTS.has(ctx)
+    || (officePage && ctx.endsWith(".officeapps.live.com"));
   const entries = all.filter((entry) => belongs(entry.ctx));
   const counts = new Map<string, number>();
   for (const entry of all) if (!belongs(entry.ctx)) counts.set(entry.ctx, (counts.get(entry.ctx) ?? 0) + 1);

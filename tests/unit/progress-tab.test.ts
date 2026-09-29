@@ -9,7 +9,7 @@ import {
     WORK_TOAST_ID,
     _resetWorkIndicatorForTesting,
 } from "../../src/shared/progress-toast";
-import {NOTHING_FOUND_ID, PROGRESS_TAB_ID, withdrawNothingFound} from "../../src/shared/progress-tab";
+import {confirmPubPeerClear, NOTHING_FOUND_ID, PROGRESS_TAB_ID, withdrawNothingFound} from "../../src/shared/progress-tab";
 import {removeSidePanel, renderSidePanel} from "../../src/content-general/injector";
 import {_resetDebugForTesting} from "../../src/shared/debug";
 import type {PubPeerFeedback} from "../../src/shared/pubpeer-api";
@@ -115,6 +115,7 @@ describe("progress tab", () => {
         beginWorkIndicator();
         settle();
         reportNothingFound(42);
+        confirmPubPeerClear(42);
         endWorkIndicator();
         vi.advanceTimersByTime(600);
 
@@ -127,6 +128,20 @@ describe("progress tab", () => {
         vi.advanceTimersByTime(400);
         expect(note()).toBeNull();
         expect(tab()).toBeNull();
+    });
+
+    it("claims no PubPeer comments only once PubPeer has been checked for every paper", () => {
+        beginWorkIndicator();
+        settle();
+        reportNothingFound(3);
+        confirmPubPeerClear(1);
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(note()!.textContent).toContain("Checked 3 papers: no retractions, concerns, replications or reproductions.");
+        expect(note()!.textContent).not.toContain("PubPeer");
+
+        confirmPubPeerClear(3);
+        expect(note()!.textContent).toContain("reproductions or PubPeer comments.");
     });
 
     it("still says nothing was found after a pass too quick to show progress", () => {

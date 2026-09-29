@@ -3,7 +3,7 @@ import {isWordOnline} from "@shared/word-online";
 import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
 import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
 import {reportNothingFound, waitForWorkToFinish} from "@shared/progress-toast";
-import {withdrawNothingFound} from "@shared/progress-tab";
+import {confirmPubPeerClear, withdrawNothingFound} from "@shared/progress-tab";
 import {
     beginDomScanPass,
     classifyPageDois,
@@ -1119,9 +1119,10 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
+        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
         if (article.feedbacks.some((f) => f.total_comments > 0)
             || [...refFeedbackByDoi.values()].some((f) => f.total_comments > 0)) withdrawNothingFound();
-        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
+        else if (!articlePubPeerUnavailable) confirmPubPeerClear(referenceDois.length + (primaryDoi ? 1 : 0));
         lastArticleFeedbacks = article.feedbacks;
         lastReferenceDoiKey = refKey;
 

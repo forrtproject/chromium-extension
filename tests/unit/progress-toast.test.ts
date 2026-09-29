@@ -921,6 +921,40 @@ describe("progress toast", () => {
         expect(toast()!.textContent).not.toContain("○");
     });
 
+    it("leaves a cancelled pass out of the page summary", async () => {
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Found 2 DOIs");
+        reportWorkStage("lookup", "Looking up 2 DOIs…");
+        settle();
+        button("cancel").click();
+        endWorkIndicator();
+
+        resumeAutomaticWork();
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        reportWorkStage("scan", "Found 2 DOIs");
+        settle();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expand();
+        expect(stageStates()).toEqual({scan: "done", lookup: "skipped"});
+        expect(toast()!.querySelector('[data-flora-work-extra="passes"]')).toBeNull();
+    });
+
+    it("counts only runs that scanned the page as scans", async () => {
+        for (const stage of ["scan", "lookup", "scan"] as const) {
+            beginWorkIndicator({stages: [stage]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage(stage, `Working on ${stage}…`);
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(200);
+        }
+        await vi.advanceTimersByTimeAsync(3000);
+        expand();
+        expect(toast()!.querySelector('[data-flora-work-extra="passes"]')?.textContent).toBe("Scanned this page 2 times");
+    });
+
     it("does not count the old page's steps toward a new page's summary", async () => {
         beginWorkIndicator({stages: ["scan", "lookup"]});
         await vi.advanceTimersByTimeAsync(0);

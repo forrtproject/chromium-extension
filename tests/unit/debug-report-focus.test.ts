@@ -25,8 +25,9 @@ describe("debug report for one page", () => {
             entry("osf.io", "Work: page quiet — Done in 5.7 s"),
         ];
         const {text, data} = await buildDebugReport({pageUrl: "https://osf.io/preprints/metaarxiv/rhvqk_v3"});
-        expect(data.entries.map((e) => e.ctx)).toEqual(["osf.io", "background", "ukc-word-edit.officeapps.live.com", "osf.io"]);
-        expect(text).toContain("Left out 780 entries from other tabs: mail.google.com (700), meet.google.com (80)");
+        expect(data.entries.map((e) => e.ctx)).toEqual(["osf.io", "background", "osf.io"]);
+        expect(text).toContain(
+            "Left out 781 entries from other tabs: mail.google.com (700), meet.google.com (80), ukc-word-edit.officeapps.live.com (1)");
         expect(text).not.toContain("[mail.google.com]");
     });
 
@@ -48,6 +49,21 @@ describe("debug report for one page", () => {
         const {text} = await buildDebugReport({pageUrl: "https://osf.io/x"});
         expect(text).toContain("No entries from this page yet");
         expect(text).not.toContain("Turn debug mode on");
+    });
+
+    it("keeps the Word frame's entries on the SharePoint page that hosts it", async () => {
+        log.entries = [entry("ukc-word-edit.officeapps.live.com", "Word: pass"), entry("contoso.sharepoint.com", "outer"),
+            entry("osf.io", "other tab")];
+        const {data} = await buildDebugReport({pageUrl: "https://contoso.sharepoint.com/:w:/r/doc"});
+        expect(data.entries.map((e) => e.msg)).toEqual(["Word: pass", "outer"]);
+    });
+
+    it("names at most eight other tabs, however many there are", async () => {
+        log.entries = Array.from({length: 30}, (_, i) => entry(`site-${i}.example.com`, "x"));
+        const {text} = await buildDebugReport({pageUrl: "https://osf.io/x"});
+        const note = text.split("\n").find((line) => line.startsWith("_Left out"))!;
+        expect(note.match(/\.example\.com/g)).toHaveLength(8);
+        expect(note).toContain("and 22 more");
     });
 
     it("treats www. and the bare host as the same page", async () => {

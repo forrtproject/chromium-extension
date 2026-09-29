@@ -82,6 +82,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         if (isSamePage(previous, observed)) return;
         lastWordScan = -Infinity;
         lastWordText = null;
+        skipped.clear();
         navigated = true;
         pendingFullScan = true;
         if (document.hidden) { missedWhileHidden = true; return; }

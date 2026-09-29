@@ -51,6 +51,14 @@ let lastFraction = 0;
 let lastLabel = "";
 let panelTab: HTMLElement | null = null;
 let nothingFoundCount: number | null = null;
+let pubPeerClearFor = 0;
+
+function nothingFoundBody(papers: number): string {
+    const checked = pubPeerClearFor >= papers
+        ? "no retractions, concerns, replications, reproductions or PubPeer comments"
+        : "no retractions, concerns, replications or reproductions";
+    return `Checked ${papers} ${papers === 1 ? "paper" : "papers"}: ${checked}.`;
+}
 let noteTimer: ReturnType<typeof setTimeout> | null = null;
 const fadeTimers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -235,8 +243,9 @@ function showNothingFound(tab: HTMLElement, papers: number, hideTab: boolean): v
     title.style.cssText = "font-size:13px;font-weight:600;color:#fff;";
     title.textContent = papers === 1 ? "No flags for this paper" : "No flags on this page";
     const body = document.createElement("span");
+    body.setAttribute("data-flora-nothing-found-body", String(papers));
     body.style.cssText = "color:rgba(255,255,255,0.72);";
-    body.textContent = `Checked ${papers} ${papers === 1 ? "paper" : "papers"}: no retractions, concerns, replications, reproductions or PubPeer comments.`;
+    body.textContent = nothingFoundBody(papers);
     text.append(title, body);
 
     const pointer = document.createElement("span");
@@ -324,10 +333,17 @@ export function finishTabProgress(): void {
     }
 }
 
+export function confirmPubPeerClear(papers: number): void {
+    pubPeerClearFor = Math.max(pubPeerClearFor, papers);
+    const body = document.querySelector<HTMLElement>(`#${NOTHING_FOUND_ID} [data-flora-nothing-found-body]`);
+    if (body) body.textContent = nothingFoundBody(Number(body.getAttribute("data-flora-nothing-found-body")));
+}
+
 export function resetTabProgress(): void {
     busy = false;
     workStarted = false;
     nothingFoundCount = null;
+    pubPeerClearFor = 0;
     removeNote();
     removeStandalone();
     if (panelTab?.isConnected) clearBusy(panelTab);
