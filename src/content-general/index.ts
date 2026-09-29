@@ -320,7 +320,7 @@ function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
     if (examined === 0 || flagged || unavailableRetractionDois.size > 0 || dois.some(doi => pageState.get(doi)?.status === "error")) return;
     if (nothingToFlagReportedFor === pageUrl(location.href)) return;
     nothingToFlagReportedFor = pageUrl(location.href);
-    reportNothingFound(examined);
+    reportNothingFound(dois);
 }
 
 /**
@@ -1119,9 +1119,9 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
+        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
         if (article.feedbacks.some((f) => f.total_comments > 0)
             || [...refFeedbackByDoi.values()].some((f) => f.total_comments > 0)) withdrawNothingFound();
-        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
         lastArticleFeedbacks = article.feedbacks;
         lastReferenceDoiKey = refKey;
 

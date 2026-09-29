@@ -52,9 +52,11 @@ export interface DebugReportData {
   settings: string[];
   entries: DebugLogEntry[];
   error?: RuntimeErrorInfo | null;
+  otherTabs?: { ctx: string; count: number }[];
 }
 
 const MAX_STACK_CHARS = 2_000;
+const MAX_OTHER_TABS_NAMED = 8;
 
 function errorSection(error: RuntimeErrorInfo): string[] {
   const lines = ["### Error", "", `**${error.message}**`, ""];
@@ -123,6 +125,12 @@ export function renderDebugReport(
       ? `### Debug log (most recent ${shown.length} of ${total} entries)`
       : `### Debug log (${total} ${total === 1 ? "entry" : "entries"})`;
 
+  const others = data.otherTabs ?? [];
+  const named = others.slice(0, MAX_OTHER_TABS_NAMED).map((o) => `${o.ctx} (${o.count})`);
+  if (others.length > MAX_OTHER_TABS_NAMED) named.push(`and ${others.length - MAX_OTHER_TABS_NAMED} more`);
+  const otherNote = others.length
+    ? [`_Left out ${others.reduce((sum, o) => sum + o.count, 0)} entries from other tabs: ${named.join(", ")}._`, ""]
+    : [];
   const lines: string[] = [
     ...(data.error ? errorSection(data.error) : []),
     "### Environment",
@@ -135,11 +143,13 @@ export function renderDebugReport(
     "",
     heading,
     "",
+    ...otherNote,
   ];
 
   if (shown.length === 0) {
-    lines.push(
-      "_No entries captured. Turn debug mode on, reproduce the problem, then copy the report again._"
+    lines.push(others.length
+      ? "_No entries from this page yet. Reload the page, reproduce the problem, then copy the report again._"
+      : "_No entries captured. Turn debug mode on, reproduce the problem, then copy the report again._"
     );
     return redactDebugText(lines.join("\n"));
   }
@@ -166,7 +176,7 @@ export async function collectDebugReport(
   ]);
 
   const inMemory = recentDebugEntries();
-  const entries = stored.length > 0 ? stored : inMemory;
+  const { entries, otherTabs } = focusOnPage(stored.length > 0 ? stored : inMemory, context.pageUrl);
 
   const environment = [
     `Extension: ${extensionIdentity()}`,
@@ -186,7 +196,37 @@ export async function collectDebugReport(
     `Muted PubPeer commenters: ${mutedCommenters.length}`,
   ];
 
-  return { environment, settings: settingsLines, entries, error: context.error ?? null };
+  return { environment, settings: settingsLines, entries, error: context.error ?? null, otherTabs };
+}
+
+function pageHost(pageUrl: string | null | undefined): string | null {
+  if (!pageUrl) return null;
+  try {
+    return new URL(pageUrl).hostname || null;
+  } catch {
+    return /^[a-z0-9.-]+$/i.test(pageUrl) ? pageUrl.toLowerCase() : null;
+  }
+}
+
+const EXTENSION_CONTEXTS = new Set(["background", "popup", "options", "walkthrough", "extension"]);
+const OFFICE_HOSTS =
+  /(^|\.)(sharepoint\.com|onedrive\.live\.com|officeapps\.live\.com|office\.com|office\.live\.com|cloud\.microsoft|microsoft365\.com|teams\.microsoft\.com|teams\.live\.com)$/;
+
+function focusOnPage(
+  all: DebugLogEntry[],
+  pageUrl: string | null | undefined,
+): { entries: DebugLogEntry[]; otherTabs: { ctx: string; count: number }[] } {
+  const host = pageHost(pageUrl)?.replace(/^www\./, "");
+  if (!host) return { entries: all, otherTabs: [] };
+  const officePage = OFFICE_HOSTS.test(host);
+  const belongs = (ctx: string): boolean =>
+    ctx.replace(/^www\./, "") === host || EXTENSION_CONTEXTS.has(ctx)
+    || (officePage && ctx.endsWith(".officeapps.live.com"));
+  const entries = all.filter((entry) => belongs(entry.ctx));
+  const counts = new Map<string, number>();
+  for (const entry of all) if (!belongs(entry.ctx)) counts.set(entry.ctx, (counts.get(entry.ctx) ?? 0) + 1);
+  const otherTabs = [...counts.entries()].map(([ctx, count]) => ({ ctx, count })).sort((a, b) => b.count - a.count);
+  return { entries, otherTabs };
 }
 
 /** Collect and render the full report the user can copy, save or attach. */

@@ -849,15 +849,127 @@ describe("progress toast", () => {
         settle();
         endWorkIndicator();
 
-        expect(label()).toBe("Checks finished, waiting for late results…");
-        expect(button("spinner").style.display).toBe("none");
-        expect(percent()).toBe("100");
+        expect(label()).toBe("Finishing up…");
+        expect(button("spinner").style.display, "the spinner keeps turning while ORE waits").toBe("");
+        expect(button("pause").style.display, "no scan is running, so nothing to pause").toBe("none");
+        const fill = toast()!.querySelector<HTMLElement>("[data-flora-work-fill]")!;
+        expect(fill.style.width).toBe("100%");
+        expect(fill.style.transition, "the bar fills over the wait before Done").toBe("width 10000ms linear");
 
         beginWorkIndicator({stages: ["augment"]});
         reportWorkStage("augment", "Augmenting 3 references without a DOI…");
         expect(label()).toBe("Augmenting 3 references without a DOI…");
         expect(button("spinner").style.display).toBe("");
+        expect(toast()!.querySelector<HTMLElement>("[data-flora-work-fill]")!.style.transition,
+            "a late pass goes back to normal progress").toBe("width 0.25s ease");
         endWorkIndicator();
+    });
+
+    it("summarises every pass on the page, not just the last one", async () => {
+        let clock = 0;
+        vi.spyOn(performance, "now").mockImplementation(() => clock);
+        beginWorkIndicator({stages: ["scan", "validate", "lookup", "report"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Found 1 DOI on this page");
+        clock = 100;
+        reportWorkStage("validate", "Checking 1 DOI resolves…");
+        clock = 400;
+        reportWorkStage("lookup", "Looking up 1 DOI in FLoRA…");
+        clock = 5000;
+        reportWorkStage("report", "Generating report…");
+        clock = 5100;
+        endWorkIndicator();
+
+        clock = 5600;
+        beginWorkIndicator({stages: ["scan", "validate", "augment", "notices", "lookup", "report"]});
+        reportWorkStage("scan", "Found 1 DOI on this page");
+        clock = 5606;
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(11_000);
+
+        expect(label()).toBe("Done in 5.6 s");
+        expand();
+        const rows = [...toast()!.querySelectorAll<HTMLElement>("[data-flora-work-stage]")];
+        expect(Object.fromEntries(rows.map((r) => [r.dataset.floraWorkStage, r.dataset.floraWorkState]))).toEqual({
+            scan: "done", validate: "done", augment: "skipped", notices: "skipped", lookup: "done", report: "done",
+        });
+        const lookup = toast()!.querySelector('[data-flora-work-stage="lookup"] [data-flora-work-duration]');
+        expect(lookup?.textContent, "the lookup time comes from the pass that ran it").toBe("4.6 s");
+        expect(toast()!.querySelector('[data-flora-work-stage="augment"]')?.textContent).toContain("not run");
+        expect(toast()!.textContent, "no step is left looking like it is still to come").not.toContain("○");
+        expect(toast()!.querySelector('[data-flora-work-extra="passes"]')?.textContent)
+            .toBe("Scanned this page 2 times");
+        expect(toast()!.querySelector('[data-flora-work-extra="idle"] [data-flora-work-duration]')?.textContent)
+            .toBe("500 ms");
+    });
+
+    it("shows the page summary while finishing up, not the last pass's pending steps", async () => {
+        beginWorkIndicator({stages: ["scan", "validate", "lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Found 1 DOI on this page");
+        reportWorkStage("validate", "Checking 1 DOI resolves…");
+        reportWorkStage("lookup", "Looking up 1 DOI…");
+        settle();
+        endWorkIndicator();
+        beginWorkIndicator({stages: ["scan", "validate", "lookup"]});
+        reportWorkStage("scan", "Found 1 DOI on this page");
+        expand();
+        endWorkIndicator();
+
+        expect(label()).toBe("Finishing up…");
+        expect(stageStates()).toEqual({scan: "done", validate: "done", lookup: "done"});
+        expect(toast()!.textContent).not.toContain("○");
+    });
+
+    it("leaves a cancelled pass out of the page summary", async () => {
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Found 2 DOIs");
+        reportWorkStage("lookup", "Looking up 2 DOIs…");
+        settle();
+        button("cancel").click();
+        endWorkIndicator();
+
+        resumeAutomaticWork();
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        reportWorkStage("scan", "Found 2 DOIs");
+        settle();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expand();
+        expect(stageStates()).toEqual({scan: "done", lookup: "skipped"});
+        expect(toast()!.querySelector('[data-flora-work-extra="passes"]')).toBeNull();
+    });
+
+    it("counts only runs that scanned the page as scans", async () => {
+        for (const stage of ["scan", "lookup", "scan"] as const) {
+            beginWorkIndicator({stages: [stage]});
+            await vi.advanceTimersByTimeAsync(0);
+            reportWorkStage(stage, `Working on ${stage}…`);
+            endWorkIndicator();
+            await vi.advanceTimersByTimeAsync(200);
+        }
+        await vi.advanceTimersByTimeAsync(3000);
+        expand();
+        expect(toast()!.querySelector('[data-flora-work-extra="passes"]')?.textContent).toBe("Scanned this page 2 times");
+    });
+
+    it("does not count the old page's steps toward a new page's summary", async () => {
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("lookup", "Looking up the page we are leaving…");
+        settle();
+
+        resetWorkSummary();
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        reportWorkStage("scan", "Scanning the new page…");
+        endWorkIndicator();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expand();
+        expect(stageStates()).toEqual({scan: "done", lookup: "skipped"});
     });
 
     it("lets the late stage land inside that longer wait", async () => {
@@ -885,7 +997,7 @@ describe("progress toast", () => {
         const rows = [...toast()!.querySelectorAll<HTMLElement>("[data-flora-work-stage]")];
         expect(rows.length, "the stage list must actually be rendered").toBeGreaterThan(0);
         expect(rows.map((r) => r.dataset.floraWorkState), "the late stage ran, so nothing is skipped")
-            .toEqual(["done"]);
+            .toEqual(["done", "done", "done"]);
     });
 
     it("does not land the old page's summary on the next page", async () => {

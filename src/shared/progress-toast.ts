@@ -76,7 +76,7 @@ const STAGE_LABEL: Record<WorkStage, string> = {
 };
 
 const DEFAULT_LABEL = "ORE is looking up the papers on this page…";
-const SETTLING_LABEL = "Checks finished, waiting for late results…";
+const SETTLING_LABEL = "Finishing up…";
 
 const HOST_STYLE =
     "position:fixed;right:18px;z-index:2147483647;" +
@@ -181,6 +181,10 @@ let pageStartedAt: number | null = null;
 let pageEndedAt: number | null = null;
 let pageTimes = new Map<string, number>();
 let pageIdleMs = 0;
+let pageStages = new Map<WorkStage, {ran: boolean; detail?: string}>();
+let pagePasses = 0;
+let pageScans = 0;
+let stagesReportedThisPass = new Map<WorkStage, string>();
 let summaryInvalidated = false;
 // Pass time charged before a mid-pass page change; it belongs to the page left behind.
 let passTimesBeforePageChange = new Map<string, number>();
@@ -599,10 +603,63 @@ function renderItems(): HTMLElement {
     return list;
 }
 
+function summaryRow(icon: string, text: string, color: string, ms?: number): HTMLLIElement {
+    const row = document.createElement("li");
+    row.style.cssText = `display:flex;gap:8px;align-items:flex-start;line-height:1.35;color:${color};`;
+    const glyph = document.createElement("span");
+    glyph.style.cssText =
+        "width:12px;height:12px;flex-shrink:0;margin-top:2px;display:inline-flex;" +
+        "align-items:center;justify-content:center;font-size:10px;";
+    glyph.textContent = icon;
+    const label = document.createElement("span");
+    label.style.cssText = "flex:1;";
+    label.textContent = text;
+    row.append(glyph, label);
+    if (ms !== undefined) {
+        const duration = document.createElement("span");
+        duration.setAttribute("data-flora-work-duration", "");
+        duration.style.cssText = "flex-shrink:0;color:rgba(255,255,255,0.6);font-size:11px;";
+        duration.textContent = formatDuration(ms);
+        row.append(duration);
+    }
+    return row;
+}
+
+function renderPageSummary(list: HTMLElement): void {
+    if (pageScans > 1) {
+        const caption = summaryRow("", `Scanned this page ${pageScans} times`, "rgba(255,255,255,0.6)");
+        caption.setAttribute("data-flora-work-extra", "passes");
+        list.append(caption);
+    }
+    for (const stage of STAGE_ORDER) {
+        const record = pageStages.get(stage);
+        if (!record) continue;
+        const row = record.ran
+            ? summaryRow("✓", record.detail ?? STAGE_LABEL[stage], "rgba(255,255,255,0.75)", pageTimes.get(stage) ?? 0)
+            : summaryRow("–", `${STAGE_LABEL[stage]} · not run`, "rgba(255,255,255,0.5)");
+        row.setAttribute("data-flora-work-stage", stage);
+        row.dataset.floraWorkState = record.ran ? "done" : "skipped";
+        list.append(row);
+    }
+    for (const [extra, text, ms] of [
+        ["other", "Other work", pageTimes.get("other") ?? 0],
+        ["idle", "Waiting between passes", pageIdleMs],
+    ] as const) {
+        if (ms < 1) continue;
+        const row = summaryRow("·", text, "rgba(255,255,255,0.6)", ms);
+        row.setAttribute("data-flora-work-extra", extra);
+        list.append(row);
+    }
+}
+
 function renderStages(host: HTMLElement): void {
     const list = host.querySelector<HTMLElement>("[data-flora-work-stages]");
     if (!list) return;
     list.textContent = "";
+    if ((finished || refCount === 0) && pagePasses > 0) {
+        renderPageSummary(list);
+        return;
+    }
 
     for (const record of stages) {
         const row = document.createElement("li");
@@ -659,6 +716,7 @@ function paint(host: HTMLElement): void {
     const track = host.querySelector<HTMLElement>("[data-flora-work-track]");
     const fill = host.querySelector<HTMLElement>("[data-flora-work-fill]");
     if (!track || !fill) return;
+    fill.style.transition = "width 0.25s ease";
 
     if (progress <= 0) {
         fill.style.width = "40%";
@@ -798,6 +856,7 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         passStartedAt = segmentStartedAt = now();
         passOtherMs = 0;
         passTimesBeforePageChange = new Map();
+        stagesReportedThisPass = new Map();
         planStages(plan);
     } else if (plan) {
         mergePlan(plan);
@@ -822,6 +881,7 @@ export function reportWorkStage(stage: WorkStage, detail: string): void {
     if (refCount === 0) return; // no pass in flight — a late straggler
     progress = Math.max(progress, STAGE_PROGRESS[stage]);
     labelText = detail;
+    stagesReportedThisPass.set(stage, detail);
 
     const record = stageRecord(stage);
     if (currentStage === stage) {
@@ -908,6 +968,18 @@ export function endWorkIndicator(): void {
         for (const [name, ms] of times) addPageTime(name, ms - (passTimesBeforePageChange.get(name) ?? 0));
         pageEndedAt = endedAt;
     }
+    if (!invalidated && !wasCancelled) {
+        for (const entry of stages) {
+            const seen = pageStages.get(entry.stage);
+            const reported = stagesReportedThisPass.get(entry.stage);
+            pageStages.set(entry.stage, {
+                ran: Boolean(seen?.ran || reported !== undefined),
+                detail: reported ?? seen?.detail,
+            });
+        }
+        pagePasses++;
+        if (stagesReportedThisPass.has("scan")) pageScans++;
+    }
     if (invalidated || wasCancelled || suppressed) resetTabProgress();
     else settleTab();
     if (isDebugEnabled() && !hidden && !suppressed && !invalidated) {
@@ -916,7 +988,7 @@ export function endWorkIndicator(): void {
         if (stagesLeft.length) {
             debugLog(`Work: holding the summary — ${stagesLeft.map((e) => e.stage).join(", ")} never ran`);
         }
-        showSettling();
+        showSettling(quiet);
         finishTimer = setTimeout(() => {
             finishTimer = null;
             finished = true;
@@ -943,7 +1015,7 @@ export function endWorkIndicator(): void {
     hideTimer = setTimeout(fadeOut, 500);
 }
 
-function showSettling(): void {
+function showSettling(waitMs: number): void {
     progress = 1;
     labelText = SETTLING_LABEL;
     const host = document.getElementById(WORK_TOAST_ID);
@@ -952,6 +1024,19 @@ function showSettling(): void {
     if (label) label.textContent = labelText;
     paint(host);
     showFinishedState(host);
+    const spinner = host.querySelector<HTMLElement>("[data-flora-work-spinner]");
+    if (spinner) spinner.style.display = "";
+    const track = host.querySelector<HTMLElement>("[data-flora-work-track]");
+    const fill = host.querySelector<HTMLElement>("[data-flora-work-fill]");
+    if (track && fill) {
+        track.removeAttribute("aria-valuenow");
+        fill.style.transition = "none";
+        fill.style.width = "0%";
+        void fill.offsetWidth;
+        fill.style.transition = `width ${waitMs}ms linear`;
+        fill.style.width = "100%";
+    }
+    if (expanded) renderStages(host);
     shieldToastColours(host);
 }
 
@@ -963,9 +1048,9 @@ function settleTab(): void {
     }, TAB_DONE_DELAY_MS);
 }
 
-export function reportNothingFound(papers: number): void {
+export function reportNothingFound(dois: string[]): void {
     if (suppressed) return;
-    noteNothingFound(papers);
+    noteNothingFound(dois);
     if (refCount === 0 && tabDoneTimer === null) finishTabProgress();
 }
 
@@ -977,6 +1062,9 @@ function resetPageTimes(): void {
     pageStartedAt = pageEndedAt = null;
     pageTimes = new Map();
     pageIdleMs = 0;
+    pageStages = new Map();
+    pagePasses = 0;
+    pageScans = 0;
 }
 
 export function resetWorkSummary(): void {
@@ -988,6 +1076,7 @@ export function resetWorkSummary(): void {
     }
     finished = false;
     resetTabProgress();
+    stagesReportedThisPass = new Map();
     if (refCount > 0) {
         summaryInvalidated = true;
         closeSegment(now());
@@ -1030,6 +1119,7 @@ export function _resetWorkIndicatorForTesting(): void {
     resetPageTimes();
     summaryInvalidated = false;
     passTimesBeforePageChange = new Map();
+    stagesReportedThisPass = new Map();
     offerLogCopy = false;
     stages = [];
     currentStage = null;
