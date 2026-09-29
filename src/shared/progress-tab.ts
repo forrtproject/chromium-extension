@@ -1,4 +1,5 @@
 import {positionTabOnRightEdge} from "./tab-position";
+import {onPubPeerVerdict, pubPeerVerdict} from "./pubpeer-api";
 
 export const PROGRESS_TAB_ID = "flora-progress-tab";
 export const NOTHING_FOUND_ID = "flora-nothing-found";
@@ -50,14 +51,22 @@ let workStarted = false;
 let lastFraction = 0;
 let lastLabel = "";
 let panelTab: HTMLElement | null = null;
-let nothingFoundCount: number | null = null;
-let pubPeerClearFor = 0;
+let nothingFoundDois: string[] | null = null;
+let shownNothingFoundDois: string[] = [];
 
-function nothingFoundBody(papers: number): string {
-    const checked = pubPeerClearFor >= papers
+function nothingFoundBody(dois: string[]): string {
+    const pubPeerClear = dois.every((doi) => pubPeerVerdict(doi) === "clear");
+    const checked = pubPeerClear
         ? "no retractions, concerns, replications, reproductions or PubPeer comments"
         : "no retractions, concerns, replications or reproductions";
-    return `Checked ${papers} ${papers === 1 ? "paper" : "papers"}: ${checked}.`;
+    return `Checked ${dois.length} ${dois.length === 1 ? "paper" : "papers"}: ${checked}.`;
+}
+
+let followingVerdicts = false;
+
+function refreshNothingFoundBody(): void {
+    const body = document.querySelector<HTMLElement>(`#${NOTHING_FOUND_ID} [data-flora-nothing-found-body]`);
+    if (body) body.textContent = nothingFoundBody(shownNothingFoundDois);
 }
 let noteTimer: ReturnType<typeof setTimeout> | null = null;
 const fadeTimers = new Set<ReturnType<typeof setTimeout>>();
@@ -219,8 +228,14 @@ function removeNote(): void {
     document.getElementById(NOTHING_FOUND_ID)?.remove();
 }
 
-function showNothingFound(tab: HTMLElement, papers: number, hideTab: boolean): void {
+function showNothingFound(tab: HTMLElement, dois: string[], hideTab: boolean): void {
     removeNote();
+    shownNothingFoundDois = dois;
+    if (!followingVerdicts) {
+        followingVerdicts = true;
+        onPubPeerVerdict(refreshNothingFoundBody);
+    }
+    const papers = dois.length;
     const note = document.createElement("div");
     note.id = NOTHING_FOUND_ID;
     note.setAttribute("data-flora-ui", "");
@@ -243,9 +258,9 @@ function showNothingFound(tab: HTMLElement, papers: number, hideTab: boolean): v
     title.style.cssText = "font-size:13px;font-weight:600;color:#fff;";
     title.textContent = papers === 1 ? "No flags for this paper" : "No flags on this page";
     const body = document.createElement("span");
-    body.setAttribute("data-flora-nothing-found-body", String(papers));
+    body.setAttribute("data-flora-nothing-found-body", "");
     body.style.cssText = "color:rgba(255,255,255,0.72);";
-    body.textContent = nothingFoundBody(papers);
+    body.textContent = nothingFoundBody(dois);
     text.append(title, body);
 
     const pointer = document.createElement("span");
@@ -294,12 +309,12 @@ export function showTabProgress(fraction: number, label: string): void {
     paintBusy(ensureStandalone(), fraction, label);
 }
 
-export function noteNothingFound(papers: number): void {
-    nothingFoundCount = papers;
+export function noteNothingFound(dois: string[]): void {
+    nothingFoundDois = [...new Set(dois)];
 }
 
 export function withdrawNothingFound(): void {
-    nothingFoundCount = null;
+    nothingFoundDois = null;
     removeNote();
     const tab = standalone();
     if (tab?.hasAttribute("data-flora-tab-done")) tab.remove();
@@ -308,8 +323,8 @@ export function withdrawNothingFound(): void {
 export function finishTabProgress(): void {
     busy = false;
     workStarted = false;
-    const papers = nothingFoundCount;
-    nothingFoundCount = null;
+    const papers = nothingFoundDois;
+    nothingFoundDois = null;
 
     if (panelTab?.isConnected) {
         removeStandalone();
@@ -333,17 +348,10 @@ export function finishTabProgress(): void {
     }
 }
 
-export function confirmPubPeerClear(papers: number): void {
-    pubPeerClearFor = Math.max(pubPeerClearFor, papers);
-    const body = document.querySelector<HTMLElement>(`#${NOTHING_FOUND_ID} [data-flora-nothing-found-body]`);
-    if (body) body.textContent = nothingFoundBody(Number(body.getAttribute("data-flora-nothing-found-body")));
-}
-
 export function resetTabProgress(): void {
     busy = false;
     workStarted = false;
-    nothingFoundCount = null;
-    pubPeerClearFor = 0;
+    nothingFoundDois = null;
     removeNote();
     removeStandalone();
     if (panelTab?.isConnected) clearBusy(panelTab);

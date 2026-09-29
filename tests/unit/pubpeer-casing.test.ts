@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   lookupPubPeerForDois,
+  pubPeerVerdict,
   _resetPubPeerCacheForTesting,
 } from "../../src/shared/pubpeer-api";
 
@@ -88,5 +89,16 @@ describe("PubPeer DOI casing", () => {
     expect((await lookupPubPeerForDois([MIXED])).size).toBe(0);
     expect((await lookupPubPeerForDois([MIXED])).size).toBe(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("records which DOIs PubPeer cleared, found comments on, or could not check", async () => {
+    await lookupPubPeerForDois([MIXED, "10.1000/clean"]);
+    expect(pubPeerVerdict(MIXED)).toBe("comments");
+    expect(pubPeerVerdict("10.1000/clean")).toBe("clear");
+
+    fetchMock.mockRejectedValueOnce(new Error("offline"));
+    await lookupPubPeerForDois(["10.1000/unreachable"]);
+    expect(pubPeerVerdict("10.1000/unreachable")).toBe("unavailable");
+    expect(pubPeerVerdict("10.1000/never-asked")).toBeUndefined();
   });
 });

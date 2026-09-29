@@ -115,6 +115,31 @@ const PUBPEER_CACHE = new BlobCache<{ feedback: PubPeerFeedback | null }>({
   legacyPrefixes: ["flora_pubpeer:"],
 });
 
+export type PubPeerVerdict = "clear" | "comments" | "unavailable";
+const verdicts = new Map<string, PubPeerVerdict>();
+const verdictListeners = new Set<() => void>();
+
+export function pubPeerVerdict(doi: string): PubPeerVerdict | undefined {
+  return verdicts.get(cacheKey(doi));
+}
+
+export function onPubPeerVerdict(listener: () => void): void {
+  verdictListeners.add(listener);
+}
+
+function recordVerdicts(entries: Iterable<[string, PubPeerVerdict]>): void {
+  let changed = false;
+  for (const [doi, verdict] of entries) {
+    if (verdicts.get(cacheKey(doi)) === verdict) continue;
+    verdicts.set(cacheKey(doi), verdict);
+    changed = true;
+  }
+  if (changed) for (const listener of verdictListeners) listener();
+}
+
+const verdictOf = (feedback: PubPeerFeedback | undefined): PubPeerVerdict =>
+  feedback && feedback.total_comments > 0 ? "comments" : "clear";
+
 // Module-level back-off — when PubPeer returns 429, suppress further requests
 // until this timestamp passes so we don't keep retrying every DOM tick.
 let rateLimitedUntil = 0;
@@ -156,6 +181,8 @@ export async function lookupPubPeerForDois<T extends string>(
     }
   }
 
+  const uncachedSet = new Set<string>(uncached);
+  recordVerdicts(dois.filter((doi) => !uncachedSet.has(doi)).map((doi) => [doi, verdictOf(result.get(doi))]));
   if (uncached.length === 0) {
     debugLog(`PubPeer: ${result.size}/${dois.length} reference DOI(s) matched (all cached)`);
     return result;
@@ -163,6 +190,7 @@ export async function lookupPubPeerForDois<T extends string>(
 
   if (now < rateLimitedUntil) {
     for (const doi of uncached) unavailable.add(doi);
+    recordVerdicts(uncached.map((doi) => [doi, "unavailable"]));
     debugLog(`PubPeer: rate-limited, skipping ${uncached.length} uncached DOI(s)`);
     return result;
   }
@@ -173,6 +201,7 @@ export async function lookupPubPeerForDois<T extends string>(
     feedbacks = await fetchPubPeer(uncached.map(cacheKey), [], signal);
   } catch (err) {
     for (const doi of uncached) unavailable.add(doi);
+    recordVerdicts(uncached.map((doi) => [doi, "unavailable"]));
     if (err instanceof PubPeerRateLimitError) {
       rateLimitedUntil = now + err.retryAfterMs;
       debugLog(`PubPeer: rate limited; backing off ${err.retryAfterMs}ms`);
@@ -194,6 +223,7 @@ export async function lookupPubPeerForDois<T extends string>(
     if (feedback) result.set(doi, visible(feedback));
   }
   void PUBPEER_CACHE.setMany(writes);
+  recordVerdicts(uncached.map((doi) => [doi, verdictOf(result.get(doi))]));
 
   debugLog(`PubPeer: ${result.size}/${dois.length} reference DOI(s) have a PubPeer record`);
   return result;
@@ -248,9 +278,14 @@ export function lookupPubPeerForDoi(doi: string): Promise<PubPeerFeedback | null
   });
 }
 
+export function _recordPubPeerVerdictsForTesting(entries: Array<[string, PubPeerVerdict]>): void {
+  recordVerdicts(entries);
+}
+
 /** Test-only: drop in-memory cache state so each case starts fresh. */
 export function _resetPubPeerCacheForTesting(): void {
   PUBPEER_CACHE.resetForTesting();
+  verdicts.clear();
   if (flushHandle !== null) clearTimeout(flushHandle);
   flushHandle = null;
   pendingDois.clear();

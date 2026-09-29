@@ -209,7 +209,8 @@ function pageHost(pageUrl: string | null | undefined): string | null {
 }
 
 const EXTENSION_CONTEXTS = new Set(["background", "popup", "options", "walkthrough", "extension"]);
-const OFFICE_HOSTS = /(^|\.)(sharepoint\.com|onedrive\.live\.com|officeapps\.live\.com|office\.com|cloud\.microsoft)$/;
+const OFFICE_HOSTS =
+  /(^|\.)(sharepoint\.com|onedrive\.live\.com|officeapps\.live\.com|office\.com|office\.live\.com|cloud\.microsoft|microsoft365\.com|teams\.microsoft\.com|teams\.live\.com)$/;
 
 function focusOnPage(
   all: DebugLogEntry[],

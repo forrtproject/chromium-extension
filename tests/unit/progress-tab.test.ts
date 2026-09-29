@@ -9,7 +9,8 @@ import {
     WORK_TOAST_ID,
     _resetWorkIndicatorForTesting,
 } from "../../src/shared/progress-toast";
-import {confirmPubPeerClear, NOTHING_FOUND_ID, PROGRESS_TAB_ID, withdrawNothingFound} from "../../src/shared/progress-tab";
+import {NOTHING_FOUND_ID, PROGRESS_TAB_ID, withdrawNothingFound} from "../../src/shared/progress-tab";
+import {_recordPubPeerVerdictsForTesting, _resetPubPeerCacheForTesting} from "../../src/shared/pubpeer-api";
 import {removeSidePanel, renderSidePanel} from "../../src/content-general/injector";
 import {_resetDebugForTesting} from "../../src/shared/debug";
 import type {PubPeerFeedback} from "../../src/shared/pubpeer-api";
@@ -31,6 +32,10 @@ function note(): HTMLElement | null {
 
 function fillHeight(el: HTMLElement): string {
     return el.querySelector<HTMLElement>("[data-flora-tab-fill]")!.style.height;
+}
+
+function papers(n: number): string[] {
+    return Array.from({length: n}, (_, i) => `10.1000/paper.${i}`);
 }
 
 function settle(): void {
@@ -61,6 +66,7 @@ describe("progress tab", () => {
     });
 
     afterEach(() => {
+        _resetPubPeerCacheForTesting();
         removeSidePanel();
         _resetWorkIndicatorForTesting();
         _resetDebugForTesting();
@@ -114,8 +120,8 @@ describe("progress tab", () => {
     it("shows the nothing-found state and note, then hides both after five seconds", () => {
         beginWorkIndicator();
         settle();
-        reportNothingFound(42);
-        confirmPubPeerClear(42);
+        reportNothingFound(papers(42));
+        _recordPubPeerVerdictsForTesting(papers(42).map((doi) => [doi, "clear"]));
         endWorkIndicator();
         vi.advanceTimersByTime(600);
 
@@ -130,23 +136,27 @@ describe("progress tab", () => {
         expect(tab()).toBeNull();
     });
 
-    it("claims no PubPeer comments only once PubPeer has been checked for every paper", () => {
+    it("claims no PubPeer comments only once every paper on the note has a clear PubPeer check", () => {
+        const [a, b, c] = papers(3);
+        _recordPubPeerVerdictsForTesting([["10.1000/other-page", "clear"], [a, "clear"]]);
         beginWorkIndicator();
         settle();
-        reportNothingFound(3);
-        confirmPubPeerClear(1);
+        reportNothingFound([a, b, c]);
         endWorkIndicator();
         vi.advanceTimersByTime(600);
         expect(note()!.textContent).toContain("Checked 3 papers: no retractions, concerns, replications or reproductions.");
         expect(note()!.textContent).not.toContain("PubPeer");
 
-        confirmPubPeerClear(3);
+        _recordPubPeerVerdictsForTesting([[b, "clear"], [c, "unavailable"]]);
+        expect(note()!.textContent, "an unavailable PubPeer check earns no claim").not.toContain("PubPeer");
+
+        _recordPubPeerVerdictsForTesting([[c, "clear"]]);
         expect(note()!.textContent).toContain("reproductions or PubPeer comments.");
     });
 
     it("still says nothing was found after a pass too quick to show progress", () => {
         beginWorkIndicator();
-        reportNothingFound(1);
+        reportNothingFound(papers(1));
         endWorkIndicator();
         vi.advanceTimersByTime(600);
         expect(note()!.textContent).toContain("No flags for this paper");
@@ -233,7 +243,7 @@ describe("progress tab", () => {
     it("drops a pending nothing-found verdict once flags turn up", () => {
         beginWorkIndicator();
         settle();
-        reportNothingFound(12);
+        reportNothingFound(papers(12));
         endWorkIndicator();
         vi.advanceTimersByTime(200);
 
@@ -248,7 +258,7 @@ describe("progress tab", () => {
     it("takes down a nothing-found note already on screen once flags turn up", () => {
         beginWorkIndicator();
         settle();
-        reportNothingFound(12);
+        reportNothingFound(papers(12));
         endWorkIndicator();
         vi.advanceTimersByTime(600);
         expect(note()).not.toBeNull();

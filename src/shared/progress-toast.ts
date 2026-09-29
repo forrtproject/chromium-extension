@@ -1048,9 +1048,9 @@ function settleTab(): void {
     }, TAB_DONE_DELAY_MS);
 }
 
-export function reportNothingFound(papers: number): void {
+export function reportNothingFound(dois: string[]): void {
     if (suppressed) return;
-    noteNothingFound(papers);
+    noteNothingFound(dois);
     if (refCount === 0 && tabDoneTimer === null) finishTabProgress();
 }
 

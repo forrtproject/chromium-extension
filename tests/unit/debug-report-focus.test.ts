@@ -58,6 +58,12 @@ describe("debug report for one page", () => {
         expect(data.entries.map((e) => e.msg)).toEqual(["Word: pass", "outer"]);
     });
 
+    it("keeps the Word frame's entries when the document is open in Teams", async () => {
+        log.entries = [entry("ukc-word-edit.officeapps.live.com", "Word: pass"), entry("osf.io", "other tab")];
+        const {data} = await buildDebugReport({pageUrl: "https://teams.microsoft.com/v2/#/docx/viewer"});
+        expect(data.entries.map((e) => e.msg)).toEqual(["Word: pass"]);
+    });
+
     it("names at most eight other tabs, however many there are", async () => {
         log.entries = Array.from({length: 30}, (_, i) => entry(`site-${i}.example.com`, "x"));
         const {text} = await buildDebugReport({pageUrl: "https://osf.io/x"});
