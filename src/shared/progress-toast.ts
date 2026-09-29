@@ -76,7 +76,7 @@ const STAGE_LABEL: Record<WorkStage, string> = {
 };
 
 const DEFAULT_LABEL = "ORE is looking up the papers on this page…";
-const SETTLING_LABEL = "Checks finished, waiting for late results…";
+const SETTLING_LABEL = "Finishing up…";
 
 const HOST_STYLE =
     "position:fixed;right:18px;z-index:2147483647;" +
@@ -181,6 +181,8 @@ let pageStartedAt: number | null = null;
 let pageEndedAt: number | null = null;
 let pageTimes = new Map<string, number>();
 let pageIdleMs = 0;
+let pageStages = new Map<WorkStage, {ran: boolean; detail?: string}>();
+let pagePasses = 0;
 let summaryInvalidated = false;
 // Pass time charged before a mid-pass page change; it belongs to the page left behind.
 let passTimesBeforePageChange = new Map<string, number>();
@@ -599,10 +601,63 @@ function renderItems(): HTMLElement {
     return list;
 }
 
+function summaryRow(icon: string, text: string, color: string, ms?: number): HTMLLIElement {
+    const row = document.createElement("li");
+    row.style.cssText = `display:flex;gap:8px;align-items:flex-start;line-height:1.35;color:${color};`;
+    const glyph = document.createElement("span");
+    glyph.style.cssText =
+        "width:12px;height:12px;flex-shrink:0;margin-top:2px;display:inline-flex;" +
+        "align-items:center;justify-content:center;font-size:10px;";
+    glyph.textContent = icon;
+    const label = document.createElement("span");
+    label.style.cssText = "flex:1;";
+    label.textContent = text;
+    row.append(glyph, label);
+    if (ms !== undefined) {
+        const duration = document.createElement("span");
+        duration.setAttribute("data-flora-work-duration", "");
+        duration.style.cssText = "flex-shrink:0;color:rgba(255,255,255,0.6);font-size:11px;";
+        duration.textContent = formatDuration(ms);
+        row.append(duration);
+    }
+    return row;
+}
+
+function renderPageSummary(list: HTMLElement): void {
+    if (pagePasses > 1) {
+        const caption = summaryRow("", `Scanned this page ${pagePasses} times`, "rgba(255,255,255,0.6)");
+        caption.setAttribute("data-flora-work-extra", "passes");
+        list.append(caption);
+    }
+    for (const stage of STAGE_ORDER) {
+        const record = pageStages.get(stage);
+        if (!record) continue;
+        const row = record.ran
+            ? summaryRow("✓", record.detail ?? STAGE_LABEL[stage], "rgba(255,255,255,0.75)", pageTimes.get(stage) ?? 0)
+            : summaryRow("–", `${STAGE_LABEL[stage]} · not run`, "rgba(255,255,255,0.5)");
+        row.setAttribute("data-flora-work-stage", stage);
+        row.dataset.floraWorkState = record.ran ? "done" : "skipped";
+        list.append(row);
+    }
+    for (const [extra, text, ms] of [
+        ["other", "Other work", pageTimes.get("other") ?? 0],
+        ["idle", "Waiting between passes", pageIdleMs],
+    ] as const) {
+        if (ms < 1) continue;
+        const row = summaryRow("·", text, "rgba(255,255,255,0.6)", ms);
+        row.setAttribute("data-flora-work-extra", extra);
+        list.append(row);
+    }
+}
+
 function renderStages(host: HTMLElement): void {
     const list = host.querySelector<HTMLElement>("[data-flora-work-stages]");
     if (!list) return;
     list.textContent = "";
+    if (finished && pagePasses > 0) {
+        renderPageSummary(list);
+        return;
+    }
 
     for (const record of stages) {
         const row = document.createElement("li");
@@ -659,6 +714,7 @@ function paint(host: HTMLElement): void {
     const track = host.querySelector<HTMLElement>("[data-flora-work-track]");
     const fill = host.querySelector<HTMLElement>("[data-flora-work-fill]");
     if (!track || !fill) return;
+    fill.style.transition = "width 0.25s ease";
 
     if (progress <= 0) {
         fill.style.width = "40%";
@@ -906,6 +962,14 @@ export function endWorkIndicator(): void {
     } else {
         if (pageEndedAt !== null) pageIdleMs += passStartedAt - pageEndedAt;
         for (const [name, ms] of times) addPageTime(name, ms - (passTimesBeforePageChange.get(name) ?? 0));
+        for (const entry of stages) {
+            const seen = pageStages.get(entry.stage);
+            pageStages.set(entry.stage, {
+                ran: Boolean(seen?.ran || entry.ran),
+                detail: entry.ran ? entry.detail ?? seen?.detail : seen?.detail,
+            });
+        }
+        pagePasses++;
         pageEndedAt = endedAt;
     }
     if (invalidated || wasCancelled || suppressed) resetTabProgress();
@@ -916,7 +980,7 @@ export function endWorkIndicator(): void {
         if (stagesLeft.length) {
             debugLog(`Work: holding the summary — ${stagesLeft.map((e) => e.stage).join(", ")} never ran`);
         }
-        showSettling();
+        showSettling(quiet);
         finishTimer = setTimeout(() => {
             finishTimer = null;
             finished = true;
@@ -943,7 +1007,7 @@ export function endWorkIndicator(): void {
     hideTimer = setTimeout(fadeOut, 500);
 }
 
-function showSettling(): void {
+function showSettling(waitMs: number): void {
     progress = 1;
     labelText = SETTLING_LABEL;
     const host = document.getElementById(WORK_TOAST_ID);
@@ -952,6 +1016,18 @@ function showSettling(): void {
     if (label) label.textContent = labelText;
     paint(host);
     showFinishedState(host);
+    const spinner = host.querySelector<HTMLElement>("[data-flora-work-spinner]");
+    if (spinner) spinner.style.display = "";
+    const track = host.querySelector<HTMLElement>("[data-flora-work-track]");
+    const fill = host.querySelector<HTMLElement>("[data-flora-work-fill]");
+    if (track && fill) {
+        track.removeAttribute("aria-valuenow");
+        fill.style.transition = "none";
+        fill.style.width = "0%";
+        void fill.offsetWidth;
+        fill.style.transition = `width ${waitMs}ms linear`;
+        fill.style.width = "100%";
+    }
     shieldToastColours(host);
 }
 
@@ -977,6 +1053,8 @@ function resetPageTimes(): void {
     pageStartedAt = pageEndedAt = null;
     pageTimes = new Map();
     pageIdleMs = 0;
+    pageStages = new Map();
+    pagePasses = 0;
 }
 
 export function resetWorkSummary(): void {

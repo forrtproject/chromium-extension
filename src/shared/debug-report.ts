@@ -52,6 +52,7 @@ export interface DebugReportData {
   settings: string[];
   entries: DebugLogEntry[];
   error?: RuntimeErrorInfo | null;
+  otherTabs?: { ctx: string; count: number }[];
 }
 
 const MAX_STACK_CHARS = 2_000;
@@ -123,6 +124,11 @@ export function renderDebugReport(
       ? `### Debug log (most recent ${shown.length} of ${total} entries)`
       : `### Debug log (${total} ${total === 1 ? "entry" : "entries"})`;
 
+  const others = data.otherTabs ?? [];
+  const otherNote = others.length
+    ? [`_Left out ${others.reduce((sum, o) => sum + o.count, 0)} entries from other tabs: ${others
+        .map((o) => `${o.ctx} (${o.count})`).join(", ")}._`, ""]
+    : [];
   const lines: string[] = [
     ...(data.error ? errorSection(data.error) : []),
     "### Environment",
@@ -135,6 +141,7 @@ export function renderDebugReport(
     "",
     heading,
     "",
+    ...otherNote,
   ];
 
   if (shown.length === 0) {
@@ -166,7 +173,7 @@ export async function collectDebugReport(
   ]);
 
   const inMemory = recentDebugEntries();
-  const entries = stored.length > 0 ? stored : inMemory;
+  const { entries, otherTabs } = focusOnPage(stored.length > 0 ? stored : inMemory, context.pageUrl);
 
   const environment = [
     `Extension: ${extensionIdentity()}`,
@@ -186,7 +193,31 @@ export async function collectDebugReport(
     `Muted PubPeer commenters: ${mutedCommenters.length}`,
   ];
 
-  return { environment, settings: settingsLines, entries, error: context.error ?? null };
+  return { environment, settings: settingsLines, entries, error: context.error ?? null, otherTabs };
+}
+
+function pageHost(pageUrl: string | null | undefined): string | null {
+  if (!pageUrl) return null;
+  try {
+    return new URL(pageUrl).hostname || null;
+  } catch {
+    return /^[a-z0-9.-]+$/i.test(pageUrl) ? pageUrl.toLowerCase() : null;
+  }
+}
+
+function focusOnPage(
+  all: DebugLogEntry[],
+  pageUrl: string | null | undefined,
+): { entries: DebugLogEntry[]; otherTabs: { ctx: string; count: number }[] } {
+  const host = pageHost(pageUrl);
+  if (!host) return { entries: all, otherTabs: [] };
+  const belongs = (ctx: string): boolean =>
+    ctx === host || !ctx.includes(".") || ctx.endsWith(".officeapps.live.com");
+  const entries = all.filter((entry) => belongs(entry.ctx));
+  const counts = new Map<string, number>();
+  for (const entry of all) if (!belongs(entry.ctx)) counts.set(entry.ctx, (counts.get(entry.ctx) ?? 0) + 1);
+  const otherTabs = [...counts.entries()].map(([ctx, count]) => ({ ctx, count })).sort((a, b) => b.count - a.count);
+  return { entries, otherTabs };
 }
 
 /** Collect and render the full report the user can copy, save or attach. */

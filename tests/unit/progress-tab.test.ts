@@ -120,8 +120,8 @@ describe("progress tab", () => {
 
         expect(tab()!.querySelector("[data-flora-tab-no-results]")).not.toBeNull();
         expect(tab()!.hasAttribute("data-flora-tab-busy")).toBe(false);
-        expect(note()!.textContent).toContain("Nothing found on this page");
-        expect(note()!.textContent).toContain("Checked 42 papers.");
+        expect(note()!.textContent).toContain("No flags on this page");
+        expect(note()!.textContent).toContain("Checked 42 papers: no retractions, concerns, replications or PubPeer comments.");
 
         vi.advanceTimersByTime(5000);
         vi.advanceTimersByTime(400);
@@ -134,7 +134,8 @@ describe("progress tab", () => {
         reportNothingFound(1);
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(note()!.textContent).toContain("Checked 1 paper.");
+        expect(note()!.textContent).toContain("No flags for this paper");
+        expect(note()!.textContent).toContain("Checked 1 paper: no retractions");
     });
 
     it("keeps the report tab disabled until the pass ends, then pulses it", () => {

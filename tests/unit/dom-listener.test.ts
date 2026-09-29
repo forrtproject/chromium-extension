@@ -239,3 +239,32 @@ describe("startDomListener", () => {
         expect(scanWholePage).not.toHaveBeenCalled();
     });
 });
+
+describe("skipped-scan logging", () => {
+    it("notes a burst of DOI-free page changes once, not once per change", async () => {
+        vi.useFakeTimers();
+        const {recentDebugEntries, setDebug, _resetDebugForTesting} = await import("../../src/shared/debug");
+        setDebug(true);
+        const count = () => recentDebugEntries().filter((e) => e.msg.includes("mutation carried no DOI candidates")).length;
+        const before = count();
+        document.body.innerHTML = "<main id='chat'></main>";
+        const chat = document.getElementById("chat")!;
+        const observer = startDomListener({scanWholePage: vi.fn(), getLastUrl: () => location.href});
+        try {
+            for (let i = 0; i < 20; i++) {
+                chat.appendChild(document.createElement("div")).textContent = `chat message ${i}`;
+                await vi.advanceTimersByTimeAsync(500);
+            }
+            expect(count() - before).toBe(1);
+            await vi.advanceTimersByTimeAsync(30_000);
+            chat.appendChild(document.createElement("div")).textContent = "one more";
+            await vi.advanceTimersByTimeAsync(500);
+            expect(count() - before).toBe(2);
+            expect(recentDebugEntries().at(-1)?.msg).toContain("times since the last note");
+        } finally {
+            observer.disconnect();
+            _resetDebugForTesting();
+            vi.useRealTimers();
+        }
+    });
+});

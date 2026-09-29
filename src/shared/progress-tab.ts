@@ -185,7 +185,7 @@ function showNoResults(tab: HTMLElement): void {
     tab.style.background = PURPLE;
     tab.style.cursor = "default";
     tab.setAttribute("role", "img");
-    tab.setAttribute("aria-label", "FORRT ORE found nothing to flag on this page");
+    tab.setAttribute("aria-label", "FORRT ORE: no flags on this page");
     const icon = document.createElement("span");
     icon.setAttribute("data-flora-tab-no-results", "");
     icon.style.cssText = "display:block;pointer-events:none;";
@@ -233,10 +233,10 @@ function showNothingFound(tab: HTMLElement, papers: number, hideTab: boolean): v
     text.style.cssText = "display:flex;flex-direction:column;gap:2px;";
     const title = document.createElement("strong");
     title.style.cssText = "font-size:13px;font-weight:600;color:#fff;";
-    title.textContent = "Nothing found on this page";
+    title.textContent = papers === 1 ? "No flags for this paper" : "No flags on this page";
     const body = document.createElement("span");
     body.style.cssText = "color:rgba(255,255,255,0.72);";
-    body.textContent = `Checked ${papers} ${papers === 1 ? "paper" : "papers"}. No flags in the available results.`;
+    body.textContent = `Checked ${papers} ${papers === 1 ? "paper" : "papers"}: no retractions, concerns, replications or PubPeer comments.`;
     text.append(title, body);
 
     const pointer = document.createElement("span");

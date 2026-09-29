@@ -9,6 +9,7 @@ const MAX_INCREMENTAL_NODES = 50;
 
 const DEBOUNCE_MS = 300;
 const WORD_QUIET_MS = 1500;
+const SKIP_LOG_EVERY_MS = 30_000;
 
 /** True when any added subtree introduces DOI-like content or reference entries. */
 export function scanAddedNodes(nodes: Element[]): boolean {
@@ -33,6 +34,17 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     let lastWordScan = -Infinity;
     let lastWordText: string | number | null = null;
     let navigated = false;
+    const skipped = new Map<string, {count: number; loggedAt: number}>();
+    const logSkip = (reason: string): void => {
+        const entry = skipped.get(reason) ?? {count: 0, loggedAt: -Infinity};
+        entry.count++;
+        if (Date.now() - entry.loggedAt >= SKIP_LOG_EVERY_MS) {
+            debugLog(`General: ${reason} — skipped full scan${entry.count > 1 ? ` (${entry.count} times since the last note)` : ""}`);
+            entry.count = 0;
+            entry.loggedAt = Date.now();
+        }
+        skipped.set(reason, entry);
+    };
 
     const flush = (): void => {
         const samePage = pageUrl(location.href) === pageUrl(getLastUrl());
@@ -49,7 +61,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         if (isWordOnline() && samePage && !wasNavigation) {
             const text = editorContentSnapshot();
             if (text === lastWordText && !scanAddedNodes(nodes.filter((node) => !node.closest("#WACViewPanel")))) {
-                debugLog("General: Word re-rendered without changing the text — skipped full scan");
+                logSkip("Word re-rendered without changing the text");
                 return;
             }
             lastWordText = text;
@@ -58,7 +70,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
             if (isWordOnline()) lastWordScan = Date.now();
             scanWholePage();
         } else {
-            debugLog("General: mutation carried no DOI candidates — skipped full scan");
+            logSkip("mutation carried no DOI candidates");
         }
     };
 
