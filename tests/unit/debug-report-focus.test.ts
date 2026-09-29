@@ -50,6 +50,12 @@ describe("debug report for one page", () => {
         expect(text).not.toContain("Turn debug mode on");
     });
 
+    it("treats www. and the bare host as the same page", async () => {
+        log.entries = [entry("www.example.org", "a"), entry("example.org", "b"), entry("mail.google.com", "c")];
+        const {data} = await buildDebugReport({pageUrl: "https://example.org/article"});
+        expect(data.entries.map((e) => e.msg)).toEqual(["a", "b"]);
+    });
+
     it("keeps every entry when no page is given", async () => {
         log.entries = [entry("osf.io", "a"), entry("mail.google.com", "b")];
         const {text, data} = await buildDebugReport();

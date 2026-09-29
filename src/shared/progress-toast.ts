@@ -183,6 +183,7 @@ let pageTimes = new Map<string, number>();
 let pageIdleMs = 0;
 let pageStages = new Map<WorkStage, {ran: boolean; detail?: string}>();
 let pagePasses = 0;
+let stagesReportedThisPass = new Map<WorkStage, string>();
 let summaryInvalidated = false;
 // Pass time charged before a mid-pass page change; it belongs to the page left behind.
 let passTimesBeforePageChange = new Map<string, number>();
@@ -654,7 +655,7 @@ function renderStages(host: HTMLElement): void {
     const list = host.querySelector<HTMLElement>("[data-flora-work-stages]");
     if (!list) return;
     list.textContent = "";
-    if (finished && pagePasses > 0) {
+    if ((finished || refCount === 0) && pagePasses > 0) {
         renderPageSummary(list);
         return;
     }
@@ -854,6 +855,7 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         passStartedAt = segmentStartedAt = now();
         passOtherMs = 0;
         passTimesBeforePageChange = new Map();
+        stagesReportedThisPass = new Map();
         planStages(plan);
     } else if (plan) {
         mergePlan(plan);
@@ -878,6 +880,7 @@ export function reportWorkStage(stage: WorkStage, detail: string): void {
     if (refCount === 0) return; // no pass in flight — a late straggler
     progress = Math.max(progress, STAGE_PROGRESS[stage]);
     labelText = detail;
+    stagesReportedThisPass.set(stage, detail);
 
     const record = stageRecord(stage);
     if (currentStage === stage) {
@@ -964,9 +967,10 @@ export function endWorkIndicator(): void {
         for (const [name, ms] of times) addPageTime(name, ms - (passTimesBeforePageChange.get(name) ?? 0));
         for (const entry of stages) {
             const seen = pageStages.get(entry.stage);
+            const reported = stagesReportedThisPass.get(entry.stage);
             pageStages.set(entry.stage, {
-                ran: Boolean(seen?.ran || entry.ran),
-                detail: entry.ran ? entry.detail ?? seen?.detail : seen?.detail,
+                ran: Boolean(seen?.ran || reported !== undefined),
+                detail: reported ?? seen?.detail,
             });
         }
         pagePasses++;
@@ -1028,6 +1032,7 @@ function showSettling(waitMs: number): void {
         fill.style.transition = `width ${waitMs}ms linear`;
         fill.style.width = "100%";
     }
+    if (expanded) renderStages(host);
     shieldToastColours(host);
 }
 
@@ -1066,6 +1071,7 @@ export function resetWorkSummary(): void {
     }
     finished = false;
     resetTabProgress();
+    stagesReportedThisPass = new Map();
     if (refCount > 0) {
         summaryInvalidated = true;
         closeSegment(now());
@@ -1108,6 +1114,7 @@ export function _resetWorkIndicatorForTesting(): void {
     resetPageTimes();
     summaryInvalidated = false;
     passTimesBeforePageChange = new Map();
+    stagesReportedThisPass = new Map();
     offerLogCopy = false;
     stages = [];
     currentStage = null;

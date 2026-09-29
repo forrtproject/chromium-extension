@@ -236,7 +236,7 @@ function showNothingFound(tab: HTMLElement, papers: number, hideTab: boolean): v
     title.textContent = papers === 1 ? "No flags for this paper" : "No flags on this page";
     const body = document.createElement("span");
     body.style.cssText = "color:rgba(255,255,255,0.72);";
-    body.textContent = `Checked ${papers} ${papers === 1 ? "paper" : "papers"}: no retractions, concerns, replications or PubPeer comments.`;
+    body.textContent = `Checked ${papers} ${papers === 1 ? "paper" : "papers"}: no retractions, concerns, replications, reproductions or PubPeer comments.`;
     text.append(title, body);
 
     const pointer = document.createElement("span");

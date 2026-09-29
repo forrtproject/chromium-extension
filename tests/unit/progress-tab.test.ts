@@ -121,7 +121,7 @@ describe("progress tab", () => {
         expect(tab()!.querySelector("[data-flora-tab-no-results]")).not.toBeNull();
         expect(tab()!.hasAttribute("data-flora-tab-busy")).toBe(false);
         expect(note()!.textContent).toContain("No flags on this page");
-        expect(note()!.textContent).toContain("Checked 42 papers: no retractions, concerns, replications or PubPeer comments.");
+        expect(note()!.textContent).toContain("Checked 42 papers: no retractions, concerns, replications, reproductions or PubPeer comments.");
 
         vi.advanceTimersByTime(5000);
         vi.advanceTimersByTime(400);

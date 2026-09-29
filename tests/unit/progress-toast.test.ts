@@ -903,6 +903,41 @@ describe("progress toast", () => {
             .toBe("500 ms");
     });
 
+    it("shows the page summary while finishing up, not the last pass's pending steps", async () => {
+        beginWorkIndicator({stages: ["scan", "validate", "lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("scan", "Found 1 DOI on this page");
+        reportWorkStage("validate", "Checking 1 DOI resolves…");
+        reportWorkStage("lookup", "Looking up 1 DOI…");
+        settle();
+        endWorkIndicator();
+        beginWorkIndicator({stages: ["scan", "validate", "lookup"]});
+        reportWorkStage("scan", "Found 1 DOI on this page");
+        expand();
+        endWorkIndicator();
+
+        expect(label()).toBe("Finishing up…");
+        expect(stageStates()).toEqual({scan: "done", validate: "done", lookup: "done"});
+        expect(toast()!.textContent).not.toContain("○");
+    });
+
+    it("does not count the old page's steps toward a new page's summary", async () => {
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        await vi.advanceTimersByTimeAsync(0);
+        reportWorkStage("lookup", "Looking up the page we are leaving…");
+        settle();
+
+        resetWorkSummary();
+        beginWorkIndicator({stages: ["scan", "lookup"]});
+        reportWorkStage("scan", "Scanning the new page…");
+        endWorkIndicator();
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(12_000);
+
+        expand();
+        expect(stageStates()).toEqual({scan: "done", lookup: "skipped"});
+    });
+
     it("lets the late stage land inside that longer wait", async () => {
         setDebug(true);
         beginWorkIndicator({stages: ["scan", "augment", "report"]});

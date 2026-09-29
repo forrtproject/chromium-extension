@@ -212,10 +212,10 @@ function focusOnPage(
   all: DebugLogEntry[],
   pageUrl: string | null | undefined,
 ): { entries: DebugLogEntry[]; otherTabs: { ctx: string; count: number }[] } {
-  const host = pageHost(pageUrl);
+  const host = pageHost(pageUrl)?.replace(/^www\./, "");
   if (!host) return { entries: all, otherTabs: [] };
   const belongs = (ctx: string): boolean =>
-    ctx === host || EXTENSION_CONTEXTS.has(ctx) || ctx.endsWith(".officeapps.live.com");
+    ctx.replace(/^www\./, "") === host || EXTENSION_CONTEXTS.has(ctx) || ctx.endsWith(".officeapps.live.com");
   const entries = all.filter((entry) => belongs(entry.ctx));
   const counts = new Map<string, number>();
   for (const entry of all) if (!belongs(entry.ctx)) counts.set(entry.ctx, (counts.get(entry.ctx) ?? 0) + 1);
