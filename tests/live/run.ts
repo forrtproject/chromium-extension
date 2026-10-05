@@ -150,7 +150,7 @@ const READ_STATE = `(() => {
         indicatorPills: document.querySelectorAll(".flora-indicator-pill").length,
         noticePills: document.querySelectorAll(".flora-notice-pill").length,
         reportPanel: document.getElementById("flora-pubpeer-panel") !== null,
-        nothingFound: document.getElementById("flora-nothing-found") !== null,
+        nothingFound: document.querySelector("[data-flora-tab-clear]") !== null,
         pageDoi,
         pageTitle: document.title,
         bodyText: (document.body?.innerText ?? "").slice(0, 3000),
@@ -411,7 +411,7 @@ function writeReport(results: Result[], startedAt: Date, extensionVersion: strin
 <dt>URL</dt><dd><a href="${escape(r.url)}">${escape(r.url)}</a>${r.finalUrl !== r.url ? `<br>Redirected to ${escape(r.finalUrl)}` : ""}</dd>
 <dt>Page</dt><dd>${escape(r.pageTitle || "—")} (HTTP ${r.httpStatus ?? "—"}, loaded in ${(r.loadMs / 1000).toFixed(1)} s)</dd>
 <dt>Page DOI</dt><dd>${escape(r.pageDoi ?? "none declared")}</dd>
-<dt>ORE</dt><dd>Title pill: ${r.titlePill ? "yes" : "no"} · ${r.indicatorPills} indicator pill(s) · ${r.noticePills} notice pill(s) · report: ${r.reportPanel ? "yes" : "no"}${r.nothingFound ? " · showed “Nothing found”" : ""} · finished in ${escape(r.doneIn ?? "—")}</dd>
+<dt>ORE</dt><dd>Title pill: ${r.titlePill ? "yes" : "no"} · ${r.indicatorPills} indicator pill(s) · ${r.noticePills} notice pill(s) · report: ${r.reportPanel ? "yes" : "no"}${r.nothingFound ? " · showed “No flags”" : ""} · finished in ${escape(r.doneIn ?? "—")}</dd>
 ${r.oreErrors.length ? `<dt>ORE warnings</dt><dd><pre>${escape(r.oreErrors.slice(0, 8).join("\n"))}</pre></dd>` : ""}
 ${r.verdict !== "pass" && r.oreLog.length ? `<dt>ORE log (last 15)</dt><dd><pre>${escape(r.oreLog.slice(-15).join("\n"))}</pre></dd>` : ""}
 </dl>

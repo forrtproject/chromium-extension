@@ -76,7 +76,7 @@ const DETERMINISM_CSS = `
     scroll-behavior: auto !important;
   }
   html { -webkit-font-smoothing: antialiased; }
-  #flora-working-toast, #flora-progress-tab, #flora-nothing-found { display: none !important; }
+  #flora-working-toast, #flora-progress-tab { display: none !important; }
 `;
 
 // ── Fixture catalogue ───────────────────────────────────────────────────────

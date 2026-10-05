@@ -2,12 +2,11 @@ import {positionTabOnRightEdge} from "./tab-position";
 import {onPubPeerVerdict, pubPeerVerdict} from "./pubpeer-api";
 
 export const PROGRESS_TAB_ID = "flora-progress-tab";
-export const NOTHING_FOUND_ID = "flora-nothing-found";
 
-const NOTHING_FOUND_MS = 5_000;
 const FADE_MS = 300;
 
 const PURPLE = "linear-gradient(180deg,#853953,#612D53)";
+const CLEAR = "linear-gradient(180deg,#0b7a5a,#065f46)";
 const GREY = "linear-gradient(180deg,#a8a2a6,#8f898d)";
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
 
@@ -41,10 +40,10 @@ const SPINNER_STYLE =
     "border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;" +
     "animation:flora-progress-tab-spin 0.8s linear infinite;pointer-events:none;";
 
-const NO_RESULTS_SVG =
-    `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" ` +
-    `stroke-linecap="round" aria-hidden="true" style="display:block;">` +
-    `<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/><path d="M5.4 5.4l3.2 3.2M8.6 5.4l-3.2 3.2"/></svg>`;
+const CHECK_SVG =
+    `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" ` +
+    `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;">` +
+    `<path d="M3.5 8.5l3 3 6-7"/></svg>`;
 
 let busy = false;
 let workStarted = false;
@@ -52,7 +51,7 @@ let lastFraction = 0;
 let lastLabel = "";
 let panelTab: HTMLElement | null = null;
 let nothingFoundDois: string[] | null = null;
-let shownNothingFoundDois: string[] = [];
+let clearDois: string[] | null = null;
 
 function nothingFoundBody(dois: string[]): string {
     const pubPeerClear = dois.every((doi) => pubPeerVerdict(doi) === "clear");
@@ -62,13 +61,18 @@ function nothingFoundBody(dois: string[]): string {
     return `Checked ${dois.length} ${dois.length === 1 ? "paper" : "papers"}: ${checked}.`;
 }
 
+function clearSummary(dois: string[]): string {
+    return `${dois.length === 1 ? "No flags for this paper" : "No flags on this page"} — ${nothingFoundBody(dois)}`;
+}
+
 let followingVerdicts = false;
 
-function refreshNothingFoundBody(): void {
-    const body = document.querySelector<HTMLElement>(`#${NOTHING_FOUND_ID} [data-flora-nothing-found-body]`);
-    if (body) body.textContent = nothingFoundBody(shownNothingFoundDois);
+function refreshClearText(): void {
+    if (!clearDois) return;
+    const sa = standalone();
+    if (sa?.hasAttribute("data-flora-tab-clear")) markClear(sa, clearDois, true);
+    if (panelTab?.hasAttribute("data-flora-tab-clear")) markClear(panelTab, clearDois, false);
 }
-let noteTimer: ReturnType<typeof setTimeout> | null = null;
 const fadeTimers = new Set<ReturnType<typeof setTimeout>>();
 
 function ensureKeyframes(): void {
@@ -197,17 +201,32 @@ function pulse(tab: HTMLElement): void {
     tab.style.animation = PANEL_TAB_PULSE;
 }
 
-function showNoResults(tab: HTMLElement): void {
-    clearBusy(tab);
-    tab.style.background = PURPLE;
+function markClear(tab: HTMLElement, dois: string[], standaloneTab: boolean): void {
+    if (isTabBusy(tab)) return;
+    if (!followingVerdicts) {
+        followingVerdicts = true;
+        onPubPeerVerdict(refreshClearText);
+    }
+    const summary = clearSummary(dois);
+    tab.setAttribute("data-flora-tab-clear", "");
+    tab.title = summary;
+    if (!standaloneTab) return;
+    tab.style.background = CLEAR;
     tab.style.cursor = "default";
     tab.setAttribute("role", "img");
-    tab.setAttribute("aria-label", "FORRT ORE: no flags on this page");
-    const icon = document.createElement("span");
-    icon.setAttribute("data-flora-tab-no-results", "");
-    icon.style.cssText = "display:block;pointer-events:none;";
-    icon.innerHTML = NO_RESULTS_SVG;
-    tab.append(icon);
+    tab.setAttribute("aria-label", `FORRT ORE: ${summary}`);
+    if (!tab.querySelector("[data-flora-tab-clear-icon]")) {
+        const icon = document.createElement("span");
+        icon.setAttribute("data-flora-tab-clear-icon", "");
+        icon.style.cssText = "display:block;pointer-events:none;";
+        icon.innerHTML = CHECK_SVG;
+        tab.append(icon);
+    }
+}
+
+function unmarkClear(tab: HTMLElement): void {
+    tab.removeAttribute("data-flora-tab-clear");
+    if (!isTabBusy(tab)) tab.removeAttribute("title");
 }
 
 function fadeOut(el: HTMLElement, slide: boolean): void {
@@ -222,66 +241,6 @@ function fadeOut(el: HTMLElement, slide: boolean): void {
     fadeTimers.add(timer);
 }
 
-function removeNote(): void {
-    if (noteTimer) clearTimeout(noteTimer);
-    noteTimer = null;
-    document.getElementById(NOTHING_FOUND_ID)?.remove();
-}
-
-function showNothingFound(tab: HTMLElement, dois: string[], hideTab: boolean): void {
-    removeNote();
-    shownNothingFoundDois = dois;
-    if (!followingVerdicts) {
-        followingVerdicts = true;
-        onPubPeerVerdict(refreshNothingFoundBody);
-    }
-    const papers = dois.length;
-    const note = document.createElement("div");
-    note.id = NOTHING_FOUND_ID;
-    note.setAttribute("data-flora-ui", "");
-    note.setAttribute("role", "status");
-    note.setAttribute("aria-live", "polite");
-    note.style.cssText =
-        "all:unset;box-sizing:border-box;position:fixed;z-index:2147483647;width:250px;" +
-        "display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;" +
-        "background:#2b2128;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,0.22);" +
-        `font-family:${FONT};font-size:12px;line-height:1.4;pointer-events:none;` +
-        "transition:opacity 0.3s ease;";
-
-    const icon = document.createElement("span");
-    icon.style.cssText = "flex-shrink:0;margin-top:1px;";
-    icon.innerHTML = NO_RESULTS_SVG.replace('width="13" height="13"', 'width="16" height="16"');
-
-    const text = document.createElement("span");
-    text.style.cssText = "display:flex;flex-direction:column;gap:2px;";
-    const title = document.createElement("strong");
-    title.style.cssText = "font-size:13px;font-weight:600;color:#fff;";
-    title.textContent = papers === 1 ? "No flags for this paper" : "No flags on this page";
-    const body = document.createElement("span");
-    body.setAttribute("data-flora-nothing-found-body", "");
-    body.style.cssText = "color:rgba(255,255,255,0.72);";
-    body.textContent = nothingFoundBody(dois);
-    text.append(title, body);
-
-    const pointer = document.createElement("span");
-    pointer.style.cssText =
-        "position:absolute;right:-5px;top:50%;width:10px;height:10px;margin-top:-5px;" +
-        "background:#2b2128;transform:rotate(45deg);";
-
-    note.append(icon, text, pointer);
-    document.body.appendChild(note);
-
-    const rect = tab.getBoundingClientRect();
-    note.style.right = `${Math.max(window.innerWidth - rect.left + 12, 40)}px`;
-    note.style.top = `${Math.max(rect.top + rect.height / 2 - note.offsetHeight / 2, 8)}px`;
-
-    noteTimer = setTimeout(() => {
-        noteTimer = null;
-        fadeOut(note, false);
-        if (hideTab && tab.isConnected) fadeOut(tab, true);
-    }, NOTHING_FOUND_MS);
-}
-
 export function markTabWorkStarted(): void {
     workStarted = true;
     if (busy) return;
@@ -294,7 +253,6 @@ export function isTabProgressShown(): boolean {
 }
 
 export function showTabProgress(fraction: number, label: string): void {
-    removeNote();
     const leftover = standalone();
     if (leftover?.hasAttribute("data-flora-tab-done")) leftover.remove();
     fraction = busy ? Math.max(fraction, lastFraction) : fraction;
@@ -315,31 +273,33 @@ export function noteNothingFound(dois: string[]): void {
 
 export function withdrawNothingFound(): void {
     nothingFoundDois = null;
-    removeNote();
+    clearDois = null;
     const tab = standalone();
     if (tab?.hasAttribute("data-flora-tab-done")) tab.remove();
+    if (panelTab) unmarkClear(panelTab);
 }
 
 export function finishTabProgress(): void {
     busy = false;
     workStarted = false;
-    const papers = nothingFoundDois;
+    if (nothingFoundDois !== null) clearDois = nothingFoundDois;
     nothingFoundDois = null;
+    const papers = clearDois;
 
     if (panelTab?.isConnected) {
         removeStandalone();
         clearBusy(panelTab);
         pulse(panelTab);
-        if (papers !== null) showNothingFound(panelTab, papers, false);
+        if (papers) markClear(panelTab, papers, false);
         return;
     }
 
     const tab = standalone();
-    if (papers !== null) {
+    if (papers) {
         const target = tab ?? ensureStandalone();
         target.setAttribute("data-flora-tab-done", "");
-        showNoResults(target);
-        showNothingFound(target, papers, true);
+        clearBusy(target);
+        markClear(target, papers, true);
         return;
     }
     if (tab) {
@@ -352,14 +312,18 @@ export function resetTabProgress(): void {
     busy = false;
     workStarted = false;
     nothingFoundDois = null;
-    removeNote();
+    clearDois = null;
     removeStandalone();
     if (panelTab?.isConnected) clearBusy(panelTab);
+    if (panelTab) unmarkClear(panelTab);
 }
 
 export function adoptPanelTab(tab: HTMLElement): void {
     panelTab = tab;
+    const leftover = standalone();
+    if (leftover?.hasAttribute("data-flora-tab-done")) leftover.remove();
     tab.setAttribute("data-flora-tab", "");
+    if (clearDois && !busy) markClear(tab, clearDois, false);
     if (!busy && !workStarted) {
         tab.dataset.floraTabPulsed = "1";
         return;
@@ -391,4 +355,5 @@ export function _resetProgressTabForTesting(): void {
     lastFraction = 0;
     lastLabel = "";
     workStarted = false;
+    clearDois = null;
 }

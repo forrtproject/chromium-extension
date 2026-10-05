@@ -317,7 +317,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
             if (navigated()) return;
             for (const info of titled) {
                 const doi = augmented.get(info.title) ?? null;
-                updateWorkItem(info.title, doi ? "done" : "failed", doi ?? (augmented.has(info.title) ? "no DOI found" : "not checked"));
+                updateWorkItem(info.title, doi ? "done" : augmented.has(info.title) ? "failed" : "skipped", doi ?? (augmented.has(info.title) ? "no DOI found" : undefined));
             }
             if (isWorkCancelled()) return;
         }
