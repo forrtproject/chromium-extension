@@ -57,4 +57,30 @@ describe("message guards reject malformed payloads", () => {
         expect(isScanStateMessage(wrap({ phase: "error", pageUrl: "https://a.test/", error: { message: "x" } }))).toBe(false);
         expect(isScanStateMessage(wrap({ phase: "error", pageUrl: "https://a.test/", error: {}, entries: [] }))).toBe(false);
     });
+
+    it("rejects counts that are not finite non-negative integers", () => {
+        const wrap = (state: unknown) => ({ type: "FLORA_SCAN_STATE", state });
+        for (const bad of [-1, NaN, Infinity, 1.5, "3"]) {
+            expect(isScanStateMessage(wrap({ phase: "scanning", papers: bad }))).toBe(false);
+            expect(isScanStateMessage(wrap({ phase: "done", papers: bad, flagged: 0, incomplete: false }))).toBe(false);
+            expect(isScanStateMessage(wrap({ phase: "done", papers: 1, flagged: bad, incomplete: false }))).toBe(false);
+        }
+    });
+
+    it("rejects an error state with a malformed error or entries", () => {
+        const wrap = (state: unknown) => ({ type: "FLORA_SCAN_STATE", state });
+        const entry = { t: 1, level: "log", ctx: "a.test", msg: "m" };
+        const error = (overrides: object) => ({ phase: "error", pageUrl: "https://a.test/", error: { message: "x" }, entries: [], ...overrides });
+        expect(isScanStateMessage(wrap(error({ error: "x" })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ error: { message: "x", stack: 1 } })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ error: { message: "x", where: {} } })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ error: { message: "x", stack: "s", where: "w" } })))).toBe(true);
+        expect(isScanStateMessage(wrap(error({ entries: [entry] })))).toBe(true);
+        expect(isScanStateMessage(wrap(error({ entries: [null] })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ entries: [{ ...entry, level: "info" }] })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ entries: [{ ...entry, t: NaN }] })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ entries: [{ ...entry, msg: 1 }] })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ entries: [{ t: 1, level: "log", msg: "m" }] })))).toBe(false);
+        expect(isScanStateMessage(wrap(error({ pageUrl: 5 })))).toBe(false);
+    });
 });

@@ -1,4 +1,4 @@
-import {describe, it, expect, vi, beforeEach} from "vitest";
+import {describe, it, expect, vi, beforeEach, afterEach} from "vitest";
 import {isIssueFormUrl} from "../../src/shared/debug-report";
 
 type Call = {tabId: number; [key: string]: unknown};
@@ -192,6 +192,79 @@ describe("the toolbar reflects scan progress and results", () => {
             await vi.waitFor(() => expect(chrome.action.openPopup).toHaveBeenCalled());
             expect(chrome.tabs.create).not.toHaveBeenCalled();
             expect(popup.at(-1)).toEqual({tabId: 7, popup: "dist/popup.html"});
+        });
+
+        it("opens the popup page in a tab when openPopup is unavailable", async () => {
+            (chrome.action as unknown as Record<string, unknown>).openPopup = undefined;
+            const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
+
+            onClicked({id: 7, url: "https://example.org/paper"});
+
+            await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
+            expect(lastListener<{url: string}>(chrome.tabs.create).url)
+                .toBe("chrome-extension://test-extension-id/dist/popup.html?tabId=7");
+        });
+
+        it("opens the popup page in a tab when openPopup rejects", async () => {
+            (chrome.action as unknown as Record<string, unknown>).openPopup = vi.fn(async () => { throw new Error("no"); });
+            await scan(errorState, 7);
+            const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
+
+            onClicked({id: 7, url: "https://example.org/other"});
+
+            await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
+            expect(lastListener<{url: string}>(chrome.tabs.create).url).toContain("popup.html?tabId=7");
+        });
+
+        it("restores the popup when the tab navigates to another page", async () => {
+            await scan(errorState, 7);
+            const onUpdated = lastListener<(id: number, info: {url?: string}) => void>(chrome.tabs.onUpdated.addListener);
+
+            onUpdated(7, {url: "https://example.org/other"});
+
+            await vi.waitFor(() => expect(session.has("flora_tab_error:7")).toBe(false));
+            expect(popup.at(-1)).toEqual({tabId: 7, popup: "dist/popup.html"});
+        });
+
+        it("keeps the error when the tab stays on the same page", async () => {
+            await scan(errorState, 7);
+            const onUpdated = lastListener<(id: number, info: {url?: string}) => void>(chrome.tabs.onUpdated.addListener);
+
+            onUpdated(7, {url: "https://example.org/paper?id=2#top"});
+            onUpdated(7, {status: "complete"} as {url?: string});
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(session.has("flora_tab_error:7")).toBe(true);
+            expect(popup.at(-1)).toEqual({tabId: 7, popup: ""});
+        });
+
+        describe("the report's log entries", () => {
+            const worker = {t: 5, level: "log", ctx: "background", msg: "worker line"};
+
+            afterEach(() => { (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({}); });
+
+            async function report(log: unknown[]): Promise<string> {
+                (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({flora_debug_log: log});
+                await scan(errorState, 7);
+                const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
+                onClicked({id: 7, url: "https://example.org/paper"});
+                await vi.waitFor(() => expect(session.has("flora_pending_report")).toBe(true));
+                return (session.get("flora_pending_report") as {report: string}).report;
+            }
+
+            it("adds the page's captured entries missing from the persisted log", async () => {
+                const text = await report([worker]);
+
+                expect(text).toContain("kaboom");
+                expect(text).toContain("worker line");
+                expect(text.indexOf("kaboom")).toBeLessThan(text.indexOf("worker line"));
+            });
+
+            it("does not repeat entries the log already holds", async () => {
+                const text = await report([errorState.entries[0], worker]);
+
+                expect(text.split("kaboom")).toHaveLength(2);
+            });
         });
 
         it("forgets the error when the tab closes", async () => {

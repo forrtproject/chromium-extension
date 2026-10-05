@@ -70,15 +70,35 @@ export interface ScanStateMessage {
     state: ScanState;
 }
 
+function isCount(v: unknown): v is number {
+    return typeof v === "number" && Number.isInteger(v) && v >= 0;
+}
+
+function isDebugLogEntry(v: unknown): v is DebugLogEntry {
+    if (typeof v !== "object" || v === null) return false;
+    const e = v as Record<string, unknown>;
+    return typeof e.t === "number" && Number.isFinite(e.t)
+        && (e.level === "log" || e.level === "warn" || e.level === "error")
+        && typeof e.ctx === "string" && typeof e.msg === "string";
+}
+
+function isRuntimeErrorInfo(v: unknown): v is RuntimeErrorInfo {
+    if (typeof v !== "object" || v === null) return false;
+    const e = v as Record<string, unknown>;
+    return typeof e.message === "string"
+        && (e.stack === undefined || typeof e.stack === "string")
+        && (e.where === undefined || typeof e.where === "string");
+}
+
 export function isScanStateMessage(msg: unknown): msg is ScanStateMessage {
     if (typeof msg !== "object" || msg === null) return false;
     const m = msg as Record<string, unknown>;
     const s = m.state as Record<string, unknown> | null | undefined;
     if (m.type !== "FLORA_SCAN_STATE" || typeof s !== "object" || s === null) return false;
-    if (s.phase === "scanning") return typeof s.papers === "number";
-    if (s.phase === "done") return typeof s.papers === "number" && typeof s.flagged === "number" && typeof s.incomplete === "boolean";
-    if (s.phase === "error") return typeof s.pageUrl === "string" && Array.isArray(s.entries)
-        && typeof (s.error as {message?: unknown} | null)?.message === "string";
+    if (s.phase === "scanning") return isCount(s.papers);
+    if (s.phase === "done") return isCount(s.papers) && isCount(s.flagged) && typeof s.incomplete === "boolean";
+    if (s.phase === "error") return typeof s.pageUrl === "string" && isRuntimeErrorInfo(s.error)
+        && Array.isArray(s.entries) && s.entries.every(isDebugLogEntry);
     return false;
 }
 

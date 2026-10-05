@@ -13,7 +13,7 @@ import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
 import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
-import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
+import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
 import {debugError, debugLog, debugWarn, isDebugEnabledAsync, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 
 // The worker-wide manager budgets all providers together.
@@ -79,9 +79,27 @@ function defaultPopup(): string {
     }
 }
 
-function leaveErrorState(tabId: number): void {
-    chrome.action.setPopup?.({ tabId, popup: defaultPopup() })?.catch?.(() => {});
+function leaveErrorState(tabId: number): Promise<void> {
     chrome.storage.session.remove(TAB_ERROR_PREFIX + tabId).catch(() => {});
+    return Promise.resolve(chrome.action.setPopup?.({ tabId, popup: defaultPopup() })).then(() => {}, () => {});
+}
+
+async function showPopup(tabId: number): Promise<void> {
+    try {
+        if (chrome.action.openPopup) {
+            await chrome.action.openPopup();
+            return;
+        }
+    } catch {}
+    const url = chrome.runtime.getURL(`${defaultPopup()}?tabId=${tabId}`);
+    await chrome.tabs.create({ url }).catch((err) => debugError("Toolbar: could not open the popup —", err));
+}
+
+function mergeEntries(current: DebugLogEntry[], captured: DebugLogEntry[]): DebugLogEntry[] {
+    const keyOf = (e: DebugLogEntry) => `${e.t}|${e.level}|${e.ctx}|${e.msg}`;
+    const seen = new Set(current.map(keyOf));
+    const extra = captured.filter((e) => !seen.has(keyOf(e)));
+    return extra.length === 0 ? current : [...current, ...extra].sort((a, b) => a.t - b.t).slice(-MAX_LOG_ENTRIES);
 }
 
 function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null, blocked = false): void {
@@ -142,15 +160,15 @@ async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Pro
     const raw = await chrome.storage.session.get(key).catch(() => ({})) as Record<string, TabError | undefined>;
     const stored = raw[key];
     if (!stored || (tabUrl && !samePage(stored.pageUrl, tabUrl))) {
-        leaveErrorState(tabId);
-        chrome.action.openPopup?.()?.catch?.(() => {});
+        await leaveErrorState(tabId);
+        await showPopup(tabId);
         return;
     }
     const domain = hostOf(stored.pageUrl);
     let url = issueUrl({ domain, error: stored.error }).url;
     try {
         const data = await collectDebugReport({ pageUrl: stored.pageUrl, error: stored.error });
-        if (stored.entries.length > 0 && !(await isDebugEnabledAsync())) data.entries = stored.entries;
+        data.entries = mergeEntries(data.entries, stored.entries);
         url = issueUrl({ domain, report: data, error: stored.error }).url;
         await stashReport(renderDebugReport(data));
     } catch (err) {
@@ -161,6 +179,16 @@ async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Pro
 
 chrome.action.onClicked.addListener((tab) => {
     if (tab.id != null) void openTabErrorIssue(tab.id, tab.url);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    const url = changeInfo.url;
+    if (!url) return;
+    const key = TAB_ERROR_PREFIX + tabId;
+    chrome.storage.session.get(key).then((raw) => {
+        const stored = (raw as Record<string, TabError | undefined>)[key];
+        if (stored && !samePage(stored.pageUrl, url)) void leaveErrorState(tabId);
+    }).catch(() => {});
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {

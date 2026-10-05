@@ -19,11 +19,12 @@ import {
     beginWorkIndicator,
     endWorkIndicator,
     hideWorkIndicator,
+    showWorkIndicator,
     reportWorkStage,
     resetWorkSummary,
     _resetWorkIndicatorForTesting,
 } from "../../src/shared/progress-toast";
-import {_resetActiveStateForTesting} from "../../src/shared/active-state";
+import {_resetActiveStateForTesting, reportActiveState} from "../../src/shared/active-state";
 
 type Sent = {type?: string; active?: boolean; state?: {phase: string; [key: string]: unknown}};
 
@@ -223,6 +224,20 @@ describe("what the content script tells the toolbar about a scan", () => {
             expect(sent()).toEqual([]);
         });
 
+        it("redacts contact details from the message, stack and page", () => {
+            window.history.replaceState({}, "", "/?mailto=reader%40example.org");
+
+            noteScanError({
+                message: "Error: failed for reader@example.org",
+                stack: "at fetch (https://api.example/?mailto=reader%40example.org)",
+            });
+
+            const payload = JSON.stringify(states());
+            expect(payload).not.toContain("example.org");
+            expect(payload).toContain("[redacted");
+            window.history.replaceState({}, "", "/");
+        });
+
         it("truncates a very long message", () => {
             noteScanError({message: "E".repeat(900)});
 
@@ -239,5 +254,46 @@ describe("what the content script tells the toolbar about a scan", () => {
         resetWorkSummary();
 
         expect(sent()).toHaveLength(before);
+    });
+
+    it("tells the toolbar the finished result again when the UI is shown after a hide", async () => {
+        useSource();
+        pass();
+        hideWorkIndicator();
+        const before = states().length;
+
+        showWorkIndicator();
+        await Promise.resolve();
+
+        expect(states()).toHaveLength(before + 1);
+        expect(states().at(-1)).toEqual({phase: "done", papers: 2, flagged: 1, incomplete: false});
+    });
+
+    it("replays the last toolbar report when the page returns from the back-forward cache", () => {
+        reportActiveState(true);
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockClear();
+
+        window.dispatchEvent(new PageTransitionEvent("pageshow", {persisted: true}));
+
+        expect(sent()).toEqual([expect.objectContaining({type: "FLORA_ACTIVE_STATE", active: true})]);
+    });
+
+    it("replays a scan result after a back-forward cache restore", () => {
+        useSource();
+        pass();
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockClear();
+
+        window.dispatchEvent(new PageTransitionEvent("pageshow", {persisted: true}));
+
+        expect(states()).toEqual([{phase: "done", papers: 2, flagged: 1, incomplete: false}]);
+    });
+
+    it("does not replay on an ordinary page show", () => {
+        reportActiveState(true);
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockClear();
+
+        window.dispatchEvent(new PageTransitionEvent("pageshow", {persisted: false}));
+
+        expect(sent()).toEqual([]);
     });
 });

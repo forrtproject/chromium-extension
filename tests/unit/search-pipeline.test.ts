@@ -76,13 +76,19 @@ describe("search pipeline when the lookup fails", () => {
         vi.resetModules();
         const html = readFileSync(join(__dirname, "..", "fixtures", "scholar-results.html"), "utf-8");
         document.body.innerHTML = new JSDOM(html).window.document.body.innerHTML;
-        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("worker gone"));
-        const {processSearchResults, searchScanSummary} = await import("../../src/content-search/pipeline");
-        const {SCHOLAR} = await import("../../src/content-search/sites/scholar");
+        const sendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+        const previous = sendMessage.getMockImplementation();
+        sendMessage.mockRejectedValue(new Error("worker gone"));
+        try {
+            const {processSearchResults, searchScanSummary} = await import("../../src/content-search/pipeline");
+            const {SCHOLAR} = await import("../../src/content-search/sites/scholar");
 
-        await processSearchResults(SCHOLAR, document);
+            await processSearchResults(SCHOLAR, document);
 
-        expect(searchScanSummary()!.incomplete).toBe(true);
+            expect(searchScanSummary()!.incomplete).toBe(true);
+        } finally {
+            sendMessage.mockImplementation(previous!);
+        }
     });
 });
 

@@ -11,7 +11,7 @@ import {debugLog, flushDebugLog, isDebugEnabled, onDebugChange} from "@shared/de
 import {msUntilTomorrow6am} from "@shared/snooze-durations";
 import {buildDebugReport} from "@shared/debug-report";
 import {writeClipboard} from "@shared/clipboard";
-import {noteScanEnded, noteScanHidden, noteScanProgress, noteScanReset, noteScanStarted} from "@shared/toolbar-scan";
+import {noteScanEnded, noteScanHidden, noteScanProgress, noteScanReset, noteScanShown, noteScanStarted} from "@shared/toolbar-scan";
 import {blockDomain, snoozeDomain} from "@shared/domains";
 import {getSettings} from "@shared/settings";
 import {
@@ -1113,6 +1113,7 @@ export function hideWorkIndicator(): void {
 /** Popup restored FLoRA UI — back if a pass is still running. */
 export function showWorkIndicator(): void {
     suppressed = false;
+    noteScanShown();
     renderNow();
 }
 

@@ -327,7 +327,7 @@ function scanSummary(): ScanSummary | null {
         if (invalidDois.has(doi) || state.status === "idle") continue;
         papers.add(doi);
         const verdict = pubPeerVerdict(doi);
-        if (state.status === "error" || verdict === "unavailable") incomplete = true;
+        if (state.status === "error" || state.status === "loading" || verdict === "unavailable") incomplete = true;
         if (hasReplication(state) || verdict === "comments") flagged.add(doi);
     }
     for (const notice of redacts) {
@@ -966,8 +966,18 @@ async function augmentFromTitle(): Promise<void> {
                 type: "FLORA_LOOKUP",
                 dois: [resolvedDoi]
             };
-            await safeSendMessage(request);
+            const lookup = await safeSendMessage<LookupResponse>(request);
             if (stale()) return;
+            if (lookup) {
+                if (lookup.errors[resolvedDoi]) {
+                    pageState.set(resolvedDoi, {status: "error", message: lookup.errors[resolvedDoi]});
+                } else if (lookup.results[resolvedDoi]) {
+                    pageState.set(resolvedDoi, {status: "matched", result: lookup.results[resolvedDoi], source: "augmented"});
+                } else {
+                    pageState.set(resolvedDoi, {status: "no-match"});
+                }
+                pageStateVersion++;
+            }
 
             // Augmented DOI isn't in `dois` — extractPrimaryDOI won't find it either
             // (it was never on the page), so placeTitleIndicatorPill() never fires

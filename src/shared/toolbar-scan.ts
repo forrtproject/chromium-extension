@@ -1,5 +1,6 @@
 import {reportActiveState, reportScanState} from "./active-state";
 import {onPubPeerVerdict} from "./pubpeer-api";
+import {redactDebugText} from "./debug-redact";
 import {recentDebugEntries, type RuntimeErrorInfo} from "./debug";
 import type {ScanState} from "./messages";
 
@@ -15,7 +16,6 @@ const BENIGN_ERROR = /Extension context invalidated|Receiving end does not exist
 let source: (() => ScanSummary | null) | null = null;
 let shown: "none" | ScanState["phase"] = "none";
 let lastKey = "";
-let lastState: ScanState | null = null;
 let scanning = false;
 let scanTimer: ReturnType<typeof setTimeout> | null = null;
 let listening = false;
@@ -29,7 +29,6 @@ function send(state: ScanState): void {
     const key = JSON.stringify(state);
     if (key === lastKey) return;
     lastKey = key;
-    lastState = state;
     shown = state.phase;
     reportScanState(state);
 }
@@ -38,7 +37,6 @@ function showActive(): void {
     if (shown === "none") return;
     shown = "none";
     lastKey = "";
-    lastState = null;
     reportActiveState(true);
 }
 
@@ -58,9 +56,6 @@ export function setScanSummarySource(next: () => ScanSummary | null): void {
     if (listening) return;
     listening = true;
     onPubPeerVerdict(noteScanUpdated);
-    window.addEventListener("pageshow", (event) => {
-        if (event.persisted && lastState) reportScanState(lastState);
-    });
 }
 
 export function noteScanStarted(): void {
@@ -99,7 +94,21 @@ export function noteScanHidden(): void {
     clearScanTimer();
     shown = "none";
     lastKey = "";
-    lastState = null;
+}
+
+export function noteScanShown(): void {
+    queueMicrotask(() => {
+        if (shown === "error") return;
+        const summary = source?.();
+        if (!summary) return;
+        lastKey = "";
+        if (scanning) sendScanning();
+        else sendDone(summary);
+    });
+}
+
+function redacted(text: string, max: number): string {
+    return redactDebugText(text).slice(0, max);
 }
 
 export function noteScanError(info: RuntimeErrorInfo): void {
@@ -108,12 +117,15 @@ export function noteScanError(info: RuntimeErrorInfo): void {
     lastKey = "";
     const state: ScanState = {
         phase: "error",
-        pageUrl: location.href,
-        error: {message: info.message.slice(0, 500), stack: info.stack?.slice(0, 4000), where: info.where},
-        entries: recentDebugEntries().slice(-40).map((entry) => ({...entry, msg: entry.msg.slice(0, 500)})),
+        pageUrl: redactDebugText(location.href),
+        error: {
+            message: redacted(info.message, 500),
+            stack: info.stack === undefined ? undefined : redacted(info.stack, 4000),
+            where: info.where,
+        },
+        entries: recentDebugEntries().slice(-40).map((entry) => ({...entry, msg: redacted(entry.msg, 500)})),
     };
     shown = "error";
-    lastState = state;
     reportScanState(state);
 }
 
@@ -121,7 +133,6 @@ export function _resetToolbarScanForTesting(): void {
     source = null;
     shown = "none";
     lastKey = "";
-    lastState = null;
     scanning = false;
     clearScanTimer();
 }
