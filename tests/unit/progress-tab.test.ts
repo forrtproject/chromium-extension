@@ -9,7 +9,7 @@ import {
     WORK_TOAST_ID,
     _resetWorkIndicatorForTesting,
 } from "../../src/shared/progress-toast";
-import {NOTHING_FOUND_ID, PROGRESS_TAB_ID, withdrawNothingFound} from "../../src/shared/progress-tab";
+import {PROGRESS_TAB_ID, resetTabProgress, withdrawNothingFound} from "../../src/shared/progress-tab";
 import {_recordPubPeerVerdictsForTesting, _resetPubPeerCacheForTesting} from "../../src/shared/pubpeer-api";
 import {removeSidePanel, renderSidePanel} from "../../src/content-general/injector";
 import {_resetDebugForTesting} from "../../src/shared/debug";
@@ -24,10 +24,6 @@ const DOI = "10.1000/tab" as DoiString;
 
 function tab(): HTMLElement | null {
     return document.getElementById(PROGRESS_TAB_ID);
-}
-
-function note(): HTMLElement | null {
-    return document.getElementById(NOTHING_FOUND_ID);
 }
 
 function fillHeight(el: HTMLElement): string {
@@ -117,7 +113,7 @@ describe("progress tab", () => {
         expect(tab()!.hasAttribute("data-flora-tab-busy")).toBe(true);
     });
 
-    it("shows the nothing-found state and note, then hides both after five seconds", () => {
+    it("shows the clear state on the tab with the summary as its tooltip, and keeps it", () => {
         beginWorkIndicator();
         settle();
         reportNothingFound(papers(42));
@@ -125,15 +121,71 @@ describe("progress tab", () => {
         endWorkIndicator();
         vi.advanceTimersByTime(600);
 
-        expect(tab()!.querySelector("[data-flora-tab-no-results]")).not.toBeNull();
+        expect(tab()!.querySelector("[data-flora-tab-clear-icon]")).not.toBeNull();
         expect(tab()!.hasAttribute("data-flora-tab-busy")).toBe(false);
-        expect(note()!.textContent).toContain("No flags on this page");
-        expect(note()!.textContent).toContain("Checked 42 papers: no retractions, concerns, replications, reproductions or PubPeer comments.");
+        expect(tab()!.title).toContain("No flags on this page");
+        expect(tab()!.title).toContain("Checked 42 papers: no retractions, concerns, replications, reproductions or PubPeer comments.");
+        expect(tab()!.getAttribute("aria-label")).toMatch(/^FORRT ORE: No flags/);
+        expect(document.getElementById("flora-nothing-found")).toBeNull();
 
-        vi.advanceTimersByTime(5000);
-        vi.advanceTimersByTime(400);
-        expect(note()).toBeNull();
-        expect(tab()).toBeNull();
+        vi.advanceTimersByTime(10_000);
+        expect(tab()).not.toBeNull();
+    });
+
+    it("keeps the clear state through a later pass that shows nothing", () => {
+        beginWorkIndicator();
+        settle();
+        reportNothingFound(papers(2));
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(tab()!.hasAttribute("data-flora-tab-clear")).toBe(true);
+
+        beginWorkIndicator();
+        settle();
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(tab()!.hasAttribute("data-flora-tab-clear")).toBe(true);
+        expect(tab()!.title).toContain("No flags on this page");
+    });
+
+    it("marks the report tab with the summary without changing its label", () => {
+        beginWorkIndicator();
+        settle();
+        const panelTab = renderPanel();
+        reportNothingFound(papers(3));
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(panelTab.title).toContain("No flags");
+        expect(panelTab.getAttribute("aria-label")).toBe("Open the FORRT ORE panel");
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).not.toBeNull();
+        expect(panelTab.style.background).toContain("#0b7a5a");
+        expect(panelTab.style.cursor).not.toBe("default");
+        expect(panelTab.hasAttribute("role")).toBe(false);
+
+        withdrawNothingFound();
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).toBeNull();
+        expect(panelTab.style.background).toContain("#853953");
+        expect(panelTab.hasAttribute("data-flora-tab-clear")).toBe(false);
+    });
+
+    it("restores the report tab look when a later pass starts or resets", () => {
+        const panelTab = renderPanel();
+        beginWorkIndicator();
+        reportNothingFound(papers(3));
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(panelTab.style.background).toContain("#0b7a5a");
+
+        beginWorkIndicator();
+        settle();
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).toBeNull();
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(panelTab.querySelectorAll("[data-flora-tab-clear-icon]")).toHaveLength(1);
+
+        resetTabProgress();
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).toBeNull();
+        expect(panelTab.style.background).toContain("#853953");
     });
 
     it("claims no PubPeer comments only once every paper on the note has a clear PubPeer check", () => {
@@ -144,14 +196,14 @@ describe("progress tab", () => {
         reportNothingFound([a, b, c]);
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(note()!.textContent).toContain("Checked 3 papers: no retractions, concerns, replications or reproductions.");
-        expect(note()!.textContent).not.toContain("PubPeer");
+        expect(tab()!.title).toContain("Checked 3 papers: no retractions, concerns, replications or reproductions.");
+        expect(tab()!.title).not.toContain("PubPeer");
 
         _recordPubPeerVerdictsForTesting([[b, "clear"], [c, "unavailable"]]);
-        expect(note()!.textContent, "an unavailable PubPeer check earns no claim").not.toContain("PubPeer");
+        expect(tab()!.title, "an unavailable PubPeer check earns no claim").not.toContain("PubPeer");
 
         _recordPubPeerVerdictsForTesting([[c, "clear"]]);
-        expect(note()!.textContent).toContain("reproductions or PubPeer comments.");
+        expect(tab()!.title).toContain("reproductions or PubPeer comments.");
     });
 
     it("still says nothing was found after a pass too quick to show progress", () => {
@@ -159,8 +211,8 @@ describe("progress tab", () => {
         reportNothingFound(papers(1));
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(note()!.textContent).toContain("No flags for this paper");
-        expect(note()!.textContent).toContain("Checked 1 paper: no retractions");
+        expect(tab()!.title).toContain("No flags for this paper");
+        expect(tab()!.title).toContain("Checked 1 paper: no retractions");
     });
 
     it("keeps the report tab disabled until the pass ends, then pulses it", () => {
@@ -251,21 +303,19 @@ describe("progress tab", () => {
         withdrawNothingFound();
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(note()).toBeNull();
-        expect(tab()?.querySelector("[data-flora-tab-no-results]") ?? null).toBeNull();
+        expect(tab()?.querySelector("[data-flora-tab-clear-icon]") ?? null).toBeNull();
     });
 
-    it("takes down a nothing-found note already on screen once flags turn up", () => {
+    it("takes down a clear state already on screen once flags turn up", () => {
         beginWorkIndicator();
         settle();
         reportNothingFound(papers(12));
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(note()).not.toBeNull();
+        expect(tab()!.hasAttribute("data-flora-tab-clear")).toBe(true);
         expect(tab()!.hasAttribute("data-flora-tab-done")).toBe(true);
 
         withdrawNothingFound();
-        expect(note()).toBeNull();
         expect(tab()).toBeNull();
     });
 

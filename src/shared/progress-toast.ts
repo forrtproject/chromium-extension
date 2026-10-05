@@ -75,6 +75,7 @@ const STAGE_LABEL: Record<WorkStage, string> = {
     report: "Mark up results",
 };
 
+const SKIPPED_GLYPH = "⊘";
 const DEFAULT_LABEL = "ORE is looking up the papers on this page…";
 const SETTLING_LABEL = "Finishing up…";
 
@@ -560,7 +561,7 @@ function itemGlyph(status: WorkItemStatus): HTMLElement {
         glyph.textContent = "✕";
         glyph.style.color = "#ffd58a";
     } else {
-        glyph.textContent = "–";
+        markSkipped(glyph);
         glyph.style.color = "rgba(255,255,255,0.55)";
     }
     return glyph;
@@ -603,6 +604,13 @@ function renderItems(): HTMLElement {
     return list;
 }
 
+function markSkipped(glyph: HTMLElement): void {
+    glyph.textContent = SKIPPED_GLYPH;
+    glyph.title = "Skipped";
+    glyph.setAttribute("role", "img");
+    glyph.setAttribute("aria-label", "Skipped");
+}
+
 function summaryRow(icon: string, text: string, color: string, ms?: number): HTMLLIElement {
     const row = document.createElement("li");
     row.style.cssText = `display:flex;gap:8px;align-items:flex-start;line-height:1.35;color:${color};`;
@@ -636,7 +644,8 @@ function renderPageSummary(list: HTMLElement): void {
         if (!record) continue;
         const row = record.ran
             ? summaryRow("✓", record.detail ?? STAGE_LABEL[stage], "rgba(255,255,255,0.75)", pageTimes.get(stage) ?? 0)
-            : summaryRow("–", `${STAGE_LABEL[stage]} · not run`, "rgba(255,255,255,0.5)");
+            : summaryRow(SKIPPED_GLYPH, STAGE_LABEL[stage], "rgba(255,255,255,0.5)");
+        if (!record.ran) markSkipped(row.firstElementChild as HTMLElement);
         row.setAttribute("data-flora-work-stage", stage);
         row.dataset.floraWorkState = record.ran ? "done" : "skipped";
         list.append(row);
@@ -688,7 +697,7 @@ function renderStages(host: HTMLElement): void {
             text.textContent = record.detail ?? STAGE_LABEL[record.stage];
         } else if (record.skipped) {
             row.dataset.floraWorkState = "skipped";
-            icon.textContent = "–";
+            markSkipped(icon);
             row.style.color = "rgba(255,255,255,0.5)";
             text.textContent = STAGE_LABEL[record.stage];
         } else {

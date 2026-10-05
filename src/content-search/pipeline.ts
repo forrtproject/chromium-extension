@@ -295,6 +295,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         const requests: DoiAugmentRequest[] = titled
             .map((r) => ({title: r.title, firstAuthor: r.firstAuthor, year: r.year, sourceUrl: r.sourceUrl}));
         let augmented = new Map<string, DoiString | null>();
+        let augmentFailed = false;
         if (requests.length > 0) {
             reportWorkStage("augment", `Augmenting ${count(requests.length, "result")} without a DOI…`);
             setWorkItems(titled.map((r) => workItem(r.title, r.title, rowByline(r))));
@@ -312,12 +313,16 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
                     }
                     return;
                 }
+                augmentFailed = true;
                 debugWarn(`${label}: augmentation failed for ${requests.length} row(s) —`, err);
             }
             if (navigated()) return;
             for (const info of titled) {
                 const doi = augmented.get(info.title) ?? null;
-                updateWorkItem(info.title, doi ? "done" : "failed", doi ?? (augmented.has(info.title) ? "no DOI found" : "not checked"));
+                if (doi) updateWorkItem(info.title, "done", doi);
+                else if (augmented.has(info.title)) updateWorkItem(info.title, "failed", "no DOI found");
+                else if (augmentFailed && !isWorkCancelled()) updateWorkItem(info.title, "failed", "lookup failed");
+                else updateWorkItem(info.title, "skipped");
             }
             if (isWorkCancelled()) return;
         }

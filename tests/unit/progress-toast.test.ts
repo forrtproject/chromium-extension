@@ -225,7 +225,7 @@ describe("progress toast", () => {
         const done = toast()!.querySelector<HTMLElement>('[data-flora-work-stage="scan"]')!;
         expect(done.textContent).toContain("Read 20 results");
         expect(done.querySelector("[data-flora-work-duration]")?.textContent).toBe("2.3 s");
-        // A stage that never ran shows its generic planned label.
+        expect(toast()!.querySelector('[data-flora-work-stage="validate"] [aria-label="Skipped"]')).not.toBeNull();
         expect(toast()!.querySelector('[data-flora-work-stage="validate"]')?.textContent).toContain(
             "Check DOIs resolve"
         );
@@ -252,6 +252,12 @@ describe("progress toast", () => {
         const first = toast()!.querySelector<HTMLElement>('[data-flora-work-item="i0"]')!;
         expect(first.textContent).toContain("✓");
         expect(first.textContent).toContain("10.1234/x");
+
+        updateWorkItem("i1", "skipped");
+        frames.at(-1)!(0);
+        const skipped = toast()!.querySelector<HTMLElement>('[data-flora-work-item="i1"] [aria-label="Skipped"]')!;
+        expect(skipped.textContent).toBe("⊘");
+        expect(skipped.title).toBe("Skipped");
 
         // Items belong to the stage that reported them.
         reportWorkStage("lookup", "Looking up 14 DOIs…");
@@ -895,7 +901,8 @@ describe("progress toast", () => {
         });
         const lookup = toast()!.querySelector('[data-flora-work-stage="lookup"] [data-flora-work-duration]');
         expect(lookup?.textContent, "the lookup time comes from the pass that ran it").toBe("4.6 s");
-        expect(toast()!.querySelector('[data-flora-work-stage="augment"]')?.textContent).toContain("not run");
+        expect(toast()!.textContent).not.toContain("not run");
+        expect(toast()!.querySelector('[data-flora-work-stage="augment"] [aria-label="Skipped"]')?.textContent).toBe("⊘");
         expect(toast()!.textContent, "no step is left looking like it is still to come").not.toContain("○");
         expect(toast()!.querySelector('[data-flora-work-extra="passes"]')?.textContent)
             .toBe("Scanned this page 2 times");
