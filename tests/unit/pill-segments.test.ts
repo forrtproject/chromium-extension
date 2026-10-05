@@ -53,6 +53,13 @@ describe("the pill's segment strip", () => {
       .toEqual(["DOI", "OA", "PubPeer", "Reps"]);
   });
 
+  it("labels a reproductions-only pill as Reps", () => {
+    const last = segments(createIndicatorPill({ doi: DOI, reproductionsCount: 2 })).at(-1)!;
+
+    expect(labelOf(last)).toBe("Reps");
+    expect(last.textContent).toBe("Reps2");
+  });
+
   it("fills a present segment and strikes an absent one through", () => {
     const [doi, oa] = segments(createIndicatorPill({ doi: DOI, replicationsCount: null }));
 

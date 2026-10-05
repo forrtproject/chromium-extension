@@ -98,6 +98,10 @@ describe("applyPlacement", () => {
       ["prepend", (e: Element, p: Node) => e.querySelector(".body")!.firstChild === p],
       ["before", (e: Element, p: Node) => e.querySelector(".body")!.previousSibling === p],
       ["after", (e: Element, p: Node) => e.querySelector(".body")!.nextSibling === p],
+      ["below", (e: Element, p: Node) => {
+        const row = e.querySelector(".body")!.lastElementChild;
+        return row?.classList.contains("flora-pill-row") === true && row.contains(p);
+      }],
     ] as const) {
       const entry = root();
       const p = pill();
@@ -378,5 +382,101 @@ describe("osf.io title placement", () => {
 
     expect(applyPlacement(adapter().titlePill, doc.documentElement, p)).toBe(true);
     expect(doc.querySelector(".title")!.nextElementSibling).toBe(p);
+  });
+});
+
+describe("title pill placement beside a block title", () => {
+  const place = (host: string, html: string) => {
+    const doc = new JSDOM(`<!doctype html><html><body>${html}</body></html>`).window.document;
+    const p = doc.createElement("span");
+    const adapter = resolveSiteAdapter(host) as SiteAdapter;
+    return {doc, p, placed: applyPlacement(adapter.titlePill, doc.documentElement, p)};
+  };
+
+  it("nature.com puts the pill after the title", () => {
+    const {doc, p} = place("www.nature.com", '<h1 class="c-article-title">T</h1>');
+    expect(doc.querySelector("h1.c-article-title")!.nextElementSibling).toBe(p);
+  });
+
+  it("hogrefe.com puts the pill after the subtitle when there is one", () => {
+    const {doc, p} = place("econtent.hogrefe.com", '<div class="citation__title">T</div><div class="citation__subtitle">S</div>');
+    expect(doc.querySelector(".citation__subtitle")!.nextElementSibling).toBe(p);
+  });
+
+  it("hogrefe.com puts the pill after the title when there is no subtitle", () => {
+    const {doc, p} = place("econtent.hogrefe.com", '<div class="citation__title">T</div>');
+    expect(doc.querySelector(".citation__title")!.nextElementSibling).toBe(p);
+  });
+
+  it("jamanetwork.com puts the pill after the title, not inside it", () => {
+    const {doc, p} = place("jamanetwork.com", '<h1 class="meta-article-title">T</h1>');
+    const h1 = doc.querySelector("h1")!;
+    expect(h1.nextElementSibling).toBe(p);
+    expect(h1.contains(p)).toBe(false);
+  });
+
+  it("tandfonline.com no longer places inside the h1", () => {
+    const {placed} = place("www.tandfonline.com", '<h1><span class="NLM_article-title hlFld-title">T</span></h1>');
+    expect(placed).toBe(false);
+  });
+});
+
+describe("below placement", () => {
+  it("puts the pill after an anchor target in its own row", () => {
+    const doc = new JSDOM(`<p><a class="t" href="#">x</a> tail</p>`).window.document;
+    const p = doc.createElement("span");
+    applyPlacement([{ selector: ".t", position: "below" }], doc.body, p);
+    const row = doc.querySelector(".t")!.nextElementSibling!;
+    expect(row.classList.contains("flora-pill-row")).toBe(true);
+    expect(row.contains(p)).toBe(true);
+  });
+
+  it("puts the pill in the last cell when the target is a table row", () => {
+    const doc = new JSDOM(`<table><tbody><tr class="t"><td>a</td><td>b</td></tr></tbody></table>`).window.document;
+    const p = doc.createElement("span");
+    applyPlacement([{ selector: ".t", position: "below" }], doc.body, p);
+    const cells = doc.querySelectorAll("td");
+    expect(cells[1].lastElementChild!.classList.contains("flora-pill-row")).toBe(true);
+    expect(cells[0].querySelector(".flora-pill-row")).toBeNull();
+  });
+});
+
+describe("frontiersin.org reference placement", () => {
+  const html = `<div class="References"><div class="References__content">Smith 2019 <a href="https://doi.org/10.1/a">x</a></div></div>`;
+
+  it("puts the pill last in its own row with no start margin", () => {
+    const doc = new JSDOM(html).window.document;
+    const p = doc.createElement("span");
+    const adapter = resolveSiteAdapter("www.frontiersin.org")!;
+    applyPlacement(adapter.referencePill, doc.querySelector(".References") as Element, p, "t");
+    const content = doc.querySelector(".References__content")!;
+    const row = content.lastElementChild!;
+    expect(row.classList.contains("flora-pill-row")).toBe(true);
+    expect(row.contains(p)).toBe(true);
+    expect(p.style.getPropertyValue("margin-inline-start")).toBe("0");
+  });
+
+  it("applies the pill style override on top of the row placement", () => {
+    const doc = new JSDOM(html).window.document;
+    const p = doc.createElement("span");
+    const adapter = { ...resolveSiteAdapter("www.frontiersin.org")!, referencePillStyle: { top: "3px" } };
+    applyPlacement(adapter.referencePill, doc.querySelector(".References") as Element, p, "t");
+    applyPillStyle(p, adapter, "reference");
+    expect(p.style.top).toBe("3px");
+    expect(p.style.getPropertyValue("margin-inline-start")).toBe("0");
+  });
+});
+
+describe("bloomsburycollections.com title placement", () => {
+  it("resolves and places the pill on its own row under #detail-title", () => {
+    const adapter = resolveSiteAdapter("www.bloomsburycollections.com")!;
+    expect(adapter.id).toBe("bloomsburycollections");
+    const doc = new JSDOM(`<div class="monodet-article"><div><h2 id="detail-title">T</h2><div class="col-lg-8">Authors</div></div></div>`).window.document;
+    const p = doc.createElement("span");
+    expect(applyPlacement(adapter.titlePill, doc.body, p)).toBe(true);
+    const row = doc.querySelector("#detail-title")!.lastElementChild!;
+    expect(row.classList.contains("flora-pill-row")).toBe(true);
+    expect(row.contains(p)).toBe(true);
+    expect(p.style.getPropertyValue("margin-inline-start")).toBe("0");
   });
 });

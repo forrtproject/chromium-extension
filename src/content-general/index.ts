@@ -52,6 +52,7 @@ import {isAuthGatewayPage} from "@shared/auth-page";
 import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
+import {findArticleTitle, placeTitlePill} from "@shared/article-title";
 import {searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
@@ -602,6 +603,7 @@ async function runScanPass(): Promise<void> {
     if (!isSheets) {
         injectLooseDoiPills({
             occurrences: pageOccurrences,
+            primary: extractPrimaryDOI(document),
             context: doiContext,
             pageState,
             noticed: new Set(redacts.map((r) => r.originDoi)),
@@ -631,6 +633,7 @@ async function runScanPass(): Promise<void> {
         if (!isSheets) placeTitleNoticePill();
         if (!isSheets) injectLooseDoiPills({
             occurrences: pageOccurrences,
+            primary: extractPrimaryDOI(document),
             context: doiContext,
             pageState,
             noticed: new Set(redacts.map((r) => r.originDoi)),
@@ -748,6 +751,7 @@ async function runScanPass(): Promise<void> {
                 placeTitleIndicatorPill();
                 injectLooseDoiPills({
                     occurrences: pageOccurrences,
+                    primary: extractPrimaryDOI(document),
                     context: doiContext,
                     pageState,
                     noticed: new Set(redacts.map((r) => r.originDoi)),
@@ -876,7 +880,7 @@ function placeTitleNoticePill(): void {
     const doi = titlePill?.getAttribute("data-flora-doi");
     if (!titlePill || !doi) return;
     const notice = redacts.find((r) => r.originDoi === doi);
-    if (notice) injectRetractionInfo(titlePill, notice, {afterend: true});
+    if (notice) injectRetractionInfo(titlePill, notice, titlePill.style.display === "block" ? {append: true} : {afterend: true});
 }
 
 /**
@@ -888,10 +892,11 @@ function placeTitleNoticePill(): void {
  * hydrating SPA wipes the title's children.
  */
 function placeTitleIndicatorPill(): void {
-    const titleEl = document.querySelector<HTMLHeadingElement>("h1");
-    if (!titleEl || document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)) return;
+    if (document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)) return;
     const primaryDoi = extractPrimaryDOI(document);
     if (!primaryDoi || invalidDois.has(primaryDoi)) return;
+    const titleEl = findArticleTitle(document);
+    if (!titleEl && !currentSiteAdapter()?.titlePill?.length) return;
 
     const retraction = redacts.find((r) => r.originDoi === primaryDoi) ?? null;
     const state = pageState.get(primaryDoi);
@@ -904,14 +909,18 @@ function placeTitleIndicatorPill(): void {
         replicationsCount: stats?.n_replications_total ?? null,
         reproductionsCount: stats?.n_reproductions_total ?? null,
     });
-    // Marks the title pill so the check above finds it wherever an adapter put it.
-    pill.setAttribute("data-flora-title-pill", "");
+    insertTitlePill(pill, titleEl);
+}
 
+function insertTitlePill(pill: HTMLElement, title: HTMLElement | null): boolean {
+    pill.setAttribute("data-flora-title-pill", "");
     const adapter = currentSiteAdapter();
-    applyPillStyle(pill, adapter, "title");
     if (!applyPlacement(adapter?.titlePill, document.documentElement, pill, "title pill")) {
-        titleEl.appendChild(pill);
+        if (!title) return false;
+        placeTitlePill(pill, title);
     }
+    applyPillStyle(pill, adapter, "title");
+    return true;
 }
 
 // Gate augmentFromTitle to real article pages — avoids polluting the cache.
@@ -946,7 +955,7 @@ async function augmentFromTitle(): Promise<void> {
         return;
     }
 
-    const titleEl = document.querySelector<HTMLHeadingElement>("h1");
+    const titleEl = findArticleTitle(document);
     const pageTitle = titleEl?.textContent?.trim() || document.title?.trim();
 
     if (!pageTitle) return;
@@ -992,12 +1001,7 @@ async function augmentFromTitle(): Promise<void> {
                         oaStatus: fetchOpenAccess(resolvedDoi),
                         retraction: notices[0] ?? null,
                     });
-                    pill.setAttribute("data-flora-title-pill", "");
-                    const adapter = currentSiteAdapter();
-                    applyPillStyle(pill, adapter, "title");
-                    if (!applyPlacement(adapter?.titlePill, document.documentElement, pill, "title pill")) {
-                        titleEl.appendChild(pill);
-                    }
+                    insertTitlePill(pill, titleEl);
                 } catch (err) {
                     debugWarn(`Title pill for augmented ${resolvedDoi} failed —`, err);
                 }

@@ -8,6 +8,7 @@ const DOI_PREFIXES = [
   "https://dx.doi.org/",
   "http://dx.doi.org/",
   "doi:",
+  "info:doi/",
 ];
 
 /**

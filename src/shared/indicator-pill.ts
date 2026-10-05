@@ -27,6 +27,7 @@ import {getSettings} from "@shared/settings";
 import {MARKER_EDGE_GAP} from "@shared/editor-marker";
 import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
+import {PILL_ROW_CLASS} from "@shared/pill-row";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -44,6 +45,9 @@ function indicatorSelector(scope: IndicatorScope): string {
 
 export function removeIndicatorPills(root: ParentNode = document, scope: IndicatorScope = "pills"): void {
     for (const pill of root.querySelectorAll(indicatorSelector(scope))) pill.remove();
+    for (const row of root.querySelectorAll(`.${PILL_ROW_CLASS}`)) {
+        if (row.childElementCount === 0) row.remove();
+    }
 }
 
 export const PAGE_PROVENANCE = "Found on this page";
@@ -433,7 +437,7 @@ function resolveBadgeSignal(
         return {
             available: true,
             href: atlasDoiUrl([doi]),
-            segmentLabel: "Reproductions",
+            segmentLabel: "Reps",
             segmentIcon: PILL_REPEAT_SVG,
             segmentCount: reproductionsCount,
             accent: "#6d28d9",

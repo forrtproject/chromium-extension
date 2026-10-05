@@ -111,6 +111,10 @@ describe("normaliseDOI", () => {
     ).toBe("10.1002/(sici)1097-0142(19960101)77:1<1::aid-cncr1>3.0.co;2-#");
   });
 
+  it("strips an info:doi/ prefix", () => {
+    expect(normaliseDOI("info:doi/10.2224/sbp.2008.36.6.753")).toBe("10.2224/sbp.2008.36.6.753");
+  });
+
   it("returns null when the DOI is only a query string", () => {
     expect(normaliseDOI("https://doi.org/?af=R")).toBeNull();
   });

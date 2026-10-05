@@ -23,7 +23,8 @@
 //   matching a live element wins, so list a preferred target then fallbacks for
 //   older templates. If none match, the pill still renders via the generic
 //   placement — it is never dropped.
-// - position: "append" (default) | "prepend" | "before" | "after".
+// - position: "append" (default) | "prepend" | "before" | "after" | "below".
+//   "below" puts the pill on its own row under the target.
 //   The selector ":self" targets the search root itself.
 // - referenceScope confines pills to one part of the page, for publishers that
 //   mark up footnotes closely enough to citations to be mistaken for them.
@@ -46,8 +47,9 @@
 
 import { debugLog } from "@shared/debug";
 import { pageUrl } from "@shared/page-identity";
+import { pillRow } from "@shared/pill-row";
 
-export type PlacementPosition = "append" | "prepend" | "before" | "after";
+export type PlacementPosition = "append" | "prepend" | "before" | "after" | "below";
 
 export interface PlacementRule {
     selector: string;
@@ -99,7 +101,7 @@ const FRONTIERS: SiteAdapter = {
     id: "frontiers",
     hostnames: ["frontiersin.org"],
     referencePill: [
-        { selector: ".References__content", position: "append" },
+        { selector: ".References__content", position: "below" },
     ],
     titlePill: [
         { selector: ".ArticleDetailsV4__main__title", position: "after" },
@@ -183,7 +185,7 @@ const JAMA_NETWORK: SiteAdapter = {
         { selector: ".reference-content", position: "after" },
     ],
     titlePill: [
-        { selector: ".meta-article-title", position: "append" },
+        { selector: ".meta-article-title", position: "after" },
     ],
     referenceScope: ".references",
     titlePillStyle: { top: "0px" },
@@ -223,7 +225,7 @@ const NATURE_REVIEWS: SiteAdapter = {
         { selector: ".c-article-references__text", position: "after" },
     ],
     titlePill: [
-        { selector: ".c-article-title", position: "before" },
+        { selector: ".c-article-title", position: "after" },
     ],
     referenceScope: "#Bib1-content",
     titlePillStyle: { top: "0px" },
@@ -345,7 +347,6 @@ const TANDFONLINE: SiteAdapter = {
     id: "tandfonline",
     hostnames: ["tandfonline.com"],
     titlePill: [
-        { selector: "h1 .NLM_article-title.hlFld-title", position: "after" },
         { selector: ".article-header__title", position: "after" },
     ],
     referencePill: [
@@ -361,6 +362,7 @@ const HOGREFE: SiteAdapter = {
     id: "hogrefe",
     hostnames: ["hogrefe.com"],
     titlePill: [
+        { selector: ".citation__subtitle", position: "after" },
         { selector: ".citation__title", position: "after" },
     ],
     referencePill: [
@@ -459,6 +461,14 @@ const OSF_IO: SiteAdapter = {
     referencePillStyle: { top: "0px" },
 };
 
+const BLOOMSBURY_COLLECTIONS: SiteAdapter = {
+    id: "bloomsburycollections",
+    hostnames: ["bloomsburycollections.com"],
+    titlePill: [
+        { selector: "#detail-title", position: "below" },
+    ],
+};
+
 const PSYCNET_APA: SiteAdapter = {
     id: "psycnet-apa",
     hostnames: ["psycnet.apa.org"],
@@ -503,6 +513,7 @@ export const SITE_ADAPTERS: SiteAdapter[] = [
     PMC_NCBI,
     OSF_IO,
     PSYCNET_APA,
+    BLOOMSBURY_COLLECTIONS,
 ];
 
 function normaliseHost(hostname: string): string {
@@ -529,8 +540,20 @@ export function currentSiteAdapter(): SiteAdapter | null {
     return resolveSiteAdapter(location.hostname);
 }
 
+const TABLE_PART = /^(TABLE|THEAD|TBODY|TFOOT|TR)$/;
+
 function insertAt(target: Element, pill: HTMLElement, position: PlacementPosition): void {
     switch (position) {
+        case "below":
+            if (target.tagName === "A") {
+                target.insertAdjacentElement("afterend", pillRow(pill));
+            } else {
+                const host = TABLE_PART.test(target.tagName)
+                    ? Array.from(target.querySelectorAll("td, th")).pop() ?? target
+                    : target;
+                host.appendChild(pillRow(pill));
+            }
+            break;
         case "prepend":
             target.insertBefore(pill, target.firstChild);
             break;

@@ -49,6 +49,26 @@ describe("SPA navigation reset", () => {
         expect(document.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)).toHaveLength(0);
     });
 
+    it("removes pill rows the removal leaves empty, keeping rows with other content", () => {
+        const emptied = document.createElement("span");
+        emptied.className = "flora-pill-row";
+        const pill = document.createElement("span");
+        pill.className = INDICATOR_PILL_CLASS;
+        emptied.appendChild(pill);
+        const shared = document.createElement("span");
+        shared.className = "flora-pill-row";
+        const panel = document.createElement("span");
+        panel.className = INDICATOR_PILL_CLASS;
+        panel.setAttribute("data-flora-panel", "");
+        shared.appendChild(panel);
+        document.body.append(emptied, shared);
+
+        removeIndicatorPills();
+
+        expect(document.body.contains(emptied)).toBe(false);
+        expect(document.body.contains(shared)).toBe(true);
+    });
+
     it("leaves the search script's result panels alone", () => {
         // Europe PMC, Scopus and EBSCOhost run both content scripts; the
         // search panels on a results page belong to the other one.

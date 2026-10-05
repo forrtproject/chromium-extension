@@ -82,12 +82,11 @@ describe("reference pill placement (integration)", () => {
 
     const placed = entry.querySelector(`.${INDICATOR_PILL_CLASS}`);
     expect(placed).not.toBeNull();
-    // This is the misplacement the adapter exists to correct: with no adapter,
-    // the generic "after the entry's last link" rule drops the pill into the
-    // Crossref | Web of Science | Google Scholar row. Asserting it here proves
-    // the .citation-content placement above comes from the adapter and not
-    // from the generic heuristics happening to agree.
-    expect(entry.querySelector(".external-links")!.contains(placed!)).toBe(true);
+    const row = placed!.parentElement!;
+    expect(row.classList.contains("flora-pill-row")).toBe(true);
+    expect(row.parentElement).toBe(entry.querySelector(".citation"));
+    expect(row.parentElement!.lastElementChild).toBe(row);
+    expect(entry.querySelector(".external-links")!.contains(placed!)).toBe(false);
   });
 
   it("still places the pill when the adapter's selector no longer matches", () => {
@@ -108,5 +107,116 @@ describe("reference pill placement (integration)", () => {
     renderResolvedReferences(resolved, new Map(), new Map());
 
     expect(entry.querySelector(`.${INDICATOR_PILL_CLASS}`)).not.toBeNull();
+  });
+});
+
+const GENERIC_DOI = "10.1/a" as DoiString;
+const LONG = "Author A, Author B. A reasonably long citation title about replication of findings. Journal of Examples 12:34-56 (2019).";
+
+function renderGeneric(html: string, entrySelector: string): HTMLElement {
+  setHostname("example.com");
+  document.body.innerHTML = html;
+  const entry = document.querySelector<HTMLElement>(entrySelector)!;
+  const resolved: ResolvedReference[] = [
+    { entry: { element: entry, doi: GENERIC_DOI, pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" },
+  ];
+  renderResolvedReferences(resolved, new Map(), new Map());
+  return entry;
+}
+
+function rowOf(entry: HTMLElement): HTMLElement {
+  const pill = entry.querySelector(`.${INDICATOR_PILL_CLASS}`) ?? entry.nextElementSibling!.querySelector(`.${INDICATOR_PILL_CLASS}`);
+  const row = pill!.parentElement!;
+  expect(row.classList.contains("flora-pill-row")).toBe(true);
+  return row;
+}
+
+describe("generic reference placement puts the pill on its own row", () => {
+  it("HighWire: after .cit-extra inside .cit", () => {
+    const entry = renderGeneric(
+      `<ol><li id="e"><div class="cit"><div class="cit-metadata">${LONG}</div><div class="cit-extra"><a href="/x">CrossRef</a> <a href="/y">Google Scholar</a></div></div></li></ol>`, "#e");
+    const row = rowOf(entry);
+    expect(row.parentElement).toBe(entry.querySelector(".cit"));
+    expect(row.previousElementSibling).toBe(entry.querySelector(".cit-extra"));
+  });
+
+  it("CSHL: at the end of .ref-cit", () => {
+    const entry = renderGeneric(
+      `<ol><li id="e"><div class="ref-content"><div class="ref-cit">${LONG}<span class="cit-extra"><a href="/x">Abstract</a></span></div></div></li></ol>`, "#e");
+    expect(rowOf(entry).parentElement).toBe(entry.querySelector(".ref-cit"));
+  });
+
+  it("ref_layer div: at its end", () => {
+    const entry = renderGeneric(`<div class="ref_layer" id="e">${LONG}</div>`, "#e");
+    expect(rowOf(entry).parentElement).toBe(entry);
+  });
+
+  it("JCI: last child of li.reference, after the linkouts", () => {
+    const entry = renderGeneric(
+      `<ol><li class="reference" id="e"><div class="reference_text">${LONG}</div><div class="reference_linkouts"><a href="/x">PubMed</a> | <a href="/y">Google Scholar</a></div></li></ol>`, "#e");
+    const row = rowOf(entry);
+    expect(row.parentElement).toBe(entry);
+    expect(entry.lastElementChild).toBe(row);
+  });
+
+  it("JMIR: at the end of the li when the text lives in an inline span", () => {
+    const entry = renderGeneric(`<ol><li id="e"><span id="ref2">${LONG}</span></li></ol>`, "#e");
+    expect(rowOf(entry).parentElement).toBe(entry);
+  });
+
+  it("Ubiquity: at the end of the paragraph inside the li", () => {
+    const entry = renderGeneric(
+      `<ul class="reference-list"><li id="e"><p>${LONG} DOI: <a href="https://doi.org/10.1/a">https://doi.org/10.1/a</a></p></li></ul>`, "#e");
+    expect(rowOf(entry).parentElement).toBe(entry.querySelector("p"));
+  });
+
+  it("OJS: at the end of a paragraph ending in the doi link", () => {
+    const entry = renderGeneric(`<p id="e">${LONG} <a href="https://doi.org/10.1/a">https://doi.org/10.1/a</a></p>`, "#e");
+    const row = rowOf(entry);
+    expect(row.parentElement).toBe(entry);
+    expect(entry.lastElementChild).toBe(row);
+  });
+
+  it("a table row: in its last cell", () => {
+    const entry = renderGeneric(`<table><tbody><tr id="e"><td>1</td><td>${LONG}</td></tr></tbody></table>`, "#e");
+    expect(rowOf(entry).parentElement).toBe(entry.querySelectorAll("td")[1]);
+  });
+
+  it("an entry with no links at all", () => {
+    const entry = renderGeneric(`<ol><li id="e">${LONG}</li></ol>`, "#e");
+    expect(rowOf(entry).parentElement).toBe(entry);
+  });
+
+  it("a flex entry: the row follows the entry", () => {
+    const entry = renderGeneric(
+      `<ol><li id="e" style="display:flex"><div>${LONG}</div><div>Google Scholar PubMed links here</div></li></ol>`, "#e");
+    expect(entry.nextElementSibling!.classList.contains("flora-pill-row")).toBe(true);
+    expect(entry.querySelector(".flora-pill-row")).toBeNull();
+  });
+
+  it("replaces a loose pill for the same DOI already inside the entry", () => {
+    setHostname("example.com");
+    document.body.innerHTML =
+      `<ol><li id="e">${LONG} <span class="flora-pill-row" data-flora-ui><span class="${INDICATOR_PILL_CLASS}" data-flora-loose-pill data-flora-doi="${GENERIC_DOI}"></span></span></li></ol>`;
+    const entry = document.querySelector<HTMLElement>("#e")!;
+    renderResolvedReferences(
+      [{ entry: { element: entry, doi: GENERIC_DOI, pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" }],
+      new Map(), new Map());
+    const pills = entry.querySelectorAll(`.${INDICATOR_PILL_CLASS}`);
+    expect(pills).toHaveLength(1);
+    expect(pills[0].hasAttribute("data-flora-loose-pill")).toBe(false);
+    expect(entry.querySelectorAll(".flora-pill-row")).toHaveLength(1);
+  });
+
+  it("keeps a notice pill in the same row as its indicator", () => {
+    setHostname("example.com");
+    document.body.innerHTML =
+      `<ol><li id="e">${LONG}<span class="flora-notice-pill" data-flora-notice-doi="${GENERIC_DOI}"></span></li></ol>`;
+    const entry = document.querySelector<HTMLElement>("#e")!;
+    renderResolvedReferences(
+      [{ entry: { element: entry, doi: GENERIC_DOI, pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" }],
+      new Map(), new Map());
+    const row = rowOf(entry);
+    expect(row.querySelector(".flora-notice-pill")).not.toBeNull();
   });
 });

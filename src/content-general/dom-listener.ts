@@ -1,4 +1,4 @@
-import {containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extractor";
+import {awaitingArticleTitle, containsDoiCandidate, touchesReferenceSection} from "@shared/doi-extractor";
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog, isDebugEnabled} from "@shared/debug";
 import {isWordOnline} from "@shared/word-online";
@@ -20,6 +20,8 @@ export function scanAddedNodes(nodes: Element[]): boolean {
     }
     return false;
 }
+
+const addsHeading = (el: Element): boolean => el.matches("h1, h2, h3, h4") || !!el.querySelector("h1, h2, h3, h4");
 
 export interface DomListenerOptions {
     scanWholePage: () => void;
@@ -66,7 +68,7 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
             }
             lastWordText = text;
         }
-        if (full || !samePage || scanAddedNodes(nodes)) {
+        if (full || !samePage || scanAddedNodes(nodes) || (awaitingArticleTitle() && nodes.some(addsHeading))) {
             if (isWordOnline()) lastWordScan = Date.now();
             scanWholePage();
         } else {
@@ -123,6 +125,12 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         debounceTimer = setTimeout(flush, isWordOnline() ? WORD_QUIET_MS : DEBOUNCE_MS);
     });
     observer.observe(document.body, {childList: true, subtree: true, characterData: isWordOnline()});
+    if (document.head) new MutationObserver(() => {
+        if (document.hidden || !awaitingArticleTitle()) return;
+        pendingFullScan = true;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(flush, DEBOUNCE_MS);
+    }).observe(document.head, {childList: true, subtree: true, attributes: true, attributeFilter: ["content"], characterData: true});
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
             // A debounce armed while visible would otherwise fire in the

@@ -6,6 +6,8 @@
 
 export const FLORA_UI_SELECTOR = "[data-flora-ui]";
 
+export const REFERENCE_ENTRY_ATTR = "data-flora-ref-processed";
+
 const FLORA_OWNED_PARTS = [FLORA_UI_SELECTOR, '[id^="flora-"]'];
 
 export const FLORA_OWNED_SELECTOR = FLORA_OWNED_PARTS.join(", ");

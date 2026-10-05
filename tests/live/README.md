@@ -9,6 +9,8 @@ npm run test:live                               # every domain (several hours)
 npm run test:live -- --refresh                  # rebuild the domain list from FReD, then run
 npm run test:live -- --only=www-nature-com,psycnet-apa-org
 npm run test:live -- --headless                 # no window; most publishers will block it
+npm run test:live -- --concurrency=1            # one page at a time (default: 4 windows in parallel)
+npm run test:live -- --resume                   # keep output/ and check only publishers without a result yet
 ```
 
 ## Which pages are tested
