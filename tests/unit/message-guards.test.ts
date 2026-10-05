@@ -4,6 +4,7 @@ import {
     isRetractionCheckRequest,
     isAugmentRequest,
     isPmcResolveRequest,
+    isScanStateMessage,
 } from "../../src/shared/messages";
 
 describe("message guards reject malformed payloads", () => {
@@ -37,5 +38,23 @@ describe("message guards reject malformed payloads", () => {
         expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE", pmcids: [], idtype: "doi" })).toBe(false);
         expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE", pmcids: [], idtype: "pmid" })).toBe(true);
         expect(isPmcResolveRequest({ type: "FLORA_PMC_RESOLVE", pmcids: [], idtype: "pmcid" })).toBe(true);
+    });
+
+    it("accepts well-formed scan states", () => {
+        const wrap = (state: unknown) => ({ type: "FLORA_SCAN_STATE", state });
+        expect(isScanStateMessage(wrap({ phase: "scanning", papers: 0 }))).toBe(true);
+        expect(isScanStateMessage(wrap({ phase: "done", papers: 3, flagged: 1, incomplete: false }))).toBe(true);
+        expect(isScanStateMessage(wrap({ phase: "error", pageUrl: "https://a.test/", error: { message: "x" }, entries: [] }))).toBe(true);
+    });
+
+    it("rejects malformed scan states", () => {
+        const wrap = (state: unknown) => ({ type: "FLORA_SCAN_STATE", state });
+        expect(isScanStateMessage(null)).toBe(false);
+        expect(isScanStateMessage({ type: "FLORA_ACTIVE_STATE", state: { phase: "scanning", papers: 1 } })).toBe(false);
+        expect(isScanStateMessage(wrap({ phase: "paused" }))).toBe(false);
+        expect(isScanStateMessage(wrap({ phase: "scanning" }))).toBe(false);
+        expect(isScanStateMessage(wrap({ phase: "done", papers: 1, flagged: 0, incomplete: "no" }))).toBe(false);
+        expect(isScanStateMessage(wrap({ phase: "error", pageUrl: "https://a.test/", error: { message: "x" } }))).toBe(false);
+        expect(isScanStateMessage(wrap({ phase: "error", pageUrl: "https://a.test/", error: {}, entries: [] }))).toBe(false);
     });
 });

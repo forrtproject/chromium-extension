@@ -6,6 +6,7 @@ import { debugError, debugLog, debugWarn, isDebugEnabled, setRuntimeErrorListene
 import { buildDebugReport, issueUrl, stashIssueReport } from "@shared/debug-report";
 import { showToast } from "@shared/toast";
 import { writeClipboard } from "@shared/clipboard";
+import { noteScanError } from "@shared/toolbar-scan";
 
 const offered = new Set<string>();
 
@@ -30,6 +31,7 @@ export function reportCodeError(where: string, err: unknown): void {
 }
 
 export function offerErrorReport(info: RuntimeErrorInfo): void {
+    noteScanError(info);
     if (typeof document === "undefined" || !document.body) return;
     if (offeredCount >= MAX_OFFERS_PER_PAGE) return;
 

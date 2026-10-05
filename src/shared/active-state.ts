@@ -1,4 +1,5 @@
 import {getSnooze, isDomainBlocked} from "./domains";
+import type {ScanState} from "./messages";
 
 const MAX_TIMER_MS = 2_147_483_647;
 
@@ -35,6 +36,14 @@ export function reportActiveState(active: boolean, snoozedUntil: number | null =
     send(active, snoozedUntil, blocked);
     if (snoozedUntil !== null) scheduleBadgeClear(snoozedUntil);
     else cancelBadgeClear();
+}
+
+export function reportScanState(state: ScanState): void {
+    reportSeq++;
+    cancelBadgeClear();
+    try {
+        chrome.runtime.sendMessage({type: "FLORA_SCAN_STATE", state})?.catch(() => {});
+    } catch {}
 }
 
 export function reportBlocked(): void {

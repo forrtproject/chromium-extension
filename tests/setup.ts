@@ -66,10 +66,21 @@ Object.defineProperty(globalThis, "chrome", {
       onUpdated: {
         addListener: vi.fn(),
       },
+      onRemoved: {
+        addListener: vi.fn(),
+      },
     },
     action: {
       setIcon: vi.fn().mockResolvedValue(undefined),
       setTitle: vi.fn().mockResolvedValue(undefined),
+      setBadgeText: vi.fn().mockResolvedValue(undefined),
+      setBadgeBackgroundColor: vi.fn().mockResolvedValue(undefined),
+      setBadgeTextColor: vi.fn().mockResolvedValue(undefined),
+      setPopup: vi.fn().mockResolvedValue(undefined),
+      openPopup: vi.fn().mockResolvedValue(undefined),
+      onClicked: {
+        addListener: vi.fn(),
+      },
     },
   },
   writable: true,

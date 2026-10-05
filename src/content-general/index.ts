@@ -18,6 +18,7 @@ import type {ClassifiedDois, DoiContext, DoiString, LookupState} from "@shared/t
 import {
     safeSendMessage,
     augmentDOIsViaWorker,
+    isContextInvalidated,
     type LookupRequest,
     type LookupResponse
 } from "@shared/messages";
@@ -38,7 +39,8 @@ import {
     showAllFloraUI
 } from "./injector";
 import {resetWorkSummary} from "@shared/progress-toast";
-import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
+import {lookupPubPeer, lookupPubPeerForDois, pubPeerVerdict, type PubPeerFeedback} from "@shared/pubpeer-api";
+import {setScanSummarySource, type ScanSummary} from "@shared/toolbar-scan";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
@@ -302,6 +304,8 @@ const runScanPasses = serializeWithRerun(async () => {
     beginWorkIndicator({stages: ["scan", "validate", "augment", "notices", "lookup", "report"]});
     try {
         await runScanPass();
+    } catch (err) {
+        if (!isAbortError(err) && !isContextInvalidated(err)) reportCodeError("Scan pass failed", err);
     } finally {
         endWorkIndicator();
     }
@@ -313,6 +317,32 @@ async function scanWholePage(): Promise<void> {
 }
 
 let nothingToFlagReportedFor: string | null = null;
+
+function scanSummary(): ScanSummary | null {
+    if (floraHidden) return null;
+    const papers = new Set<DoiString>();
+    const flagged = new Set<DoiString>();
+    let incomplete = unavailableRetractionDois.size > 0 || articlePubPeerUnavailable;
+    for (const [doi, state] of pageState) {
+        if (invalidDois.has(doi) || state.status === "idle") continue;
+        papers.add(doi);
+        const verdict = pubPeerVerdict(doi);
+        if (state.status === "error" || verdict === "unavailable") incomplete = true;
+        if (hasReplication(state) || verdict === "comments") flagged.add(doi);
+    }
+    for (const notice of redacts) {
+        papers.add(notice.originDoi);
+        flagged.add(notice.originDoi);
+    }
+    if (lastArticleFeedbacks.some((f) => f.total_comments > 0)) {
+        const primary = extractPrimaryDOI(document);
+        if (primary) {
+            papers.add(primary);
+            flagged.add(primary);
+        }
+    }
+    return {papers: papers.size, flagged: flagged.size, incomplete};
+}
 
 function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
     const examined = new Set(dois).size;
@@ -1234,6 +1264,7 @@ async function fetchSheetDois(): Promise<void> {
 
 
 async function startOnPage(): Promise<void> {
+    setScanSummarySource(scanSummary);
     // Applicable page — mark the toolbar icon active for this tab.
     if (floraHidden) reportInactive();
     else reportActiveState(true);
@@ -1378,8 +1409,8 @@ function startWhenResumed(atLoad: DomainPause): void {
     editorAllowed = true;
     await startOnPage();
   } catch (err) {
-    reportCodeError(`ORE failed to start on ${location.hostname}`, err);
     reportActiveState(false);
+    reportCodeError(`ORE failed to start on ${location.hostname}`, err);
   } finally {
     if (!editorAllowed && isGoogleDocs()) document.dispatchEvent(new Event("flora-docs-stop-capture"));
     if (!editorAllowed && isExcel) document.dispatchEvent(new Event("flora-excel-stop-capture"));

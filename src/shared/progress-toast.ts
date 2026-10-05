@@ -11,6 +11,7 @@ import {debugLog, flushDebugLog, isDebugEnabled, onDebugChange} from "@shared/de
 import {msUntilTomorrow6am} from "@shared/snooze-durations";
 import {buildDebugReport} from "@shared/debug-report";
 import {writeClipboard} from "@shared/clipboard";
+import {noteScanEnded, noteScanHidden, noteScanProgress, noteScanReset, noteScanStarted} from "@shared/toolbar-scan";
 import {blockDomain, snoozeDomain} from "@shared/domains";
 import {getSettings} from "@shared/settings";
 import {
@@ -867,6 +868,7 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         passTimesBeforePageChange = new Map();
         stagesReportedThisPass = new Map();
         planStages(plan);
+        noteScanStarted();
     } else if (plan) {
         mergePlan(plan);
     }
@@ -888,6 +890,7 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
 /** The bar only moves forward — stages overlap, and a late one must not rewind it. */
 export function reportWorkStage(stage: WorkStage, detail: string): void {
     if (refCount === 0) return; // no pass in flight — a late straggler
+    if (stage === "lookup") noteScanProgress();
     progress = Math.max(progress, STAGE_PROGRESS[stage]);
     labelText = detail;
     stagesReportedThisPass.set(stage, detail);
@@ -991,6 +994,7 @@ export function endWorkIndicator(): void {
     }
     if (invalidated || wasCancelled || suppressed) resetTabProgress();
     else settleTab();
+    noteScanEnded(wasCancelled, invalidated || suppressed);
     if (isDebugEnabled() && !hidden && !suppressed && !invalidated) {
         const stagesLeft = stages.filter((entry) => !entry.ran);
         const quiet = stagesLeft.length ? QUIET_WITH_STAGES_LEFT_MS : QUIET_BEFORE_DONE_MS;
@@ -1077,6 +1081,7 @@ function resetPageTimes(): void {
 }
 
 export function resetWorkSummary(): void {
+    noteScanReset();
     resetPageTimes();
     dismissed = false;
     if (finishTimer) {
@@ -1098,6 +1103,7 @@ export function resetWorkSummary(): void {
 
 /** Popup hid all FLoRA UI — stay quiet until it comes back. */
 export function hideWorkIndicator(): void {
+    noteScanHidden();
     suppressed = true;
     clearTimers();
     removeToast();

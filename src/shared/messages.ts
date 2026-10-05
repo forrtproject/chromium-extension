@@ -3,7 +3,7 @@ import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse
 import type {AugmentSource} from "./doi-augment";
 import type {NcbiIdType} from "./pmc-resolve";
 import {debugLog} from "./debug";
-import type {DebugLogEntry} from "./debug";
+import type {DebugLogEntry, RuntimeErrorInfo} from "./debug";
 
 /** Any context → service worker: captured debug entries to persist. */
 export interface DebugEntriesRequest {
@@ -58,6 +58,28 @@ export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
     if (typeof msg !== "object" || msg === null) return false;
     const type = (msg as Record<string, unknown>).type;
     return type === "FLORA_TAKE_REPORT" || type === "FLORA_PEEK_REPORT";
+}
+
+export type ScanState =
+    | {phase: "scanning"; papers: number}
+    | {phase: "done"; papers: number; flagged: number; incomplete: boolean}
+    | {phase: "error"; pageUrl: string; error: RuntimeErrorInfo; entries: DebugLogEntry[]};
+
+export interface ScanStateMessage {
+    type: "FLORA_SCAN_STATE";
+    state: ScanState;
+}
+
+export function isScanStateMessage(msg: unknown): msg is ScanStateMessage {
+    if (typeof msg !== "object" || msg === null) return false;
+    const m = msg as Record<string, unknown>;
+    const s = m.state as Record<string, unknown> | null | undefined;
+    if (m.type !== "FLORA_SCAN_STATE" || typeof s !== "object" || s === null) return false;
+    if (s.phase === "scanning") return typeof s.papers === "number";
+    if (s.phase === "done") return typeof s.papers === "number" && typeof s.flagged === "number" && typeof s.incomplete === "boolean";
+    if (s.phase === "error") return typeof s.pageUrl === "string" && Array.isArray(s.entries)
+        && typeof (s.error as {message?: unknown} | null)?.message === "string";
+    return false;
 }
 
 /** Content script → service worker: request DOI lookups */

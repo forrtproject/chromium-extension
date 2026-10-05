@@ -7,6 +7,7 @@ import {
 } from "../../src/shared/error-report";
 import { dismissToast } from "../../src/shared/toast";
 import { _resetDebugForTesting, recentDebugEntries, setDebug } from "../../src/shared/debug";
+import { _resetToolbarScanForTesting } from "../../src/shared/toolbar-scan";
 import { issueUrl, collectDebugReport, isIssueFormUrl } from "../../src/shared/debug-report";
 
 function toast(): HTMLElement | null {
@@ -22,6 +23,7 @@ function actionButton(): HTMLButtonElement | null {
 describe("offering to report a crash", () => {
     beforeEach(() => {
         _resetErrorReportingForTesting();
+        _resetToolbarScanForTesting();
         _resetDebugForTesting();
         dismissToast();
         document.body.innerHTML = "";
@@ -154,6 +156,7 @@ describe("the report a crash carries", () => {
 describe("automatic reporting under debug mode", () => {
     beforeEach(() => {
         _resetErrorReportingForTesting();
+        _resetToolbarScanForTesting();
         _resetDebugForTesting();
         document.body.innerHTML = "";
         (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockReset();
@@ -203,6 +206,29 @@ describe("automatic reporting under debug mode", () => {
         );
         await vi.waitFor(() => expect(document.body.textContent).toContain("ORE hit an error"));
         expect(open, "the worker already opened it").not.toHaveBeenCalled();
+    });
+
+    it("tells the toolbar about the error once", () => {
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockClear();
+
+        offerErrorReport({message: "TypeError: boom", where: "scan"});
+        offerErrorReport({message: "TypeError: boom again", where: "scan"});
+
+        const states = (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mock.calls
+            .map(([msg]) => msg as {type?: string; state?: {phase?: string}})
+            .filter((msg) => msg.type === "FLORA_SCAN_STATE");
+        expect(states).toHaveLength(1);
+        expect(states[0].state?.phase).toBe("error");
+    });
+
+    it("does not tell the toolbar about a reload-page error", () => {
+        (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockClear();
+
+        reportCodeError("x", new Error("Extension context invalidated."));
+
+        const states = (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mock.calls
+            .filter(([msg]) => (msg as {type?: string}).type === "FLORA_SCAN_STATE");
+        expect(states).toHaveLength(0);
     });
 
     it("opens the prefilled form itself when debug logging is on", async () => {
