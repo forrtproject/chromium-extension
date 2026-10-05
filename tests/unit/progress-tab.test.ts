@@ -9,7 +9,7 @@ import {
     WORK_TOAST_ID,
     _resetWorkIndicatorForTesting,
 } from "../../src/shared/progress-toast";
-import {PROGRESS_TAB_ID, withdrawNothingFound} from "../../src/shared/progress-tab";
+import {PROGRESS_TAB_ID, resetTabProgress, withdrawNothingFound} from "../../src/shared/progress-tab";
 import {_recordPubPeerVerdictsForTesting, _resetPubPeerCacheForTesting} from "../../src/shared/pubpeer-api";
 import {removeSidePanel, renderSidePanel} from "../../src/content-general/injector";
 import {_resetDebugForTesting} from "../../src/shared/debug";
@@ -157,6 +157,35 @@ describe("progress tab", () => {
         vi.advanceTimersByTime(600);
         expect(panelTab.title).toContain("No flags");
         expect(panelTab.getAttribute("aria-label")).toBe("Open the FORRT ORE panel");
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).not.toBeNull();
+        expect(panelTab.style.background).toContain("#0b7a5a");
+        expect(panelTab.style.cursor).not.toBe("default");
+        expect(panelTab.hasAttribute("role")).toBe(false);
+
+        withdrawNothingFound();
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).toBeNull();
+        expect(panelTab.style.background).toContain("#853953");
+        expect(panelTab.hasAttribute("data-flora-tab-clear")).toBe(false);
+    });
+
+    it("restores the report tab look when a later pass starts or resets", () => {
+        const panelTab = renderPanel();
+        beginWorkIndicator();
+        reportNothingFound(papers(3));
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(panelTab.style.background).toContain("#0b7a5a");
+
+        beginWorkIndicator();
+        settle();
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).toBeNull();
+        endWorkIndicator();
+        vi.advanceTimersByTime(600);
+        expect(panelTab.querySelectorAll("[data-flora-tab-clear-icon]")).toHaveLength(1);
+
+        resetTabProgress();
+        expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).toBeNull();
+        expect(panelTab.style.background).toContain("#853953");
     });
 
     it("claims no PubPeer comments only once every paper on the note has a clear PubPeer check", () => {

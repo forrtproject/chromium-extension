@@ -126,6 +126,7 @@ function removeStandalone(): void {
 
 function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
     if (!tab.hasAttribute("data-flora-tab-busy")) {
+        unmarkClear(tab);
         tab.setAttribute("data-flora-tab-busy", "");
         tab.dataset.floraTabBackground = tab.style.background;
         tab.dataset.floraTabCursor = tab.style.cursor;
@@ -208,13 +209,17 @@ function markClear(tab: HTMLElement, dois: string[], standaloneTab: boolean): vo
         onPubPeerVerdict(refreshClearText);
     }
     const summary = clearSummary(dois);
-    tab.setAttribute("data-flora-tab-clear", "");
+    if (!tab.hasAttribute("data-flora-tab-clear")) {
+        tab.setAttribute("data-flora-tab-clear", "");
+        tab.dataset.floraTabClearBackground = tab.style.background;
+    }
     tab.title = summary;
-    if (!standaloneTab) return;
     tab.style.background = CLEAR;
-    tab.style.cursor = "default";
-    tab.setAttribute("role", "img");
-    tab.setAttribute("aria-label", `FORRT ORE: ${summary}`);
+    if (standaloneTab) {
+        tab.style.cursor = "default";
+        tab.setAttribute("role", "img");
+        tab.setAttribute("aria-label", `FORRT ORE: ${summary}`);
+    }
     if (!tab.querySelector("[data-flora-tab-clear-icon]")) {
         const icon = document.createElement("span");
         icon.setAttribute("data-flora-tab-clear-icon", "");
@@ -225,7 +230,12 @@ function markClear(tab: HTMLElement, dois: string[], standaloneTab: boolean): vo
 }
 
 function unmarkClear(tab: HTMLElement): void {
-    tab.removeAttribute("data-flora-tab-clear");
+    if (tab.hasAttribute("data-flora-tab-clear")) {
+        tab.removeAttribute("data-flora-tab-clear");
+        tab.querySelector("[data-flora-tab-clear-icon]")?.remove();
+        tab.style.background = tab.dataset.floraTabClearBackground ?? "";
+        delete tab.dataset.floraTabClearBackground;
+    }
     if (!isTabBusy(tab)) tab.removeAttribute("title");
 }
 
