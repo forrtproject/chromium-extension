@@ -4,7 +4,7 @@ import type { DoiString, ClassifiedDois, PageType } from "./types";
 import { normaliseDOI } from "./doi-normalise";
 import { debugLog } from "./debug";
 import { FLORA_UI_SELECTOR } from "./flora-ui";
-import { findArticleTitle, findMatchedArticleTitle, titleContainsText } from "./article-title";
+import { findArticleTitle, findMatchedArticleTitle, siteArticleTitle, titleContainsText } from "./article-title";
 
 // DOI suffixes may contain parens, semicolons, and slashes (e.g. SICI DOIs),
 // but a trailing slash followed by a bare word (e.g. /full, /abstract) is
@@ -385,6 +385,14 @@ function adoptedPrimaryDoi(doc: Document): DoiString | null {
   return _adoptedPrimary?.doc === doc && _adoptedPrimary.url === pageKey(doc) ? _adoptedPrimary.doi : null;
 }
 
+const VERSION_SUFFIX = /^[._-]v?\d+$/i;
+
+function mostSpecificDoi(dois: DoiString[]): DoiString {
+  const [first] = dois;
+  return dois.find((d) => d.length > first.length && d.startsWith(first)
+    && /[./_-]/.test(d[first.length]) && !VERSION_SUFFIX.test(d.slice(first.length))) ?? first;
+}
+
 export function extractPrimaryDOI(doc: Document): DoiString | null {
   if (
     _primaryDoiCache &&
@@ -397,7 +405,7 @@ export function extractPrimaryDOI(doc: Document): DoiString | null {
   extractFromMeta(doc, found);
   extractFromJsonLd(doc, found);
   extractFromUrl(doc, found);
-  const result = found.size > 0 ? [...found][0] : adoptedPrimaryDoi(doc);
+  const result = found.size > 0 ? mostSpecificDoi([...found]) : adoptedPrimaryDoi(doc);
   _primaryDoiCache = { epoch: _scanEpoch, doc, result };
   return result;
 }
@@ -602,7 +610,10 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   // Largest group wins, not just the first past the threshold: Oxford
   // Academic's per-reference <div> group otherwise loses to a single
   // reference's own 2-3 <p> link buttons.
-  const best = [lis, pGroup, divGroup, rowGroup].reduce((a, b) => (b.length > a.length ? b : a));
+  const componentGroup = findLargestGroup(container, "*", (node) =>
+    node.tagName.includes("-") || node.constructor.name === "HTMLUnknownElement" ? node.parentElement : null
+  );
+  const best = [lis, pGroup, divGroup, rowGroup, componentGroup].reduce((a, b) => (b.length > a.length ? b : a));
   if (best.length >= 2) return best;
 
   let scope: Element = container;
@@ -761,10 +772,11 @@ function ownReferenceDoi(doc: Document, title: HTMLElement, referenceFound: Set<
 }
 
 export function classifyPageDois(doc: Document): ClassifiedDois {
-  const articleFound = new Set<DoiString>();
-  extractFromUrl(doc, articleFound);
-  extractFromMeta(doc, articleFound);
-  extractFromJsonLd(doc, articleFound);
+  const authoritative = new Set<DoiString>();
+  extractFromUrl(doc, authoritative);
+  extractFromMeta(doc, authoritative);
+  extractFromJsonLd(doc, authoritative);
+  const articleFound = new Set<DoiString>(authoritative.size > 1 ? [mostSpecificDoi([...authoritative]), ...authoritative] : authoritative);
   const adopted = adoptedPrimaryDoi(doc);
   if (articleFound.size === 0 && adopted) articleFound.add(adopted);
 
@@ -784,7 +796,7 @@ export function classifyPageDois(doc: Document): ClassifiedDois {
   _awaitingTitle = false;
   const roots = [...otherFound].filter((doi) => ![...otherFound].some((o) => o !== doi && doi.startsWith(o)));
   if (articleFound.size === 0 && roots.length <= 1 && otherFound.size + referenceFound.size > 0) {
-    const title = findMatchedArticleTitle(doc) ?? (roots.length === 1 ? headingCitedWithDoi(doc, roots[0]) : null);
+    const title = findMatchedArticleTitle(doc) ?? siteArticleTitle(doc) ?? (roots.length === 1 ? headingCitedWithDoi(doc, roots[0]) : null);
     _awaitingTitle = !title && roots.length === 1;
     const lone = !title ? null : roots.length === 1 ? roots[0] : roots.length === 0 ? ownReferenceDoi(doc, title, referenceFound) : null;
     if (lone) {

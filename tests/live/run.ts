@@ -209,8 +209,35 @@ const OPEN_REPORT = `(() => {
     return true;
 })()`;
 
+const PANEL_STATE = `(() => {
+    const host = document.getElementById("flora-pubpeer-panel");
+    const tab = host?.querySelector("button[data-flora-tab]");
+    return {present: !!tab, busy: !!tab?.hasAttribute("data-flora-tab-busy"), open: host?.dataset.floraPanelOpen === "1"};
+})()`;
+
+const PANEL_OPEN_TIMEOUT_MS = 30_000;
+const PANEL_QUIET_MS = 600;
+
 function pause(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function openReport(page: Page): Promise<boolean> {
+    const deadline = Date.now() + PANEL_OPEN_TIMEOUT_MS;
+    let quietSince = 0;
+    while (Date.now() < deadline) {
+        const state = await page.evaluate(PANEL_STATE).catch(() => null) as {present: boolean; busy: boolean; open: boolean} | null;
+        if (!state?.present) return false;
+        if (state.open) {
+            if (!quietSince) quietSince = Date.now();
+            else if (Date.now() - quietSince >= PANEL_QUIET_MS) return true;
+        } else {
+            quietSince = 0;
+            await page.evaluate(OPEN_REPORT).catch(() => false);
+        }
+        await pause(300);
+    }
+    return false;
 }
 
 function isBotWall(state: PageState, httpStatus: number | null): boolean {
@@ -312,7 +339,12 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
 
     const started = Date.now();
     try {
-        const response = await page.goto(entry.url, {waitUntil: "domcontentloaded", timeout: NAVIGATION_TIMEOUT_MS});
+        const response = await page.goto(entry.url, {waitUntil: "domcontentloaded", timeout: NAVIGATION_TIMEOUT_MS}).catch(async (err: Error) => {
+            if (!/ERR_ABORTED/.test(err.message)) throw err;
+            await page.waitForFunction("document.readyState !== 'loading'", {timeout: NAVIGATION_TIMEOUT_MS}).catch(() => {});
+            if (page.url() === "about:blank") throw err;
+            return null;
+        });
         await page.bringToFront();
         base.httpStatus = response?.status() ?? null;
         base.loadMs = Date.now() - started;
@@ -347,9 +379,12 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
             await pause(600);
             base.referenceScreenshot = await capture(page, shot(".references"));
         }
-        if (await page.evaluate(OPEN_REPORT)) {
-            await pause(800);
-            base.panelScreenshot = await capture(page, shot(".panel"));
+        if (await page.evaluate(PANEL_STATE).then((state) => (state as {present: boolean}).present).catch(() => false)) {
+            if (await openReport(page)) {
+                base.panelScreenshot = await capture(page, shot(".panel"));
+            } else {
+                oreLog.push("live: report panel did not open");
+            }
         }
         writeFileSync(path.join(SNAPSHOT_DIR, `${entry.id}.html`), await page.content());
 

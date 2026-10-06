@@ -1,3 +1,5 @@
+import {resolveSiteAdapter} from "./site-adapters";
+
 const EXCLUDED = 'nav, [role="navigation"], .breadcrumb, .breadcrumbs, footer, dialog, [role="dialog"], .modal, [hidden], .sr-only, .visually-hidden, .screen-reader-text, .pkp_screen_reader, [data-flora-ui], [id^="flora-"]';
 const CANDIDATES = 'h1, h2, h3, h4, [role="heading"], [class*="title" i], [id*="title" i], [itemprop="headline"], [data-testid*="title" i], .h1, .h2, p > b, p > strong';
 const STRONG_TITLE_META = ["citation_title", "dc.title", "bepress_citation_title", "prism.title"];
@@ -9,6 +11,7 @@ const BLOCK_MATCH = 0.85;
 const MAX_CANDIDATE_CHILDREN = 40;
 const INLINE_TAGS = new Set(["A", "B", "STRONG", "EM", "I", "SPAN", "SMALL", "FONT", "CITE"]);
 const BLOCK_TAGS = new Set(["DIV", "P", "SECTION", "HEADER", "HGROUP", "ARTICLE"]);
+const STICKY_HINT_RE = /(?:^|[-_\s])(?:sticky|affix|headroom)(?:$|[-_\s])/i;
 
 function normaliseTitle(s: string | null | undefined): string {
     return (s ?? "")
@@ -106,8 +109,16 @@ function fallbackHeading(doc: Document): HTMLElement | null {
     return null;
 }
 
+export function siteArticleTitle(doc: Document): HTMLElement | null {
+    for (const selector of resolveSiteAdapter(doc.location?.hostname ?? "")?.articleTitle ?? []) {
+        const el = doc.querySelector<HTMLElement>(selector);
+        if (el && isShown(el)) return el;
+    }
+    return null;
+}
+
 export function findArticleTitle(doc: Document): HTMLElement | null {
-    return findMatchedArticleTitle(doc) ?? fallbackHeading(doc);
+    return siteArticleTitle(doc) ?? findMatchedArticleTitle(doc) ?? fallbackHeading(doc);
 }
 
 function isRowLayout(el: Element): boolean {
@@ -136,13 +147,23 @@ function hasBottomRule(style: CSSStyleDeclaration): boolean {
     return style.borderBottomStyle !== "none" && px(style.borderBottomWidth) > 0;
 }
 
+function inStickyLayer(el: HTMLElement): boolean {
+    for (let node: HTMLElement | null = el; node && node !== el.ownerDocument.body; node = node.parentElement) {
+        const {position} = getComputedStyle(node);
+        if (position === "fixed" || position === "sticky") return true;
+        const name = `${typeof node.className === "string" ? node.className : ""} ${node.id}`;
+        if (node.hasAttribute("data-sticky-header") || node.hasAttribute("data-sticky") || STICKY_HINT_RE.test(name)) return true;
+    }
+    return false;
+}
+
 export function placeTitlePill(pill: HTMLElement, title: HTMLElement): void {
     const style = getComputedStyle(title);
     const inside = (!!title.parentElement && isRowLayout(title.parentElement)) || (hasBottomRule(style) && !isRowLayout(title));
     if (inside) title.appendChild(pill);
     else title.insertAdjacentElement("afterend", pill);
-    const trailing = inside || style.display.startsWith("inline") ? 0 : px(style.marginBottom);
-    const centred = style.textAlign === "center";
+    const trailing = inside || style.display.startsWith("inline") || inStickyLayer(title) ? 0 : px(style.marginBottom);
+    const centred = /center$/.test(style.textAlign);
     pill.style.setProperty("display", "block");
     pill.style.setProperty("width", "fit-content");
     pill.style.setProperty("max-width", "100%");

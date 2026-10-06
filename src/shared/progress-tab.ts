@@ -47,6 +47,7 @@ const CHECK_SVG =
 
 let busy = false;
 let workStarted = false;
+let reportSettled = false;
 let lastFraction = 0;
 let lastLabel = "";
 let panelTab: HTMLElement | null = null;
@@ -170,6 +171,8 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
         tab.setAttribute("aria-valuemax", "100");
         if (percent > 0) tab.setAttribute("aria-valuenow", String(percent));
         else tab.removeAttribute("aria-valuenow");
+    } else if (reportSettled) {
+        tab.removeAttribute("aria-disabled");
     } else {
         tab.setAttribute("aria-disabled", "true");
     }
@@ -297,6 +300,7 @@ export function finishTabProgress(): void {
     const papers = clearDois;
 
     if (panelTab?.isConnected) {
+        reportSettled = true;
         removeStandalone();
         clearBusy(panelTab);
         pulse(panelTab);
@@ -321,6 +325,7 @@ export function finishTabProgress(): void {
 export function resetTabProgress(): void {
     busy = false;
     workStarted = false;
+    reportSettled = false;
     nothingFoundDois = null;
     clearDois = null;
     removeStandalone();
@@ -335,6 +340,7 @@ export function adoptPanelTab(tab: HTMLElement): void {
     tab.setAttribute("data-flora-tab", "");
     if (clearDois && !busy) markClear(tab, clearDois, false);
     if (!busy && !workStarted) {
+        reportSettled = true;
         tab.dataset.floraTabPulsed = "1";
         return;
     }
@@ -345,11 +351,16 @@ export function adoptPanelTab(tab: HTMLElement): void {
 
 export function releasePanelTab(): void {
     panelTab = null;
+    reportSettled = false;
     if (busy) paintBusy(ensureStandalone(), lastFraction, lastLabel);
 }
 
 export function isTabBusy(tab: HTMLElement): boolean {
     return tab.hasAttribute("data-flora-tab-busy");
+}
+
+export function canOpenPanel(tab: HTMLElement): boolean {
+    return !isTabBusy(tab) || reportSettled;
 }
 
 export function setTabLabel(tab: HTMLElement, label: string): void {
@@ -365,5 +376,6 @@ export function _resetProgressTabForTesting(): void {
     lastFraction = 0;
     lastLabel = "";
     workStarted = false;
+    reportSettled = false;
     clearDois = null;
 }

@@ -103,7 +103,16 @@ describe("report rendering", () => {
     it("escapes a title rather than letting it inject markup", () => {
         const html = renderReportBody(payload({title: `<img src=x onerror="alert(1)">`}));
         expect(html).not.toContain("<img");
-        expect(html).toContain("&lt;img");
+    });
+
+    it("escapes the characters markup is built from in a title", () => {
+        const html = renderReportBody(payload({title: "A < B & C"}));
+        expect(html).toContain("A &lt; B &amp; C");
+    });
+
+    it("shows a title carrying markup and entities as plain text", () => {
+        const html = renderReportBody(payload({title: "<i>Fusobacterium</i> &amp;nbsp;infection"}));
+        expect(html).toContain("Fusobacterium infection");
     });
 
     it("says what the evidence is and is not", () => {

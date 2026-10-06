@@ -64,6 +64,7 @@ export interface SiteAdapter {
     hostnames: string[];
     referencePill?: PlacementRule[];
     titlePill?: PlacementRule[];
+    articleTitle?: string[];
     referenceScope?: string;
     referencePillStyle?: PillStyle;
     titlePillStyle?: PillStyle;
@@ -154,7 +155,7 @@ const SPRINGER: SiteAdapter = {
     id: "springer",
     hostnames: ["link.springer.com"],
     referencePill: [
-        { selector: ".c-article-references__text", position: "after" },
+        { selector: ".c-article-references__text", position: "below" },
     ],
     titlePill: [
         { selector: ".c-article-title", position: "after" },
@@ -222,13 +223,13 @@ const NATURE_REVIEWS: SiteAdapter = {
     id: "nature-reviews",
     hostnames: ["nature.com"],
     referencePill: [
-        { selector: ".c-article-references__text", position: "after" },
+        { selector: ".c-article-references__text", position: "below" },
     ],
     titlePill: [
         { selector: ".c-article-title", position: "after" },
     ],
     referenceScope: "#Bib1-content",
-    titlePillStyle: { top: "0px" },
+    titlePillStyle: { top: "0px", display: "block", width: "fit-content", marginTop: "6px !important", marginBottom: "6px !important", marginInlineStart: "0 !important" },
     referencePillStyle: { top: "0px" },
 };
 
@@ -447,17 +448,14 @@ const OSF_IO: SiteAdapter = {
     id: "osf-io",
     hostnames: ["osf.io"],
     titlePill: [
-        {
-            selector: "a.flex.flex-column.gap-3.custom-light-hover.dark-blue-link.md\\:flex-row",
-            position: "after",
-        },
+        { selector: "osf-preprint-details section > div.justify-content-between", position: "after" },
         { selector: ".title", position: "after" },
     ],
     referencePill: [
         { selector: ":self", position: "after" },
     ],
     referenceScope: ".references",
-    titlePillStyle: { top: "0px" },
+    titlePillStyle: { top: "0px", alignSelf: "flex-start" },
     referencePillStyle: { top: "0px" },
 };
 
@@ -481,6 +479,18 @@ const PSYCNET_APA: SiteAdapter = {
     referenceScope: ".references",
     titlePillStyle: { top: "0px" },
     referencePillStyle: { top: "0px" },
+};
+
+const PSICOTHEMA: SiteAdapter = {
+    id: "psicothema",
+    hostnames: ["psicothema.com"],
+    articleTitle: ["center > h3"],
+};
+
+const HEIUP: SiteAdapter = {
+    id: "heiup",
+    hostnames: ["heiup.uni-heidelberg.de"],
+    articleTitle: [".item.authors ~ h3.subtitle", ".item.authors ~ h2.title"],
 };
 
 export const SITE_ADAPTERS: SiteAdapter[] = [
@@ -514,6 +524,8 @@ export const SITE_ADAPTERS: SiteAdapter[] = [
     OSF_IO,
     PSYCNET_APA,
     BLOOMSBURY_COLLECTIONS,
+    PSICOTHEMA,
+    HEIUP,
 ];
 
 function normaliseHost(hostname: string): string {

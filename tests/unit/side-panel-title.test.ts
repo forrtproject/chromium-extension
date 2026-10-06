@@ -1,6 +1,7 @@
 import {describe, it, expect, beforeEach, vi} from "vitest";
 import {renderSidePanel} from "../../src/content-general/injector";
 import type {DoiContext, DoiString, LookupState} from "../../src/shared/types";
+import type {PubPeerFeedback} from "../../src/shared/pubpeer-api";
 import {doi, mockResult} from "../helpers";
 
 const ARTICLE = doi("10.1037/pspp0000136");
@@ -82,6 +83,45 @@ describe("side panel article title", () => {
         render();
 
         expect(panelTitle()).toBe("Real Article Title");
+    });
+
+    it("shows a title carrying escaped entities as clean text with publisher casing", () => {
+        render("A&amp;nbsp;replication of <i>Fusobacterium</i> and <scp>DNA</scp> work");
+
+        expect(panelTitle()).toBe("A replication of Fusobacterium and DNA work");
+        const span = document.querySelector<HTMLElement>("#flora-pubpeer-panel a[title='Open in FLoRA'] span")!;
+        expect(span.style.textTransform).toBe("");
+    });
+
+    it("cleans a PubPeer primary title and a reference row title", () => {
+        const feedback: PubPeerFeedback = {
+            id: ARTICLE, title: "<i>X</i> y", total_comments: 2, total_peeriodical_comments: 0,
+            last_commented_at: "", users: "", url: "https://pubpeer.com/publications/x",
+        };
+        const refDoi = doi("10.1000/ref.1");
+        renderSidePanel(
+            [feedback], [{doi: refDoi, title: "<scp>DNA</scp> barcoding"}],
+            new Map<DoiString, LookupState>(),
+            new Map<DoiString, DoiContext>([[ARTICLE, "article"]]), new Map(), []
+        );
+
+        const panel = document.getElementById("flora-pubpeer-panel")!;
+        expect(panelTitle()).toBe("X y");
+        expect(panel.textContent).toContain("DNA barcoding");
+        const leaks = [...panel.querySelectorAll("*")].filter(
+            (el) => el.tagName !== "STYLE" && [...el.childNodes].some(
+                (n) => n.nodeType === Node.TEXT_NODE && /&[a-z]+;|<[/]?[a-z]/i.test(n.textContent ?? "")));
+        expect(leaks).toEqual([]);
+    });
+
+    it("does not inherit centred text from a host page", () => {
+        document.body.style.textAlign = "center";
+        render("Real Article Title");
+
+        const panel = document.querySelector<HTMLElement>("#flora-pubpeer-panel .flora-sliding-panel")!;
+        expect(panel.style.textAlign).toBe("left");
+        expect(panel.style.direction).toBe("ltr");
+        document.body.style.textAlign = "";
     });
 
     it("re-renders when the title changes", () => {

@@ -7,6 +7,8 @@
 // for entries that exposed no DOI of their own.
 
 import {findReferenceEntries, extractPrimaryDOI, type ReferenceEntry} from "@shared/doi-extractor";
+import {findArticleTitle} from "@shared/article-title";
+import {isInRelatedWorks} from "@shared/related-works";
 import {isDocumentEditor, editorAnnotationTarget} from "@shared/document-editor";
 import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
 import {validateDOIs} from "@shared/doi-validate";
@@ -30,9 +32,9 @@ import {
 
 const BLOCK_CHILD = /^(DIV|P|SECTION|ARTICLE|BLOCKQUOTE)$/;
 const TABLE_PART = /^(TABLE|THEAD|TBODY|TFOOT|TR)$/;
-const DOMINANT_SHARE = 0.9;
+const DOMINANT_SHARE = 0.85;
 
-const textLength = (el: Element): number => (el.textContent ?? "").replace(/s+/g, "").length;
+const textLength = (el: Element): number => (el.textContent ?? "").replace(/\s+/g, "").length;
 
 function entryContentColumn(entry: HTMLElement): HTMLElement {
     let host = entry;
@@ -146,15 +148,17 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     expandReferencesSection(adapter);
     const entries = findReferenceEntries(document);
     const primary = extractPrimaryDOI(document);
+    const article = findArticleTitle(document);
 
     const pending: PendingEntry[] = [];
     for (const entry of entries) {
-        if (entry.element.hasAttribute(REFERENCE_ENTRY_ATTR)) continue;
+        if (entry.element.hasAttribute(REFERENCE_ENTRY_ATTR) || entry.element.querySelector(`[${REFERENCE_ENTRY_ATTR}]`)) continue;
         if (primary && entry.doi === primary) continue;
         if (entry.text.length < MIN_CITATION_LENGTH) continue;
         // Filter before augmenting: an out-of-scope block that reaches
         // Crossref/OpenAlex can come back with a confident-looking wrong DOI.
         if (!isInReferenceScope(entry.element, adapter)) continue;
+        if (isInRelatedWorks(entry.element, article)) continue;
 
         if (entry.doi === null) {
             // Exact id mapping — skips the year gate and augmentation budget.

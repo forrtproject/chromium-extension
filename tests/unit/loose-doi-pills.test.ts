@@ -164,3 +164,65 @@ describe("a mention that is a prefix of the primary DOI", () => {
         expect(runWithPrimary("10.1234/abc" as DoiString, "10.1234/abcd" as DoiString)).toBe(1);
     });
 });
+
+describe("related-works widgets", () => {
+    const TITLE = "Replication of a seminal study on memory";
+    const OTHER = "10.1111/other.2020.1" as DoiString;
+    const withContext = (dois: DoiString[]) => new Map<DoiString, DoiContext>(dois.map((d) => [d, "other"]));
+
+    beforeEach(() => {
+        document.head.innerHTML = "";
+    });
+
+    function runOn(html: string, primary: DoiString | null = null): number {
+        document.body.innerHTML = html;
+        beginDomScanPass();
+        return injectLooseDoiPills({
+            occurrences: extractDoiOccurrences(document),
+            context: withContext([OTHER, LOOSE]),
+            pageState,
+            noticed: new Set(),
+            primary,
+        });
+    }
+
+    it("skips a Wiley show-recommended list", () => {
+        expect(runOn(`<div class="show-recommended"><ul><li><a href="https://doi.org/${OTHER}">Another paper</a></li></ul></div>`)).toBe(0);
+    });
+
+    it("skips a list under a Recommended Preprints label", () => {
+        expect(runOn(`<section><h3>Recommended Preprints</h3><ul><li>Paper doi: ${OTHER}</li></ul></section>`)).toBe(0);
+    });
+
+    it("skips PubMed similar-articles and cited-by lists, also inside main", () => {
+        const widgets = `<div id="similar-articles"><ul><li>${OTHER}</li></ul></div>
+            <div class="citedby-articles"><ul><li>doi: ${LOOSE}</li></ul></div>`;
+        expect(runOn(widgets)).toBe(0);
+        expect(runOn(`<main>${widgets}</main>`)).toBe(0);
+    });
+
+    it("recognises a camelCase id", () => {
+        expect(runOn(`<div id="relatedArticles"><p>${OTHER}</p></div>`)).toBe(0);
+    });
+
+    it("does not treat a related-class ancestor of the article title as a widget", () => {
+        document.head.innerHTML = `<meta name="citation_title" content="${TITLE}">`;
+        expect(runOn(`<div class="related-layout"><h1>${TITLE}</h1><p>See ${OTHER} for more.</p></div>`)).toBe(1);
+    });
+
+    it("pills a mention under a Related research data heading", () => {
+        expect(runOn(`<section><h3>Related research data</h3><p>${OTHER}</p></section>`)).toBe(1);
+    });
+
+    it("keeps a reference list that sits inside a related container", () => {
+        expect(runOn(`<div class="related-content"><ol class="references"><li>${OTHER}</li></ol></div>`)).toBe(1);
+    });
+
+    it("skips the primary DOI itself", () => {
+        expect(runOn(`<p>Cite as ${OTHER}</p>`, OTHER)).toBe(0);
+    });
+
+    it("skips the OJS citations plugin list", () => {
+        expect(runOn(`<div id="citation-plugin"><ul><li>${OTHER}</li></ul></div>`)).toBe(0);
+    });
+});

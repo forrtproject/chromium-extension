@@ -1,6 +1,8 @@
 import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {isDocumentEditor} from "@shared/document-editor";
+import {findArticleTitle} from "@shared/article-title";
+import {isInRelatedWorks} from "@shared/related-works";
 import {REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {pillRow} from "@shared/pill-row";
 import {debugLog} from "@shared/debug";
@@ -84,6 +86,7 @@ function isPrefixOfPrimary(doi: DoiString, primary: DoiString | null | undefined
 
 export function injectLooseDoiPills({occurrences, context, pageState, noticed, primary}: LooseDoiInputs): number {
     if (isDocumentEditor()) return 0;
+    const article = findArticleTitle(document);
     let placed = 0;
     for (const occ of occurrences) {
         if (context.get(occ.doi) !== "other") continue;
@@ -93,7 +96,8 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed, p
         if (occ.source.closest(`.${INDICATOR_PILL_CLASS}`)) continue;
         if (occ.source.closest(`[${REFERENCE_ENTRY_ATTR}]`)) continue;
         if (isEditableSurface(occ.source)) continue;
-        if (isPrefixOfPrimary(occ.doi, primary)) continue;
+        if (isInRelatedWorks(occ.source, article)) continue;
+        if (occ.doi === primary || isPrefixOfPrimary(occ.doi, primary)) continue;
 
         const state = pageState.get(occ.doi);
         const stats = state?.status === "matched" ? state.result.record.stats : null;
