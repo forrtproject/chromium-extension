@@ -21,7 +21,7 @@ describe("BlobCache expiry sweeping", () => {
     });
 
     function storedKeys(): string[] {
-        return Object.keys((store[KEY] ?? {}) as object);
+        return Object.keys((store[KEY] ?? {}) as object).filter((key) => key !== "__writeId");
     }
 
     it("drops expired entries on load even though nobody queries them", async () => {

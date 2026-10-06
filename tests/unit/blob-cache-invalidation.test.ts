@@ -54,7 +54,7 @@ describe("BlobCache invalidation", () => {
         announce(undefined);
         await cache.set("beta", "fresh");
 
-        expect(Object.keys(store[KEY] as object)).toEqual(["beta"]);
+        expect(Object.keys(store[KEY] as object).filter((key) => key !== "__writeId")).toEqual(["beta"]);
     });
 
     it("picks up a blob another context wrote", async () => {

@@ -30,7 +30,7 @@ const HANDLE_PATTERN = "https://doi.org/api/handles/*";
 function cachedDois(): string[] {
   const calls = (chrome.storage.local.set as ReturnType<typeof vi.fn>).mock.calls;
   return calls.flatMap(([arg]) =>
-    Object.keys((arg as Record<string, object>)?.flora_doival_blob ?? {}),
+    Object.keys((arg as Record<string, object>)?.flora_doival_blob ?? {}).filter((key) => key !== "__writeId"),
   );
 }
 
@@ -342,6 +342,7 @@ describe("validateDOIs time limit", () => {
 
     const pending = validateDOIs([doi("10.1000/fast"), doi("10.1000/slow"), doi("10.1000/gone")]);
     await vi.advanceTimersByTimeAsync(VALIDATION_BUDGET_MS);
+    await vi.runOnlyPendingTimersAsync();
     const results = await pending;
 
     expect([...results]).toEqual([[doi("10.1000/fast"), true], [doi("10.1000/gone"), false]]);

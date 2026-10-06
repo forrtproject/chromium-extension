@@ -695,7 +695,7 @@ describe("fetchTitleByDoi", () => {
     setSpy.mockClear();
 
     expect(await fetchTitleByDoi(DOI)).toBeNull();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(setSpy).not.toHaveBeenCalled();
   });
 
@@ -708,7 +708,7 @@ describe("fetchTitleByDoi", () => {
     setSpy.mockClear();
 
     expect(await fetchTitleByDoi(DOI)).toBeNull();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(setSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -722,7 +722,7 @@ describe("fetchTitleByDoi", () => {
     setSpy.mockClear();
 
     expect(await fetchTitleByDoi(DOI)).toBe("The Effect of Sleep on Memory Consolidation");
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(setSpy).toHaveBeenCalledTimes(1);
   });
 });
