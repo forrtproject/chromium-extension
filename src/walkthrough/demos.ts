@@ -7,6 +7,7 @@ import {
     createIndicatorPanel,
     createIndicatorPill,
     DOI_LINK_SVG,
+    ensurePopoverRows,
     PUBPEER_HUB_SVG,
 } from "@shared/indicator-pill";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
@@ -206,6 +207,7 @@ function pinnedPill(doi: DoiString): HTMLElement {
     wrap.className = "demo-pinned-pill";
     const pill = articlePill(doi, {replications: 3});
     wrap.appendChild(pill);
+    ensurePopoverRows(pill);
     const popover = pill.querySelector<HTMLElement>("[data-flora-popover]");
     if (popover) {
         popover.style.position = "static";

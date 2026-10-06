@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  createIndicatorPill,
-  PAGE_PROVENANCE,
-  SEARCH_PROVENANCE,
-} from "../../src/shared/indicator-pill";
+import {createIndicatorPill as createClosedPill, PAGE_PROVENANCE, SEARCH_PROVENANCE, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import type { DoiString } from "../../src/shared/types";
+
+function createIndicatorPill(...args: Parameters<typeof createClosedPill>): HTMLElement {
+    const pill = createClosedPill(...args);
+    ensurePopoverRows(pill);
+    return pill;
+}
 
 // Provenance is signalled inside the pill, not by its colour.
 describe("indicator pill provenance", () => {

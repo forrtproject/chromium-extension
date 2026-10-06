@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createIndicatorPill, createIndicatorPanel } from "../../src/shared/indicator-pill";
+import {createIndicatorPill as createClosedPill, createIndicatorPanel, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import type { DoiString } from "../../src/shared/types";
+
+function createIndicatorPill(...args: Parameters<typeof createClosedPill>): HTMLElement {
+    const pill = createClosedPill(...args);
+    ensurePopoverRows(pill);
+    return pill;
+}
 
 const DOI = "10.1234/x" as DoiString;
 

@@ -11,9 +11,15 @@ vi.mock("../../src/shared/pubpeer-api", () => ({
     lookupPubPeerForDoi: (...a: unknown[]) => mockLookupPubPeer(...a),
 }));
 
-import { createIndicatorPill } from "../../src/shared/indicator-pill";
+import {createIndicatorPill as createClosedPill, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import type { DoiString } from "../../src/shared/types";
 import type { OpenAccessStatus } from "../../src/shared/openaccess";
+
+function createIndicatorPill(...args: Parameters<typeof createClosedPill>): HTMLElement {
+    const pill = createClosedPill(...args);
+    ensurePopoverRows(pill);
+    return pill;
+}
 
 const DOI = "10.1000/pending" as DoiString;
 

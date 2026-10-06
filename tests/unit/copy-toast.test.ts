@@ -1,8 +1,14 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {createIndicatorPill} from "../../src/shared/indicator-pill";
+import {createIndicatorPill as createClosedPill, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import {_resetCitationCacheForTesting} from "../../src/shared/citation";
 import {dismissToast} from "../../src/shared/toast";
 import type {DoiString} from "../../src/shared/types";
+
+function createIndicatorPill(...args: Parameters<typeof createClosedPill>): HTMLElement {
+    const pill = createClosedPill(...args);
+    ensurePopoverRows(pill);
+    return pill;
+}
 
 const DOI = "10.1234/x" as DoiString;
 const CITATION = "Ray, O. (2004). How the Mind Hurts and Heals the Body. American Psychologist.";
