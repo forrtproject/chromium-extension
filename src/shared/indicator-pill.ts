@@ -74,7 +74,7 @@ const PILL_LINK_SVG =
     `<path d="M5 6.5a2.5 2.5 0 0 0 3.5.5l1.5-1.5a2.5 2.5 0 0 0-3.5-3.5L5.5 3"/>` +
     `<path d="M7 5.5a2.5 2.5 0 0 0-3.5-.5L2 6.5a2.5 2.5 0 0 0 3.5 3.5L6.5 9"/></svg>`;
 
-const PILL_REPEAT_SVG =
+export const PILL_REPEAT_SVG =
     `<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" ` +
     `stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;">` +
     `<path d="M2 4h7.5a.5.5 0 0 1 .5.5v2"/><path d="M8 2l2 2-2 2"/>` +
