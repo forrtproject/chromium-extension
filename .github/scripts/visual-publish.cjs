@@ -40,19 +40,17 @@ function encodePath(value) {
 }
 
 function baselinePreviews(files, pr, results) {
-  const screenshotPath = /^(tests\/visual\/baselines\/|docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
+  const screenshotPath = /^(docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
   return files.map(file => {
     const oldName = file.previous_filename ?? file.filename;
     const beforeExists = file.status !== 'added' && screenshotPath.test(oldName);
     const afterExists = file.status !== 'removed' && screenshotPath.test(file.filename);
-    const fixture = /^tests\/visual\/baselines\/([a-z0-9-]+)\.png$/.exec(file.filename)?.[1];
-    const sameCapture = file.status === 'modified' && fixture && results?.some(r => r.name === fixture && !r.changed);
     const before = `https://raw.githubusercontent.com/${pr.base.repo.full_name}/${pr.base.sha}/${encodePath(oldName)}`;
     const after = `https://raw.githubusercontent.com/${pr.head.repo.full_name}/${pr.head.sha}/${encodePath(file.filename)}`;
     const images = beforeExists && afterExists
       ? `| Base | PR |\n| --- | --- |\n| ![Base](${before}) | ![PR](${after}) |`
       : afterExists ? `![PR](${after})` : `Removed screenshot:\n\n![Base](${before})`;
-    return `<details open><summary>${safeLabel(file.filename)}${sameCapture ? ' (committed PNG changed; renders match)' : ''}</summary>\n\n${images}\n\n</details>`;
+    return `<details open><summary>${safeLabel(file.filename)}</summary>\n\n${images}\n\n</details>`;
   }).join('\n\n');
 }
 
@@ -254,10 +252,11 @@ module.exports = async ({github, context, postComment = defaultPostComment,
   const results = readResults(path.join(reportDir, 'results.json'));
   const captured = run.conclusion === 'success' && !!results;
   const files = await github.paginate(github.rest.pulls.listFiles, {owner, repo, pull_number});
-  const screenshotPath = /^(tests\/visual\/baselines\/|docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
+  const screenshotPath = /^(docs\/img\/|assets\/icons\/).+\.(png|jpe?g|webp)$/i;
   const capturePath = /^(tests\/visual\/|tests\/fixtures\/(article-with-dois|doi-in-table|retracted)\.html$|\.github\/(workflows\/visual[^/]*\.yml|scripts\/visual-publish\.cjs)$|scripts\/(docs-screenshots|make-icons)\.ts$|package(?:-lock)?\.json$|esbuild\.config\.ts$|manifest\.json$|tsconfig[^/]*\.json$|\.npmrc$)/;
   const baselineFiles = files.filter(f => [f.filename, f.previous_filename].some(n => n && screenshotPath.test(n)));
-  const captureFiles = files.filter(f => [f.filename, f.previous_filename].some(n => n && capturePath.test(n) && !screenshotPath.test(n)));
+  const baselinePath = /^tests\/visual\/baselines\//;
+  const captureFiles = files.filter(f => [f.filename, f.previous_filename].some(n => n && capturePath.test(n) && !screenshotPath.test(n) && !baselinePath.test(n)));
   const listingIncomplete = files.length < pr.changed_files;
   const screenshotReview = !!results?.some(r => r.changed) || baselineFiles.length > 0 || listingIncomplete;
   const setupReview = captureFiles.length > 0 || listingIncomplete;

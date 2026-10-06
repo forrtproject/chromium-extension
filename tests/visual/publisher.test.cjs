@@ -215,7 +215,7 @@ test('visual evidence is reviewed in the PR', async t => {
 
   await t.test('committed images and setup diff appear in the comment', async () => {
     const result = await scenario({files: [
-      {filename: 'tests/visual/baselines/new.png', status: 'added'},
+      {filename: 'docs/img/new.png', status: 'added'},
       {filename: 'tests/visual/run.ts', status: 'modified'},
     ]});
     assert.equal(result.status.state, 'pending');
@@ -223,6 +223,12 @@ test('visual evidence is reviewed in the PR', async t => {
     assert.match(result.posted[0].body, /capture setup diff/);
     assert.match(result.posted[0].body, /tests\/visual\/run\.ts/);
     assert.equal(result.stored[0].files.length, 0);
+  });
+
+  await t.test('committed baseline PNGs are left out of the review', async () => {
+    const result = await scenario({files: [{filename: 'tests/visual/baselines/fixture.png', status: 'modified'}]});
+    assert.equal(result.status.state, 'success');
+    assert.equal(result.posted.length, 0);
   });
 
   await t.test('setup-only changes show captured examples and incomplete listings require review', async () => {
