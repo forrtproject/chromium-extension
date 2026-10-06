@@ -1072,6 +1072,31 @@ describe("extractDoiOccurrences — FLoRA's own injected UI", () => {
   });
 });
 
+describe("extractDoiOccurrences — text the prose walk skips", () => {
+  it("leaves DOI text in HTML and SVG links and in scripts out of the prose occurrences", () => {
+    const doc = new JSDOM(`<!DOCTYPE html>
+      <html><body>
+        <p>Prose cites 10.1111/in.prose here.</p>
+        <p><a href="/x"><span>10.1111/in.html.link</span></a></p>
+        <svg><a href="/y"><text>10.1111/in.svg.link</text></a></svg>
+        <script>var cited = "10.1111/in.script";</script>
+      </body></html>`).window.document;
+    const prose = extractDoiOccurrences(doc).filter((o) => o.kind === "text").map((o) => o.doi);
+    expect(prose).toEqual(["10.1111/in.prose"]);
+  });
+});
+
+describe("findReferenceContainers — FLoRA's own UI", () => {
+  it("never treats an element inside an injected pill as a reference section", () => {
+    const doc = new JSDOM(`<!DOCTYPE html>
+      <html><body>
+        <span data-flora-ui=""><div class="references"><p>10.1111/a</p><p>10.1111/b</p></div></span>
+        <ol class="references"><li>10.2222/c</li><li>10.2222/d</li></ol>
+      </body></html>`).window.document;
+    expect(findReferenceContainers(doc).map((el) => el.tagName)).toEqual(["OL"]);
+  });
+});
+
 describe("extractPrimaryDOI", () => {
   it("reads the DOI from citation meta tags", () => {
     const doc = new JSDOM(`<!DOCTYPE html>

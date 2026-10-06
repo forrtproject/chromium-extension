@@ -314,18 +314,17 @@ export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
     }
   }
 
-  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
-      const parent = node.parentElement;
-      if (!parent) return NodeFilter.FILTER_REJECT;
-      const tag = parent.tagName;
-      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") {
+      if (node.nodeType === Node.TEXT_NODE) return NodeFilter.FILTER_ACCEPT;
+      const el = node as Element;
+      const tag = el.localName;
+      if (tag === "script" || tag === "style" || tag === "noscript" || tag === "a") {
         return NodeFilter.FILTER_REJECT;
       }
-      if (parent.closest("a")) return NodeFilter.FILTER_REJECT;
-      if (parent.closest(FLORA_UI_SELECTOR)) return NodeFilter.FILTER_REJECT;
-      if (word && parent.closest('[aria-hidden="true"]')) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
+      if (el.matches(FLORA_UI_SELECTOR)) return NodeFilter.FILTER_REJECT;
+      if (word && el.getAttribute("aria-hidden") === "true") return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_SKIP;
     },
   });
 
@@ -437,6 +436,15 @@ const REFERENCE_SECTION_RE = /(?:^|[-_\s])(?:cites|citations|bibliograph(?:y|ies
 // all — just a plain "References" heading among the article's other headings.
 const REFERENCE_HEADING_RE = /^(?:\d+\.?\s*)?(?:references|bibliography|works\s+cited|literature\s+cited)\s*:?$/i;
 
+function pageElementsWithin(root: Element): Element[] {
+  const elements: Element[] = [];
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) => (node as Element).matches(FLORA_UI_SELECTOR) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) elements.push(node as Element);
+  return elements;
+}
+
 function isReferenceContainer(el: Element): boolean {
   const cls = typeof el.className === "string" ? el.className : "";
   if (cls && REFERENCE_SECTION_RE.test(cls)) return true;
@@ -488,10 +496,7 @@ export function findReferenceContainers(doc: Document): Element[] {
     return _refContainerCache.result;
   }
 
-  const matched: Element[] = [];
-  for (const el of doc.querySelectorAll<Element>("[class],[id]")) {
-    if (isReferenceContainer(el)) matched.push(el);
-  }
+  const matched = doc.body ? pageElementsWithin(doc.body).filter(isReferenceContainer) : [];
   const result = matched.filter(
     (el) => !matched.some((other) => other !== el && other.contains(el))
   );
@@ -573,15 +578,16 @@ function extractPmcIdFromEntry(entry: HTMLElement, text: string): string | null 
 // says which element a node belongs to — its parent for ordinary siblings,
 // its table for rows, whose entries are split across <tbody> sections.
 function findLargestGroup(
-  container: Element,
-  selector: string,
+  elements: readonly Element[],
+  selector: string | null,
   owner: (node: HTMLElement) => Element | null = (node) => node.parentElement,
 ): HTMLElement[] {
   const byOwner = new Map<Element, HTMLElement[]>();
-  for (const node of container.querySelectorAll<HTMLElement>(selector)) {
-    if (node.closest(FLORA_UI_SELECTOR) || !node.textContent?.trim()) continue;
+  for (const element of elements) {
+    if (selector && !element.matches(selector)) continue;
+    const node = element as HTMLElement;
     const key = owner(node);
-    if (!key) continue;
+    if (!key || !node.textContent?.trim()) continue;
     const group = byOwner.get(key) ?? [];
     group.push(node);
     byOwner.set(key, group);
@@ -597,27 +603,27 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   // Outermost <li>s only: a reference <li> can wrap its own nested action-link
   // <li>s (e.g. Frontiers' "Pubmed | CrossRef | ..."), which must not be
   // mistaken for separate entries.
-  const allLis = Array.from(container.querySelectorAll<HTMLElement>("li")).filter(
-    (li) => !li.closest(FLORA_UI_SELECTOR)
-  );
-  const lis = allLis.filter(
-    (li) => !allLis.some((other) => other !== li && other.contains(li))
-  );
-  const pGroup = findLargestGroup(container, "p");
-  const divGroup = findLargestGroup(container, "div");
+  const elements = pageElementsWithin(container);
+  const lis = elements.filter((el): el is HTMLElement => {
+    if (el.localName !== "li") return false;
+    const outer = el.parentElement?.closest("li");
+    return !outer || !container.contains(outer);
+  });
+  const pGroup = findLargestGroup(elements, "p");
+  const divGroup = findLargestGroup(elements, "div");
   // A tabular bibliography: one citation per body row. Without this the only
   // children of the <table> are <thead>/<tbody>, so the whole table counts as
   // a single entry — one DOI gets a pill and every later row is skipped.
   // Rows group by their own table, so a table split across several <tbody>
   // sections keeps all its entries and a nested table stays separate.
-  const rowGroup = findLargestGroup(container, "tbody > tr, table > tr", (row) =>
+  const rowGroup = findLargestGroup(elements, "tbody > tr, table > tr", (row) =>
     row.closest("table")
   );
 
   // Largest group wins, not just the first past the threshold: Oxford
   // Academic's per-reference <div> group otherwise loses to a single
   // reference's own 2-3 <p> link buttons.
-  const componentGroup = findLargestGroup(container, "*", (node) =>
+  const componentGroup = findLargestGroup(elements, null, (node) =>
     node.tagName.includes("-") || node.constructor.name === "HTMLUnknownElement" ? node.parentElement : null
   );
   const best = [lis, pGroup, divGroup, rowGroup, componentGroup].reduce((a, b) => (b.length > a.length ? b : a));
