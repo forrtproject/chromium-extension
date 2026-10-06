@@ -18,7 +18,7 @@ const KEYFRAMES =
     "@keyframes flora-progress-tab-spin{to{transform:rotate(360deg)}}";
 
 const STANDALONE_STYLE =
-    "all:unset;box-sizing:border-box;position:fixed;right:0;top:0;z-index:2147483647;" +
+    "all:unset;box-sizing:border-box;direction:ltr;position:fixed;right:0;top:0;z-index:2147483647;" +
     "width:28px;padding:14px 0;border-radius:6px 0 0 6px;" +
     `background:${GREY};` +
     "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;" +

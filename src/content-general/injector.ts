@@ -934,7 +934,7 @@ export function renderSidePanel(
   // 'right' is animated by flora-tab-enter; openPanel/closePanel clear the animation
   // before touching 'right' so the JS value isn't suppressed by the fill mode.
   tab.style.cssText =
-    "all:unset;cursor:grab;pointer-events:all;" +
+    "all:unset;cursor:grab;pointer-events:all;direction:ltr;" +
     "position:fixed;right:0;top:0;" +
     "width:28px;padding:14px 0;z-index:2147483647;" +
     "background:linear-gradient(180deg,#853953,#612D53);" +

@@ -265,7 +265,7 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
     const label = document.createElement("span");
     label.setAttribute(SEGMENT_LABEL_ATTR, "");
     label.textContent = spec.label;
-    label.style.cssText = "font-size:10.5px;font-weight:600;letter-spacing:0.02em;line-height:1;";
+    label.style.cssText = "font-size:10.5px;font-weight:600;letter-spacing:0.02em;line-height:1;text-box:trim-both cap alphabetic;";
     el.appendChild(label);
 
     if (spec.exists && spec.count !== undefined) {
