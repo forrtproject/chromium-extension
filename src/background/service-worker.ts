@@ -232,8 +232,10 @@ ensureRetractionSyncAlarm().catch((err) => {
 });
 
 
+type LookupBatch = SharedRequest<{results: Map<DoiString, ReplicationResult>; errors: Record<string, string>}>;
+
 /** In-flight dedup: prevents duplicate API calls for the same DOI */
-const inflight = new Map<DoiString, SharedRequest<{results: Map<DoiString, ReplicationResult>; errors: Record<string, string>}>>();
+const inflight = new Map<DoiString, LookupBatch>();
 
 chrome.runtime.onMessage.addListener(
     (message: unknown, sender, sendResponse) => {
@@ -489,32 +491,47 @@ async function handleLookup(dois: DoiString[], signal?: AbortSignal): Promise<Lo
     const results: Record<string, ReplicationResult> = {};
     const errors: Record<string, string> = {};
     const toFetch: DoiString[] = [];
+    const joined = new Map<LookupBatch, DoiString[]>();
 
     // Confirmed no-matches expire after five minutes; provider errors are never cached.
     const [cached, noMatches] = await Promise.all([cache.getMany(dois), noMatchCache.getMany(dois)]);
     for (const doi of dois) {
         const hit = cached.get(doi);
+        const running = inflight.get(doi);
         if (hit) {
             results[doi] = hit;
         } else if (noMatches.has(doi)) {
             continue;
-        } else if (inflight.has(doi) && !inflight.get(doi)!.aborted) {
-            const shared = await inflight.get(doi)!.subscribe(signal);
-            const r = shared.results.get(doi);
-            if (shared.errors[doi]) errors[doi] = shared.errors[doi];
-            if (r) results[doi] = r;
+        } else if (running && !running.aborted) {
+            joined.set(running, [...joined.get(running) ?? [], doi]);
         } else {
             toFetch.push(doi);
         }
     }
 
-    if (toFetch.length === 0) {
-        return {type: "FLORA_LOOKUP_RESULT", results, errors};
-    }
+    const collect = (batch: LookupBatch, batchDois: DoiString[]): Promise<void> => batch.subscribe(signal).then(
+        (completed) => {
+            for (const doi of batchDois) {
+                const result = completed.results.get(doi);
+                if (result) results[doi] = result;
+                if (completed.errors[doi]) errors[doi] = completed.errors[doi];
+            }
+        },
+        (err) => {
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            if (!signal?.aborted) debugError(`Lookup: FORRT API failed for ${batchDois.length} DOI(s) — ${msg}`, err);
+            for (const doi of batchDois) errors[doi] = msg;
+        },
+    );
+    if (joined.size > 0 || toFetch.length > 0) signal?.throwIfAborted();
+    const waits = [...joined].map(([batch, batchDois]) => collect(batch, batchDois));
+    if (toFetch.length > 0) waits.push(collect(startLookupBatch(toFetch), toFetch));
+    await Promise.all(waits);
+    return {type: "FLORA_LOOKUP_RESULT", results, errors};
+}
 
-    // Batch API call for uncached DOIs
-    signal?.throwIfAborted();
-    const batch = new SharedRequest(async (transportSignal: AbortSignal) => {
+function startLookupBatch(toFetch: DoiString[]): LookupBatch {
+    const batch: LookupBatch = new SharedRequest(async (transportSignal: AbortSignal) => {
         try {
             const batchErrors: Record<string, string> = {};
             const apiResults = await lookupDOIs(toFetch, batchErrors, transportSignal);
@@ -537,26 +554,7 @@ async function handleLookup(dois: DoiString[], signal?: AbortSignal): Promise<Lo
         }
     });
     for (const doi of toFetch) inflight.set(doi, batch);
-
-    try {
-        const completed = await batch.subscribe(signal);
-        const apiResults = completed.results;
-        Object.assign(errors, completed.errors);
-
-        for (const doi of toFetch) {
-            const result = apiResults.get(doi);
-            if (result) results[doi] = result;
-        }
-
-    } catch (err) {
-        const msg = err instanceof Error ? err.message : "Unknown error";
-        debugError(`Lookup: FORRT API failed for ${toFetch.length} DOI(s) — ${msg}`, err);
-        for (const doi of toFetch) {
-            errors[doi] = msg;
-        }
-    }
-
-    return {type: "FLORA_LOOKUP_RESULT", results, errors};
+    return batch;
 }
 
 async function handleAugment(
