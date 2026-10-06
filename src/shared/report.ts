@@ -4,6 +4,7 @@
 
 import type {NoticeKind} from "@shared/types";
 import {plainTitle} from "@shared/plain-title";
+import {webUrl} from "@shared/web-url";
 
 // The docs site's canonical host. forrtproject.github.io/* 301-redirects here,
 // so linking to the github.io form would ship a redirect in every shared link.
@@ -178,16 +179,6 @@ function esc(value: string): string {
     return value.replace(/[&<>"']/g, (c) => (
         {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c] ?? c
     ));
-}
-
-function webUrl(value: string | null | undefined): string | null {
-    if (!value) return null;
-    try {
-        const {protocol} = new URL(value);
-        return protocol === "https:" || protocol === "http:" ? value : null;
-    } catch {
-        return null;
-    }
 }
 
 function outcomeTone(outcome: string): string {

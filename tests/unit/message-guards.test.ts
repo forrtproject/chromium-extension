@@ -5,6 +5,7 @@ import {
     isAugmentRequest,
     isPmcResolveRequest,
     isScanStateMessage,
+    isSheetFetchRequest,
 } from "../../src/shared/messages";
 
 describe("message guards reject malformed payloads", () => {
@@ -83,5 +84,16 @@ describe("message guards reject malformed payloads", () => {
         expect(isScanStateMessage(wrap(error({ entries: [{ ...entry, msg: 1 }] })))).toBe(false);
         expect(isScanStateMessage(wrap(error({ entries: [{ t: 1, level: "log", msg: "m" }] })))).toBe(false);
         expect(isScanStateMessage(wrap(error({ pageUrl: 5 })))).toBe(false);
+    });
+});
+
+describe("sheet fetch requests", () => {
+    it("accepts a spreadsheet id and numeric gid", () => {
+        expect(isSheetFetchRequest({type: "FLORA_SHEET_FETCH", spreadsheetId: "1AbC_d-9", gid: "42"})).toBe(true);
+    });
+
+    it("rejects ids that could reshape the export URL", () => {
+        expect(isSheetFetchRequest({type: "FLORA_SHEET_FETCH", spreadsheetId: "x/../../document/d/y", gid: "0"})).toBe(false);
+        expect(isSheetFetchRequest({type: "FLORA_SHEET_FETCH", spreadsheetId: "book", gid: "0&tqx=out:html"})).toBe(false);
     });
 });

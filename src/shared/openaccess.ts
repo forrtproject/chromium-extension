@@ -5,6 +5,7 @@ import {activeWorkSignal} from "@shared/work-cancellation";
 import { getSettings } from "./settings";
 import { BlobCache } from "./blob-cache";
 import { debugWarn } from "./debug";
+import { webUrl } from "./web-url";
 import { RequestGate } from "./request-gate";
 
 export interface OpenAccessLocation {
@@ -54,14 +55,14 @@ function hostLabel(url: string): string {
 }
 
 function toLocation(raw: UnpaywallLocation): OpenAccessLocation | null {
-    const url = raw.url_for_pdf ?? raw.url ?? null;
+    const url = webUrl(raw.url_for_pdf) ?? webUrl(raw.url);
     if (!url) return null;
     const institution = raw.repository_institution?.trim();
     return {
         url,
         label: institution || (raw.host_type === "publisher" ? "Publisher" : hostLabel(url)),
         version: raw.version ? VERSION_LABELS[raw.version] ?? null : null,
-        isPdf: !!raw.url_for_pdf,
+        isPdf: url === raw.url_for_pdf,
     };
 }
 

@@ -462,6 +462,8 @@ export function isSheetFetchRequest(msg: unknown): msg is SheetFetchRequest {
         msg !== null &&
         (msg as Record<string, unknown>).type === "FLORA_SHEET_FETCH" &&
         typeof (msg as Record<string, unknown>).spreadsheetId === "string" &&
-        typeof (msg as Record<string, unknown>).gid === "string"
+        /^[a-zA-Z0-9_-]+$/.test((msg as Record<string, unknown>).spreadsheetId as string) &&
+        typeof (msg as Record<string, unknown>).gid === "string" &&
+        /^\d+$/.test((msg as Record<string, unknown>).gid as string)
     );
 }

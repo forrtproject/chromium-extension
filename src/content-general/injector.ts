@@ -1,4 +1,5 @@
 import { fetchWithDeadline } from "@shared/work-cancellation";
+import { webUrl } from "@shared/web-url";
 import type { DoiString, LookupState, ReplicationResult, ReplicationEntry, OriginalEntry, DoiContext } from "../shared/types";
 import type { PubPeerFeedback } from "../shared/pubpeer-api";
 import { debugLog, debugWarn } from "../shared/debug";
@@ -1305,7 +1306,7 @@ export function renderSidePanel(
           best_oa_location?: { url_for_pdf?: string | null; url?: string | null } | null;
         };
         if (!data.is_oa) return;
-        const oaUrl = data.best_oa_location?.url_for_pdf ?? data.best_oa_location?.url;
+        const oaUrl = webUrl(data.best_oa_location?.url_for_pdf) ?? webUrl(data.best_oa_location?.url);
         if (!oaUrl) return;
         const icon = document.createElement("a");
         icon.href = oaUrl;

@@ -1,6 +1,7 @@
 import {safeSendMessage, type LookupResponse} from "@shared/messages";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {isAbortError} from "@shared/work-cancellation";
+import {webUrl} from "@shared/web-url";
 // Merged FLoRA indicator pill — combines the DOI badge, Open Access padlock,
 // PubPeer discussion marker, and retraction/replication badge into a single
 // pill (mockup: a rounded maroon pill with icon segments split by dividers).
@@ -598,8 +599,9 @@ const DOT_ICON = (color: string) => `<span style="display:inline-block;width:8px
 /** Every free copy on offer, falling back to the single URL older caches stored. */
 function oaLocations(oa: OpenAccessStatus | null): OpenAccessLocation[] {
     if (!oa?.isOa) return [];
-    if (oa.locations?.length) return oa.locations;
-    return oa.url ? [{url: oa.url, label: "Free copy", version: null, isPdf: false}] : [];
+    if (oa.locations?.length) return oa.locations.filter((loc) => webUrl(loc.url));
+    const url = webUrl(oa.url);
+    return url ? [{url, label: "Free copy", version: null, isPdf: false}] : [];
 }
 
 /** One free copy, as a line in the chooser under the Open Access row. */
