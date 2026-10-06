@@ -126,10 +126,18 @@ describe("a crafted report link", () => {
             replications: [{title: "Rep", doi: loneSurrogate}],
             references: [{title: "Ref", doi: loneSurrogate, replications: 2}, {title: "Kept", doi: "10.1/kept", replications: 1}],
         }));
-        expect(decoded!.notice).toBeNull();
+        expect(decoded!.notice).toEqual({kind: "retraction"});
         expect(decoded!.replications[0].doi).toBeUndefined();
         expect(decoded!.references.map((r) => r.doi)).toEqual(["10.1/kept"]);
         expect(() => renderReportBody(decoded!)).not.toThrow();
+    });
+
+    it("keeps the retraction banner when the notice DOI is unusable, without a link", async () => {
+        const decoded = await decodeRaw(payload({notice: {kind: "retraction", doi: "unavailable"}}));
+        const html = renderReportBody(decoded!);
+        expect(html).toContain("This article has been retracted.");
+        expect(html).not.toContain("doi.org/unavailable");
+        expect(html).not.toContain("Read the notice");
     });
 
     it("rejects a payload without a text title", async () => {
@@ -189,5 +197,19 @@ describe("report rendering", () => {
         expect(doc.startsWith("<!doctype html>")).toBe(true);
         expect(doc).toContain("@media print");
         expect(doc).toContain("Power Posing");
+    });
+});
+
+describe("the printable report", () => {
+    it("shows a retraction whose notice DOI from Retraction Watch is a placeholder, without a broken link", () => {
+        const html = renderReportBody(payload({notice: {kind: "retraction", doi: "xx10.1007/978-3-030-00524-5_9"}}));
+        expect(html).toContain("This article has been retracted.");
+        expect(html).not.toContain("doi.org/xx10");
+    });
+
+    it("links a notice with a usable DOI", () => {
+        const html = renderReportBody(payload({notice: {kind: "concern", doi: "10.1/notice"}}));
+        expect(html).toContain('href="https://doi.org/10.1/notice"');
+        expect(html).toContain("Read the notice");
     });
 });

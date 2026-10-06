@@ -39,7 +39,7 @@ export interface ReportPayload {
     year?: number | null;
     sourceUrl?: string | null;
     generated: number;
-    notice?: {kind: NoticeKind; doi: string} | null;
+    notice?: {kind: NoticeKind; doi?: string} | null;
     replications: ReportEntry[];
     reproductions: ReportEntry[];
     originals: ReportEntry[];
@@ -162,7 +162,7 @@ function readPayload(raw: unknown): ReportPayload | null {
         year: count(raw.year),
         sourceUrl: text(raw.sourceUrl),
         generated,
-        notice: noticeDoi && kind ? {kind, doi: noticeDoi} : null,
+        notice: kind ? {kind, ...(noticeDoi ? {doi: noticeDoi} : {})} : null,
         replications: records(raw.replications).map(readEntry),
         reproductions: records(raw.reproductions).map(readEntry),
         originals: records(raw.originals).map(readEntry),
@@ -254,9 +254,13 @@ function referenceHtml(reference: ReportReference): string {
 function noticeHtml(payload: ReportPayload): string {
     if (!payload.notice) return "";
     const isRetraction = payload.notice.kind === "retraction";
-    return `<a class="notice ${isRetraction ? "notice-retracted" : "notice-concern"}"
-      href="${esc(doiUrl(payload.notice.doi))}" target="_blank" rel="noopener">
-      <strong>${isRetraction ? "This article has been retracted." : "This article has an expression of concern."}</strong>
+    const tone = isRetraction ? "notice-retracted" : "notice-concern";
+    const headline = `<strong>${isRetraction ? "This article has been retracted." : "This article has an expression of concern."}</strong>`;
+    const doi = doiText(payload.notice.doi);
+    if (!doi) return `<div class="notice ${tone}">${headline}</div>`;
+    return `<a class="notice ${tone}"
+      href="${esc(doiUrl(doi))}" target="_blank" rel="noopener">
+      ${headline}
       <span>Read the notice ↗</span>
     </a>`;
 }
