@@ -113,7 +113,7 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed, p
         const stats = state?.status === "matched" ? state.result.record.stats : null;
         const pill = createIndicatorPill({
             doi: occ.doi,
-            oaStatus: fetchOpenAccess(occ.doi),
+            oaStatus: () => fetchOpenAccess(occ.doi),
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,
         });

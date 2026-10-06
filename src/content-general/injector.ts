@@ -1,9 +1,8 @@
-import { fetchWithDeadline } from "@shared/work-cancellation";
+import { fetchOpenAccess } from "@shared/openaccess";
 import { webUrl } from "@shared/web-url";
 import type { DoiString, LookupState, ReplicationResult, ReplicationEntry, OriginalEntry, DoiContext } from "../shared/types";
 import type { PubPeerFeedback } from "../shared/pubpeer-api";
 import { debugLog, debugWarn } from "../shared/debug";
-import { getSettings } from "../shared/settings";
 import { safeSendMessage } from "../shared/messages";
 import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
 import { renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
@@ -1290,24 +1289,13 @@ export function renderSidePanel(
 
   void (async () => {
     if (oaPlaceholders.size === 0) return;
-    const { email } = await getSettings();
-    if (!email) return;
     await Promise.allSettled([...oaPlaceholders].map(async ([doi, placeholder]) => {
       try {
         if (host.dataset.floraPanelStale === "1") return;
         // Panel request, independent of the page scan's cancellation.
-        const resp = await fetchWithDeadline(
-          `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`,
-          { signal: null }
-        );
-        if (!resp.ok) return;
-        const data = await resp.json() as {
-          is_oa?: boolean;
-          best_oa_location?: { url_for_pdf?: string | null; url?: string | null } | null;
-        };
-        if (!data.is_oa) return;
-        const oaUrl = webUrl(data.best_oa_location?.url_for_pdf) ?? webUrl(data.best_oa_location?.url);
-        if (!oaUrl) return;
+        const status = await fetchOpenAccess(doi, null);
+        const oaUrl = status?.isOa ? webUrl(status.url) : null;
+        if (!oaUrl || host.dataset.floraPanelStale === "1") return;
         const icon = document.createElement("a");
         icon.href = oaUrl;
         icon.target = "_blank";

@@ -800,8 +800,11 @@ export interface IndicatorPillOptions {
     isAugmented?: boolean;
     /** Overrides the provenance line under the DOI (default: page vs. title match). */
     provenanceLabel?: string;
-    /** Open Access lookup — resolves the padlock segment/row when it lands. */
-    oaStatus?: Promise<OpenAccessStatus | null>;
+    /**
+     * Open Access lookup — resolves the padlock segment/row when it lands. A
+     * function defers the request until the pill nears the viewport or opens.
+     */
+    oaStatus?: Promise<OpenAccessStatus | null> | (() => Promise<OpenAccessStatus | null>);
     /** Already-resolved retraction/concern notice for this DOI, if any. */
     retraction?: RetractionResponse | null;
     /** Already-known replication count for this DOI, if any (pass only when > 0). Takes priority over reproductionsCount. */
@@ -1129,9 +1132,48 @@ function pillAriaLabel(
 
 const markerUpdates = new WeakMap<HTMLElement, (state: LookupState | undefined, notice: RetractionResponse | null) => void>();
 
+const nearViewportCallbacks = new WeakMap<Element, () => void>();
+let nearViewportObserver: IntersectionObserver | null = null;
+
+function whenNearViewport(el: Element, callback: () => void): void {
+    if (typeof IntersectionObserver === "undefined") {
+        callback();
+        return;
+    }
+    nearViewportObserver ??= new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            nearViewportObserver!.unobserve(entry.target);
+            const run = nearViewportCallbacks.get(entry.target);
+            nearViewportCallbacks.delete(entry.target);
+            run?.();
+        }
+    }, {rootMargin: "300px"});
+    nearViewportCallbacks.set(el, callback);
+    nearViewportObserver.observe(el);
+}
+
+/** A deferred OA lookup as a promise the rows can await, plus the trigger that starts it once. */
+function deferredOa(
+    oaStatus: IndicatorPillOptions["oaStatus"],
+): {request: Promise<OpenAccessStatus | null> | undefined; start: () => void} {
+    if (typeof oaStatus !== "function") return {request: oaStatus, start: () => {}};
+    let start!: () => void;
+    const request = new Promise<OpenAccessStatus | null>((resolve, reject) => {
+        let started = false;
+        start = () => {
+            if (started) return;
+            started = true;
+            oaStatus().then(resolve, reject);
+        };
+    });
+    return {request, start};
+}
+
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
     ensureFocusStyle();
-    const {doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
+    const {doi, color = "#853953", isAugmented = false, provenanceLabel, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
+    const {request: oaStatus, start: startOa} = deferredOa(options.oaStatus);
     const markerMode = options.presentation === "marker";
     let restingBorder = `${color}${BORDER_ALPHA}`;
     let hoverBorder = `${color}${ABSENT_ALPHA}`;
@@ -1300,6 +1342,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     let collapseMarker: (() => void) | null = null;
 
     const show = () => {
+        startOa();
         if (hideTimeout) {
             clearTimeout(hideTimeout);
             hideTimeout = null;
@@ -1437,6 +1480,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     wrapper.appendChild(pill);
     wrapper.appendChild(popover);
+    if (typeof options.oaStatus === "function") whenNearViewport(pill, startOa);
     return shieldFromPageCss(wrapper);
 }
 
@@ -1476,9 +1520,10 @@ function ensurePanelStyle(): void {
  */
 export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement {
     const {
-        doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus,
+        doi, color = "#853953", isAugmented = false, provenanceLabel,
         retraction = null, replicationsCount = null, reproductionsCount = null,
     } = options;
+    const {request: oaStatus, start: startOa} = deferredOa(options.oaStatus);
 
     const wrapper = document.createElement("div");
     wrapper.className = INDICATOR_PILL_CLASS;
@@ -1504,6 +1549,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
         doi, color, isAugmented, provenanceLabel, oaStatus, retraction, replicationsCount, reproductionsCount,
         compact: true,
     }));
+    if (typeof options.oaStatus === "function") whenNearViewport(wrapper, startOa);
     return resetInheritedText(wrapper);
 }
 

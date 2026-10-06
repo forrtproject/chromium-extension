@@ -285,7 +285,7 @@ export function renderResolvedReferences(
             color: PILL_COLOR,
             isAugmented,
             provenanceLabel: mode === "pmc" ? "Matched by PMC ID" : undefined,
-            oaStatus: fetchOpenAccess(doi),
+            oaStatus: () => fetchOpenAccess(doi),
             retraction: retractionByDoi.get(doi) ?? null,
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,

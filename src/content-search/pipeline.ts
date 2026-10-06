@@ -639,7 +639,7 @@ async function placePanel(
             color: PILL_COLOR,
             isAugmented,
             provenanceLabel,
-            oaStatus: fetchOpenAccess(doi),
+            oaStatus: () => fetchOpenAccess(doi),
             retraction: retractions.get(doi) ?? null,
         });
         adapter.preparePanelTarget?.(row);
