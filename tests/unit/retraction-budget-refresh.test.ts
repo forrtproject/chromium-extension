@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {RET_MAP_KEY} from "../../src/shared/data-extract";
+import {RET_COUNT_KEY, RET_MAP_KEY} from "../../src/shared/data-extract";
 
 vi.mock("../../src/shared/settings", async importOriginal => ({
     ...await importOriginal<typeof import("../../src/shared/settings")>(),
@@ -43,6 +43,11 @@ beforeEach(() => {
     }));
 });
 afterEach(() => {vi.useRealTimers(); vi.unstubAllGlobals();});
+
+function mapReads(): number {
+    return vi.mocked(chrome.storage.local.get).mock.calls.filter(([keys]) =>
+        keys === null || keys === RET_MAP_KEY || (Array.isArray(keys) && keys.includes(RET_MAP_KEY))).length;
+}
 
 async function checkRetraction(): Promise<unknown> {
     const listener = vi.mocked(chrome.runtime.onMessage.addListener).mock.lastCall![0];
@@ -103,6 +108,38 @@ describe("retraction map and the cache budget", () => {
         vi.setSystemTime(NOW + 10 * 60 * 1000 + 1);
         await syncRetractionsInfo();
         expect(remoteRequests).toBe(2);
+    });
+
+    it("decides a refresh is not due without reading the map", async () => {
+        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
+        await syncRetractionsInfo();
+        expect(store[RET_COUNT_KEY]).toBe(1);
+        vi.mocked(chrome.storage.local.get).mockClear();
+        await syncRetractionsInfo();
+        expect(mapReads()).toBe(0);
+        expect(remoteRequests).toBe(1);
+    });
+
+    it("counts a map synced before the count was stored, once", async () => {
+        store.synctime = NOW;
+        store[RET_MAP_KEY] = map;
+        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
+        await syncRetractionsInfo();
+        expect(store[RET_COUNT_KEY]).toBe(1);
+        expect(remoteRequests).toBe(0);
+        vi.mocked(chrome.storage.local.get).mockClear();
+        await syncRetractionsInfo();
+        expect(mapReads()).toBe(0);
+    });
+
+    it("refetches a map that went missing behind a stored count", async () => {
+        store.synctime = NOW;
+        store[RET_COUNT_KEY] = 1;
+        await import("../../src/background/service-worker");
+        await checkRetraction();
+        await vi.runAllTimersAsync();
+        expect(remoteRequests).toBe(1);
+        expect(store[RET_MAP_KEY]).toEqual(map);
     });
 
     it.each(["missing", "empty"])("repairs a %s map on the next sync", async kind => {

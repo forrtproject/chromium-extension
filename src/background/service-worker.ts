@@ -6,7 +6,7 @@ import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
-import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
+import {RET_COUNT_KEY, RET_MAP_KEY, retractionEntryCount, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
 import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, type TakeReportResponse} from "@shared/messages";
@@ -733,7 +733,10 @@ async function loadRetractionSource(signal: AbortSignal): Promise<RetractionMaps
     // from the bundled JSON and check whether refresh is due. Don't cache this
     // source choice, so a newly synced map is noticed on next check.
     debugLog("Retractions: no stored map — answering from the bundled map and checking refresh schedule");
-    syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
+    chrome.storage.local.remove(RET_COUNT_KEY)
+        .catch(() => {})
+        .then(() => syncRetractionsInfo())
+        .catch((err) => debugError("Retractions: sync failed —", err));
     return loadBundledRetractionMap(signal);
 }
 
@@ -784,17 +787,22 @@ const RETRY_INTERVAL = 1000 * 60 * 10;
 const SYNC_ATTEMPT_KEY = "flora_retraction_sync_attempt";
 let lastSyncAttemptAt = 0;
 
+async function storedRetractionCount(recorded: unknown): Promise<number> {
+    if (typeof recorded === "number") return recorded;
+    const stored = await chrome.storage.local.get(RET_MAP_KEY);
+    const count = retractionEntryCount(stored[RET_MAP_KEY] as RetractionMaps | undefined);
+    await chrome.storage.local.set({[RET_COUNT_KEY]: count})
+        .catch(err => debugWarn("Retraction sync: entry count not stored —", err));
+    return count;
+}
+
 async function runRetractionSync(): Promise<void> {
     const minInterval = 1000 * 60 * 60 * 24 * 7; // weekly
     const currentTime = Date.now();
-    const previous = await chrome.storage.local.get(["synctime", RET_MAP_KEY, SYNC_ATTEMPT_KEY]);
+    const previous = await chrome.storage.local.get(["synctime", RET_COUNT_KEY, SYNC_ATTEMPT_KEY]);
     const lastSync = previous.synctime || 0;
     const nextUpdate = lastSync + minInterval;
-    const map = previous[RET_MAP_KEY] as RetractionMaps | undefined;
-    const isEmpty = !map || (
-        Object.keys(map.retractions || {}).length === 0 &&
-        Object.keys(map.concerns || {}).length === 0
-    );
+    const isEmpty = await storedRetractionCount(previous[RET_COUNT_KEY]) === 0;
     if (!isEmpty && currentTime <= nextUpdate) return;
     const storedAttempt = typeof previous[SYNC_ATTEMPT_KEY] === "number" ? previous[SYNC_ATTEMPT_KEY] as number : 0;
     const lastAttempt = Math.max(storedAttempt, lastSyncAttemptAt);
