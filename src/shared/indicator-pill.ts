@@ -1184,6 +1184,13 @@ export function ensurePopoverRows(wrapper: HTMLElement): void {
     popoverBuilders.get(wrapper)?.();
 }
 
+const popoverPins = new WeakMap<HTMLElement, (pinned: boolean) => void>();
+
+/** Open a pill's popover and keep it open, or release it — as a click on the pill would. */
+export function pinIndicatorPopover(wrapper: HTMLElement, pinned: boolean): void {
+    popoverPins.get(wrapper)?.(pinned);
+}
+
 const nearViewportCallbacks = new WeakMap<Element, () => void>();
 let nearViewportObserver: IntersectionObserver | null = null;
 
@@ -1233,6 +1240,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     const wrapper = document.createElement("span");
     wrapper.className = INDICATOR_PILL_CLASS;
     wrapper.setAttribute("data-flora-doi", doi);
+    if (isAugmented) wrapper.setAttribute("data-flora-augmented", "");
     // The popover prints the DOI and links it to doi.org; without this marker
     // the extractor rescans that as a page occurrence and pills it again.
     wrapper.setAttribute("data-flora-ui", "");
@@ -1505,6 +1513,10 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
             document.addEventListener("click", docClickHandler, {capture: true});
         }, 0);
     });
+    popoverPins.set(wrapper, (on) => {
+        if (on && !pinned) pill.click();
+        else if (!on) unpin();
+    });
 
     if (markerMode) {
         const expand = (on: boolean) => {
@@ -1597,6 +1609,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
     const wrapper = document.createElement("div");
     wrapper.className = INDICATOR_PILL_CLASS;
     wrapper.setAttribute("data-flora-doi", doi);
+    if (isAugmented) wrapper.setAttribute("data-flora-augmented", "");
     wrapper.setAttribute("data-flora-ui", "");
     wrapper.setAttribute("data-flora-panel", "");
     wrapper.style.cssText = `

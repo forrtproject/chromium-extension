@@ -930,6 +930,7 @@ export function renderSidePanel(
   // Tab trigger — always visible on right edge
   const tab = document.createElement("button");
   tab.setAttribute("aria-label", "Open the FORRT ORE panel");
+  tab.setAttribute("data-flora-panel-tab", "");
   // all:unset resets animation, so animation is declared explicitly after it.
   // 'right' is animated by flora-tab-enter; openPanel/closePanel clear the animation
   // before touching 'right' so the JS value isn't suppressed by the fill mode.

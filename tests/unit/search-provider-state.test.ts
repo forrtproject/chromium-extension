@@ -30,6 +30,8 @@ beforeEach(() => {
     vi.doMock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null)}));
     vi.doMock("../../src/shared/doi-retraction", () => ({retractionCheck: retraction}));
     vi.doMock("../../src/shared/indicator-pill", () => ({
+        INDICATOR_PILL_CLASS: "flora-indicator-pill",
+        pinIndicatorPopover: () => {},
         updateIndicatorPillBadges: badges,
         createIndicatorPanel: () => {const panel = document.createElement("div"); panel.setAttribute("data-flora-panel", ""); return panel;},
     }));

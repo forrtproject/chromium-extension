@@ -20,6 +20,7 @@ const snoozeBtn = document.getElementById("snooze-btn")!;
 const snoozeOptions = document.getElementById("snooze-options")!;
 const hideBtn = document.getElementById("hide-btn")!;
 const hideLabel = document.getElementById("hide-btn-label")!;
+const pageTourBtn = document.getElementById("page-tour-btn")!;
 const tourBtn = document.getElementById("tour-btn")!;
 const optionsBtn = document.getElementById("options-btn")!;
 const reportBtn = document.getElementById("report-btn")!;
@@ -322,6 +323,20 @@ reportBtn.addEventListener("click", async () => {
     return;
   }
   window.close();
+});
+
+pageTourBtn.addEventListener("click", async () => {
+  if (activeTabId == null) return;
+  try {
+    const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_START_PAGE_TOUR" }) as { started?: boolean } | undefined;
+    if (response?.started) {
+      window.close();
+      return;
+    }
+  } catch (err) {
+    debugWarn("Popup: page tour message failed —", err);
+  }
+  showStatus("Nothing from ORE on this page to show yet", "error");
 });
 
 // Open walkthrough

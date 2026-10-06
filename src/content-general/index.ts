@@ -3,6 +3,7 @@ import {isWordOnline} from "@shared/word-online";
 import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
 import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
 import {reportNothingFound, waitForWorkToFinish} from "@shared/progress-toast";
+import {closePageTour, offerFirstPageTour, startPageTour} from "@shared/page-tour";
 import {withdrawNothingFound} from "@shared/progress-tab";
 import {
     beginDomScanPass,
@@ -155,6 +156,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     if (type === "FLORA_HIDE_UI") {
         floraHidden = true;
         pausedBySettings = false;
+        closePageTour();
         hideAllFloraUI();
         reportInactive();
         sendResponse({ok: true});
@@ -169,8 +171,16 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         sendResponse({ok: true});
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({hidden: floraHidden});
+    } else if (type === "FLORA_START_PAGE_TOUR") {
+        const started = pageTourAllowed() && startPageTour("article");
+        // Every frame hears this; only an answer that started a tour, or the page's own, should reach the popup.
+        if (started || window === window.top) sendResponse({started});
     }
 });
+
+function pageTourAllowed(): boolean {
+    return !floraHidden && !isSheets && !isDocumentEditor();
+}
 
 // The pause control on the work toast writes the snooze (or block) to storage
 // itself, then announces it here so this page clears immediately instead of
@@ -178,6 +188,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 document.addEventListener("flora-pause-site", () => {
     if (!floraHidden) pausedBySettings = true;
     floraHidden = true;
+    closePageTour();
     hideAllFloraUI();
     reportInactive();
 });
@@ -315,6 +326,7 @@ const runScanPasses = serializeWithRerun(async () => {
 async function scanWholePage(): Promise<void> {
     if (floraHidden || !canStartAutomaticWork()) return;
     await runScanPasses();
+    if (pageTourAllowed()) void offerFirstPageTour("article", pageTourAllowed);
 }
 
 let nothingToFlagReportedFor: string | null = null;

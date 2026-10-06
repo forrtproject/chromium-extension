@@ -159,6 +159,7 @@ export const REPLICATION_DATA: Record<string, unknown> = {
 
 // ── Retraction map (src/shared/data-extract.ts RetractionMaps) ──────────────
 export const RET_MAP_KEY = "RetractionLookupLocal";
+const TOUR_SEEN_KEY = "flora_page_tour_seen";
 
 export const RETRACTION_MAP = {
   retractions: {
@@ -201,6 +202,9 @@ export function buildLocalSeed(): Record<string, unknown> {
   // Retraction map + a fresh synctime so the weekly sync never fires.
   seed[RET_MAP_KEY] = RETRACTION_MAP;
   seed["synctime"] = now();
+
+  // The first-run page tour would otherwise dim every fixture.
+  seed[TOUR_SEEN_KEY] = { article: true, search: true };
 
   // doi.org validation BlobCache — every fixture DOI is valid.
   const doival: Record<string, { v: { valid: boolean }; t: number }> = {};
