@@ -93,14 +93,74 @@ export async function encodeReport(payload: ReportPayload): Promise<string> {
     return toBase64Url(deflated);
 }
 
+type Untrusted = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is Untrusted => typeof value === "object" && value !== null;
+const text = (value: unknown): string | undefined => typeof value === "string" ? value : undefined;
+const count = (value: unknown): number | undefined =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : undefined;
+const noticeKind = (value: unknown): NoticeKind | undefined =>
+    value === "retraction" || value === "concern" ? value : undefined;
+const records = (value: unknown): Untrusted[] => Array.isArray(value) ? value.filter(isRecord) : [];
+
+function readEntry(raw: Untrusted): ReportEntry {
+    return {
+        title: text(raw.title) ?? "",
+        doi: text(raw.doi),
+        url: text(raw.url),
+        authors: text(raw.authors),
+        year: count(raw.year),
+        journal: text(raw.journal),
+        outcome: text(raw.outcome),
+    };
+}
+
+function readReference(raw: Untrusted): ReportReference | null {
+    const doi = text(raw.doi);
+    if (!doi) return null;
+    return {
+        title: text(raw.title) ?? doi,
+        doi,
+        replications: count(raw.replications),
+        reproductions: count(raw.reproductions),
+        inAtlas: raw.inAtlas === true ? true : undefined,
+        notice: noticeKind(raw.notice),
+        comments: count(raw.comments),
+    };
+}
+
+function readPayload(raw: unknown): ReportPayload | null {
+    if (!isRecord(raw) || raw.v !== 1) return null;
+    const title = text(raw.title);
+    if (title === undefined) return null;
+    const notice = isRecord(raw.notice) ? raw.notice : null;
+    const noticeDoi = notice ? text(notice.doi) : undefined;
+    const kind = notice ? noticeKind(notice.kind) : undefined;
+    const pubpeer = isRecord(raw.pubpeer) ? raw.pubpeer : null;
+    return {
+        v: 1,
+        title,
+        doi: text(raw.doi),
+        authors: text(raw.authors),
+        year: count(raw.year),
+        sourceUrl: text(raw.sourceUrl),
+        generated: count(raw.generated) ?? 0,
+        notice: noticeDoi && kind ? {kind, doi: noticeDoi} : null,
+        replications: records(raw.replications).map(readEntry),
+        reproductions: records(raw.reproductions).map(readEntry),
+        originals: records(raw.originals).map(readEntry),
+        references: records(raw.references).map(readReference).filter((r): r is ReportReference => r !== null),
+        pubpeer: pubpeer ? {comments: count(pubpeer.comments) ?? 0, url: text(pubpeer.url) ?? ""} : null,
+    };
+}
+
 export async function decodeReport(encoded: string): Promise<ReportPayload | null> {
     try {
         const inflated = await pipeThrough(
             fromBase64Url(encoded),
             new DecompressionStream("deflate-raw")
         );
-        const payload = JSON.parse(new TextDecoder().decode(inflated)) as ReportPayload;
-        return payload.v === 1 && typeof payload.title === "string" ? payload : null;
+        return readPayload(JSON.parse(new TextDecoder().decode(inflated)));
     } catch {
         return null;
     }
@@ -120,6 +180,16 @@ function esc(value: string): string {
     ));
 }
 
+function webUrl(value: string | null | undefined): string | null {
+    if (!value) return null;
+    try {
+        const {protocol} = new URL(value);
+        return protocol === "https:" || protocol === "http:" ? value : null;
+    } catch {
+        return null;
+    }
+}
+
 function outcomeTone(outcome: string): string {
     const lower = outcome.toLowerCase();
     if (lower.includes("success") || lower.includes("replicated") || lower === "yes") {
@@ -130,7 +200,7 @@ function outcomeTone(outcome: string): string {
 }
 
 function entryHtml(entry: ReportEntry): string {
-    const href = entry.url ?? (entry.doi ? `https://doi.org/${entry.doi}` : null);
+    const href = webUrl(entry.url) ?? (entry.doi ? `https://doi.org/${entry.doi}` : null);
     const heading = href
         ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(plainTitle(entry.title))}</a>`
         : esc(plainTitle(entry.title));
@@ -264,8 +334,9 @@ export function renderReportBody(payload: ReportPayload): string {
             : null,
     ].filter((stat): stat is {n: number; label: string} => stat !== null);
 
-    const heading = payload.sourceUrl
-        ? `<a href="${esc(payload.sourceUrl)}" target="_blank" rel="noopener">${esc(plainTitle(payload.title))}</a>`
+    const sourceUrl = webUrl(payload.sourceUrl);
+    const heading = sourceUrl
+        ? `<a href="${esc(sourceUrl)}" target="_blank" rel="noopener">${esc(plainTitle(payload.title))}</a>`
         : esc(plainTitle(payload.title));
     const byline = [payload.authors, payload.year ? String(payload.year) : null]
         .filter((part): part is string => !!part).join(" · ");

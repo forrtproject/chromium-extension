@@ -72,6 +72,45 @@ describe("report link encoding", () => {
     });
 });
 
+describe("a crafted report link", () => {
+    async function decodeRaw(raw: unknown): Promise<ReportPayload | null> {
+        return decodeReport(await encodeReport(raw as ReportPayload));
+    }
+
+    it("cannot inject markup through a count field", async () => {
+        const decoded = await decodeRaw(payload({
+            references: [{title: "Ref", doi: "10.1/x", replications: "<img src=x onerror=alert(1)>" as unknown as number}],
+            pubpeer: {comments: "<script>alert(1)</script>" as unknown as number, url: "https://pubpeer.com/x"},
+        }));
+        const html = renderReportBody(decoded!);
+        expect(html).not.toContain("<img");
+        expect(html).not.toContain("<script");
+    });
+
+    it("cannot turn a title or entry link into script", async () => {
+        const decoded = await decodeRaw(payload({
+            sourceUrl: "javascript:alert(document.domain)",
+            replications: [{title: "Rep", url: "JavaScript:alert(1)", doi: "10.1/rep"}],
+        }));
+        const html = renderReportBody(decoded!);
+        expect(html.toLowerCase()).not.toContain("javascript:");
+        expect(html).toContain('href="https://doi.org/10.1/rep"');
+    });
+
+    it("drops entries and references that are not objects", async () => {
+        const decoded = await decodeRaw(payload({
+            replications: ["<b>x</b>", null] as unknown as ReportPayload["replications"],
+            references: [{title: "No DOI"} as ReportPayload["references"][number]],
+        }));
+        expect(decoded!.replications).toEqual([]);
+        expect(decoded!.references).toEqual([]);
+    });
+
+    it("rejects a payload without a text title", async () => {
+        expect(await decodeRaw({...payload(), title: 7})).toBeNull();
+    });
+});
+
 describe("report rendering", () => {
     it("leads with the paper and its evidence", () => {
         const html = renderReportBody(payload());
