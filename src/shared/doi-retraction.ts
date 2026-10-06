@@ -173,18 +173,8 @@ export async function retractionCheck(dois: DoiString[]): Promise<RetractionResp
         .filter((notice): notice is RetractionResponse => notice !== undefined);
 }
 
-// How FLoRA surfaces a notice — the rule every surface follows:
-//
-//   Each DOI carrying a retraction or an expression of concern gets exactly
-//   ONE labelled pill per page, at its most prominent occurrence, and the
-//   same treatment whichever kind of notice it is. The `!` segment inside an
-//   indicator pill is a compact duplicate of that signal, never a substitute
-//   for the labelled pill.
-//
-// "Most prominent" means the article's own title outranks any mention of the
-// same DOI in the body, so the title claims its notice first (see
-// placeTitleNoticePill in content-general/index.ts) and the set below then
-// skips every later mention.
+// A DOI with an indicator pill shows its notice as that pill's segment; the
+// stand-alone pill is for DOIs with no indicator pill, one per DOI per page.
 const pilledRetractionDois = new Set<string>();
 
 /** Clear per-DOI retraction-pill tracking — call on SPA navigation. */
@@ -202,10 +192,8 @@ export interface DoiOccurrenceAnchor {
 }
 
 /**
- * Pill each occurrence whose DOI carries a notice. One labelled pill per
- * noticed DOI page-wide (the guard in injectRetractionInfo), so callers that
- * want a more prominent spot — the article title — claim it before calling
- * this.
+ * Pill each occurrence whose DOI carries a notice and has no indicator pill.
+ * One labelled pill per noticed DOI page-wide (the guard in injectRetractionInfo).
  */
 export function injectInlineRetractionPills(
     occurrences: readonly DoiOccurrenceAnchor[],
@@ -246,6 +234,7 @@ export function injectRetractionInfo(
     // one notice and no more: two noticed DOIs cited in the same paragraph
     // would otherwise stack their pills there, and the second is better
     // served by its own reference entry, which a later pass reaches.
+    if (hasIndicatorPill(info.originDoi)) return;
     const hosted = target.getAttribute(FLORA_RET_CHECK_KEY);
     if (hosted !== null && hosted !== info.originDoi) return;
     // Shown once per DOI — the first occurrence wins, later mentions of the
@@ -298,6 +287,13 @@ export function injectRetractionInfo(
 /** The retracted/concerned DOI a notice pill speaks for. */
 const NOTICE_DOI_ATTR = "data-flora-notice-doi";
 
+function hasIndicatorPill(doi: DoiString): boolean {
+    for (const pill of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
+        if (pill.getAttribute("data-flora-doi") === doi) return true;
+    }
+    return false;
+}
+
 /** Whether this DOI's notice pill is currently in the document. */
 function hasNoticePill(doi: DoiString): boolean {
     for (const pill of document.querySelectorAll<HTMLElement>(`.${FLORA_NOTICE_PILL_CLASS}`)) {
@@ -311,21 +307,6 @@ export function removeNoticePillsFor(doi: DoiString): void {
         if (pill.getAttribute(NOTICE_DOI_ATTR) === doi) pill.remove();
     }
     pilledRetractionDois.delete(doi);
-}
-
-/**
- * Move an already-placed notice pill to sit right after this DOI's indicator
- * pill. The retraction check completes before reference resolution does, so
- * the notice is placed while the entry still has no indicator pill and lands
- * on the publisher's action-link row ("View PDF | Google Scholar") a line
- * below. Once the indicator pill exists the two belong side by side.
- */
-export function alignNoticePillWith(indicator: HTMLElement, doi: DoiString, scope: Element): void {
-    for (const notice of scope.querySelectorAll<HTMLElement>(`.${FLORA_NOTICE_PILL_CLASS}`)) {
-        if (notice.getAttribute(NOTICE_DOI_ATTR) !== doi) continue;
-        indicator.insertAdjacentElement("afterend", notice);
-        return;
-    }
 }
 
 // Table rows and section wrappers hold no inline content: a <span> appended to
@@ -346,11 +327,8 @@ function cellFor(target: Element, doi: DoiString): Element {
  * - Anchor target: insert right after it. The wrapper carries its own
  *   <a href="…retraction notice">, so nesting it inside another <a> would
  *   create invalid nested anchors that browsers split.
- * - Block target (a reference entry): insert right after this DOI's own
- *   indicator pill when one is already there, so the two read as one unit
- *   instead of the notice dropping onto the publisher action-link row below.
- *   Otherwise insert after the link that carries this DOI, then the entry's
- *   last link, then append at the entry end.
+ * - Block target (a reference entry): insert after the link that carries this
+ *   DOI, then the entry's last link, then append at the entry end.
  */
 function placeRetractionPill(target: Element, doi: DoiString, pill: HTMLElement): void {
     if (target.tagName === "A" && target.parentElement) {
@@ -358,11 +336,6 @@ function placeRetractionPill(target: Element, doi: DoiString, pill: HTMLElement)
         return;
     }
     target = cellFor(target, doi);
-    for (const indicator of target.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-        if (indicator.getAttribute("data-flora-doi") !== doi) continue;
-        indicator.insertAdjacentElement("afterend", pill);
-        return;
-    }
     // Only consider visible links. The DOI-pill widget (Scholar rows, etc.)
     // hides its hover popover with display:none, but its <a href=doi.org/...>
     // would otherwise win the match and the notice pill would land inside

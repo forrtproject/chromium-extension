@@ -208,15 +208,14 @@ describe("generic reference placement puts the pill on its own row", () => {
     expect(entry.querySelectorAll(".flora-pill-row")).toHaveLength(1);
   });
 
-  it("keeps a notice pill in the same row as its indicator", () => {
+  it("shows a reference's notice on its indicator pill, with no stand-alone notice pill", () => {
     setHostname("example.com");
-    document.body.innerHTML =
-      `<ol><li id="e">${LONG}<span class="flora-notice-pill" data-flora-notice-doi="${GENERIC_DOI}"></span></li></ol>`;
+    document.body.innerHTML = `<ol><li id="e">${LONG}</li></ol>`;
     const entry = document.querySelector<HTMLElement>("#e")!;
     renderResolvedReferences(
       [{ entry: { element: entry, doi: GENERIC_DOI, pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" }],
-      new Map(), new Map());
-    const row = rowOf(entry);
-    expect(row.querySelector(".flora-notice-pill")).not.toBeNull();
+      new Map([[GENERIC_DOI, { originDoi: GENERIC_DOI, doi: "10.9/n" as DoiString, kind: "retraction" }]]), new Map());
+    expect(rowOf(entry).querySelector("[data-flora-notice-segment]")).not.toBeNull();
+    expect(entry.querySelector(".flora-notice-pill")).toBeNull();
   });
 });

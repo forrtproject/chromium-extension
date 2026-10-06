@@ -12,7 +12,7 @@ import {isInRelatedWorks} from "@shared/related-works";
 import {isDocumentEditor, editorAnnotationTarget} from "@shared/document-editor";
 import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
 import {validateDOIs} from "@shared/doi-validate";
-import {alignNoticePillWith, type RetractionResponse} from "@shared/doi-retraction";
+import type {RetractionResponse} from "@shared/doi-retraction";
 import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {FLORA_UI_SELECTOR, REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {PILL_ROW_CLASS, pillRow} from "@shared/pill-row";
@@ -290,7 +290,6 @@ export function renderResolvedReferences(
         });
         placeReferencePill(entry.element, doi, pill, adapter);
         applyPillStyle(pill, adapter, "reference");
-        alignNoticePillWith(pill, doi, entry.element);
         debugLog(`References: surfaced "${entry.text.slice(0, 60)}" → ${doi} (${mode})`);
     }
     debugLog(`References: rendered ${resolved.length} inline indicator pill(s)`);

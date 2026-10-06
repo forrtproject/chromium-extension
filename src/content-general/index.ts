@@ -49,7 +49,7 @@ import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/dom
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
-import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
+import {injectInlineRetractionPills, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 import {findArticleTitle, placeTitlePill} from "@shared/article-title";
@@ -410,13 +410,8 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                                 state.status === "matched" ? [{doi, result: state.result}] : []);
                             if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks);
                         } else {
-                            placeTitleNoticePill();
-                            for (const pill of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-                                const notice = recovered.find(n => n.originDoi === pill.getAttribute("data-flora-doi"));
-                                if (notice) injectRetractionInfo(pill, notice, {afterend: true});
-                            }
-                            injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             repaintBadges();
+                            injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             lastRenderedPageStateVersion = -1;
                             await checkPubPeer(null);
                         }
@@ -587,13 +582,9 @@ async function runScanPass(): Promise<void> {
         }
         pageNotices = notices;
         refreshRedacts();
-        // A noticed DOI gets one labelled pill, at its most prominent
-        // occurrence. The title outranks any mention in the body, so the
-        // title claims its notice before the occurrence pass runs — the
-        // per-DOI guard in injectRetractionInfo then skips the body mentions.
         if (!isSheets) {
             placeTitleIndicatorPill();
-            placeTitleNoticePill();
+            repaintBadges();
         }
         injectInlineRetractionPills(
             pageOccurrences,
@@ -630,7 +621,6 @@ async function runScanPass(): Promise<void> {
         // Sage) re-render and wipe previously placed pills, and this pass
         // (triggered by that mutation) would otherwise return without restoring them.
         if (!isSheets) placeTitleIndicatorPill();
-        if (!isSheets) placeTitleNoticePill();
         if (!isSheets) injectLooseDoiPills({
             occurrences: pageOccurrences,
             primary: extractPrimaryDOI(document),
@@ -865,22 +855,6 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
             refsPending--;
             endWorkIndicator();
         });
-}
-
-/**
- * Give the article's own retraction or expression of concern its labelled
- * pill, beside the title pill. Separate from placeTitleIndicatorPill because
- * the title pill is often placed before the retraction check has answered.
- * Idempotent: injectRetractionInfo shows one pill per DOI per page.
- */
-function placeTitleNoticePill(): void {
-    const titlePill = document.querySelector<HTMLElement>(
-        `.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`
-    );
-    const doi = titlePill?.getAttribute("data-flora-doi");
-    if (!titlePill || !doi) return;
-    const notice = redacts.find((r) => r.originDoi === doi);
-    if (notice) injectRetractionInfo(titlePill, notice, titlePill.style.display === "block" ? {append: true} : {afterend: true});
 }
 
 /**

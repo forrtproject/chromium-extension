@@ -216,11 +216,12 @@ describe("createIndicatorPanel", () => {
     const notice = { originDoi: DOI, doi: "10.9/n" as DoiString, kind: "retraction" } as never;
 
     updateIndicatorPillBadges(document, new Map(), () => [notice], "panels", undefined, SAME_PAGE);
-    expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
+    expect(panel.querySelector("[data-flora-notice-row]")!.textContent?.toLowerCase())
       .toContain("retract");
 
     updateIndicatorPillBadges(document, matchedState(3), () => [notice], "panels", undefined, SAME_PAGE);
-    expect(panel.querySelector("[data-flora-badge-row]")!.textContent?.toLowerCase())
+    expect(panel.querySelector("[data-flora-notice-row]")!.textContent?.toLowerCase())
       .toContain("retract");
+    expect(panel.querySelector("[data-flora-badge-row]")!.textContent).toContain("Replications");
   });
 });
