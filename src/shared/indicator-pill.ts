@@ -291,10 +291,13 @@ function refreshSegmentStrip(strip: HTMLElement): void {
 
         const start = i === 0 ? "9999px" : present && prev === false ? "4px" : "0";
         const end = i === segments.length - 1 ? "9999px" : present && next === false ? "4px" : "0";
-        seg.style.setProperty("border-radius", `${start} ${end} ${end} ${start}`);
+        seg.style.setProperty("border-start-start-radius", start);
+        seg.style.setProperty("border-end-start-radius", start);
+        seg.style.setProperty("border-start-end-radius", end);
+        seg.style.setProperty("border-end-end-radius", end);
 
         const gap = prev === null ? "0" : prev !== present ? "3px" : present ? "0" : "2px";
-        seg.style.setProperty("margin-left", gap, "important");
+        seg.style.setProperty("margin-inline-start", gap, "important");
 
         if (present && prev) strip.insertBefore(makeDivider(), seg);
     });
@@ -326,7 +329,7 @@ function applyMarkerScale(strip: HTMLElement): void {
         segment.style.setProperty("text-decoration", struck ? "line-through" : "none", "important");
         segment.style.setProperty("text-decoration-color", `${accent}${ABSENT_ALPHA}`, "important");
         segment.querySelector<HTMLElement>(`[${SEGMENT_COUNT_ATTR}]`)
-            ?.style.setProperty("margin-left", show ? "0px" : "5px", "important");
+            ?.style.setProperty("margin-inline-start", show ? "0px" : "5px", "important");
         if (!label) continue;
         label.style.setProperty("display", "inline-block");
         label.style.setProperty("overflow", "hidden");
