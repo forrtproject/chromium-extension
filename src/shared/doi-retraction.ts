@@ -264,7 +264,7 @@ export function injectRetractionInfo(
     // text runs out of the pill. The wrapper still mirrors, so the pill as a
     // whole sits on the correct side of the citation.
     tmp.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="cursor:pointer;vertical-align:middle;display:inline-block;direction:ltr;">
-      <a href="https://doi.org/${info.doi}" target="_blank" rel="noopener" style="text-decoration:none;">
+      <a target="_blank" rel="noopener" style="text-decoration:none;">
         <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="${(H - 1) / 2}" fill="${presentation.pillBackground}" stroke="${presentation.pillStroke}" stroke-width="1"/>
         <text x="12" y="15" fill="${presentation.pillText}" font-size="12" font-weight="600" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" letter-spacing="0.02em">${presentation.label}</text>
         <svg x="${W - 8 - iconSize}" y="${(H - iconSize) / 2}" width="${iconSize}" height="${iconSize}" viewBox="${presentation.pillIconViewBox}" fill="${presentation.pillIconColor}">
@@ -273,6 +273,7 @@ export function injectRetractionInfo(
       </a>
     </svg>`;
     const pill = tmp.firstElementChild as SVGElement;
+    pill.querySelector("a")!.setAttribute("href", `https://doi.org/${info.doi}`);
 
     wrapper.appendChild(pill);
     if (options.append) {
