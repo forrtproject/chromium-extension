@@ -1,4 +1,4 @@
-import {activeWorkSignal} from "@shared/work-cancellation";
+import {activeWorkSignal, workSignal} from "@shared/work-cancellation";
 // Open Access status for a DOI via Unpaywall, cached in chrome.storage.local.
 // Used to surface a lock/unlock icon next to the DOIs we inject on the page.
 
@@ -109,6 +109,13 @@ export async function fetchOpenAccess(doi: string, signal: AbortSignal | null = 
     });
     pending.set(key, {signal, request});
     return request;
+}
+
+/** A lookup to start later, still cancelled by the page's navigation or Cancel. */
+export function deferredOpenAccess(doi: string): () => Promise<OpenAccessStatus | null> {
+    const page = workSignal();
+    const signal = page.aborted ? null : page;
+    return () => fetchOpenAccess(doi, signal);
 }
 
 async function unpaywallReason(resp: Response): Promise<string | null> {

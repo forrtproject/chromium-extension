@@ -16,12 +16,12 @@ describe("BlobCache expiry sweeping", () => {
             async (items: Record<string, unknown>) => Object.assign(store, items)
         );
         (chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
-            async (k: string) => { delete store[k]; }
+            async (keys: string | string[]) => { for (const k of [keys].flat()) delete store[k]; }
         );
     });
 
     function storedKeys(): string[] {
-        return Object.keys((store[KEY] ?? {}) as object).filter((key) => key !== "__writeId");
+        return Object.keys((store[KEY] ?? {}) as object);
     }
 
     it("drops expired entries on load even though nobody queries them", async () => {

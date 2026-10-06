@@ -173,13 +173,13 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         sendResponse({hidden: floraHidden});
     } else if (type === "FLORA_START_PAGE_TOUR") {
         const started = pageTourAllowed() && startPageTour("article");
-        // Every frame hears this; only an answer that started a tour, or the page's own, should reach the popup.
-        if (started || window === window.top) sendResponse({started});
+        // Every frame, and content-search on its own pages, hears this; only the page's owner should answer.
+        if (started || (window === window.top && !searchScriptOwns())) sendResponse({started});
     }
 });
 
 function pageTourAllowed(): boolean {
-    return !floraHidden && !isSheets && !isDocumentEditor();
+    return !floraHidden && !isSheets && !isDocumentEditor() && !searchScriptOwns();
 }
 
 // The pause control on the work toast writes the snooze (or block) to storage
@@ -205,6 +205,7 @@ function followDomainPause(): void {
             if (!floraHidden) pausedBySettings = true;
             floraHidden = true;
             cancelWork();
+            closePageTour();
             hideAllFloraUI();
             if (blocked) reportBlocked();
             else reportActiveState(false, snoozedUntil);

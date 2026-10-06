@@ -17,7 +17,7 @@ import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill"
 import {FLORA_UI_SELECTOR, REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {PILL_ROW_CLASS, pillRow} from "@shared/pill-row";
 import {LOOSE_PILL_ATTR} from "./loose-dois";
-import {fetchOpenAccess} from "@shared/openaccess";
+import {deferredOpenAccess} from "@shared/openaccess";
 import {count, reportWorkStage} from "@shared/progress-toast";
 import {debugLog, debugWarn} from "@shared/debug";
 import type {DoiString, LookupState} from "@shared/types";
@@ -186,7 +186,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
 
     for (const p of queued) p.entry.element.setAttribute(REFERENCE_ENTRY_ATTR, "true");
 
-    const onPageCount = queued.length - augmentTargets.length - pmcTargets.length;
+    const onPageCount = queued.reduce((sum, p) => sum + (p.mode === "page" ? p.dois.length : 0), 0);
     debugLog(
         `References: surfacing ${onPageCount} on-page DOI(s), resolving ${pmcTargets.length} PMC id(s),`
         + ` augmenting ${augmentTargets.length}`
@@ -285,7 +285,7 @@ export function renderResolvedReferences(
             color: PILL_COLOR,
             isAugmented,
             provenanceLabel: mode === "pmc" ? "Matched by PMC ID" : undefined,
-            oaStatus: () => fetchOpenAccess(doi),
+            oaStatus: deferredOpenAccess(doi),
             retraction: retractionByDoi.get(doi) ?? null,
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,

@@ -30,7 +30,7 @@ const HANDLE_PATTERN = "https://doi.org/api/handles/*";
 function cachedDois(): string[] {
   const calls = (chrome.storage.local.set as ReturnType<typeof vi.fn>).mock.calls;
   return calls.flatMap(([arg]) =>
-    Object.keys((arg as Record<string, object>)?.flora_doival_blob ?? {}).filter((key) => key !== "__writeId"),
+    Object.keys((arg as Record<string, object>)?.flora_doival_blob ?? {}),
   );
 }
 

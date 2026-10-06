@@ -14,6 +14,7 @@ import {cancelWork, resumeAutomaticWork} from "@shared/work-cancellation";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 import {closePageTour, startPageTour} from "@shared/page-tour";
+import {searchScriptOwns} from "@shared/search-sites";
 
 const SITE_STYLE_ID = "flora-search-site-style";
 
@@ -101,6 +102,7 @@ function followDomainPause(adapter: SearchAdapter): void {
             if (!isSearchHidden()) pausedBySettings = true;
             setSearchHidden(true);
             cancelWork();
+            closePageTour();
             hideAllFloraUI();
             if (blocked) reportBlocked();
             else reportActiveState(false, snoozedUntil);
@@ -142,7 +144,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({ hidden: isSearchHidden() });
     } else if (type === "FLORA_START_PAGE_TOUR") {
-        sendResponse({ started: !isSearchHidden() && startPageTour("search") });
+        if (searchScriptOwns()) sendResponse({ started: !isSearchHidden() && startPageTour("search") });
     }
 });
 

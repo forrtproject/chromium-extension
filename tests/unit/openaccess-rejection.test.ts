@@ -62,3 +62,22 @@ describe("Unpaywall location links", () => {
         expect(status!.url).toBe("https://repo.example.org/landing");
     });
 });
+
+describe("a deferred Open Access lookup", () => {
+    it("is still cancelled by a navigation after its pass has ended", async () => {
+        vi.stubGlobal("fetch", vi.fn((_url: string, init?: RequestInit) => new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+        })));
+        const {beginCancellableWork, endCancellableWork, abortWorkForNavigation, isAbortError} = await import("../../src/shared/work-cancellation");
+        const {deferredOpenAccess} = await import("../../src/shared/openaccess");
+        beginCancellableWork();
+        const lookup = deferredOpenAccess("10.1234/deferred.navigation");
+        endCancellableWork();
+
+        const result = lookup();
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+        abortWorkForNavigation();
+
+        await expect(result).rejects.toSatisfy(isAbortError);
+    });
+});

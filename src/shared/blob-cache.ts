@@ -19,11 +19,12 @@ interface PendingFlush {
 
 const DEFAULT_MAX_ENTRIES = 5000;
 const FLUSH_DELAY_MS = 10;
-const WRITE_ID_KEY = "__writeId";
+const LEGACY_WRITE_ID_KEY = "__writeId";
 
-function withoutWriteId<T>(stored: Record<string, unknown>): CacheBlob<T> {
+// Blobs written by earlier builds carry their write id inline, as a string.
+function entriesOf<T>(stored: Record<string, unknown>): CacheBlob<T> {
     const blob = {...stored};
-    delete blob[WRITE_ID_KEY];
+    if (typeof blob[LEGACY_WRITE_ID_KEY] === "string") delete blob[LEGACY_WRITE_ID_KEY];
     return blob as CacheBlob<T>;
 }
 
@@ -42,13 +43,20 @@ export class BlobCache<T> {
     // before the change doesn't install what it found afterwards.
     private generation = 0;
     private listenerInstalled = false;
+    private listening = false;
+    private readonly writeIdKey: string;
     private readonly writeIdPrefix = `${Date.now().toString(36)}.${Math.random().toString(36).slice(2)}:`;
     private writeSeq = 0;
     private unacknowledgedWrites = new Map<number, Set<string>>();
     private unflushedKeys = new Set<string>();
     private pendingFlush: PendingFlush | null = null;
+    private runningFlushes = new Set<Promise<void>>();
+    private clearing: Promise<void> | null = null;
+    private clears = 0;
 
-    constructor(private readonly opts: BlobCacheOptions) {}
+    constructor(private readonly opts: BlobCacheOptions) {
+        this.writeIdKey = `${opts.storageKey}:writeId`;
+    }
 
     /**
      * Without this, clearing the cache does nothing while a context is alive:
@@ -59,15 +67,17 @@ export class BlobCache<T> {
         if (this.listenerInstalled) return;
         this.listenerInstalled = true;
         try {
-            chrome.storage.onChanged?.addListener((changes, area) => {
-                if (area !== "local" || !(this.opts.storageKey in changes)) return;
+            const onChanged = chrome.storage.onChanged;
+            if (!onChanged) return;
+            onChanged.addListener((changes, area) => {
+                if (area !== "local") return;
+                // Chrome omits unchanged keys, so rewriting an identical blob echoes only through the id key.
+                const ownEcho = this.writeIdKey in changes && this.acknowledge(changes[this.writeIdKey].newValue);
+                if (ownEcho || !(this.opts.storageKey in changes)) return;
                 const next = changes[this.opts.storageKey].newValue as Record<string, unknown> | undefined;
-                if (!next || typeof next !== "object") {
-                    this.rebase(null);
-                } else if (!this.acknowledge(next[WRITE_ID_KEY])) {
-                    this.rebase(withoutWriteId<T>(next));
-                }
+                this.rebase(next && typeof next === "object" ? entriesOf<T>(next) : null);
             });
+            this.listening = true;
         } catch {
             // Storage change events are unavailable in tests and some contexts.
         }
@@ -88,19 +98,17 @@ export class BlobCache<T> {
         this.loading = null;
         const previous = this.mem;
         const next: CacheBlob<T> = base ?? {};
-        let droppedLocalEntries = false;
         if (previous) {
             const unsettled = this.unsettledKeys();
             for (const key of Object.keys(previous)) {
                 if (unsettled.has(key)) next[key] = previous[key];
-                else if (!(key in next)) droppedLocalEntries = true;
             }
         }
         this.mem = next;
         if (!base) {
             debugLog(`Cache ${this.opts.storageKey}: cleared elsewhere, dropping in-memory copy`);
         }
-        if (droppedLocalEntries && this.unacknowledgedWrites.size > 0) {
+        if (this.unacknowledgedWrites.size > 0) {
             void this.scheduleFlush();
         }
     }
@@ -129,7 +137,7 @@ export class BlobCache<T> {
         try {
             const raw = await chrome.storage.local.get(this.opts.storageKey);
             const stored = raw[this.opts.storageKey] as Record<string, unknown> | undefined;
-            blob = stored && typeof stored === "object" ? withoutWriteId<T>(stored) : {};
+            blob = stored && typeof stored === "object" ? entriesOf<T>(stored) : {};
         } catch (err) {
             debugWarn(`Cache ${this.opts.storageKey}: load failed, starting empty —`, err);
         }
@@ -237,7 +245,9 @@ export class BlobCache<T> {
             const done = new Promise<void>((resolve) => { release = resolve; });
             const timer = setTimeout(() => {
                 this.pendingFlush = null;
-                void this.flush().then(release, release);
+                const running = this.clearing ? this.clearing.then(() => this.flush()) : this.flush();
+                this.runningFlushes.add(running);
+                void running.finally(() => this.runningFlushes.delete(running)).then(release, release);
             }, FLUSH_DELAY_MS);
             this.pendingFlush = {done, release, timer};
         }
@@ -260,7 +270,8 @@ export class BlobCache<T> {
         }
         const keys = this.unflushedKeys;
         this.unflushedKeys = new Set();
-        if (await this.write(keys)) return;
+        const clears = this.clears;
+        if (await this.write(keys) || clears !== this.clears) return;
         // Likely storage quota: evict the oldest half of this blob and retry once.
         this.evictOldestHalf();
         if (!(await this.write(keys))) {
@@ -276,8 +287,10 @@ export class BlobCache<T> {
         this.unacknowledgedWrites.set(seq, keys);
         try {
             await chrome.storage.local.set({
-                [this.opts.storageKey]: {...this.mem, [WRITE_ID_KEY]: this.writeIdPrefix + seq},
+                [this.opts.storageKey]: {...this.mem},
+                [this.writeIdKey]: this.writeIdPrefix + seq,
             });
+            if (!this.listening) this.unacknowledgedWrites.delete(seq);
             return true;
         } catch {
             this.unacknowledgedWrites.delete(seq);
@@ -302,8 +315,18 @@ export class BlobCache<T> {
         this.unflushedKeys.clear();
         this.mem = {};
         this.generation++;
+        this.clears++;
+        const clearing = this.runningFlushes.size > 0
+            ? Promise.all(this.runningFlushes).then(() => this.removeStored())
+            : this.removeStored();
+        this.clearing = clearing;
+        await clearing;
+        if (this.clearing === clearing) this.clearing = null;
+    }
+
+    private async removeStored(): Promise<void> {
         try {
-            await chrome.storage.local.remove(this.opts.storageKey);
+            await chrome.storage.local.remove([this.opts.storageKey, this.writeIdKey]);
         } catch (err) {
             debugWarn(`Cache ${this.opts.storageKey}: clear failed —`, err);
         }
@@ -317,5 +340,6 @@ export class BlobCache<T> {
         this.loading = null;
         this.generation++;
         this.listenerInstalled = false;
+        this.listening = false;
     }
 }

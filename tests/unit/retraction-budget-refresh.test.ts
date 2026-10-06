@@ -46,7 +46,8 @@ afterEach(() => {vi.useRealTimers(); vi.unstubAllGlobals();});
 
 function mapReads(): number {
     return vi.mocked(chrome.storage.local.get).mock.calls.filter(([keys]) =>
-        keys === null || keys === RET_MAP_KEY || (Array.isArray(keys) && keys.includes(RET_MAP_KEY))).length;
+        keys === null || keys === RET_MAP_KEY ||
+        (Array.isArray(keys) ? keys.includes(RET_MAP_KEY) : typeof keys === "object" && keys !== undefined && RET_MAP_KEY in keys)).length;
 }
 
 async function checkRetraction(): Promise<unknown> {

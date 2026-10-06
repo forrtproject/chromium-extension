@@ -1,8 +1,8 @@
 export function webUrl(value: string | null | undefined): string | null {
     if (!value) return null;
     try {
-        const {protocol} = new URL(value);
-        return protocol === "https:" || protocol === "http:" ? value : null;
+        const url = new URL(value);
+        return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
     } catch {
         return null;
     }

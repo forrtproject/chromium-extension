@@ -103,6 +103,15 @@ const count = (value: unknown): number | undefined =>
 const noticeKind = (value: unknown): NoticeKind | undefined =>
     value === "retraction" || value === "concern" ? value : undefined;
 const records = (value: unknown): Untrusted[] => Array.isArray(value) ? value.filter(isRecord) : [];
+const MAX_DATE_MS = 8.64e15;
+const timestamp = (value: unknown): number | undefined => {
+    const ms = count(value);
+    return ms !== undefined && ms <= MAX_DATE_MS ? ms : undefined;
+};
+
+function doiUrl(doi: string): string {
+    return `https://doi.org/${doi.split("/").map(encodeURIComponent).join("/")}`;
+}
 
 function readEntry(raw: Untrusted): ReportEntry {
     return {
@@ -133,7 +142,8 @@ function readReference(raw: Untrusted): ReportReference | null {
 function readPayload(raw: unknown): ReportPayload | null {
     if (!isRecord(raw) || raw.v !== 1) return null;
     const title = text(raw.title);
-    if (title === undefined) return null;
+    const generated = timestamp(raw.generated);
+    if (title === undefined || generated === undefined) return null;
     const notice = isRecord(raw.notice) ? raw.notice : null;
     const noticeDoi = notice ? text(notice.doi) : undefined;
     const kind = notice ? noticeKind(notice.kind) : undefined;
@@ -145,7 +155,7 @@ function readPayload(raw: unknown): ReportPayload | null {
         authors: text(raw.authors),
         year: count(raw.year),
         sourceUrl: text(raw.sourceUrl),
-        generated: count(raw.generated) ?? 0,
+        generated,
         notice: noticeDoi && kind ? {kind, doi: noticeDoi} : null,
         replications: records(raw.replications).map(readEntry),
         reproductions: records(raw.reproductions).map(readEntry),
@@ -191,7 +201,7 @@ function outcomeTone(outcome: string): string {
 }
 
 function entryHtml(entry: ReportEntry): string {
-    const href = webUrl(entry.url) ?? (entry.doi ? `https://doi.org/${entry.doi}` : null);
+    const href = webUrl(entry.url) ?? (entry.doi ? doiUrl(entry.doi) : null);
     const heading = href
         ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(plainTitle(entry.title))}</a>`
         : esc(plainTitle(entry.title));
@@ -230,7 +240,7 @@ function referenceHtml(reference: ReportReference): string {
     }
     if (tags.length === 0) return "";
     return `<li>
-      <div class="entry-head"><a href="https://doi.org/${esc(reference.doi)}" target="_blank" rel="noopener">${esc(plainTitle(reference.title))}</a></div>
+      <div class="entry-head"><a href="${esc(doiUrl(reference.doi))}" target="_blank" rel="noopener">${esc(plainTitle(reference.title))}</a></div>
       <div class="tags">${tags.join("")}</div>
     </li>`;
 }
@@ -239,7 +249,7 @@ function noticeHtml(payload: ReportPayload): string {
     if (!payload.notice) return "";
     const isRetraction = payload.notice.kind === "retraction";
     return `<a class="notice ${isRetraction ? "notice-retracted" : "notice-concern"}"
-      href="https://doi.org/${esc(payload.notice.doi)}" target="_blank" rel="noopener">
+      href="${esc(doiUrl(payload.notice.doi))}" target="_blank" rel="noopener">
       <strong>${isRetraction ? "This article has been retracted." : "This article has an expression of concern."}</strong>
       <span>Read the notice ↗</span>
     </a>`;

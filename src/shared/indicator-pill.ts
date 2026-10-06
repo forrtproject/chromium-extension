@@ -1127,6 +1127,7 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     let pubpeerRow = buildPubPeer();
     let shownOa = lookups.oa;
     let shownPubPeer = lookups.pubpeer;
+    let shownRetryAfterMs = lookups.pubpeerRetryAfterMs;
     rows.appendChild(oaRow);
     rows.appendChild(pubpeerRow);
     lookups.subscribe(() => {
@@ -1136,8 +1137,9 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
             replaceIndicatorRow(oaRow, next);
             oaRow = next;
         }
-        if (lookups.pubpeer !== shownPubPeer || lookups.pubpeerRetryAfterMs !== null) {
+        if (lookups.pubpeer !== shownPubPeer || lookups.pubpeerRetryAfterMs !== shownRetryAfterMs) {
             shownPubPeer = lookups.pubpeer;
+            shownRetryAfterMs = lookups.pubpeerRetryAfterMs;
             const next = shieldFromPageCss(buildPubPeer());
             replaceIndicatorRow(pubpeerRow, next);
             pubpeerRow = next;
@@ -1191,8 +1193,24 @@ export function pinIndicatorPopover(wrapper: HTMLElement, pinned: boolean): void
     popoverPins.get(wrapper)?.(pinned);
 }
 
-const nearViewportCallbacks = new WeakMap<Element, () => void>();
+const nearViewportCallbacks = new Map<Element, () => void>();
 let nearViewportObserver: IntersectionObserver | null = null;
+let nextDetachedSweepAt = 64;
+let detachedSweepQueued = false;
+
+function stopWatching(el: Element): void {
+    nearViewportObserver?.unobserve(el);
+    nearViewportCallbacks.delete(el);
+}
+
+// An observed pill the page removes while off screen never intersects again.
+function sweepDetachedPills(): void {
+    detachedSweepQueued = false;
+    for (const el of [...nearViewportCallbacks.keys()]) {
+        if (!el.isConnected) stopWatching(el);
+    }
+    nextDetachedSweepAt = Math.max(64, nearViewportCallbacks.size * 2);
+}
 
 function whenNearViewport(el: Element, callback: () => void): void {
     if (typeof IntersectionObserver === "undefined") {
@@ -1202,14 +1220,17 @@ function whenNearViewport(el: Element, callback: () => void): void {
     nearViewportObserver ??= new IntersectionObserver((entries) => {
         for (const entry of entries) {
             if (!entry.isIntersecting) continue;
-            nearViewportObserver!.unobserve(entry.target);
             const run = nearViewportCallbacks.get(entry.target);
-            nearViewportCallbacks.delete(entry.target);
+            stopWatching(entry.target);
             run?.();
         }
     }, {rootMargin: "300px"});
     nearViewportCallbacks.set(el, callback);
     nearViewportObserver.observe(el);
+    if (nearViewportCallbacks.size >= nextDetachedSweepAt && !detachedSweepQueued) {
+        detachedSweepQueued = true;
+        setTimeout(sweepDetachedPills, 0);
+    }
 }
 
 /** A deferred OA lookup as a promise the rows can await, plus the trigger that starts it once. */
@@ -1403,6 +1424,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     let rowsBuilt = false;
     const ensureRows = (): void => {
+        startOa();
         if (rowsBuilt) return;
         rowsBuilt = true;
         popover.appendChild(buildIndicatorRows({
@@ -1418,7 +1440,6 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     let collapseMarker: (() => void) | null = null;
 
     const show = () => {
-        startOa();
         ensureRows();
         if (hideTimeout) {
             clearTimeout(hideTimeout);

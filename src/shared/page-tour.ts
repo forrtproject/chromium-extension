@@ -22,7 +22,7 @@ const CARD_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 
 const PILL = `.${INDICATOR_PILL_CLASS}`;
-const PILL_FACE_TEXT = "Each part answers one question: its DOI, a free copy (OA), discussion on PubPeer, and replications (Reps). A coloured part means yes; a faded one means nothing was found.";
+const PILL_FACE_TEXT = "Each part answers one question: its DOI, a free copy (OA), discussion on PubPeer, and replications or reproductions (Reps). A coloured part means yes; a faded one means nothing was found.";
 const REFERENCE_PILL_TEXT = "A reference that cites two papers gets two pills. No pill means ORE could not identify that reference.";
 
 function shown(el: Element | null): el is HTMLElement {
@@ -179,6 +179,7 @@ function toTopLayer(host: HTMLElement): void {
 export function runPageTour(stops: TourStop[]): boolean {
     if (stops.length === 0) return false;
     closePageTour();
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     const host = document.createElement("div");
     host.id = TOUR_HOST_ID;
@@ -265,6 +266,7 @@ export function runPageTour(stops: TourStop[]): boolean {
         stops[index]?.leave?.();
         document.removeEventListener("keydown", onKey, true);
         host.remove();
+        if (returnFocus?.isConnected) returnFocus.focus({preventScroll: true});
     };
     const tour: OpenTour = {close};
     openTour = tour;
@@ -311,13 +313,11 @@ export async function offerFirstPageTour(surface: TourSurface, canShow: () => bo
             offered.delete(surface);
             return;
         }
-        const stops = stopsFor(surface);
-        if (stops.length === 0) {
+        if (!runPageTour(stopsFor(surface))) {
             offered.delete(surface);
             return;
         }
         await markTourSeen(surface);
-        runPageTour(stops);
     } catch (err) {
         offered.delete(surface);
         debugWarn("Page tour: first-run check failed —", err);

@@ -106,6 +106,19 @@ describe("a crafted report link", () => {
         expect(decoded!.references).toEqual([]);
     });
 
+    it("rejects a payload with a missing or impossible compile date", async () => {
+        const {generated: _omitted, ...withoutDate} = payload();
+        expect(await decodeRaw(withoutDate)).toBeNull();
+        expect(await decodeRaw({...payload(), generated: 1e20})).toBeNull();
+    });
+
+    it("keeps a crafted DOI inside its doi.org path", async () => {
+        const decoded = await decodeRaw(payload({
+            references: [{title: "Ref", doi: "10.1/x?y=1#z", replications: 2}],
+        }));
+        expect(renderReportBody(decoded!)).toContain('href="https://doi.org/10.1/x%3Fy%3D1%23z"');
+    });
+
     it("rejects a payload without a text title", async () => {
         expect(await decodeRaw({...payload(), title: 7})).toBeNull();
     });

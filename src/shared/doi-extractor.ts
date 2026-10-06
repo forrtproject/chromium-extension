@@ -607,7 +607,7 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   const lis = elements.filter((el): el is HTMLElement => {
     if (el.localName !== "li") return false;
     const outer = el.parentElement?.closest("li");
-    return !outer || !container.contains(outer);
+    return !outer || outer === container || !container.contains(outer);
   });
   const pGroup = findLargestGroup(elements, "p");
   const divGroup = findLargestGroup(elements, "div");
@@ -785,9 +785,9 @@ function headingCitedWithDoi(doc: Document, doi: DoiString): HTMLElement | null 
 
 function ownReferenceDoi(doc: Document, title: HTMLElement, referenceFound: Set<DoiString>): DoiString | null {
   const own = findReferenceEntries(doc).filter(
-    (entry) => entry.dois.length > 0 && referenceFound.has(entry.dois[0]) && titleContainsText(title, entry.text)
+    (entry) => entry.dois.some((doi) => referenceFound.has(doi)) && titleContainsText(title, entry.text)
   );
-  return own.length === 1 ? own[0].dois[0] : null;
+  return own.length === 1 ? own[0].dois.find((doi) => referenceFound.has(doi))! : null;
 }
 
 export function classifyPageDois(doc: Document): ClassifiedDois {

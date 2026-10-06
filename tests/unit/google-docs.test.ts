@@ -7,7 +7,7 @@ import { resolveReferenceDois, renderResolvedReferences } from "../../src/conten
 vi.mock("../../src/shared/google-docs-source", () => ({fetchGoogleDocsText: vi.fn().mockRejectedValue(new Error("offline")), googleDocsExportUrl: (url: string) => url}));
 vi.mock("../../src/shared/pubpeer-api", () => ({ lookupPubPeerForDoi: vi.fn().mockResolvedValue(null) }));
 vi.mock("../../src/shared/settings", () => ({ getSettings: vi.fn().mockResolvedValue({ email: 'test@example.com' }) }));
-vi.mock("../../src/shared/openaccess", () => ({ fetchOpenAccess: vi.fn().mockResolvedValue(null) }));
+vi.mock("../../src/shared/openaccess", () => ({ fetchOpenAccess: vi.fn().mockResolvedValue(null), deferredOpenAccess: () => () => Promise.resolve(null) }));
 const DOI = '10.1111/j.1467-9280.2009.02426.x';
 const scan = vi.fn();
 const runs = [

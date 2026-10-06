@@ -27,7 +27,7 @@ beforeEach(() => {
     (chrome.storage.sync.get as ReturnType<typeof vi.fn>).mockResolvedValue({flora_settings: {email: "reader@example.com"}});
     retraction.mockReset().mockResolvedValue([]);
     vi.doMock("../../src/shared/messages", () => ({safeSendMessage: send, augmentDOIsViaWorker: vi.fn()}));
-    vi.doMock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null)}));
+    vi.doMock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null), deferredOpenAccess: () => () => Promise.resolve(null)}));
     vi.doMock("../../src/shared/doi-retraction", () => ({retractionCheck: retraction}));
     vi.doMock("../../src/shared/indicator-pill", () => ({
         INDICATOR_PILL_CLASS: "flora-indicator-pill",

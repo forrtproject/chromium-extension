@@ -98,6 +98,18 @@ describe("the on-page tour of an article", () => {
         expect(document.getElementById("flora-page-tour")).toBeNull();
     });
 
+    it("gives focus back to where the reader was when it closes", async () => {
+        await articlePage();
+        const before = document.createElement("button");
+        document.body.appendChild(before);
+        before.focus();
+        const {startPageTour, closePageTour} = await import("../../src/shared/page-tour");
+        startPageTour("article");
+        expect(document.activeElement).not.toBe(before);
+        closePageTour();
+        expect(document.activeElement).toBe(before);
+    });
+
     it("closes on Escape", async () => {
         await articlePage();
         const {startPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
@@ -145,6 +157,21 @@ describe("the first-run tour", () => {
         await vi.advanceTimersByTimeAsync(2000);
         await second;
         expect(again.isPageTourOpen()).toBe(false);
+    });
+
+    it("waits until the page pass has finished", async () => {
+        vi.useFakeTimers();
+        await articlePage();
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {offerFirstPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        const offer = offerFirstPageTour("article", () => true);
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(isPageTourOpen()).toBe(false);
+        endWorkIndicator();
+        await vi.advanceTimersByTimeAsync(2000);
+        await offer;
+        expect(isPageTourOpen()).toBe(true);
     });
 
     it("waits for a later pass when nothing is on the page yet", async () => {

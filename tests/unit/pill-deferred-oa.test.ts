@@ -62,6 +62,31 @@ describe("Open Access deferred until a pill is near the viewport", () => {
         expect(lookup).toHaveBeenCalledOnce();
     });
 
+    it("looks up when the popover is built without being opened", async () => {
+        const lookup = vi.fn(async () => OA);
+        const wrapper = await pill(lookup);
+        const {ensurePopoverRows} = await import("../../src/shared/indicator-pill");
+        ensurePopoverRows(wrapper);
+        expect(lookup).toHaveBeenCalledOnce();
+    });
+
+    it("stops watching pills the page removed before they were ever seen", async () => {
+        vi.useFakeTimers();
+        const {createIndicatorPill} = await import("../../src/shared/indicator-pill");
+        const removed = Array.from({length: 70}, (_, i) => {
+            const wrapper = createIndicatorPill({doi: `10.1234/gone.${i}` as DoiString, oaStatus: async () => OA});
+            document.body.appendChild(wrapper);
+            return wrapper;
+        });
+        for (const wrapper of removed) wrapper.remove();
+        const kept = createIndicatorPill({doi: DOI, oaStatus: async () => OA});
+        document.body.appendChild(kept);
+        await vi.runOnlyPendingTimersAsync();
+        vi.useRealTimers();
+        expect(observed).toHaveLength(1);
+        expect(kept.contains(observed[0])).toBe(true);
+    });
+
     it("still starts a promise passed directly, for the article's own pill", async () => {
         const {createIndicatorPill} = await import("../../src/shared/indicator-pill");
         const wrapper = createIndicatorPill({doi: DOI, oaStatus: Promise.resolve(OA)});

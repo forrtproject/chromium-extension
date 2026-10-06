@@ -3,9 +3,11 @@ import {BlobCache} from "../../src/shared/blob-cache";
 
 const KEY = "flora_test_blob";
 const TTL = 60_000;
-const WRITE_ID_KEY = "__writeId";
+const ID_KEY = `${KEY}:writeId`;
+const LEGACY_WRITE_ID_KEY = "__writeId";
 
-type Listener = (changes: Record<string, {newValue?: unknown}>, area: string) => void;
+type Changes = Record<string, {newValue?: unknown}>;
+type Listener = (changes: Changes, area: string) => void;
 type Blob = Record<string, unknown>;
 
 interface PendingOp {
@@ -35,39 +37,62 @@ function track(promise: Promise<unknown>): {settled: boolean} {
 }
 
 function fakeStorage() {
-    let stored: Blob | undefined;
+    const area: Record<string, unknown> = {};
     const pendingOps: PendingOp[] = [];
-    const events: Array<{newValue: unknown}> = [];
+    const events: Changes[] = [];
     const writes: Blob[] = [];
+    const ops: string[] = [];
 
     function enqueue(apply: () => void): Promise<void> {
         return new Promise<void>((resolve, reject) => pendingOps.push({apply, resolve, reject}));
     }
-    function removeStored(): void {
-        if (stored === undefined) return;
-        stored = undefined;
-        events.push({newValue: undefined});
+    function removeKeys(keys: string[]): void {
+        const changes: Changes = {};
+        for (const key of keys) {
+            if (!(key in area)) continue;
+            delete area[key];
+            changes[key] = {newValue: undefined};
+        }
+        if (Object.keys(changes).length > 0) events.push(changes);
+    }
+    function asList(keys: string | string[] | null): string[] {
+        if (keys === null) return Object.keys(area);
+        return Array.isArray(keys) ? keys : [keys];
     }
 
     (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-        async () => (stored === undefined ? {} : {[KEY]: copy(stored)})
+        async (keys: string | string[] | null) =>
+            Object.fromEntries(asList(keys).filter((key) => key in area).map((key) => [key, copy(area[key])]))
     );
     (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-        (items: Record<string, Blob>) => {
-            const value = copy(items[KEY]);
-            writes.push(value);
+        (items: Record<string, unknown>) => {
+            const value = copy(items);
+            writes.push(value[KEY] as Blob);
+            ops.push("set");
             return enqueue(() => {
-                stored = value;
-                events.push({newValue: value});
+                const changes: Changes = {};
+                for (const [key, next] of Object.entries(value)) {
+                    if (JSON.stringify(area[key]) === JSON.stringify(next)) continue;
+                    area[key] = next;
+                    changes[key] = {newValue: copy(next)};
+                }
+                if (Object.keys(changes).length > 0) events.push(changes);
             });
         }
     );
     (chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
-        () => enqueue(removeStored)
+        (keys: string | string[]) => {
+            ops.push("remove");
+            return enqueue(() => removeKeys(asList(keys)));
+        }
     );
+
+    const stored = (): Blob | undefined => area[KEY] as Blob | undefined;
 
     return {
         writes,
+        ops,
+        area,
         get pendingOps() {
             return pendingOps.length;
         },
@@ -85,29 +110,29 @@ function fakeStorage() {
             await drain();
         },
         deliver(): void {
-            const {newValue} = events.shift()!;
+            const changes = events.shift()!;
             const listeners = (chrome.storage.onChanged.addListener as ReturnType<typeof vi.fn>).mock.calls
                 .map((call) => call[0] as Listener);
-            for (const listener of listeners) listener({[KEY]: {newValue}}, "local");
+            for (const listener of listeners) listener(changes, "local");
         },
         async deliverAll(): Promise<void> {
             while (events.length > 0) this.deliver();
             await drain();
         },
         seed(blob: Blob): void {
-            stored = copy(blob);
+            area[KEY] = copy(blob);
         },
         foreignWrite(blob: Blob): void {
-            stored = copy(blob);
-            events.push({newValue: copy(blob)});
+            area[KEY] = copy(blob);
+            events.push({[KEY]: {newValue: copy(blob)}});
         },
-        evict: removeStored,
+        evict(): void {
+            removeKeys([KEY]);
+        },
         storedKeys(): string[] {
-            return Object.keys(stored ?? {}).filter((key) => key !== WRITE_ID_KEY).sort();
+            return Object.keys(stored() ?? {}).sort();
         },
-        stored(): Blob | undefined {
-            return stored;
-        },
+        stored,
     };
 }
 
@@ -193,17 +218,127 @@ describe("BlobCache write batching", () => {
         expect(done.settled).toBe(true);
     });
 
-    it("tags each stored blob with a write id that reads and trims ignore", async () => {
-        storage.seed({[WRITE_ID_KEY]: "other-context:7", old: {v: "o", t: Date.now()}});
-        const cache = newCache(1);
-        expect(await cache.getMany(["old", WRITE_ID_KEY])).toEqual(new Map([["old", "o"]]));
+    describe("write ids", () => {
+        it("stores the write id beside the blob, in the same set() call", async () => {
+            const cache = newCache();
+            await persist(cache, "a");
 
-        vi.advanceTimersByTime(1);
-        await persist(cache, "new");
+            expect(storage.storedKeys()).toEqual(["a"]);
+            expect(typeof storage.area[ID_KEY]).toBe("string");
+            expect(chrome.storage.local.set).toHaveBeenLastCalledWith({
+                [KEY]: expect.any(Object),
+                [ID_KEY]: storage.area[ID_KEY],
+            });
+        });
 
-        expect(storage.storedKeys()).toEqual(["new"]);
-        expect(typeof storage.stored()![WRITE_ID_KEY]).toBe("string");
-        expect(storage.stored()![WRITE_ID_KEY]).not.toBe("other-context:7");
+        it("round-trips an entry whose key is the legacy write id key", async () => {
+            const cache = newCache();
+            await persist(cache, LEGACY_WRITE_ID_KEY);
+            await storage.deliverAll();
+
+            expect(storage.storedKeys()).toEqual([LEGACY_WRITE_ID_KEY]);
+            expect(await newCache().get(LEGACY_WRITE_ID_KEY)).toBe(LEGACY_WRITE_ID_KEY);
+        });
+
+        it("ignores the inline write id of a blob from an earlier build", async () => {
+            storage.seed({[LEGACY_WRITE_ID_KEY]: "other-context:7", old: {v: "o", t: Date.now()}});
+            const cache = newCache(1);
+            expect(await cache.getMany(["old", LEGACY_WRITE_ID_KEY])).toEqual(new Map([["old", "o"]]));
+
+            vi.advanceTimersByTime(1);
+            await persist(cache, "new");
+
+            expect(storage.storedKeys()).toEqual(["new"]);
+        });
+
+        it("recognises its own echo when rewriting an identical blob changes only the write id", async () => {
+            const cache = newCache();
+            const writtenAt = Date.now();
+            await persist(cache, "a");
+            vi.setSystemTime(writtenAt);
+            await persist(cache, "a");
+            expect(storage.writes[1]).toEqual(storage.writes[0]);
+            await storage.deliverAll();
+
+            storage.foreignWrite({theirs: {v: "t", t: Date.now()}});
+            await storage.deliverAll();
+            await elapseFlushWindow();
+
+            expect(storage.pendingOps).toBe(0);
+            expect(await cache.get("a")).toBeUndefined();
+            expect(await cache.get("theirs")).toBe("t");
+        });
+
+        it("ignores a write id key orphaned by a shared-budget eviction", async () => {
+            const cache = newCache();
+            await persist(cache, "old");
+            await storage.deliverAll();
+            storage.evict();
+            await storage.deliverAll();
+            expect(storage.area[ID_KEY]).toBeDefined();
+
+            const reloaded = newCache();
+            expect(await reloaded.get("old")).toBeUndefined();
+            await persist(reloaded, "fresh");
+            await storage.deliverAll();
+
+            expect(storage.storedKeys()).toEqual(["fresh"]);
+            expect(await cache.get("fresh")).toBe("fresh");
+        });
+    });
+
+    describe("without storage change events", () => {
+        function unacknowledged(cache: BlobCache<string>): number {
+            return (cache as unknown as {unacknowledgedWrites: Map<number, unknown>}).unacknowledgedWrites.size;
+        }
+
+        it("retires each write once it lands when onChanged is unavailable", async () => {
+            const storageApi = chrome.storage as unknown as {onChanged?: unknown};
+            const onChanged = storageApi.onChanged;
+            storageApi.onChanged = undefined;
+            try {
+                const cache = newCache();
+                for (let i = 0; i < 3; i++) await persist(cache, `k${i}`);
+
+                expect(unacknowledged(cache)).toBe(0);
+                expect(storage.storedKeys()).toEqual(["k0", "k1", "k2"]);
+            } finally {
+                storageApi.onChanged = onChanged;
+            }
+        });
+
+        it("retires each write once it lands when the listener cannot be installed", async () => {
+            (chrome.storage.onChanged.addListener as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
+                throw new Error("onChanged unavailable");
+            });
+            const cache = newCache();
+            for (let i = 0; i < 3; i++) await persist(cache, `k${i}`);
+
+            expect(unacknowledged(cache)).toBe(0);
+        });
+    });
+
+    it("rewrites keys a foreign blob added when an earlier write of ours lands over them", async () => {
+        const cache = newCache();
+        await persist(cache, "mine");
+        await storage.deliverAll();
+
+        const done = cache.set("queued", "q");
+        await elapseFlushWindow();
+        storage.foreignWrite({...storage.stored(), theirs: {v: "t", t: Date.now()}});
+        await storage.deliverAll();
+        await storage.commit();
+        await done;
+        expect(storage.storedKeys()).toEqual(["mine", "queued"]);
+
+        await storage.deliverAll();
+        await elapseFlushWindow();
+        expect(storage.pendingOps).toBe(1);
+        await storage.commit();
+        await storage.deliverAll();
+
+        expect(storage.storedKeys()).toEqual(["mine", "queued", "theirs"]);
+        expect(await cache.get("theirs")).toBe("t");
     });
 
     it("keeps a later completion when an earlier write's change event arrives late", async () => {
@@ -296,6 +431,76 @@ describe("BlobCache write batching", () => {
             expect(await cache.get("old")).toBeUndefined();
         });
 
+        it("waits for a write already in flight, then removes the blob and its write id", async () => {
+            const cache = newCache();
+            const inFlight = track(cache.set("old", "o"));
+            await elapseFlushWindow();
+
+            const cleared = track(cache.clear());
+            await drain();
+            expect(storage.ops).toEqual(["set"]);
+            expect(await cache.get("old")).toBeUndefined();
+
+            await storage.commit();
+            expect(inFlight.settled).toBe(true);
+            expect(storage.ops).toEqual(["set", "remove"]);
+            expect(cleared.settled).toBe(false);
+
+            await storage.commit();
+            expect(cleared.settled).toBe(true);
+            await storage.deliverAll();
+
+            expect(storage.stored()).toBeUndefined();
+            expect(storage.area[ID_KEY]).toBeUndefined();
+            expect(await cache.get("old")).toBeUndefined();
+        });
+
+        it("does not let a quota retry that was in flight write after it", async () => {
+            const cache = newCache();
+            await persist(cache, "a");
+            await storage.deliverAll();
+            vi.advanceTimersByTime(1_000);
+
+            const done = cache.set("b", "b");
+            await elapseFlushWindow();
+            const cleared = cache.clear();
+            await storage.fail();
+            await done;
+            expect(storage.ops).toEqual(["set", "set", "remove"]);
+
+            await storage.commit();
+            await cleared;
+            await storage.deliverAll();
+            await elapseFlushWindow();
+
+            expect(storage.pendingOps).toBe(0);
+            expect(storage.stored()).toBeUndefined();
+            expect(await cache.get("a")).toBeUndefined();
+        });
+
+        it("writes a completion made while it waits after the removal", async () => {
+            const cache = newCache();
+            const inFlight = cache.set("old", "o");
+            await elapseFlushWindow();
+
+            const cleared = cache.clear();
+            const fresh = cache.set("fresh", "f");
+            await elapseFlushWindow();
+            expect(storage.ops).toEqual(["set"]);
+
+            await storage.commit();
+            await inFlight;
+            await storage.commit();
+            await cleared;
+            expect(storage.ops).toEqual(["set", "remove", "set"]);
+            await storage.commit();
+            await fresh;
+            await storage.deliverAll();
+
+            expect(storage.storedKeys()).toEqual(["fresh"]);
+            expect(await cache.get("fresh")).toBe("f");
+        });
+
         it("keeps a completion written before its removal event arrives", async () => {
             const cache = newCache();
             await persist(cache, "old");
@@ -306,6 +511,8 @@ describe("BlobCache write batching", () => {
             await persist(cache, "fresh");
             await storage.deliverAll();
             await elapseFlushWindow();
+            await storage.commit();
+            await storage.deliverAll();
 
             expect(await cache.get("fresh")).toBe("fresh");
             expect(await cache.get("old")).toBeUndefined();

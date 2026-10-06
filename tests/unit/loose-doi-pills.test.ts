@@ -5,7 +5,7 @@ import type {DoiContext, DoiString, LookupState} from "../../src/shared/types";
 
 vi.mock("../../src/shared/pubpeer-api", () => ({lookupPubPeerForDoi: vi.fn().mockResolvedValue(null)}));
 vi.mock("../../src/shared/settings", () => ({getSettings: vi.fn().mockResolvedValue({email: "test@example.com"})}));
-vi.mock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null)}));
+vi.mock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null), deferredOpenAccess: () => () => Promise.resolve(null)}));
 
 const LOOSE = "10.1002/bdm.2178" as DoiString;
 const pageState = new Map<DoiString, LookupState>();
