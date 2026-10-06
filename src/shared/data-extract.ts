@@ -2,6 +2,11 @@ import {fetchWithDeadline} from "@shared/work-cancellation";
 import {debugError} from "./debug";
 
 export const RET_MAP_KEY = "RetractionLookupLocal";
+export const RET_COUNT_KEY = "flora_retraction_count";
+
+export function retractionEntryCount(map: RetractionMaps | undefined): number {
+    return map ? Object.keys(map.retractions || {}).length + Object.keys(map.concerns || {}).length : 0;
+}
 
 /**
  * Prebuilt retraction data, refreshed daily by the GitHub Action
@@ -46,6 +51,6 @@ export async function fetchRetractionMap(): Promise<RetractionMaps | undefined> 
 export async function storageSync(): Promise<boolean> {
     const map = await fetchRetractionMap();
     if (!map) return false;
-    await chrome.storage.local.set({[RET_MAP_KEY]: map, synctime: Date.now()});
+    await chrome.storage.local.set({[RET_MAP_KEY]: map, [RET_COUNT_KEY]: retractionEntryCount(map), synctime: Date.now()});
     return true;
 }

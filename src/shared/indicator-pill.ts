@@ -1,6 +1,7 @@
 import {safeSendMessage, type LookupResponse} from "@shared/messages";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {isAbortError} from "@shared/work-cancellation";
+import {webUrl} from "@shared/web-url";
 // Merged FLoRA indicator pill — combines the DOI badge, Open Access padlock,
 // PubPeer discussion marker, and retraction/replication badge into a single
 // pill (mockup: a rounded maroon pill with icon segments split by dividers).
@@ -73,7 +74,7 @@ const PILL_LINK_SVG =
     `<path d="M5 6.5a2.5 2.5 0 0 0 3.5.5l1.5-1.5a2.5 2.5 0 0 0-3.5-3.5L5.5 3"/>` +
     `<path d="M7 5.5a2.5 2.5 0 0 0-3.5-.5L2 6.5a2.5 2.5 0 0 0 3.5 3.5L6.5 9"/></svg>`;
 
-const PILL_REPEAT_SVG =
+export const PILL_REPEAT_SVG =
     `<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" ` +
     `stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;">` +
     `<path d="M2 4h7.5a.5.5 0 0 1 .5.5v2"/><path d="M8 2l2 2-2 2"/>` +
@@ -598,8 +599,9 @@ const DOT_ICON = (color: string) => `<span style="display:inline-block;width:8px
 /** Every free copy on offer, falling back to the single URL older caches stored. */
 function oaLocations(oa: OpenAccessStatus | null): OpenAccessLocation[] {
     if (!oa?.isOa) return [];
-    if (oa.locations?.length) return oa.locations;
-    return oa.url ? [{url: oa.url, label: "Free copy", version: null, isPdf: false}] : [];
+    if (oa.locations?.length) return oa.locations.filter((loc) => webUrl(loc.url));
+    const url = webUrl(oa.url);
+    return url ? [{url, label: "Free copy", version: null, isPdf: false}] : [];
 }
 
 /** One free copy, as a line in the chooser under the Open Access row. */
@@ -798,8 +800,11 @@ export interface IndicatorPillOptions {
     isAugmented?: boolean;
     /** Overrides the provenance line under the DOI (default: page vs. title match). */
     provenanceLabel?: string;
-    /** Open Access lookup — resolves the padlock segment/row when it lands. */
-    oaStatus?: Promise<OpenAccessStatus | null>;
+    /**
+     * Open Access lookup — resolves the padlock segment/row when it lands. A
+     * function defers the request until the pill nears the viewport or opens.
+     */
+    oaStatus?: Promise<OpenAccessStatus | null> | (() => Promise<OpenAccessStatus | null>);
     /** Already-resolved retraction/concern notice for this DOI, if any. */
     retraction?: RetractionResponse | null;
     /** Already-known replication count for this DOI, if any (pass only when > 0). Takes priority over reproductionsCount. */
@@ -1019,30 +1024,88 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
     return btn;
 }
 
+interface IndicatorLookups {
+    oa: OaState;
+    pubpeer: PubPeerState;
+    pubpeerRetryAfterMs: number | null;
+    retryOa(): void;
+    retryPubPeer(): void;
+    /** Called after every change to either lookup. */
+    subscribe(listener: () => void): void;
+}
+
+/**
+ * Runs a DOI's Open Access and PubPeer lookups and holds their latest state, so
+ * the pill face, a popover built later and the standalone panel all read the
+ * same answers. A cancelled lookup settles to "Not checked", which offers a
+ * Retry; nothing re-fetches it otherwise.
+ */
+function startIndicatorLookups(doi: DoiString, oaStatus: Promise<OpenAccessStatus | null> | undefined): IndicatorLookups {
+    const listeners: Array<() => void> = [];
+    const changed = () => { for (const listener of listeners) listener(); };
+    const lookups: IndicatorLookups = {
+        oa: oaStatus ? "pending" : null,
+        pubpeer: "pending",
+        pubpeerRetryAfterMs: null,
+        retryOa: () => {
+            lookups.oa = "pending";
+            changed();
+            loadOa(fetchOpenAccess(doi));
+        },
+        retryPubPeer: () => {
+            lookups.pubpeer = "pending";
+            lookups.pubpeerRetryAfterMs = null;
+            changed();
+            void lookupPubPeerForDoi(doi).then((feedback) => {
+                lookups.pubpeer = feedback;
+                changed();
+            }).catch((error) => {
+                lookups.pubpeer = isAbortError(error) ? "cancelled" : "unavailable";
+                lookups.pubpeerRetryAfterMs = typeof error?.retryAfterMs === "number" ? error.retryAfterMs : null;
+                changed();
+            });
+        },
+        subscribe: (listener) => { listeners.push(listener); },
+    };
+    const loadOa = (request: Promise<OpenAccessStatus | null>): void => {
+        void request.then(async (oa) => oa ?? (await hasContactEmail() ? null : "no-email" as const))
+            .catch((err): OaState => isAbortError(err) ? "cancelled" : null)
+            .then((state) => {
+                lookups.oa = state;
+                changed();
+            });
+    };
+    if (oaStatus) loadOa(oaStatus);
+    lookups.retryPubPeer();
+    return lookups;
+}
+
+function pubPeerAnswered(state: PubPeerState): PubPeerAnswered {
+    return state === "pending" || state === "cancelled" ? state : typeof state !== "string";
+}
+
 interface IndicatorRowsOptions {
     doi: DoiString;
     color: string;
     isAugmented: boolean;
     provenanceLabel?: string;
-    oaStatus?: Promise<OpenAccessStatus | null>;
+    lookups: IndicatorLookups;
     retraction: RetractionResponse | null;
     replicationsCount: number | null;
     reproductionsCount: number | null;
-    /** Called when the async lookup lands, so a caller can mirror it elsewhere. */
-    onOa?: (state: OaState) => void;
-    onPubPeer?: (feedback: PubPeerFeedback | null, answered: PubPeerAnswered) => void;
     /** Single-line rows and tighter metrics, for the always-visible panel. */
     compact?: boolean;
 }
 
 /**
  * The row stack shared by the pill's popover and the standalone panel: DOI,
- * Open Access, PubPeer, replication/retraction. The OA and PubPeer rows start
- * unresolved and swap themselves in when their lookups land; the DOI row's
- * cite action fetches nothing until a reader clicks it.
+ * Open Access, PubPeer, replication/retraction. The OA and PubPeer rows show
+ * the lookups' current state and swap themselves in as it changes; the DOI
+ * row's cite action fetches nothing until a reader clicks it.
  */
 function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     const compact = opts.compact ?? false;
+    const {lookups} = opts;
     const rows = document.createElement("div");
     rows.style.cssText = `display:flex;flex-direction:column;gap:${compact ? "0" : "2px"};`;
 
@@ -1052,48 +1115,36 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     sectionDivider.style.cssText = `height:1px;background:#eaeef2;margin:${compact ? "2px 0" : "0 0 2px"};`;
     rows.appendChild(sectionDivider);
 
-    let oaRow = buildOaRow(opts.oaStatus ? "pending" : null, compact, () => retryOa());
+    const buildPubPeer = (): HTMLElement => {
+        const row = buildPubPeerRow(lookups.pubpeer, compact, lookups.pubpeer === "pending" ? undefined : lookups.retryPubPeer);
+        const subtitle = row.querySelector("[data-flora-row-sub]");
+        if (subtitle && lookups.pubpeerRetryAfterMs !== null) {
+            subtitle.textContent = compact ? "Rate limited" : `Rate limited — try again in ${Math.ceil(lookups.pubpeerRetryAfterMs / 1000)} seconds`;
+        }
+        return row;
+    };
+    let oaRow = buildOaRow(lookups.oa, compact, lookups.retryOa);
+    let pubpeerRow = buildPubPeer();
+    let shownOa = lookups.oa;
+    let shownPubPeer = lookups.pubpeer;
+    let shownRetryAfterMs = lookups.pubpeerRetryAfterMs;
     rows.appendChild(oaRow);
-    const settleOa = (state: OaState): void => {
-        const resolved = shieldFromPageCss(buildOaRow(state, compact, retryOa));
-        replaceIndicatorRow(oaRow, resolved);
-        oaRow = resolved;
-        opts.onOa?.(state);
-    };
-    const loadOa = (request: Promise<OpenAccessStatus | null>): void => {
-        // A cancelled pass settles the row to "Not checked", which carries the
-        // Retry action; nothing re-fetches it otherwise.
-        void request.then(async oa => settleOa(oa ?? (await hasContactEmail() ? null : "no-email")))
-            .catch(err => settleOa(isAbortError(err) ? "cancelled" : null));
-    };
-    const retryOa = (): void => {
-        settleOa("pending");
-        loadOa(fetchOpenAccess(opts.doi));
-    };
-    if (opts.oaStatus) loadOa(opts.oaStatus);
-
-    let pubpeerRow = buildPubPeerRow("pending", compact);
     rows.appendChild(pubpeerRow);
-    const settlePubPeer = (feedback: PubPeerState): void => {
-        const resolved = shieldFromPageCss(buildPubPeerRow(feedback, compact, retryPubPeer));
-        replaceIndicatorRow(pubpeerRow, resolved);
-        pubpeerRow = resolved;
-        const answered: PubPeerAnswered = feedback === "pending" || feedback === "cancelled" ? feedback : typeof feedback !== "string";
-        opts.onPubPeer?.(typeof feedback === "string" ? null : feedback, answered);
-    };
-    const retryPubPeer = (): void => {
-        settlePubPeer("pending");
-        void lookupPubPeerForDoi(opts.doi).then(settlePubPeer).catch(error => {
-            // A cancelled pass settles the row to "Not checked", which carries
-            // the Retry action; nothing re-fetches it otherwise.
-            settlePubPeer(isAbortError(error) ? "cancelled" : "unavailable");
-            if (typeof error?.retryAfterMs === "number") {
-                const subtitle = pubpeerRow.querySelector("[data-flora-row-sub]");
-                if (subtitle) subtitle.textContent = compact ? "Rate limited" : `Rate limited — try again in ${Math.ceil(error.retryAfterMs / 1000)} seconds`;
-            }
-        });
-    };
-    retryPubPeer();
+    lookups.subscribe(() => {
+        if (lookups.oa !== shownOa) {
+            shownOa = lookups.oa;
+            const next = shieldFromPageCss(buildOaRow(lookups.oa, compact, lookups.retryOa));
+            replaceIndicatorRow(oaRow, next);
+            oaRow = next;
+        }
+        if (lookups.pubpeer !== shownPubPeer || lookups.pubpeerRetryAfterMs !== shownRetryAfterMs) {
+            shownPubPeer = lookups.pubpeer;
+            shownRetryAfterMs = lookups.pubpeerRetryAfterMs;
+            const next = shieldFromPageCss(buildPubPeer());
+            replaceIndicatorRow(pubpeerRow, next);
+            pubpeerRow = next;
+        }
+    });
 
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
         opts.doi, opts.replicationsCount, opts.reproductionsCount
@@ -1127,9 +1178,82 @@ function pillAriaLabel(
 
 const markerUpdates = new WeakMap<HTMLElement, (state: LookupState | undefined, notice: RetractionResponse | null) => void>();
 
+const popoverBuilders = new WeakMap<HTMLElement, () => void>();
+const latestBadgeRepaint = new WeakMap<HTMLElement, () => void>();
+
+/** Build a pill's popover rows now, for a surface that shows the popover without opening it. */
+export function ensurePopoverRows(wrapper: HTMLElement): void {
+    popoverBuilders.get(wrapper)?.();
+}
+
+const popoverPins = new WeakMap<HTMLElement, (pinned: boolean) => void>();
+
+/** Open a pill's popover and keep it open, or release it — as a click on the pill would. */
+export function pinIndicatorPopover(wrapper: HTMLElement, pinned: boolean): void {
+    popoverPins.get(wrapper)?.(pinned);
+}
+
+const nearViewportCallbacks = new Map<Element, () => void>();
+let nearViewportObserver: IntersectionObserver | null = null;
+let nextDetachedSweepAt = 64;
+let detachedSweepQueued = false;
+
+function stopWatching(el: Element): void {
+    nearViewportObserver?.unobserve(el);
+    nearViewportCallbacks.delete(el);
+}
+
+// An observed pill the page removes while off screen never intersects again.
+function sweepDetachedPills(): void {
+    detachedSweepQueued = false;
+    for (const el of [...nearViewportCallbacks.keys()]) {
+        if (!el.isConnected) stopWatching(el);
+    }
+    nextDetachedSweepAt = Math.max(64, nearViewportCallbacks.size * 2);
+}
+
+function whenNearViewport(el: Element, callback: () => void): void {
+    if (typeof IntersectionObserver === "undefined") {
+        callback();
+        return;
+    }
+    nearViewportObserver ??= new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            const run = nearViewportCallbacks.get(entry.target);
+            stopWatching(entry.target);
+            run?.();
+        }
+    }, {rootMargin: "300px"});
+    nearViewportCallbacks.set(el, callback);
+    nearViewportObserver.observe(el);
+    if (nearViewportCallbacks.size >= nextDetachedSweepAt && !detachedSweepQueued) {
+        detachedSweepQueued = true;
+        setTimeout(sweepDetachedPills, 0);
+    }
+}
+
+/** A deferred OA lookup as a promise the rows can await, plus the trigger that starts it once. */
+function deferredOa(
+    oaStatus: IndicatorPillOptions["oaStatus"],
+): {request: Promise<OpenAccessStatus | null> | undefined; start: () => void} {
+    if (typeof oaStatus !== "function") return {request: oaStatus, start: () => {}};
+    let start!: () => void;
+    const request = new Promise<OpenAccessStatus | null>((resolve, reject) => {
+        let started = false;
+        start = () => {
+            if (started) return;
+            started = true;
+            oaStatus().then(resolve, reject);
+        };
+    });
+    return {request, start};
+}
+
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
     ensureFocusStyle();
-    const {doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
+    const {doi, color = "#853953", isAugmented = false, provenanceLabel, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
+    const {request: oaStatus, start: startOa} = deferredOa(options.oaStatus);
     const markerMode = options.presentation === "marker";
     let restingBorder = `${color}${BORDER_ALPHA}`;
     let hoverBorder = `${color}${ABSENT_ALPHA}`;
@@ -1137,6 +1261,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     const wrapper = document.createElement("span");
     wrapper.className = INDICATOR_PILL_CLASS;
     wrapper.setAttribute("data-flora-doi", doi);
+    if (isAugmented) wrapper.setAttribute("data-flora-augmented", "");
     // The popover prints the DOI and links it to doi.org; without this marker
     // the extractor rescans that as a page occurrence and pills it again.
     wrapper.setAttribute("data-flora-ui", "");
@@ -1272,16 +1397,21 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     gap: 2px;
   `;
 
-    popover.appendChild(buildIndicatorRows({
-        doi, color, isAugmented, provenanceLabel, oaStatus, retraction, replicationsCount, reproductionsCount,
-        // The pill mirrors each resolved row into its matching inline segment.
-        onOa: (oa) => {
-            const resolved = buildOaSegment(oa, color);
+    const lookups = startIndicatorLookups(doi, oaStatus);
+    let faceOa = lookups.oa;
+    let facePubPeer = lookups.pubpeer;
+    lookups.subscribe(() => {
+        if (lookups.oa !== faceOa) {
+            faceOa = lookups.oa;
+            const resolved = buildOaSegment(lookups.oa, color);
             oaSegment.replaceWith(resolved);
             oaSegment = resolved;
             refreshSegmentStrip(pill);
-        },
-        onPubPeer: (feedback, answered) => {
+        }
+        if (lookups.pubpeer !== facePubPeer) {
+            facePubPeer = lookups.pubpeer;
+            const feedback = typeof lookups.pubpeer === "string" ? null : lookups.pubpeer;
+            const answered = pubPeerAnswered(lookups.pubpeer);
             markerComments = feedback?.total_comments ?? 0;
             markerAnswered = answered;
             refreshMarker();
@@ -1289,8 +1419,20 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
             pubpeerSegment.replaceWith(resolved);
             pubpeerSegment = resolved;
             refreshSegmentStrip(pill);
-        },
-    }));
+        }
+    });
+
+    let rowsBuilt = false;
+    const ensureRows = (): void => {
+        startOa();
+        if (rowsBuilt) return;
+        rowsBuilt = true;
+        popover.appendChild(buildIndicatorRows({
+            doi, color, isAugmented, provenanceLabel, lookups, retraction, replicationsCount, reproductionsCount,
+        }));
+        latestBadgeRepaint.get(wrapper)?.();
+    };
+    popoverBuilders.set(wrapper, ensureRows);
 
     let hideTimeout: ReturnType<typeof setTimeout> | null = null;
     let pinned = false;
@@ -1298,6 +1440,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     let collapseMarker: (() => void) | null = null;
 
     const show = () => {
+        ensureRows();
         if (hideTimeout) {
             clearTimeout(hideTimeout);
             hideTimeout = null;
@@ -1391,6 +1534,10 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
             document.addEventListener("click", docClickHandler, {capture: true});
         }, 0);
     });
+    popoverPins.set(wrapper, (on) => {
+        if (on && !pinned) pill.click();
+        else if (!on) unpin();
+    });
 
     if (markerMode) {
         const expand = (on: boolean) => {
@@ -1435,6 +1582,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     wrapper.appendChild(pill);
     wrapper.appendChild(popover);
+    if (typeof options.oaStatus === "function") whenNearViewport(pill, startOa);
     return shieldFromPageCss(wrapper);
 }
 
@@ -1474,13 +1622,15 @@ function ensurePanelStyle(): void {
  */
 export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement {
     const {
-        doi, color = "#853953", isAugmented = false, provenanceLabel, oaStatus,
+        doi, color = "#853953", isAugmented = false, provenanceLabel,
         retraction = null, replicationsCount = null, reproductionsCount = null,
     } = options;
+    const {request: oaStatus, start: startOa} = deferredOa(options.oaStatus);
 
     const wrapper = document.createElement("div");
     wrapper.className = INDICATOR_PILL_CLASS;
     wrapper.setAttribute("data-flora-doi", doi);
+    if (isAugmented) wrapper.setAttribute("data-flora-augmented", "");
     wrapper.setAttribute("data-flora-ui", "");
     wrapper.setAttribute("data-flora-panel", "");
     wrapper.style.cssText = `
@@ -1499,9 +1649,10 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
 
     ensurePanelStyle();
     wrapper.appendChild(buildIndicatorRows({
-        doi, color, isAugmented, provenanceLabel, oaStatus, retraction, replicationsCount, reproductionsCount,
-        compact: true,
+        doi, color, isAugmented, provenanceLabel, lookups: startIndicatorLookups(doi, oaStatus),
+        retraction, replicationsCount, reproductionsCount, compact: true,
     }));
+    if (typeof options.oaStatus === "function") whenNearViewport(wrapper, startOa);
     return resetInheritedText(wrapper);
 }
 
@@ -1525,6 +1676,7 @@ export function updateIndicatorPillBadges(
     for (const wrapper of root.querySelectorAll<HTMLElement>(indicatorSelector(scope))) {
         const doi = wrapper.getAttribute("data-flora-doi") as DoiString | null;
         if (!doi || (onlyDoi && doi !== onlyDoi)) continue;
+        latestBadgeRepaint.set(wrapper, () => updateIndicatorPillBadges(root, pageState, getRedacts, scope, doi, hooks));
         const badgeSegment = wrapper.querySelector<HTMLElement>("[data-flora-badge-segment]");
         const badgeRow = wrapper.querySelector<HTMLElement>("[data-flora-badge-row]");
         if (!badgeSegment && !badgeRow) continue;

@@ -314,18 +314,17 @@ export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
     }
   }
 
-  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
-      const parent = node.parentElement;
-      if (!parent) return NodeFilter.FILTER_REJECT;
-      const tag = parent.tagName;
-      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") {
+      if (node.nodeType === Node.TEXT_NODE) return NodeFilter.FILTER_ACCEPT;
+      const el = node as Element;
+      const tag = el.localName;
+      if (tag === "script" || tag === "style" || tag === "noscript" || tag === "a") {
         return NodeFilter.FILTER_REJECT;
       }
-      if (parent.closest("a")) return NodeFilter.FILTER_REJECT;
-      if (parent.closest(FLORA_UI_SELECTOR)) return NodeFilter.FILTER_REJECT;
-      if (word && parent.closest('[aria-hidden="true"]')) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
+      if (el.matches(FLORA_UI_SELECTOR)) return NodeFilter.FILTER_REJECT;
+      if (word && el.getAttribute("aria-hidden") === "true") return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_SKIP;
     },
   });
 
@@ -437,6 +436,15 @@ const REFERENCE_SECTION_RE = /(?:^|[-_\s])(?:cites|citations|bibliograph(?:y|ies
 // all — just a plain "References" heading among the article's other headings.
 const REFERENCE_HEADING_RE = /^(?:\d+\.?\s*)?(?:references|bibliography|works\s+cited|literature\s+cited)\s*:?$/i;
 
+function pageElementsWithin(root: Element): Element[] {
+  const elements: Element[] = [];
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) => (node as Element).matches(FLORA_UI_SELECTOR) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) elements.push(node as Element);
+  return elements;
+}
+
 function isReferenceContainer(el: Element): boolean {
   const cls = typeof el.className === "string" ? el.className : "";
   if (cls && REFERENCE_SECTION_RE.test(cls)) return true;
@@ -459,6 +467,7 @@ export function touchesReferenceSection(el: Element): boolean {
 // and a full-document scan is expensive. beginDomScanPass() bumps the epoch.
 let _scanEpoch = 0;
 let _refContainerCache: { epoch: number; doc: Document; result: Element[] } | null = null;
+let _refEntryCache: { epoch: number; doc: Document; result: ReferenceEntry[] } | null = null;
 let _doiProbeCache: { epoch: number; doc: Document; result: boolean } | null = null;
 
 export function pageMightContainDoi(doc: Document): boolean {
@@ -487,10 +496,7 @@ export function findReferenceContainers(doc: Document): Element[] {
     return _refContainerCache.result;
   }
 
-  const matched: Element[] = [];
-  for (const el of doc.querySelectorAll<Element>("[class],[id]")) {
-    if (isReferenceContainer(el)) matched.push(el);
-  }
+  const matched = doc.body ? pageElementsWithin(doc.body).filter(isReferenceContainer) : [];
   const result = matched.filter(
     (el) => !matched.some((other) => other !== el && other.contains(el))
   );
@@ -501,8 +507,8 @@ export function findReferenceContainers(doc: Document): Element[] {
 
 export interface ReferenceEntry {
   element: HTMLElement;
-  /** null when the entry needs DOI augmentation. */
-  doi: DoiString | null;
+  /** Empty when the entry needs DOI augmentation. */
+  dois: DoiString[];
   /** Canonical `PMC…` id, set only when the entry cites one and has no DOI. */
   pmcid: string | null;
   text: string;
@@ -526,26 +532,28 @@ function cleanReferenceText(text: string): string {
   return cleaned;
 }
 
-function extractDoiFromEntry(
+function extractDoisFromEntry(
   entry: HTMLElement,
+  text: string,
   hostDoi: DoiString | null
-): DoiString | null {
+): DoiString[] {
   // Text wins over links: an entry's links are often "View"/"Cite" buttons
   // pointing at the *host* article, not the cited paper — using them first
   // made every Wiley cited-by row resolve to the host's own DOI.
-  const text = entry.innerText ?? entry.textContent ?? "";
   const cleaned = decodeEncodedDois(text.replace(WORD_BREAK_CHARS, ""));
+  const inText = new Set<DoiString>();
   for (const match of cleaned.matchAll(DOI_TEXT_REGEX)) {
     const raw = cleanDoiTrailing(match[1]);
     if (!isValidDoiSuffix(raw)) continue;
     const doi = normaliseDOI(raw);
-    if (doi) return doi;
+    if (doi) inText.add(doi);
   }
+  if (inText.size > 0) return [...inText];
   for (const link of entry.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     const doi = extractDoiFromHref(link.href);
-    if (doi && doi !== hostDoi) return doi;
+    if (doi && doi !== hostDoi) return [doi];
   }
-  return null;
+  return [];
 }
 
 // Entries that cite a PubMed Central id and no DOI — either spelled out
@@ -570,15 +578,16 @@ function extractPmcIdFromEntry(entry: HTMLElement, text: string): string | null 
 // says which element a node belongs to — its parent for ordinary siblings,
 // its table for rows, whose entries are split across <tbody> sections.
 function findLargestGroup(
-  container: Element,
-  selector: string,
+  elements: readonly Element[],
+  selector: string | null,
   owner: (node: HTMLElement) => Element | null = (node) => node.parentElement,
 ): HTMLElement[] {
   const byOwner = new Map<Element, HTMLElement[]>();
-  for (const node of container.querySelectorAll<HTMLElement>(selector)) {
-    if (node.closest(FLORA_UI_SELECTOR) || !node.textContent?.trim()) continue;
+  for (const element of elements) {
+    if (selector && !element.matches(selector)) continue;
+    const node = element as HTMLElement;
     const key = owner(node);
-    if (!key) continue;
+    if (!key || !node.textContent?.trim()) continue;
     const group = byOwner.get(key) ?? [];
     group.push(node);
     byOwner.set(key, group);
@@ -594,27 +603,27 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   // Outermost <li>s only: a reference <li> can wrap its own nested action-link
   // <li>s (e.g. Frontiers' "Pubmed | CrossRef | ..."), which must not be
   // mistaken for separate entries.
-  const allLis = Array.from(container.querySelectorAll<HTMLElement>("li")).filter(
-    (li) => !li.closest(FLORA_UI_SELECTOR)
-  );
-  const lis = allLis.filter(
-    (li) => !allLis.some((other) => other !== li && other.contains(li))
-  );
-  const pGroup = findLargestGroup(container, "p");
-  const divGroup = findLargestGroup(container, "div");
+  const elements = pageElementsWithin(container);
+  const lis = elements.filter((el): el is HTMLElement => {
+    if (el.localName !== "li") return false;
+    const outer = el.parentElement?.closest("li");
+    return !outer || outer === container || !container.contains(outer);
+  });
+  const pGroup = findLargestGroup(elements, "p");
+  const divGroup = findLargestGroup(elements, "div");
   // A tabular bibliography: one citation per body row. Without this the only
   // children of the <table> are <thead>/<tbody>, so the whole table counts as
   // a single entry — one DOI gets a pill and every later row is skipped.
   // Rows group by their own table, so a table split across several <tbody>
   // sections keeps all its entries and a nested table stays separate.
-  const rowGroup = findLargestGroup(container, "tbody > tr, table > tr", (row) =>
+  const rowGroup = findLargestGroup(elements, "tbody > tr, table > tr", (row) =>
     row.closest("table")
   );
 
   // Largest group wins, not just the first past the threshold: Oxford
   // Academic's per-reference <div> group otherwise loses to a single
   // reference's own 2-3 <p> link buttons.
-  const componentGroup = findLargestGroup(container, "*", (node) =>
+  const componentGroup = findLargestGroup(elements, null, (node) =>
     node.tagName.includes("-") || node.constructor.name === "HTMLUnknownElement" ? node.parentElement : null
   );
   const best = [lis, pGroup, divGroup, rowGroup, componentGroup].reduce((a, b) => (b.length > a.length ? b : a));
@@ -692,6 +701,9 @@ function findHeadingReferenceSiblings(doc: Document): HTMLElement[] {
 }
 
 export function findReferenceEntries(doc: Document): ReferenceEntry[] {
+  if (_refEntryCache && _refEntryCache.epoch === _scanEpoch && _refEntryCache.doc === doc) {
+    return _refEntryCache.result;
+  }
   const elements: HTMLElement[] = editorReferenceElements(doc);
 
   for (const container of findReferenceContainers(doc)) {
@@ -703,16 +715,19 @@ export function findReferenceEntries(doc: Document): ReferenceEntry[] {
   }
 
   const hostDoi = extractPrimaryDOI(doc);
-  return elements.map((element) => {
-    const doi = extractDoiFromEntry(element, hostDoi);
-    const text = cleanReferenceText(element.innerText ?? element.textContent ?? "");
+  const result = elements.map((element) => {
+    const rendered = element.innerText ?? element.textContent ?? "";
+    const dois = extractDoisFromEntry(element, rendered, hostDoi);
+    const text = cleanReferenceText(rendered);
     return {
       element,
-      doi,
-      pmcid: doi === null ? extractPmcIdFromEntry(element, text) : null,
+      dois,
+      pmcid: dois.length === 0 ? extractPmcIdFromEntry(element, text) : null,
       text,
     };
   });
+  _refEntryCache = { epoch: _scanEpoch, doc, result };
+  return result;
 }
 
 function addDoisWithin(container: Element, found: Set<DoiString>): void {
@@ -770,9 +785,9 @@ function headingCitedWithDoi(doc: Document, doi: DoiString): HTMLElement | null 
 
 function ownReferenceDoi(doc: Document, title: HTMLElement, referenceFound: Set<DoiString>): DoiString | null {
   const own = findReferenceEntries(doc).filter(
-    (entry) => entry.doi && referenceFound.has(entry.doi) && titleContainsText(title, entry.text)
+    (entry) => entry.dois.some((doi) => referenceFound.has(doi)) && titleContainsText(title, entry.text)
   );
-  return own.length === 1 ? own[0].doi : null;
+  return own.length === 1 ? own[0].dois.find((doi) => referenceFound.has(doi))! : null;
 }
 
 export function classifyPageDois(doc: Document): ClassifiedDois {

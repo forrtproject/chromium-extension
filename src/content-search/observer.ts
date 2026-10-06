@@ -8,7 +8,8 @@
 import {debugError, debugLog} from "@shared/debug";
 import {currentPageEntry, isSamePage} from "@shared/page-identity";
 import {isExternalMutation, isFloraOwnedNode} from "@shared/flora-ui";
-import {NOT_READY, PROCESSED_ATTR, processSearchResults} from "./pipeline";
+import {isSearchHidden, NOT_READY, PROCESSED_ATTR, processSearchResults} from "./pipeline";
+import {offerFirstPageTour} from "@shared/page-tour";
 import type {SearchSiteAdapter} from "./sites/types";
 
 const SETTLE_MS = 150;
@@ -21,8 +22,9 @@ export function processIfResultsPage(adapter: SearchSiteAdapter, context: string
         debugLog(`${adapter.label}: not a results page — left to content-general`);
         return;
     }
-    void processSearchResults(adapter, document).catch((err) =>
-        debugError(`${adapter.label}: ${context} failed —`, err)
+    void processSearchResults(adapter, document).then(
+        () => { if (!isSearchHidden()) void offerFirstPageTour("search", () => !isSearchHidden()); },
+        (err) => debugError(`${adapter.label}: ${context} failed —`, err),
     );
 }
 

@@ -72,6 +72,79 @@ describe("report link encoding", () => {
     });
 });
 
+describe("a crafted report link", () => {
+    async function decodeRaw(raw: unknown): Promise<ReportPayload | null> {
+        return decodeReport(await encodeReport(raw as ReportPayload));
+    }
+
+    it("cannot inject markup through a count field", async () => {
+        const decoded = await decodeRaw(payload({
+            references: [{title: "Ref", doi: "10.1/x", replications: "<img src=x onerror=alert(1)>" as unknown as number}],
+            pubpeer: {comments: "<script>alert(1)</script>" as unknown as number, url: "https://pubpeer.com/x"},
+        }));
+        const html = renderReportBody(decoded!);
+        expect(html).not.toContain("<img");
+        expect(html).not.toContain("<script");
+    });
+
+    it("cannot turn a title or entry link into script", async () => {
+        const decoded = await decodeRaw(payload({
+            sourceUrl: "javascript:alert(document.domain)",
+            replications: [{title: "Rep", url: "JavaScript:alert(1)", doi: "10.1/rep"}],
+        }));
+        const html = renderReportBody(decoded!);
+        expect(html.toLowerCase()).not.toContain("javascript:");
+        expect(html).toContain('href="https://doi.org/10.1/rep"');
+    });
+
+    it("drops entries and references that are not objects", async () => {
+        const decoded = await decodeRaw(payload({
+            replications: ["<b>x</b>", null] as unknown as ReportPayload["replications"],
+            references: [{title: "No DOI"} as ReportPayload["references"][number]],
+        }));
+        expect(decoded!.replications).toEqual([]);
+        expect(decoded!.references).toEqual([]);
+    });
+
+    it("rejects a payload with a missing or impossible compile date", async () => {
+        const {generated: _omitted, ...withoutDate} = payload();
+        expect(await decodeRaw(withoutDate)).toBeNull();
+        expect(await decodeRaw({...payload(), generated: 1e20})).toBeNull();
+    });
+
+    it("keeps a crafted DOI inside its doi.org path", async () => {
+        const decoded = await decodeRaw(payload({
+            references: [{title: "Ref", doi: "10.1/x?y=1#z", replications: 2}],
+        }));
+        expect(renderReportBody(decoded!)).toContain('href="https://doi.org/10.1/x%3Fy%3D1%23z"');
+    });
+
+    it("drops a DOI that is not well-formed text instead of failing to render", async () => {
+        const loneSurrogate = "10.1/x\ud800";
+        const decoded = await decodeRaw(payload({
+            notice: {kind: "retraction", doi: loneSurrogate},
+            replications: [{title: "Rep", doi: loneSurrogate}],
+            references: [{title: "Ref", doi: loneSurrogate, replications: 2}, {title: "Kept", doi: "10.1/kept", replications: 1}],
+        }));
+        expect(decoded!.notice).toEqual({kind: "retraction"});
+        expect(decoded!.replications[0].doi).toBeUndefined();
+        expect(decoded!.references.map((r) => r.doi)).toEqual(["10.1/kept"]);
+        expect(() => renderReportBody(decoded!)).not.toThrow();
+    });
+
+    it("keeps the retraction banner when the notice DOI is unusable, without a link", async () => {
+        const decoded = await decodeRaw(payload({notice: {kind: "retraction", doi: "unavailable"}}));
+        const html = renderReportBody(decoded!);
+        expect(html).toContain("This article has been retracted.");
+        expect(html).not.toContain("doi.org/unavailable");
+        expect(html).not.toContain("Read the notice");
+    });
+
+    it("rejects a payload without a text title", async () => {
+        expect(await decodeRaw({...payload(), title: 7})).toBeNull();
+    });
+});
+
 describe("report rendering", () => {
     it("leads with the paper and its evidence", () => {
         const html = renderReportBody(payload());
@@ -124,5 +197,19 @@ describe("report rendering", () => {
         expect(doc.startsWith("<!doctype html>")).toBe(true);
         expect(doc).toContain("@media print");
         expect(doc).toContain("Power Posing");
+    });
+});
+
+describe("the printable report", () => {
+    it("shows a retraction whose notice DOI from Retraction Watch is a placeholder, without a broken link", () => {
+        const html = renderReportBody(payload({notice: {kind: "retraction", doi: "xx10.1007/978-3-030-00524-5_9"}}));
+        expect(html).toContain("This article has been retracted.");
+        expect(html).not.toContain("doi.org/xx10");
+    });
+
+    it("links a notice with a usable DOI", () => {
+        const html = renderReportBody(payload({notice: {kind: "concern", doi: "10.1/notice"}}));
+        expect(html).toContain('href="https://doi.org/10.1/notice"');
+        expect(html).toContain("Read the notice");
     });
 });

@@ -7,6 +7,8 @@ import {
     createIndicatorPanel,
     createIndicatorPill,
     DOI_LINK_SVG,
+    ensurePopoverRows,
+    PILL_REPEAT_SVG,
     PUBPEER_HUB_SVG,
 } from "@shared/indicator-pill";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
@@ -206,6 +208,7 @@ function pinnedPill(doi: DoiString): HTMLElement {
     wrap.className = "demo-pinned-pill";
     const pill = articlePill(doi, {replications: 3});
     wrap.appendChild(pill);
+    ensurePopoverRows(pill);
     const popover = pill.querySelector<HTMLElement>("[data-flora-popover]");
     if (popover) {
         popover.style.position = "static";
@@ -236,7 +239,7 @@ const LEGEND_GLYPHS: Record<string, string> = {
     doi: DOI_LINK_SVG,
     oa: OA_UNLOCK_SVG,
     pubpeer: PUBPEER_HUB_SVG,
-    badge: `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;"></span>`,
+    badge: PILL_REPEAT_SVG,
 };
 
 function legendIcon(name: string): HTMLElement {

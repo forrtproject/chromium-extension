@@ -1,10 +1,11 @@
-import {activeWorkSignal} from "@shared/work-cancellation";
+import {activeWorkSignal, workSignal} from "@shared/work-cancellation";
 // Open Access status for a DOI via Unpaywall, cached in chrome.storage.local.
 // Used to surface a lock/unlock icon next to the DOIs we inject on the page.
 
 import { getSettings } from "./settings";
 import { BlobCache } from "./blob-cache";
 import { debugWarn } from "./debug";
+import { webUrl } from "./web-url";
 import { RequestGate } from "./request-gate";
 
 export interface OpenAccessLocation {
@@ -54,14 +55,14 @@ function hostLabel(url: string): string {
 }
 
 function toLocation(raw: UnpaywallLocation): OpenAccessLocation | null {
-    const url = raw.url_for_pdf ?? raw.url ?? null;
+    const url = webUrl(raw.url_for_pdf) ?? webUrl(raw.url);
     if (!url) return null;
     const institution = raw.repository_institution?.trim();
     return {
         url,
         label: institution || (raw.host_type === "publisher" ? "Publisher" : hostLabel(url)),
         version: raw.version ? VERSION_LABELS[raw.version] ?? null : null,
-        isPdf: !!raw.url_for_pdf,
+        isPdf: url === raw.url_for_pdf,
     };
 }
 
@@ -78,7 +79,7 @@ const OA_CACHE = new BlobCache<OpenAccessStatus & {checkedAt?: number}>({
 
 // One gate per extension context; repeated DOI elements share the same lookup.
 const UNPAYWALL_GATE = new RequestGate("Unpaywall", 4);
-const pending = new Map<string, {signal?: AbortSignal; request: Promise<OpenAccessStatus | null>}>();
+const pending = new Map<string, {signal: AbortSignal | null; request: Promise<OpenAccessStatus | null>}>();
 
 async function getUserEmail(): Promise<string> {
     const { email } = await getSettings();
@@ -91,8 +92,7 @@ async function getUserEmail(): Promise<string> {
  * callers can choose to render nothing rather than a misleading "no access".
  * Rejects with the abort reason when the pass is cancelled.
  */
-export async function fetchOpenAccess(doi: string): Promise<OpenAccessStatus | null> {
-    const signal = activeWorkSignal();
+export async function fetchOpenAccess(doi: string, signal: AbortSignal | null = activeWorkSignal() ?? null): Promise<OpenAccessStatus | null> {
     const cached = await OA_CACHE.get(doi);
     if (cached && (!cached.notIndexed || Date.now() - (cached.checkedAt ?? 0) < 5 * 60 * 1000)) return cached;
 
@@ -111,6 +111,13 @@ export async function fetchOpenAccess(doi: string): Promise<OpenAccessStatus | n
     return request;
 }
 
+/** A lookup to start later, still cancelled by the page's navigation or Cancel. */
+export function deferredOpenAccess(doi: string): () => Promise<OpenAccessStatus | null> {
+    const page = workSignal();
+    const signal = page.aborted ? null : page;
+    return () => fetchOpenAccess(doi, signal);
+}
+
 async function unpaywallReason(resp: Response): Promise<string | null> {
     try {
         const body = (await resp.clone().json()) as {message?: unknown};
@@ -118,7 +125,7 @@ async function unpaywallReason(resp: Response): Promise<string | null> {
     } catch { return null; }
 }
 
-async function requestOpenAccess(doi: string, email: string, signal?: AbortSignal): Promise<OpenAccessStatus | null> {
+async function requestOpenAccess(doi: string, email: string, signal: AbortSignal | null): Promise<OpenAccessStatus | null> {
     try {
         return await UNPAYWALL_GATE.fetch(
             `https://api.unpaywall.org/v2/${encodeURIComponent(doi)}?email=${encodeURIComponent(email)}`, {signal: signal ?? null},

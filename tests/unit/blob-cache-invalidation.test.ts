@@ -28,7 +28,7 @@ describe("BlobCache invalidation", () => {
             async (items: Record<string, unknown>) => Object.assign(store, items)
         );
         (chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
-            async (k: string) => { delete store[k]; }
+            async (keys: string | string[]) => { for (const k of [keys].flat()) delete store[k]; }
         );
         (chrome.storage.onChanged.addListener as ReturnType<typeof vi.fn>).mockClear();
     });

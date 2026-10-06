@@ -6,7 +6,7 @@ import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
-import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
+import {RET_COUNT_KEY, RET_MAP_KEY, retractionEntryCount, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
 import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, type TakeReportResponse} from "@shared/messages";
@@ -232,8 +232,10 @@ ensureRetractionSyncAlarm().catch((err) => {
 });
 
 
+type LookupBatch = SharedRequest<{results: Map<DoiString, ReplicationResult>; errors: Record<string, string>}>;
+
 /** In-flight dedup: prevents duplicate API calls for the same DOI */
-const inflight = new Map<DoiString, SharedRequest<{results: Map<DoiString, ReplicationResult>; errors: Record<string, string>}>>();
+const inflight = new Map<DoiString, LookupBatch>();
 
 chrome.runtime.onMessage.addListener(
     (message: unknown, sender, sendResponse) => {
@@ -489,32 +491,49 @@ async function handleLookup(dois: DoiString[], signal?: AbortSignal): Promise<Lo
     const results: Record<string, ReplicationResult> = {};
     const errors: Record<string, string> = {};
     const toFetch: DoiString[] = [];
+    const joined = new Map<LookupBatch, DoiString[]>();
 
     // Confirmed no-matches expire after five minutes; provider errors are never cached.
     const [cached, noMatches] = await Promise.all([cache.getMany(dois), noMatchCache.getMany(dois)]);
     for (const doi of dois) {
         const hit = cached.get(doi);
+        const running = inflight.get(doi);
         if (hit) {
             results[doi] = hit;
         } else if (noMatches.has(doi)) {
             continue;
-        } else if (inflight.has(doi) && !inflight.get(doi)!.aborted) {
-            const shared = await inflight.get(doi)!.subscribe(signal);
-            const r = shared.results.get(doi);
-            if (shared.errors[doi]) errors[doi] = shared.errors[doi];
-            if (r) results[doi] = r;
+        } else if (running && !running.aborted) {
+            const batchDois = joined.get(running);
+            if (batchDois) batchDois.push(doi);
+            else joined.set(running, [doi]);
         } else {
             toFetch.push(doi);
         }
     }
 
-    if (toFetch.length === 0) {
-        return {type: "FLORA_LOOKUP_RESULT", results, errors};
-    }
+    const collect = (batch: LookupBatch, batchDois: DoiString[]): Promise<void> => batch.subscribe(signal).then(
+        (completed) => {
+            for (const doi of batchDois) {
+                const result = completed.results.get(doi);
+                if (result) results[doi] = result;
+                if (completed.errors[doi]) errors[doi] = completed.errors[doi];
+            }
+        },
+        (err) => {
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            if (!signal?.aborted) debugError(`Lookup: FORRT API failed for ${batchDois.length} DOI(s) — ${msg}`, err);
+            for (const doi of batchDois) errors[doi] = msg;
+        },
+    );
+    if (joined.size > 0 || toFetch.length > 0) signal?.throwIfAborted();
+    const waits = [...joined].map(([batch, batchDois]) => collect(batch, batchDois));
+    if (toFetch.length > 0) waits.push(collect(startLookupBatch(toFetch), toFetch));
+    await Promise.all(waits);
+    return {type: "FLORA_LOOKUP_RESULT", results, errors};
+}
 
-    // Batch API call for uncached DOIs
-    signal?.throwIfAborted();
-    const batch = new SharedRequest(async (transportSignal: AbortSignal) => {
+function startLookupBatch(toFetch: DoiString[]): LookupBatch {
+    const batch: LookupBatch = new SharedRequest(async (transportSignal: AbortSignal) => {
         try {
             const batchErrors: Record<string, string> = {};
             const apiResults = await lookupDOIs(toFetch, batchErrors, transportSignal);
@@ -537,26 +556,7 @@ async function handleLookup(dois: DoiString[], signal?: AbortSignal): Promise<Lo
         }
     });
     for (const doi of toFetch) inflight.set(doi, batch);
-
-    try {
-        const completed = await batch.subscribe(signal);
-        const apiResults = completed.results;
-        Object.assign(errors, completed.errors);
-
-        for (const doi of toFetch) {
-            const result = apiResults.get(doi);
-            if (result) results[doi] = result;
-        }
-
-    } catch (err) {
-        const msg = err instanceof Error ? err.message : "Unknown error";
-        debugError(`Lookup: FORRT API failed for ${toFetch.length} DOI(s) — ${msg}`, err);
-        for (const doi of toFetch) {
-            errors[doi] = msg;
-        }
-    }
-
-    return {type: "FLORA_LOOKUP_RESULT", results, errors};
+    return batch;
 }
 
 async function handleAugment(
@@ -735,7 +735,7 @@ async function loadRetractionSource(signal: AbortSignal): Promise<RetractionMaps
     // from the bundled JSON and check whether refresh is due. Don't cache this
     // source choice, so a newly synced map is noticed on next check.
     debugLog("Retractions: no stored map — answering from the bundled map and checking refresh schedule");
-    syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
+    syncRetractionsInfo(true).catch((err) => debugError("Retractions: sync failed —", err));
     return loadBundledRetractionMap(signal);
 }
 
@@ -770,9 +770,17 @@ async function handleRetractionCheck(dois: DoiString[], signal?: AbortSignal): P
 // Every uncached check kicks off a sync; without this guard a page's worth of
 // them each download the full 3.5MB map and write it back.
 let syncInFlight: Promise<void> | null = null;
+let mapMissingReported = false;
 
-export function syncRetractionsInfo(): Promise<void> {
-    syncInFlight ??= runRetractionSync().finally(() => {
+export function syncRetractionsInfo(mapMissing = false): Promise<void> {
+    if (mapMissing) mapMissingReported = true;
+    syncInFlight ??= (async () => {
+        do {
+            const reported = mapMissingReported;
+            mapMissingReported = false;
+            await runRetractionSync(reported);
+        } while (mapMissingReported);
+    })().finally(() => {
         syncInFlight = null;
     });
     return syncInFlight;
@@ -786,17 +794,28 @@ const RETRY_INTERVAL = 1000 * 60 * 10;
 const SYNC_ATTEMPT_KEY = "flora_retraction_sync_attempt";
 let lastSyncAttemptAt = 0;
 
-async function runRetractionSync(): Promise<void> {
+async function storedRetractionCount(recorded: unknown): Promise<number> {
+    if (typeof recorded === "number") return recorded;
+    const stored = await chrome.storage.local.get(RET_MAP_KEY);
+    const count = retractionEntryCount(stored[RET_MAP_KEY] as RetractionMaps | undefined);
+    await chrome.storage.local.set({[RET_COUNT_KEY]: count})
+        .catch(err => debugWarn("Retraction sync: entry count not stored —", err));
+    return count;
+}
+
+async function runRetractionSync(missingReported: boolean): Promise<void> {
     const minInterval = 1000 * 60 * 60 * 24 * 7; // weekly
     const currentTime = Date.now();
-    const previous = await chrome.storage.local.get(["synctime", RET_MAP_KEY, SYNC_ATTEMPT_KEY]);
+    const mapMissing = missingReported && retractionEntryCount(
+        (await chrome.storage.local.get(RET_MAP_KEY))[RET_MAP_KEY] as RetractionMaps | undefined) === 0;
+    const previous = await chrome.storage.local.get(["synctime", RET_COUNT_KEY, SYNC_ATTEMPT_KEY]);
     const lastSync = previous.synctime || 0;
     const nextUpdate = lastSync + minInterval;
-    const map = previous[RET_MAP_KEY] as RetractionMaps | undefined;
-    const isEmpty = !map || (
-        Object.keys(map.retractions || {}).length === 0 &&
-        Object.keys(map.concerns || {}).length === 0
-    );
+    if (mapMissing && previous[RET_COUNT_KEY] !== 0) {
+        await chrome.storage.local.set({[RET_COUNT_KEY]: 0})
+            .catch(err => debugWarn("Retraction sync: entry count not reset —", err));
+    }
+    const isEmpty = mapMissing || await storedRetractionCount(previous[RET_COUNT_KEY]) === 0;
     if (!isEmpty && currentTime <= nextUpdate) return;
     const storedAttempt = typeof previous[SYNC_ATTEMPT_KEY] === "number" ? previous[SYNC_ATTEMPT_KEY] as number : 0;
     const lastAttempt = Math.max(storedAttempt, lastSyncAttemptAt);

@@ -1,7 +1,13 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {createIndicatorPanel, createIndicatorPill, updateIndicatorPillBadges} from "../../src/shared/indicator-pill";
+import {createIndicatorPanel, createIndicatorPill as createClosedPill, updateIndicatorPillBadges, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import {injectInlineRetractionPills, resetRetractionPills, type RetractionResponse} from "../../src/shared/doi-retraction";
 import type {DoiString, LookupState} from "../../src/shared/types";
+
+function createIndicatorPill(...args: Parameters<typeof createClosedPill>): HTMLElement {
+    const pill = createClosedPill(...args);
+    ensurePopoverRows(pill);
+    return pill;
+}
 
 const DOI = "10.1234/x" as DoiString;
 const OTHER = "10.1234/other" as DoiString;

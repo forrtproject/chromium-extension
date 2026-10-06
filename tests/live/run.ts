@@ -115,7 +115,7 @@ async function prepareExtension(browser: Browser): Promise<void> {
     }
     const email = process.env.ORE_TEST_EMAIL?.trim() ?? "";
     await worker.evaluate(async (contact: string) => {
-        await chrome.storage.local.set({flora_debug: true});
+        await chrome.storage.local.set({flora_debug: true, flora_page_tour_seen: {article: true, search: true}});
         const sync: Record<string, unknown> = {flora_setup_remind_after: Date.now() + 86_400_000};
         if (contact) sync.flora_settings = {email: contact};
         await chrome.storage.sync.set(sync);

@@ -16,7 +16,7 @@ describe("BlobCache expiry sweeping", () => {
             async (items: Record<string, unknown>) => Object.assign(store, items)
         );
         (chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
-            async (k: string) => { delete store[k]; }
+            async (keys: string | string[]) => { for (const k of [keys].flat()) delete store[k]; }
         );
     });
 

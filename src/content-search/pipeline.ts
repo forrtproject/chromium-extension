@@ -21,7 +21,7 @@ import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
 import {reportCodeError} from "@shared/error-report";
 import {hasReplication} from "../content-general/reference-states";
 import {isSetupComplete} from "@shared/settings";
-import {fetchOpenAccess} from "@shared/openaccess";
+import {deferredOpenAccess} from "@shared/openaccess";
 import {abortWorkForNavigation, activeWorkSignal, isAbortError, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
@@ -639,7 +639,7 @@ async function placePanel(
             color: PILL_COLOR,
             isAugmented,
             provenanceLabel,
-            oaStatus: fetchOpenAccess(doi),
+            oaStatus: deferredOpenAccess(doi),
             retraction: retractions.get(doi) ?? null,
         });
         adapter.preparePanelTarget?.(row);

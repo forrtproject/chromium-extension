@@ -1,14 +1,14 @@
-"use strict";(()=>{var h={amp:"&",lt:"<",gt:">",quot:'"',apos:"'",nbsp:" ",thinsp:" ",ensp:" ",emsp:" ",ndash:"\u2013",mdash:"\u2014",hellip:"\u2026",lsquo:"\u2018",rsquo:"\u2019",ldquo:"\u201C",rdquo:"\u201D"},v=/<\/?([a-z][a-z0-9]*)[^<>]*>/gi,k=new Set(["sub","sup"]);function m(e){return e.replace(v,(t,n)=>k.has(n.toLowerCase())?"":"\0").replace(/\u0000+/g,(t,n,o)=>new RegExp("\\p{L}","u").test(o[n-1]??"")&&new RegExp("\\p{L}","u").test(o[n+t.length]??"")?" ":"")}function T(e){return e.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(t,n)=>{if(n[0]==="#"){let a=/^#x/i.test(n)?parseInt(n.slice(2),16):parseInt(n.slice(1),10);return a>0&&a<=1114111?String.fromCodePoint(a):t}let o=n.toLowerCase();return Object.hasOwn(h,o)?h[o]:t})}function s(e){let t=e??"";for(let n=0;n<3;n++){let o=T(m(t));if(o===t)break;t=o}return m(t).replace(/[\s ]+/g," ").trim()}var u="https://forrt.org/chromium-extension/";function E(e){let t=e.replace(/-/g,"+").replace(/_/g,"/"),n=atob(t+"=".repeat((4-t.length%4)%4));return Uint8Array.from(n,o=>o.charCodeAt(0))}async function S(e,t){let n=new ReadableStream({start(r){r.enqueue(e),r.close()}}),o=[],a=n.pipeThrough(t).getReader();for(;;){let{done:r,value:d}=await a.read();if(r)break;d&&o.push(d)}let l=o.reduce((r,d)=>r+d.length,0),p=new Uint8Array(l),c=0;for(let r of o)p.set(r,c),c+=r.length;return p}async function b(e){try{let t=await S(E(e),new DecompressionStream("deflate-raw")),n=JSON.parse(new TextDecoder().decode(t));return n.v===1&&typeof n.title=="string"?n:null}catch{return null}}function i(e){return e.replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t]??t)}function P(e){let t=e.toLowerCase();return t.includes("success")||t.includes("replicated")||t==="yes"?"background:#d1fae5;color:#065f46;":t.includes("fail")||t==="no"?"background:#fee2e2;color:#991b1b;":"background:#fef8e8;color:#b8860b;"}function O(e){let t=e.url??(e.doi?`https://doi.org/${e.doi}`:null),n=t?`<a href="${i(t)}" target="_blank" rel="noopener">${i(s(e.title))}</a>`:i(s(e.title)),o=[e.authors,e.year?String(e.year):null,e.journal].filter(l=>!!l).join(" \xB7 "),a=e.outcome?`<span class="badge" style="${P(e.outcome)}">${i(e.outcome)}</span>`:"";return`<li><div class="entry-head">${n}${a}</div>${o?`<div class="meta">${i(o)}</div>`:""}</li>`}function g(e,t){return t.length===0?"":`<section>
+"use strict";(()=>{var v={amp:"&",lt:"<",gt:">",quot:'"',apos:"'",nbsp:" ",thinsp:" ",ensp:" ",emsp:" ",ndash:"\u2013",mdash:"\u2014",hellip:"\u2026",lsquo:"\u2018",rsquo:"\u2019",ldquo:"\u201C",rdquo:"\u201D"},O=/<\/?([a-z][a-z0-9]*)[^<>]*>/gi,L=new Set(["sub","sup"]);function T(e){return e.replace(O,(t,n)=>L.has(n.toLowerCase())?"":"\0").replace(/\u0000+/g,(t,n,o)=>new RegExp("\\p{L}","u").test(o[n-1]??"")&&new RegExp("\\p{L}","u").test(o[n+t.length]??"")?" ":"")}function D(e){return e.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(t,n)=>{if(n[0]==="#"){let r=/^#x/i.test(n)?parseInt(n.slice(2),16):parseInt(n.slice(1),10);return r>0&&r<=1114111?String.fromCodePoint(r):t}let o=n.toLowerCase();return Object.hasOwn(v,o)?v[o]:t})}function p(e){let t=e??"";for(let n=0;n<3;n++){let o=D(T(t));if(o===t)break;t=o}return T(t).replace(/[\s ]+/g," ").trim()}function b(e){if(!e)return null;try{let t=new URL(e);return t.protocol==="https:"||t.protocol==="http:"?t.href:null}catch{return null}}var y="https://forrt.org/chromium-extension/";function z(e){let t=e.replace(/-/g,"+").replace(/_/g,"/"),n=atob(t+"=".repeat((4-t.length%4)%4));return Uint8Array.from(n,o=>o.charCodeAt(0))}async function _(e,t){let n=new ReadableStream({start(a){a.enqueue(e),a.close()}}),o=[],r=n.pipeThrough(t).getReader();for(;;){let{done:a,value:s}=await r.read();if(a)break;s&&o.push(s)}let c=o.reduce((a,s)=>a+s.length,0),d=new Uint8Array(c),g=0;for(let a of o)d.set(a,g),g+=a.length;return d}var h=e=>typeof e=="object"&&e!==null,l=e=>typeof e=="string"?e:void 0,u=e=>typeof e=="number"&&Number.isFinite(e)&&e>=0?Math.floor(e):void 0,E=e=>e==="retraction"||e==="concern"?e:void 0,f=e=>Array.isArray(e)?e.filter(h):[],j=/^10\.\d+(?:\.\d+)*\/\S+$/,C=/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/,m=e=>{let t=l(e);return t!==void 0&&j.test(t)&&!C.test(t)?t:void 0},M=864e13,N=e=>{let t=u(e);return t!==void 0&&t<=M?t:void 0};function $(e){return`https://doi.org/${e.split("/").map(encodeURIComponent).join("/")}`}function x(e){return{title:l(e.title)??"",doi:m(e.doi),url:l(e.url),authors:l(e.authors),year:u(e.year),journal:l(e.journal),outcome:l(e.outcome)}}function I(e){let t=m(e.doi);return t?{title:l(e.title)??t,doi:t,replications:u(e.replications),reproductions:u(e.reproductions),inAtlas:e.inAtlas===!0?!0:void 0,notice:E(e.notice),comments:u(e.comments)}:null}function H(e){if(!h(e)||e.v!==1)return null;let t=l(e.title),n=N(e.generated);if(t===void 0||n===void 0)return null;let o=h(e.notice)?e.notice:null,r=o?m(o.doi):void 0,c=o?E(o.kind):void 0,d=h(e.pubpeer)?e.pubpeer:null;return{v:1,title:t,doi:l(e.doi),authors:l(e.authors),year:u(e.year),sourceUrl:l(e.sourceUrl),generated:n,notice:c?{kind:c,...r?{doi:r}:{}}:null,replications:f(e.replications).map(x),reproductions:f(e.reproductions).map(x),originals:f(e.originals).map(x),references:f(e.references).map(I).filter(g=>g!==null),pubpeer:d?{comments:u(d.comments)??0,url:l(d.url)??""}:null}}async function U(e){try{let t=await _(z(e),new DecompressionStream("deflate-raw"));return H(JSON.parse(new TextDecoder().decode(t)))}catch{return null}}function i(e){return e.replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t]??t)}function B(e){let t=e.toLowerCase();return t.includes("success")||t.includes("replicated")||t==="yes"?"background:#d1fae5;color:#065f46;":t.includes("fail")||t==="no"?"background:#fee2e2;color:#991b1b;":"background:#fef8e8;color:#b8860b;"}function q(e){let t=b(e.url)??(e.doi?$(e.doi):null),n=t?`<a href="${i(t)}" target="_blank" rel="noopener">${i(p(e.title))}</a>`:i(p(e.title)),o=[e.authors,e.year?String(e.year):null,e.journal].filter(c=>!!c).join(" \xB7 "),r=e.outcome?`<span class="badge" style="${B(e.outcome)}">${i(e.outcome)}</span>`:"";return`<li><div class="entry-head">${n}${r}</div>${o?`<div class="meta">${i(o)}</div>`:""}</li>`}function R(e,t){return t.length===0?"":`<section>
       <h2>${i(e)} <span class="count">${t.length}</span></h2>
-      <ul class="entries">${t.map(O).join("")}</ul>
-    </section>`}function x(e){let t=[];return e.replications&&t.push(`<span class="tag tag-repl">${e.replications} replication${e.replications===1?"":"s"}</span>`),e.reproductions&&t.push(`<span class="tag tag-repro">${e.reproductions} reproduction${e.reproductions===1?"":"s"}</span>`),e.inAtlas&&t.push('<span class="tag tag-atlas">In the Atlas</span>'),e.notice==="retraction"&&t.push('<span class="tag tag-retracted">Retracted</span>'),e.notice==="concern"&&t.push('<span class="tag tag-concern">Concern</span>'),e.comments&&t.push(`<span class="tag tag-pubpeer">${e.comments} PubPeer comment${e.comments===1?"":"s"}</span>`),t.length===0?"":`<li>
-      <div class="entry-head"><a href="https://doi.org/${i(e.doi)}" target="_blank" rel="noopener">${i(s(e.title))}</a></div>
+      <ul class="entries">${t.map(q).join("")}</ul>
+    </section>`}function w(e){let t=[];return e.replications&&t.push(`<span class="tag tag-repl">${e.replications} replication${e.replications===1?"":"s"}</span>`),e.reproductions&&t.push(`<span class="tag tag-repro">${e.reproductions} reproduction${e.reproductions===1?"":"s"}</span>`),e.inAtlas&&t.push('<span class="tag tag-atlas">In the Atlas</span>'),e.notice==="retraction"&&t.push('<span class="tag tag-retracted">Retracted</span>'),e.notice==="concern"&&t.push('<span class="tag tag-concern">Concern</span>'),e.comments&&t.push(`<span class="tag tag-pubpeer">${e.comments} PubPeer comment${e.comments===1?"":"s"}</span>`),t.length===0?"":`<li>
+      <div class="entry-head"><a href="${i($(e.doi))}" target="_blank" rel="noopener">${i(p(e.title))}</a></div>
       <div class="tags">${t.join("")}</div>
-    </li>`}function U(e){if(!e.notice)return"";let t=e.notice.kind==="retraction";return`<a class="notice ${t?"notice-retracted":"notice-concern"}"
-      href="https://doi.org/${i(e.notice.doi)}" target="_blank" rel="noopener">
-      <strong>${t?"This article has been retracted.":"This article has an expression of concern."}</strong>
+    </li>`}function G(e){if(!e.notice)return"";let t=e.notice.kind==="retraction",n=t?"notice-retracted":"notice-concern",o=`<strong>${t?"This article has been retracted.":"This article has an expression of concern."}</strong>`,r=m(e.notice.doi);return r?`<a class="notice ${n}"
+      href="${i($(r))}" target="_blank" rel="noopener">
+      ${o}
       <span>Read the notice \u2197</span>
-    </a>`}var R=`
+    </a>`:`<div class="notice ${n}">${o}</div>`}var S=`
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
   body {
@@ -70,36 +70,36 @@
     a { text-decoration: none; color: inherit; }
     section { break-inside: avoid; }
   }
-`;function $(e){let t=e.replications.length,n=e.reproductions.length,o=e.originals.length,a=e.references.filter(r=>x(r)!==""),l=[t?{n:t,label:`Replication${t===1?"":"s"}`}:null,n?{n,label:`Reproduction${n===1?"":"s"}`}:null,o?{n:o,label:`Original stud${o===1?"y":"ies"}`}:null,e.pubpeer?.comments?{n:e.pubpeer.comments,label:`PubPeer comment${e.pubpeer.comments===1?"":"s"}`}:null].filter(r=>r!==null),p=e.sourceUrl?`<a href="${i(e.sourceUrl)}" target="_blank" rel="noopener">${i(s(e.title))}</a>`:i(s(e.title)),c=[e.authors,e.year?String(e.year):null].filter(r=>!!r).join(" \xB7 ");return`<div class="sheet">
+`;function A(e){let t=e.replications.length,n=e.reproductions.length,o=e.originals.length,r=e.references.filter(s=>w(s)!==""),c=[t?{n:t,label:`Replication${t===1?"":"s"}`}:null,n?{n,label:`Reproduction${n===1?"":"s"}`}:null,o?{n:o,label:`Original stud${o===1?"y":"ies"}`}:null,e.pubpeer?.comments?{n:e.pubpeer.comments,label:`PubPeer comment${e.pubpeer.comments===1?"":"s"}`}:null].filter(s=>s!==null),d=b(e.sourceUrl),g=d?`<a href="${i(d)}" target="_blank" rel="noopener">${i(p(e.title))}</a>`:i(p(e.title)),a=[e.authors,e.year?String(e.year):null].filter(s=>!!s).join(" \xB7 ");return`<div class="sheet">
     <div class="masthead">
       <span class="brand">FORRT ORE</span>
       <span class="what">Meta Report</span>
     </div>
     <div class="head">
-      <h1>${p}</h1>
-      ${c?`<div class="byline">${i(c)}</div>`:""}
+      <h1>${g}</h1>
+      ${a?`<div class="byline">${i(a)}</div>`:""}
       ${e.doi?`<div class="doi">${i(e.doi)}</div>`:""}
     </div>
-    ${U(e)}
-    ${l.length?`<div class="stats">${l.map(r=>`<div class="stat"><b>${r.n}</b><span>${i(r.label)}</span></div>`).join("")}</div>`:""}
-    ${g("Replications",e.replications)}
-    ${g("Reproductions",e.reproductions)}
-    ${g("Original papers",e.originals)}
-    ${a.length?`<section>
-      <h2>Flagged references <span class="count">${a.length}</span></h2>
-      <ul class="entries">${a.map(x).join("")}</ul>
+    ${G(e)}
+    ${c.length?`<div class="stats">${c.map(s=>`<div class="stat"><b>${s.n}</b><span>${i(s.label)}</span></div>`).join("")}</div>`:""}
+    ${R("Replications",e.replications)}
+    ${R("Reproductions",e.reproductions)}
+    ${R("Original papers",e.originals)}
+    ${r.length?`<section>
+      <h2>Flagged references <span class="count">${r.length}</span></h2>
+      <ul class="entries">${r.map(w).join("")}</ul>
     </section>`:""}
     <div class="colophon">
-      Compiled by <a href="${u}">FORRT ORE</a> on
+      Compiled by <a href="${y}">FORRT ORE</a> on
       ${i(new Date(e.generated).toLocaleDateString(void 0,{dateStyle:"long"}))}
       from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.
       Replication evidence is a starting point for judgement, not a verdict.
     </div>
-  </div>`}var f=document.getElementById("report");function A(){let e=document.createElement("style");e.textContent=R,document.head.appendChild(e)}function y(e){f.innerHTML=`<div class="sheet">
+  </div>`}var k=document.getElementById("report");function K(){let e=document.createElement("style");e.textContent=S,document.head.appendChild(e)}function P(e){k.innerHTML=`<div class="sheet">
       <div class="masthead"><span class="brand">FORRT ORE</span><span class="what">Meta Report</span></div>
       <div class="head"><h1>${e}</h1>
         <div class="byline">A report link carries its whole report in the part of the URL
         after the <code>#</code>. If the link was shortened, wrapped by a mail client, or
         truncated on the way here, that part is lost and the report cannot be rebuilt.</div>
       </div>
-    </div>`}async function w(){A();let e=location.hash.slice(1);if(!e){y("No report in this link");return}let t=await b(e);if(!t){y("This report link could not be read");return}document.title=`${s(t.title)} \u2014 FORRT ORE Meta Report`,f.innerHTML=$(t);let n=document.createElement("a");n.className="install",n.href=u,n.textContent="Get FORRT ORE \u2014 see this for every paper you read \u2192",f.appendChild(n)}w();window.addEventListener("hashchange",()=>void w());})();
+    </div>`}async function F(){K();let e=location.hash.slice(1);if(!e){P("No report in this link");return}let t=await U(e);if(!t){P("This report link could not be read");return}document.title=`${p(t.title)} \u2014 FORRT ORE Meta Report`,k.innerHTML=A(t);let n=document.createElement("a");n.className="install",n.href=y,n.textContent="Get FORRT ORE \u2014 see this for every paper you read \u2192",k.appendChild(n)}F();window.addEventListener("hashchange",()=>void F());})();

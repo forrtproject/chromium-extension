@@ -3,6 +3,7 @@ import {isWordOnline} from "@shared/word-online";
 import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
 import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
 import {reportNothingFound, waitForWorkToFinish} from "@shared/progress-toast";
+import {closePageTour, offerFirstPageTour, startPageTour} from "@shared/page-tour";
 import {withdrawNothingFound} from "@shared/progress-tab";
 import {
     beginDomScanPass,
@@ -155,6 +156,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     if (type === "FLORA_HIDE_UI") {
         floraHidden = true;
         pausedBySettings = false;
+        closePageTour();
         hideAllFloraUI();
         reportInactive();
         sendResponse({ok: true});
@@ -169,8 +171,16 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         sendResponse({ok: true});
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({hidden: floraHidden});
+    } else if (type === "FLORA_START_PAGE_TOUR") {
+        const started = pageTourAllowed() && startPageTour("article");
+        // Every frame, and content-search on its own pages, hears this; only the page's owner should answer.
+        if (started || (window === window.top && !searchScriptOwns())) sendResponse({started});
     }
 });
+
+function pageTourAllowed(): boolean {
+    return !floraHidden && !isSheets && !isDocumentEditor() && !searchScriptOwns();
+}
 
 // The pause control on the work toast writes the snooze (or block) to storage
 // itself, then announces it here so this page clears immediately instead of
@@ -178,6 +188,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 document.addEventListener("flora-pause-site", () => {
     if (!floraHidden) pausedBySettings = true;
     floraHidden = true;
+    closePageTour();
     hideAllFloraUI();
     reportInactive();
 });
@@ -194,6 +205,7 @@ function followDomainPause(): void {
             if (!floraHidden) pausedBySettings = true;
             floraHidden = true;
             cancelWork();
+            closePageTour();
             hideAllFloraUI();
             if (blocked) reportBlocked();
             else reportActiveState(false, snoozedUntil);
@@ -315,6 +327,7 @@ const runScanPasses = serializeWithRerun(async () => {
 async function scanWholePage(): Promise<void> {
     if (floraHidden || !canStartAutomaticWork()) return;
     await runScanPasses();
+    if (pageTourAllowed()) void offerFirstPageTour("article", pageTourAllowed);
 }
 
 let nothingToFlagReportedFor: string | null = null;
@@ -411,6 +424,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                             if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks);
                         } else {
                             repaintBadges();
+                            beginDomScanPass();
                             injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             lastRenderedPageStateVersion = -1;
                             await checkPubPeer(null);

@@ -43,3 +43,41 @@ describe("when Unpaywall refuses the request", () => {
         expect(debug.debugWarn).not.toHaveBeenCalled();
     });
 });
+
+describe("Unpaywall location links", () => {
+    it("keeps only http(s) copies, falling back to the landing page", async () => {
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+            is_oa: true,
+            best_oa_location: {url_for_pdf: "javascript:alert(1)", url: "https://repo.example.org/landing"},
+            oa_locations: [{url: "data:text/html,<script>alert(1)</script>"}, {url_for_pdf: "https://repo.example.org/paper.pdf"}],
+        }), {status: 200})));
+
+        const status = await fetchOpenAccess("10.1234/oa.links");
+
+        expect(status!.locations!.map((l) => l.url)).toEqual([
+            "https://repo.example.org/landing",
+            "https://repo.example.org/paper.pdf",
+        ]);
+        expect(status!.locations![0].isPdf).toBe(false);
+        expect(status!.url).toBe("https://repo.example.org/landing");
+    });
+});
+
+describe("a deferred Open Access lookup", () => {
+    it("is still cancelled by a navigation after its pass has ended", async () => {
+        vi.stubGlobal("fetch", vi.fn((_url: string, init?: RequestInit) => new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+        })));
+        const {beginCancellableWork, endCancellableWork, abortWorkForNavigation, isAbortError} = await import("../../src/shared/work-cancellation");
+        const {deferredOpenAccess} = await import("../../src/shared/openaccess");
+        beginCancellableWork();
+        const lookup = deferredOpenAccess("10.1234/deferred.navigation");
+        endCancellableWork();
+
+        const result = lookup();
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+        abortWorkForNavigation();
+
+        await expect(result).rejects.toSatisfy(isAbortError);
+    });
+});

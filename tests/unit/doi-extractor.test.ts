@@ -561,6 +561,32 @@ describe("findReferenceContainers", () => {
   });
 });
 
+describe("findReferenceEntries — once per scan pass", () => {
+  const html = `<!DOCTYPE html><html><body><ol class="references">
+      <li>Smith J. Title. Journal. 2020. https://doi.org/10.1234/first</li>
+      <li>Jones K. Another. 2021. doi:10.5678/second</li>
+    </ol></body></html>`;
+
+  it("reuses the entries within a pass", () => {
+    const doc = new JSDOM(html).window.document;
+    beginDomScanPass();
+    expect(findReferenceEntries(doc)).toBe(findReferenceEntries(doc));
+  });
+
+  it("rebuilds them when the next pass begins", () => {
+    const doc = new JSDOM(html).window.document;
+    beginDomScanPass();
+    const before = findReferenceEntries(doc);
+    const added = doc.createElement("li");
+    added.textContent = "Lee M. Third. 2022. doi:10.9999/third";
+    doc.querySelector("ol")!.appendChild(added);
+    beginDomScanPass();
+    const after = findReferenceEntries(doc);
+    expect(after).not.toBe(before);
+    expect(after.flatMap((e) => e.dois)).toContain("10.9999/third");
+  });
+});
+
 describe("findReferenceEntries", () => {
   it("treats each body row of a tabular bibliography as its own entry", () => {
     const html = `<!DOCTYPE html>
@@ -581,7 +607,7 @@ describe("findReferenceEntries", () => {
     const entries = findReferenceEntries(doc);
 
     expect(entries).toHaveLength(3);
-    expect(entries.map((e) => e.doi)).toEqual([
+    expect(entries.flatMap((e) => e.dois)).toEqual([
       "10.5555/flora.repl.0001",
       "10.5555/flora.repro.0002",
       "10.5555/flora.retr.0003",
@@ -607,7 +633,7 @@ describe("findReferenceEntries", () => {
       </body></html>`;
     const doc = new JSDOM(html).window.document;
 
-    expect(findReferenceEntries(doc).map((e) => e.doi)).toEqual([
+    expect(findReferenceEntries(doc).flatMap((e) => e.dois)).toEqual([
       "10.5555/flora.repl.0001",
       "10.5555/flora.repro.0002",
       "10.5555/flora.retr.0003",
@@ -675,8 +701,8 @@ describe("findReferenceEntries", () => {
     const doc = new JSDOM(html).window.document;
     const entries = findReferenceEntries(doc);
     expect(entries).toHaveLength(2);
-    expect(entries[0].doi).toBe("10.1111/aaa.0001");
-    expect(entries[1].doi).toBe("10.2222/bbb.0002");
+    expect(entries[0].dois).toEqual(["10.1111/aaa.0001"]);
+    expect(entries[1].dois).toEqual(["10.2222/bbb.0002"]);
   });
 
   it("skips host-article DOI in link fallback so navigation stubs resolve to null", () => {
@@ -705,8 +731,8 @@ describe("findReferenceEntries", () => {
     const doc = new JSDOM(html).window.document;
     const entries = findReferenceEntries(doc);
     expect(entries).toHaveLength(2);
-    expect(entries[0].doi).toBeNull();
-    expect(entries[1].doi).toBeNull();
+    expect(entries[0].dois).toEqual([]);
+    expect(entries[1].dois).toEqual([]);
   });
 
   it("falls back to a non-host link DOI when entry text has no DOI", () => {
@@ -732,8 +758,8 @@ describe("findReferenceEntries", () => {
     const doc = new JSDOM(html).window.document;
     const entries = findReferenceEntries(doc);
     expect(entries).toHaveLength(2);
-    expect(entries[0].doi).toBe("10.1234/found.via.button");
-    expect(entries[1].doi).toBe("10.5678/also.found");
+    expect(entries[0].dois).toEqual(["10.1234/found.via.button"]);
+    expect(entries[1].dois).toEqual(["10.5678/also.found"]);
   });
 
   it("reads a DOI written in entry text", () => {
@@ -747,8 +773,22 @@ describe("findReferenceEntries", () => {
     const doc = new JSDOM(html).window.document;
     const entries = findReferenceEntries(doc);
     expect(entries).toHaveLength(2);
-    expect(entries[0].doi).toBe("10.1234/in.the.text");
-    expect(entries[1].doi).toBe("10.5678/also.text");
+    expect(entries[0].dois).toEqual(["10.1234/in.the.text"]);
+    expect(entries[1].dois).toEqual(["10.5678/also.text"]);
+  });
+
+  it("keeps every DOI an entry cites, once each, in reading order", () => {
+    const html = `<!DOCTYPE html>
+      <html><body>
+        <ol class="references">
+          <li>Author A (2015). Original. 10.5555/flora.repl.0001. Reanalysed by Author C (2016). 10.5555/flora.repro.0002. See also https://doi.org/10.5555/flora.repl.0001</li>
+          <li>Jones K. Another. 2021. doi:10.5678/also.text</li>
+        </ol>
+      </body></html>`;
+    const doc = new JSDOM(html).window.document;
+    const entries = findReferenceEntries(doc);
+    expect(entries[0].dois).toEqual(["10.5555/flora.repl.0001", "10.5555/flora.repro.0002"]);
+    expect(entries[1].dois).toEqual(["10.5678/also.text"]);
   });
 
   it("treats a Frontiers-style entry with a nested action-link <li> list as one entry", () => {
@@ -790,8 +830,8 @@ describe("findReferenceEntries", () => {
     expect(entries).toHaveLength(2);
     expect(entries[0].element.className).toBe("References__item");
     expect(entries[1].element.className).toBe("References__item");
-    expect(entries[0].doi).toBe("10.1016/j.jaac.2016.05.012");
-    expect(entries[1].doi).toBe("10.5678/also.found");
+    expect(entries[0].dois).toEqual(["10.1016/j.jaac.2016.05.012"]);
+    expect(entries[1].dois).toEqual(["10.5678/also.found"]);
     // The site adapter targets ".References__content" as a descendant of the
     // entry root — confirm that still holds with outermost selection.
     expect(entries[0].element.querySelector(".References__content")).not.toBeNull();
@@ -841,7 +881,7 @@ describe("findReferenceEntries", () => {
     for (const entry of entries) {
       expect(entry.element.className).toBe("js-splitview-ref-item");
     }
-    expect(entries.map((e) => e.doi)).toEqual([
+    expect(entries.flatMap((e) => e.dois)).toEqual([
       "10.1176/found.one",
       "10.1176/found.two",
       "10.1176/found.three",
@@ -969,7 +1009,7 @@ describe("findReferenceEntries", () => {
       </body></html>`;
     const doc = new JSDOM(html).window.document;
     const entries = findReferenceEntries(doc);
-    expect(entries.map((e) => e.doi)).toEqual(["10.1234/has.doi", "10.5678/also.doi"]);
+    expect(entries.flatMap((e) => e.dois)).toEqual(["10.1234/has.doi", "10.5678/also.doi"]);
     expect(entries.map((e) => e.pmcid)).toEqual([null, null]);
   });
 
@@ -1029,6 +1069,31 @@ describe("extractDoiOccurrences — FLoRA's own injected UI", () => {
     const dois = extractDoiOccurrences(doc).map((o) => o.doi);
     expect(dois).toContain("10.3333/genuine");
     expect(dois).not.toContain("10.2222/injected");
+  });
+});
+
+describe("extractDoiOccurrences — text the prose walk skips", () => {
+  it("leaves DOI text in HTML and SVG links and in scripts out of the prose occurrences", () => {
+    const doc = new JSDOM(`<!DOCTYPE html>
+      <html><body>
+        <p>Prose cites 10.1111/in.prose here.</p>
+        <p><a href="/x"><span>10.1111/in.html.link</span></a></p>
+        <svg><a href="/y"><text>10.1111/in.svg.link</text></a></svg>
+        <script>var cited = "10.1111/in.script";</script>
+      </body></html>`).window.document;
+    const prose = extractDoiOccurrences(doc).filter((o) => o.kind === "text").map((o) => o.doi);
+    expect(prose).toEqual(["10.1111/in.prose"]);
+  });
+});
+
+describe("findReferenceContainers — FLoRA's own UI", () => {
+  it("never treats an element inside an injected pill as a reference section", () => {
+    const doc = new JSDOM(`<!DOCTYPE html>
+      <html><body>
+        <span data-flora-ui=""><div class="references"><p>10.1111/a</p><p>10.1111/b</p></div></span>
+        <ol class="references"><li>10.2222/c</li><li>10.2222/d</li></ol>
+      </body></html>`).window.document;
+    expect(findReferenceContainers(doc).map((el) => el.tagName)).toEqual(["OL"]);
   });
 });
 

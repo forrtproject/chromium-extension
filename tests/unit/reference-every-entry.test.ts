@@ -67,4 +67,36 @@ describe("the article's own DOI", () => {
 
         expect(resolved.map((r) => r.doi)).toEqual([PRINTED]);
     });
+
+    it("is dropped from an entry that also cites another paper, which keeps its pill", async () => {
+        const SELF = "10.9999/the.article.itself";
+        const COMPANION = "10.1234/companion.paper";
+        document.documentElement.innerHTML = `<head><meta name="citation_doi" content="${SELF}"></head><body>
+            <ol class="references">
+              <li>Smith J. A cited paper. Journal. 2020. https://doi.org/${PRINTED}</li>
+              <li>Jones K. Original 2019, doi:${SELF}; reanalysed in 2021, doi:${COMPANION}</li>
+            </ol></body>`;
+        beginDomScanPass();
+
+        const resolved = await resolveReferenceDois();
+
+        expect(resolved.map((r) => r.doi)).toEqual([PRINTED, COMPANION]);
+    });
+});
+
+describe("an entry citing several papers", () => {
+    it("resolves one reference per DOI, all on the same entry", async () => {
+        const SECOND = "10.1234/second.in.the.entry";
+        document.documentElement.innerHTML = `<head></head><body>
+            <ol class="references">
+              <li>Smith J. A cited paper. Journal. 2020. https://doi.org/${PRINTED}. Reanalysed by Lee M (2022). https://doi.org/${SECOND}</li>
+              <li>Jones K. Another cited paper. Journal. 2021. https://doi.org/${IN_HREF}</li>
+            </ol></body>`;
+        beginDomScanPass();
+
+        const resolved = await resolveReferenceDois();
+
+        expect(resolved.map((r) => r.doi)).toEqual([PRINTED, SECOND, IN_HREF]);
+        expect(resolved[0].entry).toBe(resolved[1].entry);
+    });
 });

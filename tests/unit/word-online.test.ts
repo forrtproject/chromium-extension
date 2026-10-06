@@ -10,7 +10,7 @@ import {startDomListener} from "../../src/content-general/dom-listener";
 import type {DoiString} from "../../src/shared/types";
 
 vi.mock("../../src/shared/settings", () => ({getSettings: vi.fn().mockResolvedValue({email: "test@example.com"})}));
-vi.mock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null)}));
+vi.mock("../../src/shared/openaccess", () => ({fetchOpenAccess: vi.fn().mockResolvedValue(null), deferredOpenAccess: () => () => Promise.resolve(null)}));
 vi.mock("../../src/shared/pubpeer-api", () => ({lookupPubPeerForDoi: vi.fn().mockResolvedValue(null)}));
 
 const doi = "10.1111/j.1467-9280.2009.02426.x" as DoiString;
@@ -40,7 +40,7 @@ describe("Word Online", () => {
     it("finds a reference without a References heading and deduplicates hidden Word copies", () => {
         const entries = findReferenceEntries(document);
         expect(entries).toHaveLength(1);
-        expect(entries[0].doi).toBe(doi);
+        expect(entries[0].dois).toEqual([doi]);
         expect(entries[0].element.isConnected).toBe(false);
         expect(extractDoiOccurrences(document)).toHaveLength(1);
     });

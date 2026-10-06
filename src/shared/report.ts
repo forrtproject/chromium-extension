@@ -4,6 +4,7 @@
 
 import type {NoticeKind} from "@shared/types";
 import {plainTitle} from "@shared/plain-title";
+import {webUrl} from "@shared/web-url";
 
 // The docs site's canonical host. forrtproject.github.io/* 301-redirects here,
 // so linking to the github.io form would ship a redirect in every shared link.
@@ -38,7 +39,7 @@ export interface ReportPayload {
     year?: number | null;
     sourceUrl?: string | null;
     generated: number;
-    notice?: {kind: NoticeKind; doi: string} | null;
+    notice?: {kind: NoticeKind; doi?: string} | null;
     replications: ReportEntry[];
     reproductions: ReportEntry[];
     originals: ReportEntry[];
@@ -93,14 +94,90 @@ export async function encodeReport(payload: ReportPayload): Promise<string> {
     return toBase64Url(deflated);
 }
 
+type Untrusted = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is Untrusted => typeof value === "object" && value !== null;
+const text = (value: unknown): string | undefined => typeof value === "string" ? value : undefined;
+const count = (value: unknown): number | undefined =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : undefined;
+const noticeKind = (value: unknown): NoticeKind | undefined =>
+    value === "retraction" || value === "concern" ? value : undefined;
+const records = (value: unknown): Untrusted[] => Array.isArray(value) ? value.filter(isRecord) : [];
+const DOI_SHAPE = /^10\.\d+(?:\.\d+)*\/\S+$/;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const doiText = (value: unknown): string | undefined => {
+    const doi = text(value);
+    return doi !== undefined && DOI_SHAPE.test(doi) && !LONE_SURROGATE.test(doi) ? doi : undefined;
+};
+const MAX_DATE_MS = 8.64e15;
+const timestamp = (value: unknown): number | undefined => {
+    const ms = count(value);
+    return ms !== undefined && ms <= MAX_DATE_MS ? ms : undefined;
+};
+
+function doiUrl(doi: string): string {
+    return `https://doi.org/${doi.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+function readEntry(raw: Untrusted): ReportEntry {
+    return {
+        title: text(raw.title) ?? "",
+        doi: doiText(raw.doi),
+        url: text(raw.url),
+        authors: text(raw.authors),
+        year: count(raw.year),
+        journal: text(raw.journal),
+        outcome: text(raw.outcome),
+    };
+}
+
+function readReference(raw: Untrusted): ReportReference | null {
+    const doi = doiText(raw.doi);
+    if (!doi) return null;
+    return {
+        title: text(raw.title) ?? doi,
+        doi,
+        replications: count(raw.replications),
+        reproductions: count(raw.reproductions),
+        inAtlas: raw.inAtlas === true ? true : undefined,
+        notice: noticeKind(raw.notice),
+        comments: count(raw.comments),
+    };
+}
+
+function readPayload(raw: unknown): ReportPayload | null {
+    if (!isRecord(raw) || raw.v !== 1) return null;
+    const title = text(raw.title);
+    const generated = timestamp(raw.generated);
+    if (title === undefined || generated === undefined) return null;
+    const notice = isRecord(raw.notice) ? raw.notice : null;
+    const noticeDoi = notice ? doiText(notice.doi) : undefined;
+    const kind = notice ? noticeKind(notice.kind) : undefined;
+    const pubpeer = isRecord(raw.pubpeer) ? raw.pubpeer : null;
+    return {
+        v: 1,
+        title,
+        doi: text(raw.doi),
+        authors: text(raw.authors),
+        year: count(raw.year),
+        sourceUrl: text(raw.sourceUrl),
+        generated,
+        notice: kind ? {kind, ...(noticeDoi ? {doi: noticeDoi} : {})} : null,
+        replications: records(raw.replications).map(readEntry),
+        reproductions: records(raw.reproductions).map(readEntry),
+        originals: records(raw.originals).map(readEntry),
+        references: records(raw.references).map(readReference).filter((r): r is ReportReference => r !== null),
+        pubpeer: pubpeer ? {comments: count(pubpeer.comments) ?? 0, url: text(pubpeer.url) ?? ""} : null,
+    };
+}
+
 export async function decodeReport(encoded: string): Promise<ReportPayload | null> {
     try {
         const inflated = await pipeThrough(
             fromBase64Url(encoded),
             new DecompressionStream("deflate-raw")
         );
-        const payload = JSON.parse(new TextDecoder().decode(inflated)) as ReportPayload;
-        return payload.v === 1 && typeof payload.title === "string" ? payload : null;
+        return readPayload(JSON.parse(new TextDecoder().decode(inflated)));
     } catch {
         return null;
     }
@@ -130,7 +207,7 @@ function outcomeTone(outcome: string): string {
 }
 
 function entryHtml(entry: ReportEntry): string {
-    const href = entry.url ?? (entry.doi ? `https://doi.org/${entry.doi}` : null);
+    const href = webUrl(entry.url) ?? (entry.doi ? doiUrl(entry.doi) : null);
     const heading = href
         ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(plainTitle(entry.title))}</a>`
         : esc(plainTitle(entry.title));
@@ -169,7 +246,7 @@ function referenceHtml(reference: ReportReference): string {
     }
     if (tags.length === 0) return "";
     return `<li>
-      <div class="entry-head"><a href="https://doi.org/${esc(reference.doi)}" target="_blank" rel="noopener">${esc(plainTitle(reference.title))}</a></div>
+      <div class="entry-head"><a href="${esc(doiUrl(reference.doi))}" target="_blank" rel="noopener">${esc(plainTitle(reference.title))}</a></div>
       <div class="tags">${tags.join("")}</div>
     </li>`;
 }
@@ -177,9 +254,13 @@ function referenceHtml(reference: ReportReference): string {
 function noticeHtml(payload: ReportPayload): string {
     if (!payload.notice) return "";
     const isRetraction = payload.notice.kind === "retraction";
-    return `<a class="notice ${isRetraction ? "notice-retracted" : "notice-concern"}"
-      href="https://doi.org/${esc(payload.notice.doi)}" target="_blank" rel="noopener">
-      <strong>${isRetraction ? "This article has been retracted." : "This article has an expression of concern."}</strong>
+    const tone = isRetraction ? "notice-retracted" : "notice-concern";
+    const headline = `<strong>${isRetraction ? "This article has been retracted." : "This article has an expression of concern."}</strong>`;
+    const doi = doiText(payload.notice.doi);
+    if (!doi) return `<div class="notice ${tone}">${headline}</div>`;
+    return `<a class="notice ${tone}"
+      href="${esc(doiUrl(doi))}" target="_blank" rel="noopener">
+      ${headline}
       <span>Read the notice ↗</span>
     </a>`;
 }
@@ -264,8 +345,9 @@ export function renderReportBody(payload: ReportPayload): string {
             : null,
     ].filter((stat): stat is {n: number; label: string} => stat !== null);
 
-    const heading = payload.sourceUrl
-        ? `<a href="${esc(payload.sourceUrl)}" target="_blank" rel="noopener">${esc(plainTitle(payload.title))}</a>`
+    const sourceUrl = webUrl(payload.sourceUrl);
+    const heading = sourceUrl
+        ? `<a href="${esc(sourceUrl)}" target="_blank" rel="noopener">${esc(plainTitle(payload.title))}</a>`
         : esc(plainTitle(payload.title));
     const byline = [payload.authors, payload.year ? String(payload.year) : null]
         .filter((part): part is string => !!part).join(" · ");

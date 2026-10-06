@@ -194,3 +194,25 @@ describe("removeNoticePillsFor", () => {
         expect(document.querySelector(`[data-flora-notice-doi="${target}"]`)).not.toBeNull();
     });
 });
+
+describe("notice pill link", () => {
+    beforeEach(() => {
+        vi.resetModules();
+        document.body.innerHTML = "";
+    });
+
+    it("links to the notice DOI without parsing it as markup", async () => {
+        const mod = await import("../../src/shared/doi-retraction");
+        const anchor = document.createElement("p");
+        anchor.textContent = "A cited paper";
+        document.body.appendChild(anchor);
+        const hostile = `10.1038/x"><img src=x onerror=alert(1)>`;
+        mod.injectRetractionInfo(anchor, {
+            originDoi: doi("10.1234/cited"), doi: hostile, kind: "retraction",
+        } as never);
+
+        const link = document.querySelector(".flora-notice-pill a")!;
+        expect(link.getAttribute("href")).toBe(`https://doi.org/${hostile}`);
+        expect(document.querySelector(".flora-notice-pill img")).toBeNull();
+    });
+});

@@ -13,6 +13,8 @@ import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/dom
 import {cancelWork, resumeAutomaticWork} from "@shared/work-cancellation";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
+import {closePageTour, startPageTour} from "@shared/page-tour";
+import {searchScriptOwns} from "@shared/search-sites";
 
 const SITE_STYLE_ID = "flora-search-site-style";
 
@@ -100,6 +102,7 @@ function followDomainPause(adapter: SearchAdapter): void {
             if (!isSearchHidden()) pausedBySettings = true;
             setSearchHidden(true);
             cancelWork();
+            closePageTour();
             hideAllFloraUI();
             if (blocked) reportBlocked();
             else reportActiveState(false, snoozedUntil);
@@ -124,6 +127,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     if (type === "FLORA_HIDE_UI") {
         pausedBySettings = false;
         setSearchHidden(true);
+        closePageTour();
         hideAllFloraUI();
         reportInactive();
         sendResponse({ ok: true });
@@ -139,6 +143,8 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         sendResponse({ ok: true });
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({ hidden: isSearchHidden() });
+    } else if (type === "FLORA_START_PAGE_TOUR") {
+        if (searchScriptOwns()) sendResponse({ started: !isSearchHidden() && startPageTour("search") });
     }
 });
 
@@ -148,6 +154,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 document.addEventListener("flora-pause-site", () => {
     if (!isSearchHidden()) pausedBySettings = true;
     setSearchHidden(true);
+    closePageTour();
     hideAllFloraUI();
     reportInactive();
 });

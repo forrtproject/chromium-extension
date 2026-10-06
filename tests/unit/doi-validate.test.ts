@@ -342,6 +342,7 @@ describe("validateDOIs time limit", () => {
 
     const pending = validateDOIs([doi("10.1000/fast"), doi("10.1000/slow"), doi("10.1000/gone")]);
     await vi.advanceTimersByTimeAsync(VALIDATION_BUDGET_MS);
+    await vi.runOnlyPendingTimersAsync();
     const results = await pending;
 
     expect([...results]).toEqual([[doi("10.1000/fast"), true], [doi("10.1000/gone"), false]]);

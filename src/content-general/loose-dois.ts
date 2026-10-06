@@ -1,5 +1,5 @@
 import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
-import {fetchOpenAccess} from "@shared/openaccess";
+import {deferredOpenAccess} from "@shared/openaccess";
 import {isDocumentEditor} from "@shared/document-editor";
 import {findArticleTitle} from "@shared/article-title";
 import {isInRelatedWorks} from "@shared/related-works";
@@ -72,11 +72,13 @@ function placeBelowMentionLine(start: Node, pill: HTMLElement): void {
     else end.parentNode!.insertBefore(newLooseRow(pill), next);
 }
 
-function stillOnPage(doi: DoiString): boolean {
+function loosePillDoisOnPage(): Set<string> {
+    const dois = new Set<string>();
     for (const el of document.querySelectorAll(`.${INDICATOR_PILL_CLASS}[${LOOSE_PILL_ATTR}]`)) {
-        if (el.getAttribute("data-flora-doi") === doi) return true;
+        const doi = el.getAttribute("data-flora-doi");
+        if (doi) dois.add(doi);
     }
-    return false;
+    return dois;
 }
 
 export interface LooseDoiInputs {
@@ -94,11 +96,12 @@ function isPrefixOfPrimary(doi: DoiString, primary: DoiString | null | undefined
 export function injectLooseDoiPills({occurrences, context, pageState, noticed, primary}: LooseDoiInputs): number {
     if (isDocumentEditor()) return 0;
     const article = findArticleTitle(document);
+    const onPage = loosePillDoisOnPage();
     let placed = 0;
     for (const occ of occurrences) {
         if (context.get(occ.doi) !== "other") continue;
         if (noticed.has(occ.doi)) continue;
-        if (pilled.has(occ.doi) && stillOnPage(occ.doi)) continue;
+        if (pilled.has(occ.doi) && onPage.has(occ.doi)) continue;
         if (!occ.source.isConnected) continue;
         if (occ.source.closest(`.${INDICATOR_PILL_CLASS}`)) continue;
         if (occ.source.closest(`[${REFERENCE_ENTRY_ATTR}]`)) continue;
@@ -110,7 +113,7 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed, p
         const stats = state?.status === "matched" ? state.result.record.stats : null;
         const pill = createIndicatorPill({
             doi: occ.doi,
-            oaStatus: fetchOpenAccess(occ.doi),
+            oaStatus: deferredOpenAccess(occ.doi),
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,
         });
@@ -119,6 +122,7 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed, p
         placeBelowMentionLine(occ.kind === "text" ? mentionNode(occ.source, occ.doi) : occ.source, pill);
 
         pilled.add(occ.doi);
+        onPage.add(occ.doi);
         placed++;
     }
     if (placed > 0) debugLog(`Loose DOIs: pilled ${placed} mention(s) outside an article or reference list`);

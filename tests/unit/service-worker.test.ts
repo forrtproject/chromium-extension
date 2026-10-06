@@ -671,6 +671,32 @@ describe("service-worker", () => {
         expect(response.results["10.1126/science.9999999"]).toEqual(otherResult);
     });
 
+    it("keeps cached and fresh results when a joined in-flight lookup fails", async () => {
+        const cached = doi("10.1038/nature12373");
+        const running = doi("10.1000/already.running");
+        const fresh = doi("10.1126/science.9999999");
+        const freshResult = mockResult({doi: fresh});
+        cacheStore.set(`flora:${cached}`, MOCK_RESULT);
+        let fail!: (err: Error) => void;
+        mockLookupDOIs
+            .mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }))
+            .mockResolvedValueOnce(new Map([[fresh, freshResult]]));
+
+        const first = sendMessage({type: "FLORA_LOOKUP", dois: [running]});
+        await vi.waitFor(() => expect(mockLookupDOIs).toHaveBeenCalledTimes(1));
+        const second = sendMessage({type: "FLORA_LOOKUP", dois: [cached, running, fresh]});
+        await vi.waitFor(() => expect(mockLookupDOIs).toHaveBeenCalledTimes(2));
+        fail(new Error("FLoRA API error: 503"));
+
+        const response = await second;
+        expect(response.results[cached]).toEqual(MOCK_RESULT);
+        expect(response.results[fresh]).toEqual(freshResult);
+        expect(response.errors[running]).toMatch(/503/);
+        expect(response.errors[cached]).toBeUndefined();
+        expect(response.errors[fresh]).toBeUndefined();
+        expect((await first).errors[running]).toMatch(/503/);
+    });
+
     it("caches a shared lookup when its originating tab cancels", async () => {
         let complete!: (value: Map<string, typeof MOCK_RESULT>) => void;
         mockLookupDOIs.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
