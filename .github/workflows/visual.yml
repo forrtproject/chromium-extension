@@ -14,7 +14,9 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: visual-${{ github.event.pull_request.number || inputs.pr }}
+  # Separate per event: a bot baseline commit also starts a pull_request run, which
+  # must not cancel the dispatched verification run that reports Visual approval.
+  group: visual-${{ github.event.pull_request.number || inputs.pr }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
