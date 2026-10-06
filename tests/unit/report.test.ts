@@ -119,6 +119,19 @@ describe("a crafted report link", () => {
         expect(renderReportBody(decoded!)).toContain('href="https://doi.org/10.1/x%3Fy%3D1%23z"');
     });
 
+    it("drops a DOI that is not well-formed text instead of failing to render", async () => {
+        const loneSurrogate = "10.1/x\ud800";
+        const decoded = await decodeRaw(payload({
+            notice: {kind: "retraction", doi: loneSurrogate},
+            replications: [{title: "Rep", doi: loneSurrogate}],
+            references: [{title: "Ref", doi: loneSurrogate, replications: 2}, {title: "Kept", doi: "10.1/kept", replications: 1}],
+        }));
+        expect(decoded!.notice).toBeNull();
+        expect(decoded!.replications[0].doi).toBeUndefined();
+        expect(decoded!.references.map((r) => r.doi)).toEqual(["10.1/kept"]);
+        expect(() => renderReportBody(decoded!)).not.toThrow();
+    });
+
     it("rejects a payload without a text title", async () => {
         expect(await decodeRaw({...payload(), title: 7})).toBeNull();
     });

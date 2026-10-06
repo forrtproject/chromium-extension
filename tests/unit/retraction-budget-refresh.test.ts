@@ -143,6 +143,28 @@ describe("retraction map and the cache budget", () => {
         expect(store[RET_MAP_KEY]).toEqual(map);
     });
 
+    it("still refetches when a missing map is reported while an unflagged sync is running", async () => {
+        store.synctime = NOW;
+        store[RET_COUNT_KEY] = 1;
+        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
+        const running = syncRetractionsInfo();
+        const reported = syncRetractionsInfo(true);
+        await Promise.all([running, reported]);
+        expect(remoteRequests).toBe(1);
+        expect(store[RET_MAP_KEY]).toEqual(map);
+        expect(store[RET_COUNT_KEY]).toBe(1);
+    });
+
+    it("leaves the count alone when the map arrived before a missing report was handled", async () => {
+        store.synctime = NOW;
+        store[RET_MAP_KEY] = map;
+        store[RET_COUNT_KEY] = 1;
+        const {syncRetractionsInfo} = await import("../../src/background/service-worker");
+        await syncRetractionsInfo(true);
+        expect(store[RET_COUNT_KEY]).toBe(1);
+        expect(remoteRequests).toBe(0);
+    });
+
     it.each(["missing", "empty"])("repairs a %s map on the next sync", async kind => {
         store.synctime = NOW;
         if (kind === "empty") store[RET_MAP_KEY] = {retractions: {}, concerns: {}};

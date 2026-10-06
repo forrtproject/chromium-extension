@@ -103,6 +103,12 @@ const count = (value: unknown): number | undefined =>
 const noticeKind = (value: unknown): NoticeKind | undefined =>
     value === "retraction" || value === "concern" ? value : undefined;
 const records = (value: unknown): Untrusted[] => Array.isArray(value) ? value.filter(isRecord) : [];
+const DOI_SHAPE = /^10\.\d+(?:\.\d+)*\/\S+$/;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const doiText = (value: unknown): string | undefined => {
+    const doi = text(value);
+    return doi !== undefined && DOI_SHAPE.test(doi) && !LONE_SURROGATE.test(doi) ? doi : undefined;
+};
 const MAX_DATE_MS = 8.64e15;
 const timestamp = (value: unknown): number | undefined => {
     const ms = count(value);
@@ -116,7 +122,7 @@ function doiUrl(doi: string): string {
 function readEntry(raw: Untrusted): ReportEntry {
     return {
         title: text(raw.title) ?? "",
-        doi: text(raw.doi),
+        doi: doiText(raw.doi),
         url: text(raw.url),
         authors: text(raw.authors),
         year: count(raw.year),
@@ -126,7 +132,7 @@ function readEntry(raw: Untrusted): ReportEntry {
 }
 
 function readReference(raw: Untrusted): ReportReference | null {
-    const doi = text(raw.doi);
+    const doi = doiText(raw.doi);
     if (!doi) return null;
     return {
         title: text(raw.title) ?? doi,
@@ -145,7 +151,7 @@ function readPayload(raw: unknown): ReportPayload | null {
     const generated = timestamp(raw.generated);
     if (title === undefined || generated === undefined) return null;
     const notice = isRecord(raw.notice) ? raw.notice : null;
-    const noticeDoi = notice ? text(notice.doi) : undefined;
+    const noticeDoi = notice ? doiText(notice.doi) : undefined;
     const kind = notice ? noticeKind(notice.kind) : undefined;
     const pubpeer = isRecord(raw.pubpeer) ? raw.pubpeer : null;
     return {

@@ -770,9 +770,17 @@ async function handleRetractionCheck(dois: DoiString[], signal?: AbortSignal): P
 // Every uncached check kicks off a sync; without this guard a page's worth of
 // them each download the full 3.5MB map and write it back.
 let syncInFlight: Promise<void> | null = null;
+let mapMissingReported = false;
 
 export function syncRetractionsInfo(mapMissing = false): Promise<void> {
-    syncInFlight ??= runRetractionSync(mapMissing).finally(() => {
+    if (mapMissing) mapMissingReported = true;
+    syncInFlight ??= (async () => {
+        do {
+            const reported = mapMissingReported;
+            mapMissingReported = false;
+            await runRetractionSync(reported);
+        } while (mapMissingReported);
+    })().finally(() => {
         syncInFlight = null;
     });
     return syncInFlight;
@@ -795,9 +803,11 @@ async function storedRetractionCount(recorded: unknown): Promise<number> {
     return count;
 }
 
-async function runRetractionSync(mapMissing: boolean): Promise<void> {
+async function runRetractionSync(missingReported: boolean): Promise<void> {
     const minInterval = 1000 * 60 * 60 * 24 * 7; // weekly
     const currentTime = Date.now();
+    const mapMissing = missingReported && retractionEntryCount(
+        (await chrome.storage.local.get(RET_MAP_KEY))[RET_MAP_KEY] as RetractionMaps | undefined) === 0;
     const previous = await chrome.storage.local.get(["synctime", RET_COUNT_KEY, SYNC_ATTEMPT_KEY]);
     const lastSync = previous.synctime || 0;
     const nextUpdate = lastSync + minInterval;
