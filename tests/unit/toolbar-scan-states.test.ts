@@ -236,6 +236,18 @@ describe("the toolbar reflects scan progress and results", () => {
             expect(title.at(-1)).toEqual({tabId: 7, title: "FORRT ORE"});
         });
 
+        it("keeps the new page's state when it reports before the navigation check finishes", async () => {
+            await scan(errorState, 7);
+            const onUpdated = lastListener<(id: number, info: {url?: string}) => void>(chrome.tabs.onUpdated.addListener);
+
+            onUpdated(7, {url: "https://example.org/other"});
+            await scan({phase: "scanning", papers: 2}, 7);
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(title.at(-1)).toEqual({tabId: 7, title: "FORRT ORE — checking 2 papers…"});
+            expect(badge.at(-1)).toEqual({tabId: 7, text: "…"});
+        });
+
         it("opens the report when the stored URL had an email-like path redacted", async () => {
             await scan({...errorState, pageUrl: "https://example.org/people/jane.doe@uni.edu/paper"}, 7);
             const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);

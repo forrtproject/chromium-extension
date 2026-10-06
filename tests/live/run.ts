@@ -544,7 +544,12 @@ async function main(): Promise<void> {
             console.log("  Browser closed unexpectedly — relaunching …");
             failed.process()?.kill();
             const replacement = await launch();
-            await prepareExtension(replacement);
+            try {
+                await prepareExtension(replacement);
+            } catch (err) {
+                await replacement.close().catch(() => {});
+                throw err;
+            }
             browser = replacement;
         })().finally(() => { relaunching = null; });
         return relaunching;

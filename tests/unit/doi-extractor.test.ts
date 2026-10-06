@@ -1316,6 +1316,7 @@ describe("lone DOI adoption across history entries", () => {
     const dom = new JSDOM(`<!DOCTYPE html><html><head><meta name="citation_title" content="${TITLE}"></head><body><h1>${TITLE}</h1><a href="https://doi.org/10.5555/lone.9">doi</a></body></html>`,
       {url: "https://example.org/spa"});
     const nav = {currentEntry: {key: "a"}};
+    const original = Object.getOwnPropertyDescriptor(globalThis, "window");
     (globalThis as {window?: unknown}).window = {navigation: nav};
     try {
       beginDomScanPass();
@@ -1325,7 +1326,8 @@ describe("lone DOI adoption across history entries", () => {
       beginDomScanPass();
       expect(extractPrimaryDOI(dom.window.document)).toBeNull();
     } finally {
-      delete (globalThis as {window?: unknown}).window;
+      if (original) Object.defineProperty(globalThis, "window", original);
+      else delete (globalThis as {window?: unknown}).window;
     }
   });
 });

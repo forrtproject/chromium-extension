@@ -59,7 +59,10 @@ const TAB_ERROR_PREFIX = "flora_tab_error:";
 
 interface TabError { pageUrl: string; error: RuntimeErrorInfo; entries: DebugLogEntry[] }
 
+const tabPaints = new Map<number, number>();
+
 function paintTab(tabId: number, path: Record<number, string>, title: string, badge = "", colour = ""): void {
+    tabPaints.set(tabId, (tabPaints.get(tabId) ?? 0) + 1);
     chrome.action.setIcon({ tabId, path }).catch(() => {});
     chrome.action.setTitle({ tabId, title }).catch(() => {});
     chrome.action.setBadgeText?.({ tabId, text: badge })?.catch?.(() => {});
@@ -191,13 +194,15 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     const url = changeInfo.url;
     if (!url) return;
     const key = TAB_ERROR_PREFIX + tabId;
+    const paints = tabPaints.get(tabId);
     chrome.storage.session.get(key).then((raw) => {
         const stored = (raw as Record<string, TabError | undefined>)[key];
-        if (stored && !samePage(stored.pageUrl, url)) void clearTabError(tabId);
+        if (stored && !samePage(stored.pageUrl, url) && tabPaints.get(tabId) === paints) void clearTabError(tabId);
     }).catch(() => {});
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+    tabPaints.delete(tabId);
     chrome.storage.session.remove(TAB_ERROR_PREFIX + tabId).catch(() => {});
 });
 
