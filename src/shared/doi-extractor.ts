@@ -459,6 +459,7 @@ export function touchesReferenceSection(el: Element): boolean {
 // and a full-document scan is expensive. beginDomScanPass() bumps the epoch.
 let _scanEpoch = 0;
 let _refContainerCache: { epoch: number; doc: Document; result: Element[] } | null = null;
+let _refEntryCache: { epoch: number; doc: Document; result: ReferenceEntry[] } | null = null;
 let _doiProbeCache: { epoch: number; doc: Document; result: boolean } | null = null;
 
 export function pageMightContainDoi(doc: Document): boolean {
@@ -528,12 +529,12 @@ function cleanReferenceText(text: string): string {
 
 function extractDoisFromEntry(
   entry: HTMLElement,
+  text: string,
   hostDoi: DoiString | null
 ): DoiString[] {
   // Text wins over links: an entry's links are often "View"/"Cite" buttons
   // pointing at the *host* article, not the cited paper — using them first
   // made every Wiley cited-by row resolve to the host's own DOI.
-  const text = entry.innerText ?? entry.textContent ?? "";
   const cleaned = decodeEncodedDois(text.replace(WORD_BREAK_CHARS, ""));
   const inText = new Set<DoiString>();
   for (const match of cleaned.matchAll(DOI_TEXT_REGEX)) {
@@ -694,6 +695,9 @@ function findHeadingReferenceSiblings(doc: Document): HTMLElement[] {
 }
 
 export function findReferenceEntries(doc: Document): ReferenceEntry[] {
+  if (_refEntryCache && _refEntryCache.epoch === _scanEpoch && _refEntryCache.doc === doc) {
+    return _refEntryCache.result;
+  }
   const elements: HTMLElement[] = editorReferenceElements(doc);
 
   for (const container of findReferenceContainers(doc)) {
@@ -705,9 +709,10 @@ export function findReferenceEntries(doc: Document): ReferenceEntry[] {
   }
 
   const hostDoi = extractPrimaryDOI(doc);
-  return elements.map((element) => {
-    const dois = extractDoisFromEntry(element, hostDoi);
-    const text = cleanReferenceText(element.innerText ?? element.textContent ?? "");
+  const result = elements.map((element) => {
+    const rendered = element.innerText ?? element.textContent ?? "";
+    const dois = extractDoisFromEntry(element, rendered, hostDoi);
+    const text = cleanReferenceText(rendered);
     return {
       element,
       dois,
@@ -715,6 +720,8 @@ export function findReferenceEntries(doc: Document): ReferenceEntry[] {
       text,
     };
   });
+  _refEntryCache = { epoch: _scanEpoch, doc, result };
+  return result;
 }
 
 function addDoisWithin(container: Element, found: Set<DoiString>): void {

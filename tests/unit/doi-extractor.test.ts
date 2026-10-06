@@ -561,6 +561,32 @@ describe("findReferenceContainers", () => {
   });
 });
 
+describe("findReferenceEntries — once per scan pass", () => {
+  const html = `<!DOCTYPE html><html><body><ol class="references">
+      <li>Smith J. Title. Journal. 2020. https://doi.org/10.1234/first</li>
+      <li>Jones K. Another. 2021. doi:10.5678/second</li>
+    </ol></body></html>`;
+
+  it("reuses the entries within a pass", () => {
+    const doc = new JSDOM(html).window.document;
+    beginDomScanPass();
+    expect(findReferenceEntries(doc)).toBe(findReferenceEntries(doc));
+  });
+
+  it("rebuilds them when the next pass begins", () => {
+    const doc = new JSDOM(html).window.document;
+    beginDomScanPass();
+    const before = findReferenceEntries(doc);
+    const added = doc.createElement("li");
+    added.textContent = "Lee M. Third. 2022. doi:10.9999/third";
+    doc.querySelector("ol")!.appendChild(added);
+    beginDomScanPass();
+    const after = findReferenceEntries(doc);
+    expect(after).not.toBe(before);
+    expect(after.flatMap((e) => e.dois)).toContain("10.9999/third");
+  });
+});
+
 describe("findReferenceEntries", () => {
   it("treats each body row of a tabular bibliography as its own entry", () => {
     const html = `<!DOCTYPE html>

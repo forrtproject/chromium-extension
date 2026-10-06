@@ -411,6 +411,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                             if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks);
                         } else {
                             repaintBadges();
+                            beginDomScanPass();
                             injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             lastRenderedPageStateVersion = -1;
                             await checkPubPeer(null);
