@@ -145,8 +145,7 @@ red if the capture failed.
 Review is needed when:
 
 - any fixture renders differently on the PR,
-- the PR changes images in `tests/visual/baselines/`, `docs/img/` or
-  `assets/icons/`, or
+- the PR changes images in `docs/img/` or `assets/icons/`, or
 - the PR changes the capture setup: other files in `tests/visual/`, the three
   reused fixtures, the visual workflows and publisher,
   `scripts/docs-screenshots.ts`, `scripts/make-icons.ts`, `package.json`,

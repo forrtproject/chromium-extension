@@ -1,3 +1,4 @@
+import {plainTitle} from "@shared/plain-title";
 import {
     decodeReport,
     renderReportBody,
@@ -39,7 +40,7 @@ async function main(): Promise<void> {
         return;
     }
 
-    document.title = `${payload.title} — FORRT ORE Meta Report`;
+    document.title = `${plainTitle(payload.title)} — FORRT ORE Meta Report`;
     root.innerHTML = renderReportBody(payload);
 
     const install = document.createElement("a");

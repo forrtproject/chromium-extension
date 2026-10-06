@@ -4,7 +4,8 @@
 
 import {resolveSearchSite} from "./sites";
 import {observeSearchResults, processIfResultsPage} from "./observer";
-import {isSearchHidden, retryUnansweredSearchResults, setSearchHidden} from "./pipeline";
+import {isSearchHidden, retryUnansweredSearchResults, searchScanSummary, setSearchHidden} from "./pipeline";
+import {setScanSummarySource} from "@shared/toolbar-scan";
 import {debugError, debugLog} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
@@ -26,6 +27,7 @@ function injectSiteStyle(css: string): void {
 type SearchAdapter = NonNullable<ReturnType<typeof resolveSearchSite>>;
 
 async function startSearch(adapter: SearchAdapter): Promise<void> {
+    setScanSummarySource(searchScanSummary);
     if (isSearchHidden()) reportInactive();
     else reportActiveState(true);
     followDomainPause(adapter);
@@ -85,8 +87,8 @@ function startWhenResumed(adapter: SearchAdapter, atLoad: DomainPause): void {
         }
         await startSearch(adapter);
     } catch (err) {
-        reportCodeError("ORE failed to start on search page", err);
         reportActiveState(false);
+        reportCodeError("ORE failed to start on search page", err);
     }
 })();
 

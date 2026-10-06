@@ -1,11 +1,31 @@
 import {getSnooze, isDomainBlocked} from "./domains";
+import type {ScanState} from "./messages";
 
 const MAX_TIMER_MS = 2_147_483_647;
 
 let reportSeq = 0;
 let badgeTimer: ReturnType<typeof setTimeout> | null = null;
+let lastReport: {scan: ScanState} | {active: boolean; snoozedUntil: number | null; blocked: boolean} | null = null;
+let replayInstalled = false;
+
+function replayAfterRestore(): void {
+    if (!lastReport) return;
+    if ("scan" in lastReport) reportScanState(lastReport.scan);
+    else if (lastReport.snoozedUntil !== null && lastReport.snoozedUntil <= Date.now()) reportInactive();
+    else reportActiveState(lastReport.active, lastReport.snoozedUntil, lastReport.blocked);
+}
+
+function installReplay(): void {
+    if (replayInstalled || typeof window === "undefined") return;
+    replayInstalled = true;
+    window.addEventListener("pageshow", (event) => {
+        if (event.persisted) replayAfterRestore();
+    });
+}
 
 function send(active: boolean, snoozedUntil: number | null, blocked = false): void {
+    lastReport = {active, snoozedUntil, blocked};
+    installReplay();
     try {
         chrome.runtime.sendMessage({type: "FLORA_ACTIVE_STATE", active, snoozedUntil, blocked})?.catch(() => {});
     } catch {}
@@ -37,6 +57,16 @@ export function reportActiveState(active: boolean, snoozedUntil: number | null =
     else cancelBadgeClear();
 }
 
+export function reportScanState(state: ScanState): void {
+    reportSeq++;
+    cancelBadgeClear();
+    lastReport = {scan: state};
+    installReplay();
+    try {
+        chrome.runtime.sendMessage({type: "FLORA_SCAN_STATE", state})?.catch(() => {});
+    } catch {}
+}
+
 export function reportBlocked(): void {
     reportActiveState(false, null, true);
 }
@@ -55,5 +85,6 @@ export function reportInactive(): void {
 
 export function _resetActiveStateForTesting(): void {
     reportSeq = 0;
+    lastReport = null;
     cancelBadgeClear();
 }

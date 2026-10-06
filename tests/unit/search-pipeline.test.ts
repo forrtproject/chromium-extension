@@ -57,11 +57,38 @@ describe("search pipeline on Scholar rows", () => {
         if (call) expect(call.dois).toContain("10.1038/nature12373");
     });
 
+    it("summarises the scan for the toolbar", async () => {
+        const {searchScanSummary} = await import("../../src/content-search/pipeline");
+
+        expect(searchScanSummary()!.papers).toBeGreaterThanOrEqual(1);
+    });
+
     it("extracts DOI from author line text", async () => {
         const call = (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mock.calls
             .find(args => args[0]?.type === "FLORA_LOOKUP")?.[0] as LookupRequest | undefined;
         expect(call).to.not.be.undefined;
         if (call) expect(call.dois).toContain("10.1126/science.9999999");
+    });
+});
+
+describe("search pipeline when the lookup fails", () => {
+    it("marks the toolbar summary incomplete", async () => {
+        vi.resetModules();
+        const html = readFileSync(join(__dirname, "..", "fixtures", "scholar-results.html"), "utf-8");
+        document.body.innerHTML = new JSDOM(html).window.document.body.innerHTML;
+        const sendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+        const previous = sendMessage.getMockImplementation();
+        sendMessage.mockRejectedValue(new Error("worker gone"));
+        try {
+            const {processSearchResults, searchScanSummary} = await import("../../src/content-search/pipeline");
+            const {SCHOLAR} = await import("../../src/content-search/sites/scholar");
+
+            await processSearchResults(SCHOLAR, document);
+
+            expect(searchScanSummary()!.incomplete).toBe(true);
+        } finally {
+            sendMessage.mockImplementation(previous!);
+        }
     });
 });
 

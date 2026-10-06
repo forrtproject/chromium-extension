@@ -256,6 +256,18 @@ describe("progress tab", () => {
         expect(panelTab.getAttribute("aria-disabled")).toBe("true");
     });
 
+    it("opens a settled report while a later rescan runs", () => {
+        const panelTab = renderPanel();
+        beginWorkIndicator();
+        settle();
+        expect(panelTab.hasAttribute("data-flora-tab-busy")).toBe(true);
+        expect(panelTab.hasAttribute("aria-disabled")).toBe(false);
+        expect(panelTab.getAttribute("aria-label")).toContain("Open the FORRT ORE panel");
+
+        panelTab.click();
+        expect(panelOpen()).toBe(true);
+    });
+
     it("does not pulse the report tab again for a rescan that leaves the report as it was", () => {
         const panelTab = renderPanel();
         beginWorkIndicator();
@@ -326,7 +338,7 @@ describe("progress tab", () => {
 
         beginWorkIndicator();
         settle();
-        expect(panelTab.getAttribute("aria-disabled")).toBe("true");
+        expect(panelTab.hasAttribute("aria-disabled")).toBe(false);
         panelTab.click();
         expect(panelOpen()).toBe(false);
     });

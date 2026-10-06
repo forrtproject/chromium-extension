@@ -1,6 +1,10 @@
 import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {isDocumentEditor} from "@shared/document-editor";
+import {findArticleTitle} from "@shared/article-title";
+import {isInRelatedWorks} from "@shared/related-works";
+import {REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
+import {pillRow} from "@shared/pill-row";
 import {debugLog} from "@shared/debug";
 import type {DoiOccurrence} from "@shared/doi-extractor";
 import type {DoiContext, DoiString, LookupState} from "@shared/types";
@@ -17,19 +21,55 @@ function isEditableSurface(el: HTMLElement): boolean {
     return el.isContentEditable || el.closest("textarea, input, [contenteditable]") !== null;
 }
 
-function placeAfterMention(source: HTMLElement, doi: DoiString, pill: HTMLElement): void {
-    try {
-        for (const node of source.childNodes) {
-            if (node.nodeType !== Node.TEXT_NODE) continue;
-            const text = node as Text;
-            const at = text.data.toLowerCase().indexOf(doi.toLowerCase());
-            if (at < 0) continue;
-            const tail = text.splitText(at + doi.length);
-            source.insertBefore(pill, tail);
-            return;
-        }
-    } catch { }
-    source.appendChild(pill);
+const LOOSE_ROW_ATTR = "data-flora-loose-row";
+
+function isBlockLevel(el: Element): boolean {
+    const display = getComputedStyle(el).display;
+    return display !== "" && !display.startsWith("inline") && display !== "contents";
+}
+
+function mentionNode(source: HTMLElement, doi: DoiString): Node {
+    for (const node of source.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE && (node as Text).data.toLowerCase().includes(doi.toLowerCase())) return node;
+    }
+    return source;
+}
+
+function lineRunEnd(start: Node): Node {
+    let node = start;
+    while (node.parentElement && !isBlockLevel(node.parentElement)) node = node.parentElement;
+    for (let next = node.nextSibling; next; next = next.nextSibling) {
+        if (next instanceof Element && isBlockLevel(next)) break;
+        node = next;
+        if (next instanceof HTMLBRElement) break;
+    }
+    return node;
+}
+
+function newLooseRow(pill: HTMLElement): HTMLElement {
+    const row = pillRow(pill);
+    row.setAttribute(LOOSE_ROW_ATTR, "");
+    return row;
+}
+
+function isFlexOrGrid(el: Element): boolean {
+    const {display} = getComputedStyle(el);
+    return display.includes("flex") || display.includes("grid");
+}
+
+function placeBelowMentionLine(start: Node, pill: HTMLElement): void {
+    if (start instanceof Element && isBlockLevel(start) && start.tagName !== "A" && !isFlexOrGrid(start)) {
+        const last = start.lastElementChild;
+        if (last?.hasAttribute(LOOSE_ROW_ATTR)) last.appendChild(pill);
+        else start.appendChild(newLooseRow(pill));
+        return;
+    }
+    let end = lineRunEnd(start);
+    const body = end.ownerDocument?.body;
+    while (end.parentElement && end.parentElement !== body && isFlexOrGrid(end.parentElement)) end = end.parentElement;
+    const next = end.nextSibling;
+    if (next instanceof Element && next.hasAttribute(LOOSE_ROW_ATTR)) next.appendChild(pill);
+    else end.parentNode!.insertBefore(newLooseRow(pill), next);
 }
 
 function stillOnPage(doi: DoiString): boolean {
@@ -44,10 +84,16 @@ export interface LooseDoiInputs {
     context: ReadonlyMap<DoiString, DoiContext>;
     pageState: ReadonlyMap<DoiString, LookupState>;
     noticed: ReadonlySet<DoiString>;
+    primary?: DoiString | null;
 }
 
-export function injectLooseDoiPills({occurrences, context, pageState, noticed}: LooseDoiInputs): number {
+function isPrefixOfPrimary(doi: DoiString, primary: DoiString | null | undefined): boolean {
+    return !!primary && primary.length > doi.length && primary.startsWith(doi) && /[./_-]/.test(primary[doi.length]);
+}
+
+export function injectLooseDoiPills({occurrences, context, pageState, noticed, primary}: LooseDoiInputs): number {
     if (isDocumentEditor()) return 0;
+    const article = findArticleTitle(document);
     let placed = 0;
     for (const occ of occurrences) {
         if (context.get(occ.doi) !== "other") continue;
@@ -55,7 +101,10 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed}: 
         if (pilled.has(occ.doi) && stillOnPage(occ.doi)) continue;
         if (!occ.source.isConnected) continue;
         if (occ.source.closest(`.${INDICATOR_PILL_CLASS}`)) continue;
+        if (occ.source.closest(`[${REFERENCE_ENTRY_ATTR}]`)) continue;
         if (isEditableSurface(occ.source)) continue;
+        if (isInRelatedWorks(occ.source, article)) continue;
+        if (occ.doi === primary || isPrefixOfPrimary(occ.doi, primary)) continue;
 
         const state = pageState.get(occ.doi);
         const stats = state?.status === "matched" ? state.result.record.stats : null;
@@ -67,8 +116,7 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed}: 
         });
         pill.setAttribute(LOOSE_PILL_ATTR, "");
 
-        if (occ.kind === "text") placeAfterMention(occ.source, occ.doi, pill);
-        else occ.source.insertAdjacentElement("afterend", pill);
+        placeBelowMentionLine(occ.kind === "text" ? mentionNode(occ.source, occ.doi) : occ.source, pill);
 
         pilled.add(occ.doi);
         placed++;

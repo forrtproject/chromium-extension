@@ -4,6 +4,8 @@ import type { DoiString, ClassifiedDois, PageType } from "./types";
 import { normaliseDOI } from "./doi-normalise";
 import { debugLog } from "./debug";
 import { FLORA_UI_SELECTOR } from "./flora-ui";
+import { currentPageEntry, isSamePage, type PageEntry } from "./page-identity";
+import { findArticleTitle, findMatchedArticleTitle, siteArticleTitle, titleContainsText } from "./article-title";
 
 // DOI suffixes may contain parens, semicolons, and slashes (e.g. SICI DOIs),
 // but a trailing slash followed by a bare word (e.g. /full, /abstract) is
@@ -197,18 +199,19 @@ function extractFromUrl(doc: Document, found: Set<DoiString>): void {
   }
 }
 
-function extractFromMeta(doc: Document, found: Set<DoiString>): void {
-  const selectors = [
-    'meta[name="citation_doi"]',
-    'meta[name="DC.identifier"]',
-    'meta[name="dc.identifier"]',
-    'meta[name="DOI"]',
-    'meta[property="citation_doi"]',
-  ];
+const PRIMARY_DOI_META = [
+  'meta[name="citation_doi" i]',
+  'meta[property="citation_doi" i]',
+  'meta[name="bepress_citation_doi" i]',
+  'meta[name="prism.doi" i]',
+  'meta[name="dc.identifier.doi" i]',
+  'meta[name="dc.identifier" i]',
+  'meta[name="doi" i]',
+];
 
-  for (const selector of selectors) {
-    const el = doc.querySelector<HTMLMetaElement>(selector);
-    if (el?.content) {
+function extractFromMeta(doc: Document, found: Set<DoiString>): void {
+  for (const selector of PRIMARY_DOI_META) {
+    for (const el of doc.querySelectorAll<HTMLMetaElement>(selector)) {
       const doi = normaliseDOI(el.content);
       if (doi) found.add(doi);
     }
@@ -372,6 +375,27 @@ function extractFromVisibleText(doc: Document, found: Set<DoiString>): void {
 
 // Authoritative sources only — body text/links would pick up cited DOIs.
 let _primaryDoiCache: { epoch: number; doc: Document; result: DoiString | null } | null = null;
+let _adoptedPrimary: { doc: Document; entry: PageEntry; doi: DoiString } | null = null;
+
+let _awaitingTitle = false;
+export const awaitingArticleTitle = () => _awaitingTitle;
+
+const pageEntry = (doc: Document): PageEntry => ({ href: doc.location?.href ?? "", key: currentPageEntry().key });
+
+function adoptedPrimaryDoi(doc: Document): DoiString | null {
+  return _adoptedPrimary?.doc === doc && isSamePage(_adoptedPrimary.entry, pageEntry(doc)) ? _adoptedPrimary.doi : null;
+}
+
+const VERSION_SUFFIX = /^[._-]v?\d+$/i;
+
+const extendsAt = (d: DoiString, base: DoiString) => d.length > base.length && d.startsWith(base) && /[./_-]/.test(d[base.length]);
+
+function mostSpecificDoi(dois: DoiString[]): DoiString {
+  const deepest = dois
+    .filter((d) => dois.some((b) => extendsAt(d, b) && !VERSION_SUFFIX.test(d.slice(b.length))))
+    .sort((a, b) => b.length - a.length)[0];
+  return deepest ?? dois.find((d) => !dois.some((b) => extendsAt(d, b))) ?? dois[0];
+}
 
 export function extractPrimaryDOI(doc: Document): DoiString | null {
   if (
@@ -385,7 +409,7 @@ export function extractPrimaryDOI(doc: Document): DoiString | null {
   extractFromMeta(doc, found);
   extractFromJsonLd(doc, found);
   extractFromUrl(doc, found);
-  const result = found.size > 0 ? [...found][0] : null;
+  const result = found.size > 0 ? mostSpecificDoi([...found]) : adoptedPrimaryDoi(doc);
   _primaryDoiCache = { epoch: _scanEpoch, doc, result };
   return result;
 }
@@ -552,6 +576,7 @@ function findLargestGroup(
 ): HTMLElement[] {
   const byOwner = new Map<Element, HTMLElement[]>();
   for (const node of container.querySelectorAll<HTMLElement>(selector)) {
+    if (node.closest(FLORA_UI_SELECTOR) || !node.textContent?.trim()) continue;
     const key = owner(node);
     if (!key) continue;
     const group = byOwner.get(key) ?? [];
@@ -569,7 +594,9 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   // Outermost <li>s only: a reference <li> can wrap its own nested action-link
   // <li>s (e.g. Frontiers' "Pubmed | CrossRef | ..."), which must not be
   // mistaken for separate entries.
-  const allLis = Array.from(container.querySelectorAll<HTMLElement>("li"));
+  const allLis = Array.from(container.querySelectorAll<HTMLElement>("li")).filter(
+    (li) => !li.closest(FLORA_UI_SELECTOR)
+  );
   const lis = allLis.filter(
     (li) => !allLis.some((other) => other !== li && other.contains(li))
   );
@@ -587,7 +614,10 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   // Largest group wins, not just the first past the threshold: Oxford
   // Academic's per-reference <div> group otherwise loses to a single
   // reference's own 2-3 <p> link buttons.
-  const best = [lis, pGroup, divGroup, rowGroup].reduce((a, b) => (b.length > a.length ? b : a));
+  const componentGroup = findLargestGroup(container, "*", (node) =>
+    node.tagName.includes("-") || node.constructor.name === "HTMLUnknownElement" ? node.parentElement : null
+  );
+  const best = [lis, pGroup, divGroup, rowGroup, componentGroup].reduce((a, b) => (b.length > a.length ? b : a));
   if (best.length >= 2) return best;
 
   let scope: Element = container;
@@ -600,7 +630,7 @@ function entriesFromContainer(container: Element): HTMLElement[] {
   }
   const result: HTMLElement[] = [];
   for (const child of scope.children) {
-    if (child instanceof HTMLElement && (child.textContent ?? "").trim().length > 0) {
+    if (child instanceof HTMLElement && !child.closest(FLORA_UI_SELECTOR) && (child.textContent ?? "").trim().length > 0) {
       result.push(child);
     }
   }
@@ -615,6 +645,7 @@ function collectSiblingsUntilHeading(heading: HTMLElement): HTMLElement[] {
     node = node.nextElementSibling as HTMLElement | null
   ) {
     if (/^H[1-6]$/.test(node.tagName)) break;
+    if (node.matches(FLORA_UI_SELECTOR)) continue;
     if ((node.textContent ?? "").trim().length > 0) {
       siblings.push(node);
     }
@@ -684,21 +715,26 @@ export function findReferenceEntries(doc: Document): ReferenceEntry[] {
   });
 }
 
-function extractFromReferenceContainers(doc: Document, found: Set<DoiString>): void {
-  for (const container of findReferenceContainers(doc)) {
-    for (const link of container.querySelectorAll<HTMLAnchorElement>("a[href]")) {
-      const doi = extractDoiFromHref(link.href);
-      if (doi) found.add(doi);
-    }
-    const text = (container as HTMLElement).innerText ?? container.textContent ?? "";
-    const cleaned = decodeEncodedDois(text.replace(WORD_BREAK_CHARS, ""));
-    for (const match of cleaned.matchAll(DOI_TEXT_REGEX)) {
-      const raw = cleanDoiTrailing(match[1]);
-      if (!isValidDoiSuffix(raw)) continue;
-      const doi = normaliseDOI(raw);
-      if (doi) found.add(doi);
-    }
+function addDoisWithin(container: Element, found: Set<DoiString>): void {
+  for (const link of container.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+    const doi = extractDoiFromHref(link.href);
+    if (doi) found.add(doi);
   }
+  const text = (container as HTMLElement).innerText ?? container.textContent ?? "";
+  const cleaned = decodeEncodedDois(text.replace(WORD_BREAK_CHARS, ""));
+  for (const match of cleaned.matchAll(DOI_TEXT_REGEX)) {
+    const raw = cleanDoiTrailing(match[1]);
+    if (!isValidDoiSuffix(raw)) continue;
+    const doi = normaliseDOI(raw);
+    if (doi) found.add(doi);
+  }
+}
+
+function extractFromReferenceContainers(doc: Document, found: Set<DoiString>): void {
+  const containers = findReferenceContainers(doc);
+  for (const container of containers) addDoisWithin(container, found);
+  if (containers.some((container) => entriesFromContainer(container).length > 0)) return;
+  for (const sibling of findHeadingReferenceSiblings(doc)) addDoisWithin(sibling, found);
 }
 
 function pageTypeFromPath(doc: Document): PageType {
@@ -709,11 +745,44 @@ function pageTypeFromPath(doc: Document): PageType {
   return "unknown";
 }
 
+const MAX_SELF_CITATION_CHARS = 600;
+
+function ownText(el: HTMLElement): string {
+  const clone = el.cloneNode(true) as HTMLElement;
+  for (const ui of clone.querySelectorAll(FLORA_UI_SELECTOR)) ui.remove();
+  return clone.textContent ?? "";
+}
+
+function headingCitedWithDoi(doc: Document, doi: DoiString): HTMLElement | null {
+  const heading = findArticleTitle(doc);
+  if (!heading || !doc.body) return null;
+  for (const block of doc.body.querySelectorAll<HTMLElement>("p, li, dd, td, blockquote")) {
+    if (block.contains(heading) || block.closest(FLORA_UI_SELECTOR)) continue;
+    const text = ownText(block);
+    if (text.length > MAX_SELF_CITATION_CHARS || !titleContainsText(heading, text)) continue;
+    const linked = Array.from(block.querySelectorAll<HTMLAnchorElement>("a[href]")).some(
+      (a) => extractDoiFromHref(a.href) === doi
+    );
+    if (linked || text.toLowerCase().includes(doi)) return heading;
+  }
+  return null;
+}
+
+function ownReferenceDoi(doc: Document, title: HTMLElement, referenceFound: Set<DoiString>): DoiString | null {
+  const own = findReferenceEntries(doc).filter(
+    (entry) => entry.doi && referenceFound.has(entry.doi) && titleContainsText(title, entry.text)
+  );
+  return own.length === 1 ? own[0].doi : null;
+}
+
 export function classifyPageDois(doc: Document): ClassifiedDois {
-  const articleFound = new Set<DoiString>();
-  extractFromUrl(doc, articleFound);
-  extractFromMeta(doc, articleFound);
-  extractFromJsonLd(doc, articleFound);
+  const authoritative = new Set<DoiString>();
+  extractFromUrl(doc, authoritative);
+  extractFromMeta(doc, authoritative);
+  extractFromJsonLd(doc, authoritative);
+  const articleFound = new Set<DoiString>(authoritative.size > 1 ? [mostSpecificDoi([...authoritative]), ...authoritative] : authoritative);
+  const adopted = adoptedPrimaryDoi(doc);
+  if (articleFound.size === 0 && adopted) articleFound.add(adopted);
 
   const referenceFound = new Set<DoiString>();
   extractFromReferenceContainers(doc, referenceFound);
@@ -726,6 +795,21 @@ export function classifyPageDois(doc: Document): ClassifiedDois {
   const otherFound = new Set<DoiString>();
   for (const doi of pageWide) {
     if (!articleFound.has(doi) && !referenceFound.has(doi)) otherFound.add(doi);
+  }
+
+  _awaitingTitle = false;
+  const roots = [...otherFound].filter((doi) => ![...otherFound].some((o) => o !== doi && doi.startsWith(o)));
+  if (articleFound.size === 0 && roots.length <= 1 && otherFound.size + referenceFound.size > 0) {
+    const title = findMatchedArticleTitle(doc) ?? siteArticleTitle(doc) ?? (roots.length === 1 ? headingCitedWithDoi(doc, roots[0]) : null);
+    _awaitingTitle = !title && roots.length === 1;
+    const lone = !title ? null : roots.length === 1 ? roots[0] : roots.length === 0 ? ownReferenceDoi(doc, title, referenceFound) : null;
+    if (lone) {
+      for (const doi of [...otherFound]) if (doi.startsWith(lone)) otherFound.delete(doi);
+      referenceFound.delete(lone);
+      articleFound.add(lone);
+      _adoptedPrimary = { doc, entry: pageEntry(doc), doi: lone };
+      _primaryDoiCache = { epoch: _scanEpoch, doc, result: lone };
+    }
   }
 
   const pageType: PageType = articleFound.size > 0 ? "article" : pageTypeFromPath(doc);

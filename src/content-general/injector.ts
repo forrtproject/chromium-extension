@@ -12,7 +12,8 @@ import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
 import { ensureFocusStyle, FLORA_OWNED_SELECTOR, FLORA_UI_SELECTOR } from "@shared/flora-ui";
 import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
 import { hasCustomTabTop, positionTabOnRightEdge, saveCustomTabTop } from "@shared/tab-position";
-import { adoptPanelTab, isTabBusy, releasePanelTab, setTabLabel } from "@shared/progress-tab";
+import { adoptPanelTab, canOpenPanel, releasePanelTab, setTabLabel } from "@shared/progress-tab";
+import { plainTitle } from "@shared/plain-title";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -758,12 +759,12 @@ function toReportEntry(entry: {
   const first = entry.authors?.[0];
   const name = first?.family ?? first?.given ?? null;
   return {
-    title: entry.title ?? entry.doi ?? "Unknown",
+    title: plainTitle(entry.title) || entry.doi || "Unknown",
     doi: entry.doi ?? null,
     url: entry.url ?? null,
     authors: name ? (entry.authors!.length > 1 ? `${name} et al.` : name) : null,
     year: entry.year ?? null,
-    journal: entry.journal ?? null,
+    journal: plainTitle(entry.journal) || null,
     outcome: entry.outcome ?? null,
   };
 }
@@ -802,7 +803,7 @@ function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
 
 export function renderSidePanel(
   articleFeedbacks: PubPeerFeedback[],
-  references: { doi: DoiString; title: string }[],
+  rawReferences: { doi: DoiString; title: string }[],
   pageState: Map<DoiString, LookupState>,
   doiContext: Map<DoiString, DoiContext>,
   refFeedbackByDoi: Map<DoiString, PubPeerFeedback> = new Map(),
@@ -811,6 +812,7 @@ export function renderSidePanel(
   onRetryPubPeer?: () => Promise<void>,
   options: {documentMode?: boolean} = {},
 ): void {
+  const references = rawReferences.map((ref) => ({ ...ref, title: plainTitle(ref.title) }));
   const existingHost = document.getElementById(PUBPEER_PANEL_ID);
   // Track open state via a stateful marker on the host — comparing inline
   // `transform` strings is fragile because browsers may normalise the value
@@ -886,9 +888,9 @@ export function renderSidePanel(
   if (primary && !isSafePubPeerUrl(primary.url)) return;
 
   const articleTitleText =
-    primary?.title ||
-    articleTitle ||
-    getPageArticleTitle() ||
+    plainTitle(primary?.title) ||
+    plainTitle(articleTitle) ||
+    plainTitle(getPageArticleTitle()) ||
     "Article";
 
   // Rebuilding recreates the <iframe>, reloading the embedded PubPeer thread.
@@ -932,7 +934,7 @@ export function renderSidePanel(
   // 'right' is animated by flora-tab-enter; openPanel/closePanel clear the animation
   // before touching 'right' so the JS value isn't suppressed by the fill mode.
   tab.style.cssText =
-    "all:unset;cursor:grab;pointer-events:all;" +
+    "all:unset;cursor:grab;pointer-events:all;direction:ltr;" +
     "position:fixed;right:0;top:0;" +
     "width:28px;padding:14px 0;z-index:2147483647;" +
     "background:linear-gradient(180deg,#853953,#612D53);" +
@@ -983,7 +985,8 @@ export function renderSidePanel(
     "box-shadow:-4px 0 24px rgba(0,0,0,0.15);" +
     "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
     "transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);" +
-    "z-index:2147483647;overflow:hidden;";
+    "z-index:2147483647;overflow:hidden;" +
+    "text-align:left;direction:ltr;text-indent:0;text-transform:none;letter-spacing:normal;word-spacing:normal;";
 
   // Header
   const header = document.createElement("div");
@@ -1010,7 +1013,7 @@ export function renderSidePanel(
       const state = pageState.get(ref.doi);
       const stats = state?.status === "matched" ? state.result.record.stats : null;
       return {
-        title: ref.title || refFeedbackByDoi.get(ref.doi)?.title || ref.doi,
+        title: ref.title || plainTitle(refFeedbackByDoi.get(ref.doi)?.title) || ref.doi,
         doi: ref.doi,
         replications: stats?.n_replications_total ?? 0,
         reproductions: stats?.n_reproductions_total ?? 0,
@@ -1061,7 +1064,6 @@ export function renderSidePanel(
       "display:inline-flex;align-items:flex-start;gap:4px;color:#853953;font-weight:600;" +
       "font-size:18px;text-decoration:none;line-height:1.4;word-break:break-word;flex:1;min-width:0;";
     const titleSpan = document.createElement("span");
-    titleSpan.style.cssText = "text-transform:capitalize;";
     titleSpan.textContent = articleTitleText;
     titleLink.appendChild(titleSpan);
     titleRow.appendChild(titleLink);
@@ -1174,7 +1176,7 @@ export function renderSidePanel(
       const item = document.createElement("div");
       item.style.cssText = "padding:6px 0;border-bottom:1px solid #f0f0f0;padding:10px 16px;";
       const entryUrl = entry.url ?? (entry.doi ? `https://doi.org/${entry.doi}` : null);
-      const titleText = entry.title ?? entry.doi ?? "Unknown";
+      const titleText = plainTitle(entry.title) || entry.doi || "Unknown";
       const titleRow = document.createElement("div");
       titleRow.style.cssText = "display:flex;align-items:flex-start;gap:8px;";
       if (entryUrl && /^https?:\/\//i.test(entryUrl)) {
@@ -1221,7 +1223,8 @@ export function renderSidePanel(
         if (authorStr) meta.push(entry.authors.length > 1 ? `${authorStr} et al.` : authorStr);
       }
       if (entry.year) meta.push(String(entry.year));
-      if (entry.journal) meta.push(entry.journal);
+      const journal = plainTitle(entry.journal);
+      if (journal) meta.push(journal);
       if (meta.length > 0) {
         const metaEl = document.createElement("div");
         metaEl.style.cssText = "font-size:11px;color:#5f6368;margin-top:2px;";
@@ -1343,7 +1346,7 @@ export function renderSidePanel(
     li.style.cssText = "padding:10px 16px;border-bottom:1px solid #f0f0f0;";
 
     // Canonical title resolved by the caller (PubPeer / Crossref / OpenAlex).
-    const title = ref.title || feedback?.title || doi;
+    const title = ref.title || plainTitle(feedback?.title) || doi;
     const titleLink = document.createElement("a");
     titleLink.href = feedback?.url || `https://doi.org/${doi}`;
     titleLink.target = "_blank";
@@ -1713,7 +1716,7 @@ export function renderSidePanel(
   tab.addEventListener("click", () => {
     if (tab.dataset.dragged === "1") { tab.dataset.dragged = ""; return; }
     if (isOpen) closePanel();
-    else if (!isTabBusy(tab)) openPanel();
+    else if (canOpenPanel(tab)) openPanel();
   });
   closeBtn.addEventListener("click", () => closePanel());
 

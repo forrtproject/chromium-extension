@@ -3,6 +3,7 @@
 // entirely inside the link's fragment, which browsers never send to a server.
 
 import type {NoticeKind} from "@shared/types";
+import {plainTitle} from "@shared/plain-title";
 
 // The docs site's canonical host. forrtproject.github.io/* 301-redirects here,
 // so linking to the github.io form would ship a redirect in every shared link.
@@ -131,8 +132,8 @@ function outcomeTone(outcome: string): string {
 function entryHtml(entry: ReportEntry): string {
     const href = entry.url ?? (entry.doi ? `https://doi.org/${entry.doi}` : null);
     const heading = href
-        ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(entry.title)}</a>`
-        : esc(entry.title);
+        ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(plainTitle(entry.title))}</a>`
+        : esc(plainTitle(entry.title));
     const meta = [entry.authors, entry.year ? String(entry.year) : null, entry.journal]
         .filter((part): part is string => !!part)
         .join(" · ");
@@ -168,7 +169,7 @@ function referenceHtml(reference: ReportReference): string {
     }
     if (tags.length === 0) return "";
     return `<li>
-      <div class="entry-head"><a href="https://doi.org/${esc(reference.doi)}" target="_blank" rel="noopener">${esc(reference.title)}</a></div>
+      <div class="entry-head"><a href="https://doi.org/${esc(reference.doi)}" target="_blank" rel="noopener">${esc(plainTitle(reference.title))}</a></div>
       <div class="tags">${tags.join("")}</div>
     </li>`;
 }
@@ -264,8 +265,8 @@ export function renderReportBody(payload: ReportPayload): string {
     ].filter((stat): stat is {n: number; label: string} => stat !== null);
 
     const heading = payload.sourceUrl
-        ? `<a href="${esc(payload.sourceUrl)}" target="_blank" rel="noopener">${esc(payload.title)}</a>`
-        : esc(payload.title);
+        ? `<a href="${esc(payload.sourceUrl)}" target="_blank" rel="noopener">${esc(plainTitle(payload.title))}</a>`
+        : esc(plainTitle(payload.title));
     const byline = [payload.authors, payload.year ? String(payload.year) : null]
         .filter((part): part is string => !!part).join(" · ");
 
@@ -303,7 +304,7 @@ export function renderReportBody(payload: ReportPayload): string {
 export function renderReportDocument(payload: ReportPayload): string {
     return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>${esc(payload.title)} — FORRT ORE Meta Report</title>
+<title>${esc(plainTitle(payload.title))} — FORRT ORE Meta Report</title>
 <style>${REPORT_STYLES}</style>
 </head><body>${renderReportBody(payload)}</body></html>`;
 }

@@ -23,7 +23,8 @@
 //   matching a live element wins, so list a preferred target then fallbacks for
 //   older templates. If none match, the pill still renders via the generic
 //   placement — it is never dropped.
-// - position: "append" (default) | "prepend" | "before" | "after".
+// - position: "append" (default) | "prepend" | "before" | "after" | "below".
+//   "below" puts the pill on its own row under the target.
 //   The selector ":self" targets the search root itself.
 // - referenceScope confines pills to one part of the page, for publishers that
 //   mark up footnotes closely enough to citations to be mistaken for them.
@@ -46,8 +47,9 @@
 
 import { debugLog } from "@shared/debug";
 import { pageUrl } from "@shared/page-identity";
+import { pillRow } from "@shared/pill-row";
 
-export type PlacementPosition = "append" | "prepend" | "before" | "after";
+export type PlacementPosition = "append" | "prepend" | "before" | "after" | "below";
 
 export interface PlacementRule {
     selector: string;
@@ -62,6 +64,7 @@ export interface SiteAdapter {
     hostnames: string[];
     referencePill?: PlacementRule[];
     titlePill?: PlacementRule[];
+    articleTitle?: string[];
     referenceScope?: string;
     referencePillStyle?: PillStyle;
     titlePillStyle?: PillStyle;
@@ -99,7 +102,7 @@ const FRONTIERS: SiteAdapter = {
     id: "frontiers",
     hostnames: ["frontiersin.org"],
     referencePill: [
-        { selector: ".References__content", position: "append" },
+        { selector: ".References__content", position: "below" },
     ],
     titlePill: [
         { selector: ".ArticleDetailsV4__main__title", position: "after" },
@@ -152,7 +155,7 @@ const SPRINGER: SiteAdapter = {
     id: "springer",
     hostnames: ["link.springer.com"],
     referencePill: [
-        { selector: ".c-article-references__text", position: "after" },
+        { selector: ".c-article-references__text", position: "below" },
     ],
     titlePill: [
         { selector: ".c-article-title", position: "after" },
@@ -183,7 +186,7 @@ const JAMA_NETWORK: SiteAdapter = {
         { selector: ".reference-content", position: "after" },
     ],
     titlePill: [
-        { selector: ".meta-article-title", position: "append" },
+        { selector: ".meta-article-title", position: "after" },
     ],
     referenceScope: ".references",
     titlePillStyle: { top: "0px" },
@@ -220,13 +223,13 @@ const NATURE_REVIEWS: SiteAdapter = {
     id: "nature-reviews",
     hostnames: ["nature.com"],
     referencePill: [
-        { selector: ".c-article-references__text", position: "after" },
+        { selector: ".c-article-references__text", position: "below" },
     ],
     titlePill: [
-        { selector: ".c-article-title", position: "before" },
+        { selector: ".c-article-title", position: "after" },
     ],
     referenceScope: "#Bib1-content",
-    titlePillStyle: { top: "0px" },
+    titlePillStyle: { top: "0px", display: "block", width: "fit-content", marginTop: "6px !important", marginBottom: "6px !important", marginInlineStart: "0 !important" },
     referencePillStyle: { top: "0px" },
 };
 
@@ -345,7 +348,6 @@ const TANDFONLINE: SiteAdapter = {
     id: "tandfonline",
     hostnames: ["tandfonline.com"],
     titlePill: [
-        { selector: "h1 .NLM_article-title.hlFld-title", position: "after" },
         { selector: ".article-header__title", position: "after" },
     ],
     referencePill: [
@@ -361,6 +363,7 @@ const HOGREFE: SiteAdapter = {
     id: "hogrefe",
     hostnames: ["hogrefe.com"],
     titlePill: [
+        { selector: ".citation__subtitle", position: "after" },
         { selector: ".citation__title", position: "after" },
     ],
     referencePill: [
@@ -445,18 +448,23 @@ const OSF_IO: SiteAdapter = {
     id: "osf-io",
     hostnames: ["osf.io"],
     titlePill: [
-        {
-            selector: "a.flex.flex-column.gap-3.custom-light-hover.dark-blue-link.md\\:flex-row",
-            position: "after",
-        },
+        { selector: "osf-preprint-details section > div.justify-content-between", position: "after" },
         { selector: ".title", position: "after" },
     ],
     referencePill: [
         { selector: ":self", position: "after" },
     ],
     referenceScope: ".references",
-    titlePillStyle: { top: "0px" },
+    titlePillStyle: { top: "0px", alignSelf: "flex-start" },
     referencePillStyle: { top: "0px" },
+};
+
+const BLOOMSBURY_COLLECTIONS: SiteAdapter = {
+    id: "bloomsburycollections",
+    hostnames: ["bloomsburycollections.com"],
+    titlePill: [
+        { selector: "#detail-title", position: "below" },
+    ],
 };
 
 const PSYCNET_APA: SiteAdapter = {
@@ -471,6 +479,18 @@ const PSYCNET_APA: SiteAdapter = {
     referenceScope: ".references",
     titlePillStyle: { top: "0px" },
     referencePillStyle: { top: "0px" },
+};
+
+const PSICOTHEMA: SiteAdapter = {
+    id: "psicothema",
+    hostnames: ["psicothema.com"],
+    articleTitle: ["center > h3"],
+};
+
+const HEIUP: SiteAdapter = {
+    id: "heiup",
+    hostnames: ["heiup.uni-heidelberg.de"],
+    articleTitle: [".item.authors ~ h3.subtitle", ".item.authors ~ h2.title"],
 };
 
 export const SITE_ADAPTERS: SiteAdapter[] = [
@@ -503,6 +523,9 @@ export const SITE_ADAPTERS: SiteAdapter[] = [
     PMC_NCBI,
     OSF_IO,
     PSYCNET_APA,
+    BLOOMSBURY_COLLECTIONS,
+    PSICOTHEMA,
+    HEIUP,
 ];
 
 function normaliseHost(hostname: string): string {
@@ -529,8 +552,20 @@ export function currentSiteAdapter(): SiteAdapter | null {
     return resolveSiteAdapter(location.hostname);
 }
 
+const TABLE_PART = /^(TABLE|THEAD|TBODY|TFOOT|TR)$/;
+
 function insertAt(target: Element, pill: HTMLElement, position: PlacementPosition): void {
     switch (position) {
+        case "below":
+            if (target.tagName === "A") {
+                target.insertAdjacentElement("afterend", pillRow(pill));
+            } else {
+                const host = TABLE_PART.test(target.tagName)
+                    ? Array.from(target.querySelectorAll("td, th")).pop() ?? target
+                    : target;
+                host.appendChild(pillRow(pill));
+            }
+            break;
         case "prepend":
             target.insertBefore(pill, target.firstChild);
             break;

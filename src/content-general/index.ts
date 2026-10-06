@@ -18,6 +18,7 @@ import type {ClassifiedDois, DoiContext, DoiString, LookupState} from "@shared/t
 import {
     safeSendMessage,
     augmentDOIsViaWorker,
+    isContextInvalidated,
     type LookupRequest,
     type LookupResponse
 } from "@shared/messages";
@@ -38,7 +39,8 @@ import {
     showAllFloraUI
 } from "./injector";
 import {resetWorkSummary} from "@shared/progress-toast";
-import {lookupPubPeer, lookupPubPeerForDois, type PubPeerFeedback} from "@shared/pubpeer-api";
+import {lookupPubPeer, lookupPubPeerForDois, pubPeerVerdict, type PubPeerFeedback} from "@shared/pubpeer-api";
+import {setScanSummarySource, type ScanSummary} from "@shared/toolbar-scan";
 import {debugError, debugLog, debugWarn} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
@@ -47,9 +49,10 @@ import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/dom
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {isBotCheckPage} from "@shared/bot-check";
 import {isAuthGatewayPage} from "@shared/auth-page";
-import {injectInlineRetractionPills, injectRetractionInfo, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
+import {injectInlineRetractionPills, removeNoticePillsFor, resetRetractionPills, retractionCheck, RetractionResponse} from "@shared/doi-retraction"
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
+import {findArticleTitle, placeTitlePill} from "@shared/article-title";
 import {searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
@@ -302,6 +305,8 @@ const runScanPasses = serializeWithRerun(async () => {
     beginWorkIndicator({stages: ["scan", "validate", "augment", "notices", "lookup", "report"]});
     try {
         await runScanPass();
+    } catch (err) {
+        if (!isAbortError(err) && !isContextInvalidated(err)) reportCodeError("Scan pass failed", err);
     } finally {
         endWorkIndicator();
     }
@@ -313,6 +318,32 @@ async function scanWholePage(): Promise<void> {
 }
 
 let nothingToFlagReportedFor: string | null = null;
+
+function scanSummary(): ScanSummary | null {
+    if (floraHidden) return null;
+    const papers = new Set<DoiString>();
+    const flagged = new Set<DoiString>();
+    let incomplete = unavailableRetractionDois.size > 0 || articlePubPeerUnavailable;
+    for (const [doi, state] of pageState) {
+        if (invalidDois.has(doi) || state.status === "idle") continue;
+        papers.add(doi);
+        const verdict = pubPeerVerdict(doi);
+        if (state.status === "error" || state.status === "loading" || verdict === "unavailable") incomplete = true;
+        if (hasReplication(state) || verdict === "comments") flagged.add(doi);
+    }
+    for (const notice of redacts) {
+        papers.add(notice.originDoi);
+        flagged.add(notice.originDoi);
+    }
+    if (lastArticleFeedbacks.some((f) => f.total_comments > 0)) {
+        const primary = extractPrimaryDOI(document);
+        if (primary) {
+            papers.add(primary);
+            flagged.add(primary);
+        }
+    }
+    return {papers: papers.size, flagged: flagged.size, incomplete};
+}
 
 function reportNothingToFlag(dois: DoiString[], flagged: boolean): void {
     const examined = new Set(dois).size;
@@ -379,13 +410,8 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                                 state.status === "matched" ? [{doi, result: state.result}] : []);
                             if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks);
                         } else {
-                            placeTitleNoticePill();
-                            for (const pill of document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}`)) {
-                                const notice = recovered.find(n => n.originDoi === pill.getAttribute("data-flora-doi"));
-                                if (notice) injectRetractionInfo(pill, notice, {afterend: true});
-                            }
-                            injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             repaintBadges();
+                            injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
                             lastRenderedPageStateVersion = -1;
                             await checkPubPeer(null);
                         }
@@ -556,13 +582,9 @@ async function runScanPass(): Promise<void> {
         }
         pageNotices = notices;
         refreshRedacts();
-        // A noticed DOI gets one labelled pill, at its most prominent
-        // occurrence. The title outranks any mention in the body, so the
-        // title claims its notice before the occurrence pass runs — the
-        // per-DOI guard in injectRetractionInfo then skips the body mentions.
         if (!isSheets) {
             placeTitleIndicatorPill();
-            placeTitleNoticePill();
+            repaintBadges();
         }
         injectInlineRetractionPills(
             pageOccurrences,
@@ -572,6 +594,7 @@ async function runScanPass(): Promise<void> {
     if (!isSheets) {
         injectLooseDoiPills({
             occurrences: pageOccurrences,
+            primary: extractPrimaryDOI(document),
             context: doiContext,
             pageState,
             noticed: new Set(redacts.map((r) => r.originDoi)),
@@ -598,9 +621,9 @@ async function runScanPass(): Promise<void> {
         // Sage) re-render and wipe previously placed pills, and this pass
         // (triggered by that mutation) would otherwise return without restoring them.
         if (!isSheets) placeTitleIndicatorPill();
-        if (!isSheets) placeTitleNoticePill();
         if (!isSheets) injectLooseDoiPills({
             occurrences: pageOccurrences,
+            primary: extractPrimaryDOI(document),
             context: doiContext,
             pageState,
             noticed: new Set(redacts.map((r) => r.originDoi)),
@@ -718,6 +741,7 @@ async function runScanPass(): Promise<void> {
                 placeTitleIndicatorPill();
                 injectLooseDoiPills({
                     occurrences: pageOccurrences,
+                    primary: extractPrimaryDOI(document),
                     context: doiContext,
                     pageState,
                     noticed: new Set(redacts.map((r) => r.originDoi)),
@@ -834,22 +858,6 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
 }
 
 /**
- * Give the article's own retraction or expression of concern its labelled
- * pill, beside the title pill. Separate from placeTitleIndicatorPill because
- * the title pill is often placed before the retraction check has answered.
- * Idempotent: injectRetractionInfo shows one pill per DOI per page.
- */
-function placeTitleNoticePill(): void {
-    const titlePill = document.querySelector<HTMLElement>(
-        `.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`
-    );
-    const doi = titlePill?.getAttribute("data-flora-doi");
-    if (!titlePill || !doi) return;
-    const notice = redacts.find((r) => r.originDoi === doi);
-    if (notice) injectRetractionInfo(titlePill, notice, {afterend: true});
-}
-
-/**
  * Place the merged FLoRA indicator pill (DOI + Open Access + PubPeer +
  * retraction/replication badge) beside the article title, keyed off the
  * primary DOI rather than the on-page occurrence scan so it still surfaces
@@ -858,10 +866,11 @@ function placeTitleNoticePill(): void {
  * hydrating SPA wipes the title's children.
  */
 function placeTitleIndicatorPill(): void {
-    const titleEl = document.querySelector<HTMLHeadingElement>("h1");
-    if (!titleEl || document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)) return;
+    if (document.querySelector(`.${INDICATOR_PILL_CLASS}[data-flora-title-pill]`)) return;
     const primaryDoi = extractPrimaryDOI(document);
     if (!primaryDoi || invalidDois.has(primaryDoi)) return;
+    const titleEl = findArticleTitle(document);
+    if (!titleEl && !currentSiteAdapter()?.titlePill?.length) return;
 
     const retraction = redacts.find((r) => r.originDoi === primaryDoi) ?? null;
     const state = pageState.get(primaryDoi);
@@ -874,14 +883,18 @@ function placeTitleIndicatorPill(): void {
         replicationsCount: stats?.n_replications_total ?? null,
         reproductionsCount: stats?.n_reproductions_total ?? null,
     });
-    // Marks the title pill so the check above finds it wherever an adapter put it.
-    pill.setAttribute("data-flora-title-pill", "");
+    insertTitlePill(pill, titleEl);
+}
 
+function insertTitlePill(pill: HTMLElement, title: HTMLElement | null): boolean {
+    pill.setAttribute("data-flora-title-pill", "");
     const adapter = currentSiteAdapter();
-    applyPillStyle(pill, adapter, "title");
     if (!applyPlacement(adapter?.titlePill, document.documentElement, pill, "title pill")) {
-        titleEl.appendChild(pill);
+        if (!title) return false;
+        placeTitlePill(pill, title);
     }
+    applyPillStyle(pill, adapter, "title");
+    return true;
 }
 
 // Gate augmentFromTitle to real article pages — avoids polluting the cache.
@@ -916,11 +929,14 @@ async function augmentFromTitle(): Promise<void> {
         return;
     }
 
-    const titleEl = document.querySelector<HTMLHeadingElement>("h1");
-    const pageTitle = titleEl?.textContent?.trim() || document.title?.trim();
+    const titleEl = findArticleTitle(document);
+    const pageTitle = metaContent(document, ['meta[name="citation_title"]', 'meta[name="dc.title" i]'])
+        || titleEl?.textContent?.trim()
+        || document.title?.trim();
 
     if (!pageTitle) return;
 
+    let resolvedDoi: DoiString | undefined;
     try {
         const augmented = await augmentDOIsViaWorker([{
             title: pageTitle,
@@ -928,7 +944,7 @@ async function augmentFromTitle(): Promise<void> {
             ...extractPageAugmentationMetadata(document),
         }]);
         if (stale()) return;
-        const resolvedDoi = augmented.get(pageTitle);
+        resolvedDoi = augmented.get(pageTitle) ?? undefined;
         debugLog("Title augmentation:", resolvedDoi ? `resolved to ${resolvedDoi}` : "no match", `(title: "${pageTitle}")`);
         if (resolvedDoi) {
             processedDois.add(resolvedDoi);
@@ -936,8 +952,18 @@ async function augmentFromTitle(): Promise<void> {
                 type: "FLORA_LOOKUP",
                 dois: [resolvedDoi]
             };
-            await safeSendMessage(request);
+            const lookup = await safeSendMessage<LookupResponse>(request);
             if (stale()) return;
+            if (lookup) {
+                if (lookup.errors[resolvedDoi]) {
+                    pageState.set(resolvedDoi, {status: "error", message: lookup.errors[resolvedDoi]});
+                } else if (lookup.results[resolvedDoi]) {
+                    pageState.set(resolvedDoi, {status: "matched", result: lookup.results[resolvedDoi], source: "augmented"});
+                } else {
+                    pageState.set(resolvedDoi, {status: "no-match"});
+                }
+                pageStateVersion++;
+            }
 
             // Augmented DOI isn't in `dois` — extractPrimaryDOI won't find it either
             // (it was never on the page), so placeTitleIndicatorPill() never fires
@@ -952,12 +978,7 @@ async function augmentFromTitle(): Promise<void> {
                         oaStatus: fetchOpenAccess(resolvedDoi),
                         retraction: notices[0] ?? null,
                     });
-                    pill.setAttribute("data-flora-title-pill", "");
-                    const adapter = currentSiteAdapter();
-                    applyPillStyle(pill, adapter, "title");
-                    if (!applyPlacement(adapter?.titlePill, document.documentElement, pill, "title pill")) {
-                        titleEl.appendChild(pill);
-                    }
+                    insertTitlePill(pill, titleEl);
                 } catch (err) {
                     debugWarn(`Title pill for augmented ${resolvedDoi} failed —`, err);
                 }
@@ -965,6 +986,11 @@ async function augmentFromTitle(): Promise<void> {
         }
     } catch (err) {
         debugWarn(`Title augmentation failed for "${pageTitle}" —`, err);
+        if (resolvedDoi && !stale()) {
+            pageState.set(resolvedDoi, {status: "error", message: err instanceof Error ? err.message : String(err)});
+            pageStateVersion++;
+            augmentAttempted = false;
+        }
     } finally {
         // Abandoned on this page, so the resumed pass gets to try the title again.
         // A newer generation owns the flag by then and keeps its own attempt.
@@ -1234,6 +1260,7 @@ async function fetchSheetDois(): Promise<void> {
 
 
 async function startOnPage(): Promise<void> {
+    setScanSummarySource(scanSummary);
     // Applicable page — mark the toolbar icon active for this tab.
     if (floraHidden) reportInactive();
     else reportActiveState(true);
@@ -1378,8 +1405,8 @@ function startWhenResumed(atLoad: DomainPause): void {
     editorAllowed = true;
     await startOnPage();
   } catch (err) {
-    reportCodeError(`ORE failed to start on ${location.hostname}`, err);
     reportActiveState(false);
+    reportCodeError(`ORE failed to start on ${location.hostname}`, err);
   } finally {
     if (!editorAllowed && isGoogleDocs()) document.dispatchEvent(new Event("flora-docs-stop-capture"));
     if (!editorAllowed && isExcel) document.dispatchEvent(new Event("flora-excel-stop-capture"));

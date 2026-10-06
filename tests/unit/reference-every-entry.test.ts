@@ -52,3 +52,19 @@ describe("every reference gets a pill", () => {
         expect(getSettings).not.toHaveBeenCalled();
     });
 });
+
+describe("the article's own DOI", () => {
+    it("is not surfaced as a reference when a footnote quotes it", async () => {
+        const SELF = "10.9999/the.article.itself";
+        document.documentElement.innerHTML = `<head><meta name="citation_doi" content="${SELF}"></head><body>
+            <ol class="references">
+              <li>Smith J. A cited paper. Journal. 2020. https://doi.org/${PRINTED}</li>
+              <li>Reference information: Journal 2021, vol 3. doi:${SELF}</li>
+            </ol></body>`;
+        beginDomScanPass();
+
+        const resolved = await resolveReferenceDois();
+
+        expect(resolved.map((r) => r.doi)).toEqual([PRINTED]);
+    });
+});

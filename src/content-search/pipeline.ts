@@ -16,9 +16,13 @@ import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
 import {applyPlacement} from "@shared/site-adapters";
 import {showToast} from "@shared/toast";
+import {pubPeerVerdict} from "@shared/pubpeer-api";
+import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
+import {reportCodeError} from "@shared/error-report";
+import {hasReplication} from "../content-general/reference-states";
 import {isSetupComplete} from "@shared/settings";
 import {fetchOpenAccess} from "@shared/openaccess";
-import {abortWorkForNavigation, activeWorkSignal, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
+import {abortWorkForNavigation, activeWorkSignal, isAbortError, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {
@@ -109,7 +113,26 @@ function refreshBadges(): void {
     // so it carries this page's identity: a result landing after a navigation
     // belongs to a page whose state has already been cleared.
     updateIndicatorPillBadges(document, lookupState, () => [...retractions.values()], "panels",
-        undefined, {generation: () => searchNavigationGeneration});
+        undefined, {generation: () => searchNavigationGeneration, onResolved: noteScanUpdated});
+}
+
+export function searchScanSummary(): ScanSummary | null {
+    if (searchHidden) return null;
+    const papers = new Set<DoiString>();
+    const flagged = new Set<DoiString>();
+    let incomplete = searchRequiresReload || searchRetryMessage !== "" || unavailableRetractionDois.size > 0;
+    for (const [doi, state] of lookupState) {
+        if (state.status === "idle") continue;
+        papers.add(doi);
+        const verdict = pubPeerVerdict(doi);
+        if (state.status === "error" || verdict === "unavailable") incomplete = true;
+        if (hasReplication(state) || verdict === "comments") flagged.add(doi);
+    }
+    for (const doi of retractions.keys()) {
+        papers.add(doi);
+        flagged.add(doi);
+    }
+    return {papers: papers.size, flagged: flagged.size, incomplete};
 }
 
 // Set by the popup's hide command and by the work toast's pause control (both
@@ -175,6 +198,8 @@ async function runQueuedPass(adapter: SearchSiteAdapter, root: ParentNode): Prom
     beginWorkIndicator({stages: ["scan", "validate", "augment", "lookup", "report"]});
     try {
         await runPass(adapter, rows);
+    } catch (err) {
+        if (!isAbortError(err) && !isContextInvalidated(err)) reportCodeError(`${adapter.label}: search pass failed`, err);
     } finally {
         if (generation === searchNavigationGeneration && isWorkCancelled()) {
             // A panel is placed before its lookup completes; it is not evidence of completion.
@@ -515,6 +540,7 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
     const noticesFailed = pageUrl(retractionPage.href) === passUrl && unavailableRetractionDois.size > 0;
     if (!titleFailed && !noticesFailed) {
         dismissSearchRetry();
+        noteScanUpdated();
         return;
     }
     searchRetryMessage = titleFailed && noticesFailed
@@ -532,6 +558,7 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
             void retryFailedSearchChecks(adapter, root).catch(error => debugWarn("Search checks retry failed —", error));
         }},
     });
+    noteScanUpdated();
 }
 
 async function retryFailedSearchChecks(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
@@ -624,6 +651,7 @@ async function placePanel(
             retractions.set(doi, notices[0]);
             refreshBadges();
         }
+        noteScanUpdated();
     } catch (err) {
         debugError(`${adapter.label}: could not label ${doi} —`, err);
     }

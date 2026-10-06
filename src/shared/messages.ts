@@ -3,7 +3,7 @@ import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse
 import type {AugmentSource} from "./doi-augment";
 import type {NcbiIdType} from "./pmc-resolve";
 import {debugLog} from "./debug";
-import type {DebugLogEntry} from "./debug";
+import type {DebugLogEntry, RuntimeErrorInfo} from "./debug";
 
 /** Any context → service worker: captured debug entries to persist. */
 export interface DebugEntriesRequest {
@@ -58,6 +58,48 @@ export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
     if (typeof msg !== "object" || msg === null) return false;
     const type = (msg as Record<string, unknown>).type;
     return type === "FLORA_TAKE_REPORT" || type === "FLORA_PEEK_REPORT";
+}
+
+export type ScanState =
+    | {phase: "scanning"; papers: number}
+    | {phase: "done"; papers: number; flagged: number; incomplete: boolean}
+    | {phase: "error"; pageUrl: string; pageKey: string; error: RuntimeErrorInfo; entries: DebugLogEntry[]};
+
+export interface ScanStateMessage {
+    type: "FLORA_SCAN_STATE";
+    state: ScanState;
+}
+
+function isCount(v: unknown): v is number {
+    return typeof v === "number" && Number.isInteger(v) && v >= 0;
+}
+
+function isDebugLogEntry(v: unknown): v is DebugLogEntry {
+    if (typeof v !== "object" || v === null) return false;
+    const e = v as Record<string, unknown>;
+    return typeof e.t === "number" && Number.isFinite(e.t)
+        && (e.level === "log" || e.level === "warn" || e.level === "error")
+        && typeof e.ctx === "string" && typeof e.msg === "string";
+}
+
+function isRuntimeErrorInfo(v: unknown): v is RuntimeErrorInfo {
+    if (typeof v !== "object" || v === null) return false;
+    const e = v as Record<string, unknown>;
+    return typeof e.message === "string"
+        && (e.stack === undefined || typeof e.stack === "string")
+        && (e.where === undefined || typeof e.where === "string");
+}
+
+export function isScanStateMessage(msg: unknown): msg is ScanStateMessage {
+    if (typeof msg !== "object" || msg === null) return false;
+    const m = msg as Record<string, unknown>;
+    const s = m.state as Record<string, unknown> | null | undefined;
+    if (m.type !== "FLORA_SCAN_STATE" || typeof s !== "object" || s === null) return false;
+    if (s.phase === "scanning") return isCount(s.papers);
+    if (s.phase === "done") return isCount(s.papers) && isCount(s.flagged) && typeof s.incomplete === "boolean";
+    if (s.phase === "error") return typeof s.pageUrl === "string" && typeof s.pageKey === "string" && isRuntimeErrorInfo(s.error)
+        && Array.isArray(s.entries) && s.entries.every(isDebugLogEntry);
+    return false;
 }
 
 /** Content script → service worker: request DOI lookups */

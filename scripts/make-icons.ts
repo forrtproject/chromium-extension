@@ -13,7 +13,7 @@ import { Browser as BrowserName, computeExecutablePath, detectBrowserPlatform, i
 const LOGO = "data:image/svg+xml;base64," + readFileSync("assets/forrt-logo.svg").toString("base64");
 const SIZES = [16, 32, 48, 128];
 const TOWER = 1;
-const VARIANTS = { gray: "#9aa0a6", maroon: "#853953" } as const;
+const VARIANTS = { gray: "#9aa0a6", maroon: "#853953", clear: "#065f46" } as const;
 
 function draw(size: number, tint: string, overlay = ""): string {
   return `return (async () => {

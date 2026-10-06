@@ -6,12 +6,17 @@
 // link href), gray dotted = DOI resolved via Crossref/OpenAlex augmentation
 // for entries that exposed no DOI of their own.
 
-import {findReferenceEntries, extractDoiFromHref, type ReferenceEntry} from "@shared/doi-extractor";
+import {findReferenceEntries, extractPrimaryDOI, type ReferenceEntry} from "@shared/doi-extractor";
+import {findArticleTitle} from "@shared/article-title";
+import {isInRelatedWorks} from "@shared/related-works";
 import {isDocumentEditor, editorAnnotationTarget} from "@shared/document-editor";
 import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
 import {validateDOIs} from "@shared/doi-validate";
-import {alignNoticePillWith, type RetractionResponse} from "@shared/doi-retraction";
-import {createIndicatorPill} from "@shared/indicator-pill";
+import type {RetractionResponse} from "@shared/doi-retraction";
+import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
+import {FLORA_UI_SELECTOR, REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
+import {PILL_ROW_CLASS, pillRow} from "@shared/pill-row";
+import {LOOSE_PILL_ATTR} from "./loose-dois";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {count, reportWorkStage} from "@shared/progress-toast";
 import {debugLog, debugWarn} from "@shared/debug";
@@ -25,97 +30,64 @@ import {
     type SiteAdapter,
 } from "@shared/site-adapters";
 
-/**
- * Place a DOI pill inline. For a DOI the page itself carries, the pill goes
- * right after the link or text that holds it, so it reads as part of the
- * citation.
- *
- * An augmented DOI has no element on the page to anchor to. Appending it to
- * the entry root drops it onto its own line below the publisher action row
- * ("View PDF | View article | … | Google Scholar"); instead we insert it
- * right after the entry's last link so it sits inline with that row. Falls
- * back to the entry end only when the entry has no links at all.
- */
-function findSmallestTextContainer(root: HTMLElement, needle: string): HTMLElement | null {
-    let best: HTMLElement | null = null;
-    let bestLen = Infinity;
-    for (const el of root.querySelectorAll<HTMLElement>("*")) {
-        const t = el.textContent ?? "";
-        if (!t.includes(needle)) continue;
-        if (t.length < bestLen) {
-            best = el;
-            bestLen = t.length;
-        }
+const BLOCK_CHILD = /^(DIV|P|SECTION|ARTICLE|BLOCKQUOTE)$/;
+const TABLE_PART = /^(TABLE|THEAD|TBODY|TFOOT|TR)$/;
+const DOMINANT_SHARE = 0.85;
+
+const textLength = (el: Element): number => (el.textContent ?? "").replace(/\s+/g, "").length;
+
+function entryContentColumn(entry: HTMLElement): HTMLElement {
+    let host = entry;
+    for (;;) {
+        const total = textLength(host);
+        if (total === 0) return host;
+        const main = Array.from(host.children).find((c): c is HTMLElement =>
+            c instanceof HTMLElement && BLOCK_CHILD.test(c.tagName)
+            && !c.matches(FLORA_UI_SELECTOR) && textLength(c) >= total * DOMINANT_SHARE);
+        if (!main) return host;
+        host = main;
     }
-    return best;
 }
 
-// Descendant with ≥50% but <100% of the entry's text — the citation body,
-// excluding trailing action-link rows ("Article | Google Scholar").
-function findCitationBody(entry: HTMLElement): HTMLElement | null {
-    const entryText = (entry.textContent ?? "").trim();
-    if (entryText.length < 40) return null;
-    const floor = Math.floor(entryText.length * 0.5);
-    let best: HTMLElement | null = null;
-    let bestLen = 0;
-    for (const el of entry.querySelectorAll<HTMLElement>("*")) {
-        const t = (el.textContent ?? "").trim();
-        if (t.length >= floor && t.length < entryText.length && t.length > bestLen) {
-            best = el;
-            bestLen = t.length;
-        }
+function laysChildrenSideBySide(el: Element): boolean {
+    const {display, flexDirection} = getComputedStyle(el);
+    return display.includes("grid") || (display.includes("flex") && !flexDirection.startsWith("column"));
+}
+
+function removeLoosePills(entry: HTMLElement, doi: DoiString): void {
+    for (const loose of entry.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}[${LOOSE_PILL_ATTR}]`)) {
+        if (loose.getAttribute("data-flora-doi") !== doi) continue;
+        const row = loose.parentElement?.classList.contains(PILL_ROW_CLASS) ? loose.parentElement : null;
+        loose.remove();
+        if (row?.childElementCount === 0) row.remove();
     }
-    return best;
 }
 
 function placeReferencePill(
     entry: HTMLElement,
     doi: DoiString,
-    mode: ReferenceMode,
     pill: HTMLElement,
     adapter: SiteAdapter | null
 ): void {
-    // A stale adapter selector falls through to the heuristics below.
     const wordTarget = editorAnnotationTarget(entry);
     if (wordTarget) {
         for (const existing of wordTarget.querySelectorAll('.flora-indicator-pill')) existing.remove();
         wordTarget.prepend(pill);
         return;
     }
+    removeLoosePills(entry, doi);
     if (applyPlacement(adapter?.referencePill, entry, pill, `reference pill for ${doi}`)) return;
 
-    if (mode === "page") {
-        for (const link of entry.querySelectorAll<HTMLAnchorElement>("a[href]")) {
-            if (extractDoiFromHref(link.href) === doi) {
-                link.insertAdjacentElement("afterend", pill);
-                return;
-            }
-        }
-        const textHost = findSmallestTextContainer(entry, doi);
-        if (textHost) {
-            textHost.appendChild(pill);
-            return;
-        }
-    } else {
-        const body = findCitationBody(entry);
-        if (body) {
-            body.appendChild(pill);
-            return;
-        }
-    }
-    const links = entry.querySelectorAll<HTMLAnchorElement>("a[href]");
-    const lastLink = links[links.length - 1];
-    if (lastLink) {
-        lastLink.insertAdjacentElement("afterend", pill);
-    } else {
-        entry.appendChild(pill);
-    }
+    const row = pillRow(pill);
+    let host = entryContentColumn(entry);
+    if (TABLE_PART.test(host.tagName)) host = Array.from(host.querySelectorAll<HTMLElement>("td, th")).pop() ?? host;
+    if (laysChildrenSideBySide(host)) host.insertAdjacentElement("afterend", row);
+    else host.appendChild(row);
 }
 
-const PROCESSED_ATTR = "data-flora-ref-processed";
 
 function releaseReferenceEntry(entry: ReferenceEntry): void {
-    entry.element.removeAttribute(PROCESSED_ATTR);
+    entry.element.removeAttribute(REFERENCE_ENTRY_ATTR);
 }
 
 export function releaseReferenceEntries(resolved: ResolvedReference[]): void {
@@ -123,8 +95,8 @@ export function releaseReferenceEntries(resolved: ResolvedReference[]): void {
 }
 
 export function resetReferenceMarkers(root: ParentNode = document): void {
-    for (const el of root.querySelectorAll(`[${PROCESSED_ATTR}]`)) {
-        el.removeAttribute(PROCESSED_ATTR);
+    for (const el of root.querySelectorAll(`[${REFERENCE_ENTRY_ATTR}]`)) {
+        el.removeAttribute(REFERENCE_ENTRY_ATTR);
     }
 }
 
@@ -175,14 +147,18 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     // pills don't render into a section the reader never opens.
     expandReferencesSection(adapter);
     const entries = findReferenceEntries(document);
+    const primary = extractPrimaryDOI(document);
+    const article = findArticleTitle(document);
 
     const pending: PendingEntry[] = [];
     for (const entry of entries) {
-        if (entry.element.hasAttribute(PROCESSED_ATTR)) continue;
+        if (entry.element.hasAttribute(REFERENCE_ENTRY_ATTR) || entry.element.querySelector(`[${REFERENCE_ENTRY_ATTR}]`)) continue;
+        if (primary && entry.doi === primary) continue;
         if (entry.text.length < MIN_CITATION_LENGTH) continue;
         // Filter before augmenting: an out-of-scope block that reaches
         // Crossref/OpenAlex can come back with a confident-looking wrong DOI.
         if (!isInReferenceScope(entry.element, adapter)) continue;
+        if (isInRelatedWorks(entry.element, article)) continue;
 
         if (entry.doi === null) {
             // Exact id mapping — skips the year gate and augmentation budget.
@@ -207,7 +183,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const augmentSet = new Set(augmentTargets.map((p) => p.entry));
     const queued = pending.filter((p) => p.mode !== "augment" || augmentSet.has(p.entry));
 
-    for (const p of queued) p.entry.element.setAttribute(PROCESSED_ATTR, "true");
+    for (const p of queued) p.entry.element.setAttribute(REFERENCE_ENTRY_ATTR, "true");
 
     const onPageCount = queued.length - augmentTargets.length - pmcTargets.length;
     debugLog(
@@ -312,9 +288,8 @@ export function renderResolvedReferences(
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,
         });
+        placeReferencePill(entry.element, doi, pill, adapter);
         applyPillStyle(pill, adapter, "reference");
-        placeReferencePill(entry.element, doi, mode, pill, adapter);
-        alignNoticePillWith(pill, doi, entry.element);
         debugLog(`References: surfaced "${entry.text.slice(0, 60)}" → ${doi} (${mode})`);
     }
     debugLog(`References: rendered ${resolved.length} inline indicator pill(s)`);

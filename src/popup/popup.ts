@@ -137,7 +137,10 @@ async function init(): Promise<void> {
   logCopyToggle.checked = (await getSettings()).offerLogCopyAfterPass;
   updateDebugUI();
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const requested = new URLSearchParams(location.search).get("tabId");
+  const tab = requested && /^\d+$/.test(requested)
+    ? await chrome.tabs.get(Number(requested)).catch(() => undefined)
+    : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (!tab?.url) {
     domainEl.textContent = "No active page";
     snoozeBtn.style.display = "none";

@@ -53,6 +53,13 @@ describe("the pill's segment strip", () => {
       .toEqual(["DOI", "OA", "PubPeer", "Reps"]);
   });
 
+  it("labels a reproductions-only pill as Reps", () => {
+    const last = segments(createIndicatorPill({ doi: DOI, reproductionsCount: 2 })).at(-1)!;
+
+    expect(labelOf(last)).toBe("Reps");
+    expect(last.textContent).toBe("Reps2");
+  });
+
   it("fills a present segment and strikes an absent one through", () => {
     const [doi, oa] = segments(createIndicatorPill({ doi: DOI, replicationsCount: null }));
 
@@ -78,10 +85,10 @@ describe("the pill's segment strip", () => {
     const [doi, oa, pubpeer, badge] = segments(wrapper);
 
     expect(strip(wrapper).querySelectorAll("[data-flora-segment-divider]")).toHaveLength(0);
-    expect(doi.style.marginLeft).toBe("0px");
-    expect(oa.style.marginLeft).toBe("3px");
-    expect(pubpeer.style.marginLeft).toBe("2px");
-    expect(badge.style.marginLeft).toBe("3px");
+    expect(doi.style.getPropertyValue("margin-inline-start")).toBe("0");
+    expect(oa.style.getPropertyValue("margin-inline-start")).toBe("3px");
+    expect(pubpeer.style.getPropertyValue("margin-inline-start")).toBe("2px");
+    expect(badge.style.getPropertyValue("margin-inline-start")).toBe("3px");
   });
 
   it("hairlines between two lit segments once a lookup lands", async () => {
@@ -94,15 +101,18 @@ describe("the pill's segment strip", () => {
       expect(segments(wrapper)[1].hasAttribute("data-flora-present")).toBe(true)
     );
     expect(strip(wrapper).querySelectorAll("[data-flora-segment-divider]")).toHaveLength(1);
-    expect(segments(wrapper)[1].style.marginLeft).toBe("0px");
+    expect(segments(wrapper)[1].style.getPropertyValue("margin-inline-start")).toBe("0");
   });
 
   it("rounds only the strip's ends", () => {
     const [doi, oa, , badge] = segments(createIndicatorPill({ doi: DOI }));
 
-    expect(doi.style.borderRadius).toBe("9999px 4px 4px 9999px");
-    expect(oa.style.borderRadius).toBe("0 0 0 0");
-    expect(badge.style.borderRadius).toBe("0 9999px 9999px 0");
+    const radii = (seg: HTMLElement) => ["border-start-start-radius", "border-end-start-radius", "border-start-end-radius", "border-end-end-radius"]
+      .map((prop) => seg.style.getPropertyValue(prop)).join(" ");
+    expect(radii(doi)).toBe("9999px 9999px 4px 4px");
+    expect(radii(oa)).toBe("0 0 0 0");
+    expect(radii(badge)).toBe("0 0 9999px 9999px");
+    expect(doi.style.borderRadius).toBe("");
   });
 
   it("gives a notice its own alarm colour and label", () => {
@@ -143,6 +153,6 @@ describe("the pill's segment strip", () => {
     const badge = segments(wrapper).at(-1)!;
     expect(badge.textContent).toBe("Reps4");
     expect(badge.style.background).toBe(ACCENT_FILL);
-    expect(badge.style.marginLeft).toBe("3px");
+    expect(badge.style.getPropertyValue("margin-inline-start")).toBe("3px");
   });
 });

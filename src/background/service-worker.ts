@@ -1,5 +1,6 @@
 import {SharedRequest} from "@shared/shared-request";
-import {isIssueFormUrl} from "@shared/debug-report";
+import {collectDebugReport, isIssueFormUrl, issueUrl, renderDebugReport} from "@shared/debug-report";
+import {pageFingerprint} from "@shared/page-identity";
 import {formatSnoozeEnd} from "@shared/snooze-durations";
 import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/work-cancellation";
 import {LocalCache, MONTH_MS} from "@shared/cache";
@@ -7,14 +8,14 @@ import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
 import {RET_MAP_KEY, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
-import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, type TakeReportResponse} from "@shared/messages";
+import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, type TakeReportResponse} from "@shared/messages";
 import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
 import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
-import {appendDebugEntries, installDebugLogStore} from "@shared/debug-log";
-import {debugError, debugLog, debugWarn, isDebugEnabledAsync} from "@shared/debug";
+import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
+import {debugError, debugLog, debugWarn, isDebugEnabledAsync, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 
 // The worker-wide manager budgets all providers together.
 const cache = new LocalCache<ReplicationResult>("flora", 0);
@@ -50,26 +51,155 @@ const ICONS = {
     active: { 16: "/dist/icons/maroon-16.png", 32: "/dist/icons/maroon-32.png" },
     inactive: { 16: "/dist/icons/gray-16.png", 32: "/dist/icons/gray-32.png" },
     blocked: { 16: "/dist/icons/blocked-16.png", 32: "/dist/icons/blocked-32.png" },
+    clear: { 16: "/dist/icons/clear-16.png", 32: "/dist/icons/clear-32.png" },
 };
+const BADGE_COLOURS = { snoozed: "#853953", scanning: "#5f6368", flagged: "#853953", incomplete: "#b45309", error: "#b91c1c" };
+const INCOMPLETE_NOTE = " — some checks unavailable, results incomplete";
+const TAB_ERROR_PREFIX = "flora_tab_error:";
 
-function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null, blocked = false): void {
-    const snoozed = !blocked && typeof snoozedUntil === "number";
-    const icon = blocked ? ICONS.blocked : active ? ICONS.active : ICONS.inactive;
-    chrome.action.setIcon({ tabId, path: icon }).catch(() => {});
-    chrome.action.setTitle({
-        tabId,
-        title: blocked
-            ? "FORRT ORE — turned off on this domain"
-            : snoozed
-            ? `FORRT ORE — snoozed here until ${formatSnoozeEnd(snoozedUntil as number)}`
-            : active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
-    }).catch(() => {});
-    const badge = snoozed ? "Zz" : "";
+interface TabError { pageUrl: string; pageKey: string; error: RuntimeErrorInfo; entries: DebugLogEntry[] }
+
+const tabPaints = new Map<number, number>();
+
+function paintTab(tabId: number, path: Record<number, string>, title: string, badge = "", colour = ""): void {
+    tabPaints.set(tabId, (tabPaints.get(tabId) ?? 0) + 1);
+    chrome.action.setIcon({ tabId, path }).catch(() => {});
+    chrome.action.setTitle({ tabId, title }).catch(() => {});
     chrome.action.setBadgeText?.({ tabId, text: badge })?.catch?.(() => {});
-    if (badge) {
-        chrome.action.setBadgeBackgroundColor?.({ tabId, color: "#853953" })?.catch?.(() => {});
+    if (!badge || !colour) return;
+    chrome.action.setBadgeBackgroundColor?.({ tabId, color: colour })?.catch?.(() => {});
+    chrome.action.setBadgeTextColor?.({ tabId, color: "#ffffff" })?.catch?.(() => {});
+}
+
+function papersText(n: number): string {
+    return `${n} ${n === 1 ? "paper" : "papers"}`;
+}
+
+function defaultPopup(): string {
+    try {
+        return chrome.runtime.getManifest().action?.default_popup ?? "dist/popup.html";
+    } catch {
+        return "dist/popup.html";
     }
 }
+
+function leaveErrorState(tabId: number): Promise<void> {
+    chrome.storage.session.remove(TAB_ERROR_PREFIX + tabId).catch(() => {});
+    return Promise.resolve(chrome.action.setPopup?.({ tabId, popup: defaultPopup() })).then(() => {}, () => {});
+}
+
+function clearTabError(tabId: number): Promise<void> {
+    paintTab(tabId, ICONS.inactive, "FORRT ORE");
+    return leaveErrorState(tabId);
+}
+
+async function showPopup(tabId: number): Promise<void> {
+    try {
+        if (chrome.action.openPopup) {
+            await chrome.action.openPopup();
+            return;
+        }
+    } catch {}
+    const url = chrome.runtime.getURL(`${defaultPopup()}?tabId=${tabId}`);
+    await chrome.tabs.create({ url }).catch((err) => debugError("Toolbar: could not open the popup —", err));
+}
+
+function mergeEntries(current: DebugLogEntry[], captured: DebugLogEntry[]): DebugLogEntry[] {
+    const keyOf = (e: DebugLogEntry) => `${e.t}|${e.level}|${e.ctx}|${e.msg}`;
+    const seen = new Set(current.map(keyOf));
+    const extra = captured.filter((e) => !seen.has(keyOf(e)));
+    return extra.length === 0 ? current : [...current, ...extra].sort((a, b) => a.t - b.t).slice(-MAX_LOG_ENTRIES);
+}
+
+function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null, blocked = false): void {
+    leaveErrorState(tabId);
+    const snoozed = !blocked && typeof snoozedUntil === "number";
+    paintTab(
+        tabId,
+        blocked ? ICONS.blocked : active ? ICONS.active : ICONS.inactive,
+        blocked ? "FORRT ORE — turned off on this domain"
+            : snoozed ? `FORRT ORE — snoozed here until ${formatSnoozeEnd(snoozedUntil as number)}`
+            : active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
+        snoozed ? "Zz" : "",
+        BADGE_COLOURS.snoozed,
+    );
+}
+
+function setTabScanState(tabId: number, state: ScanState): void {
+    if (state.phase === "error") {
+        const stored: TabError = { pageUrl: state.pageUrl, pageKey: state.pageKey, error: state.error, entries: state.entries };
+        chrome.storage.session.set({ [TAB_ERROR_PREFIX + tabId]: stored }).catch(() => {});
+        chrome.action.setPopup?.({ tabId, popup: "" })?.catch?.(() => {});
+        paintTab(tabId, ICONS.inactive, "FORRT ORE — something went wrong. Click to report a bug", "!", BADGE_COLOURS.error);
+        return;
+    }
+    leaveErrorState(tabId);
+    if (state.phase === "scanning") {
+        paintTab(tabId, ICONS.inactive,
+            state.papers > 0 ? `FORRT ORE — checking ${papersText(state.papers)}…` : "FORRT ORE — checking this page…",
+            "…", BADGE_COLOURS.scanning);
+        return;
+    }
+    const note = state.incomplete ? INCOMPLETE_NOTE : "";
+    if (state.flagged > 0) {
+        paintTab(tabId, ICONS.active, `FORRT ORE — ${papersText(state.flagged)} flagged${note}`,
+            state.flagged > 99 ? "99+" : String(state.flagged),
+            state.incomplete ? BADGE_COLOURS.incomplete : BADGE_COLOURS.flagged);
+    } else {
+        paintTab(tabId, ICONS.clear, `FORRT ORE — no flags: checked ${papersText(state.papers)}${note}`,
+            state.incomplete ? "!" : "", BADGE_COLOURS.incomplete);
+    }
+}
+
+function hostOf(url: string): string | null {
+    try { return new URL(url).hostname || null; } catch { return null; }
+}
+
+function samePage(stored: TabError, url: string): boolean {
+    return stored.pageKey === pageFingerprint(url);
+}
+
+async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Promise<void> {
+    const key = TAB_ERROR_PREFIX + tabId;
+    const raw = await chrome.storage.session.get(key).catch(() => ({})) as Record<string, TabError | undefined>;
+    const stored = raw[key];
+    if (!stored || (tabUrl && !samePage(stored, tabUrl))) {
+        await clearTabError(tabId);
+        await showPopup(tabId);
+        return;
+    }
+    const domain = hostOf(stored.pageUrl);
+    let url = issueUrl({ domain, error: stored.error }).url;
+    try {
+        const data = await collectDebugReport({ pageUrl: stored.pageUrl, error: stored.error });
+        data.entries = mergeEntries(data.entries, stored.entries);
+        url = issueUrl({ domain, report: data, error: stored.error }).url;
+        await stashReport(renderDebugReport(data));
+    } catch (err) {
+        debugError("Toolbar: building the error report failed —", err);
+    }
+    chrome.tabs.create({ url }).catch((err) => debugError("Toolbar: could not open the issue form —", err));
+}
+
+chrome.action.onClicked.addListener((tab) => {
+    if (tab.id != null) void openTabErrorIssue(tab.id, tab.url);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    const url = changeInfo.url;
+    if (!url) return;
+    const key = TAB_ERROR_PREFIX + tabId;
+    const paints = tabPaints.get(tabId);
+    chrome.storage.session.get(key).then((raw) => {
+        const stored = (raw as Record<string, TabError | undefined>)[key];
+        if (stored && !samePage(stored, url) && tabPaints.get(tabId) === paints) void clearTabError(tabId);
+    }).catch(() => {});
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    tabPaints.delete(tabId);
+    chrome.storage.session.remove(TAB_ERROR_PREFIX + tabId).catch(() => {});
+});
 
 // Open the walkthrough on first install and seed retraction data immediately.
 chrome.runtime.onInstalled.addListener((details) => {
@@ -121,6 +251,12 @@ chrome.runtime.onMessage.addListener(
             const active = state.active === true;
             const tabId = sender.tab?.id ?? state.tabId;
             if (tabId != null) setTabIcon(tabId, active, state.snoozedUntil, state.blocked === true);
+            return false;
+        }
+
+        if (isScanStateMessage(message)) {
+            const tabId = sender.tab?.id;
+            if (tabId != null) setTabScanState(tabId, message.state);
             return false;
         }
 

@@ -18,7 +18,7 @@ const KEYFRAMES =
     "@keyframes flora-progress-tab-spin{to{transform:rotate(360deg)}}";
 
 const STANDALONE_STYLE =
-    "all:unset;box-sizing:border-box;position:fixed;right:0;top:0;z-index:2147483647;" +
+    "all:unset;box-sizing:border-box;direction:ltr;position:fixed;right:0;top:0;z-index:2147483647;" +
     "width:28px;padding:14px 0;border-radius:6px 0 0 6px;" +
     `background:${GREY};` +
     "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;" +
@@ -47,6 +47,7 @@ const CHECK_SVG =
 
 let busy = false;
 let workStarted = false;
+let reportSettled = false;
 let lastFraction = 0;
 let lastLabel = "";
 let panelTab: HTMLElement | null = null;
@@ -124,6 +125,12 @@ function removeStandalone(): void {
     standalone()?.remove();
 }
 
+function busyName(tab: HTMLElement): string {
+    const spoken = tab.dataset.floraTabSpoken ?? "";
+    const action = tab.dataset.floraTabLabel;
+    return reportSettled && tab !== standalone() && action ? `${spoken}. ${action}` : spoken;
+}
+
 function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
     if (!tab.hasAttribute("data-flora-tab-busy")) {
         unmarkClear(tab);
@@ -163,13 +170,16 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
 
     const spoken = percent > 0 ? `FORRT ORE is checking this page, ${percent}% done` : "FORRT ORE is checking this page";
     tab.title = label;
-    tab.setAttribute("aria-label", spoken);
+    tab.dataset.floraTabSpoken = spoken;
+    tab.setAttribute("aria-label", busyName(tab));
     if (tab === standalone()) {
         tab.setAttribute("role", "progressbar");
         tab.setAttribute("aria-valuemin", "0");
         tab.setAttribute("aria-valuemax", "100");
         if (percent > 0) tab.setAttribute("aria-valuenow", String(percent));
         else tab.removeAttribute("aria-valuenow");
+    } else if (reportSettled) {
+        tab.removeAttribute("aria-disabled");
     } else {
         tab.setAttribute("aria-disabled", "true");
     }
@@ -189,6 +199,7 @@ function clearBusy(tab: HTMLElement): void {
     delete tab.dataset.floraTabBackground;
     delete tab.dataset.floraTabCursor;
     delete tab.dataset.floraTabLabel;
+    delete tab.dataset.floraTabSpoken;
     tab.removeAttribute("title");
     tab.removeAttribute("aria-disabled");
     for (const attr of ["aria-valuemin", "aria-valuemax", "aria-valuenow"]) tab.removeAttribute(attr);
@@ -297,6 +308,7 @@ export function finishTabProgress(): void {
     const papers = clearDois;
 
     if (panelTab?.isConnected) {
+        reportSettled = true;
         removeStandalone();
         clearBusy(panelTab);
         pulse(panelTab);
@@ -321,6 +333,7 @@ export function finishTabProgress(): void {
 export function resetTabProgress(): void {
     busy = false;
     workStarted = false;
+    reportSettled = false;
     nothingFoundDois = null;
     clearDois = null;
     removeStandalone();
@@ -335,6 +348,7 @@ export function adoptPanelTab(tab: HTMLElement): void {
     tab.setAttribute("data-flora-tab", "");
     if (clearDois && !busy) markClear(tab, clearDois, false);
     if (!busy && !workStarted) {
+        reportSettled = true;
         tab.dataset.floraTabPulsed = "1";
         return;
     }
@@ -345,6 +359,7 @@ export function adoptPanelTab(tab: HTMLElement): void {
 
 export function releasePanelTab(): void {
     panelTab = null;
+    reportSettled = false;
     if (busy) paintBusy(ensureStandalone(), lastFraction, lastLabel);
 }
 
@@ -352,9 +367,15 @@ export function isTabBusy(tab: HTMLElement): boolean {
     return tab.hasAttribute("data-flora-tab-busy");
 }
 
+export function canOpenPanel(tab: HTMLElement): boolean {
+    return !isTabBusy(tab) || reportSettled;
+}
+
 export function setTabLabel(tab: HTMLElement, label: string): void {
-    if (isTabBusy(tab)) tab.dataset.floraTabLabel = label;
-    else tab.setAttribute("aria-label", label);
+    if (isTabBusy(tab)) {
+        tab.dataset.floraTabLabel = label;
+        tab.setAttribute("aria-label", busyName(tab));
+    } else tab.setAttribute("aria-label", label);
 }
 
 export function _resetProgressTabForTesting(): void {
@@ -365,5 +386,6 @@ export function _resetProgressTabForTesting(): void {
     lastFraction = 0;
     lastLabel = "";
     workStarted = false;
+    reportSettled = false;
     clearDois = null;
 }

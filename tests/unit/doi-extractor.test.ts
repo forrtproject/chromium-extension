@@ -11,6 +11,8 @@ import {
   extractDoiOccurrences,
   extractPrimaryDOI,
   containsDoiCandidate,
+  classifyPageDois,
+  beginDomScanPass,
 } from "../../src/shared/doi-extractor";
 
 function loadFixture(name: string): Document {
@@ -1136,4 +1138,196 @@ describe("extractDoiFromHref", () => {
       ).toBe("10.1080/1359432x.2012.698057");
     }
   );
+});
+
+describe("extractPrimaryDOI — alternative meta tags", () => {
+  const withMeta = (meta: string) =>
+    new JSDOM(`<!DOCTYPE html><html><head>${meta}</head><body></body></html>`).window.document;
+
+  it("reads bepress_citation_doi with a doi.org prefix", () => {
+    expect(extractPrimaryDOI(withMeta('<meta name="bepress_citation_doi" content="https://doi.org/10.5555/bepress.1">')))
+      .toBe("10.5555/bepress.1");
+  });
+
+  it("reads DC.Identifier.DOI", () => {
+    expect(extractPrimaryDOI(withMeta('<meta name="DC.Identifier.DOI" content="10.5555/dc.1">')))
+      .toBe("10.5555/dc.1");
+  });
+
+  it("reads DC.identifier carrying an info:doi/ prefix", () => {
+    expect(extractPrimaryDOI(withMeta('<meta name="DC.identifier" content="info:doi/10.5555/ingenta.1">')))
+      .toBe("10.5555/ingenta.1");
+  });
+
+  it("reads the DOI from a later DC.identifier when the first is a handle", () => {
+    expect(extractPrimaryDOI(withMeta(
+      '<meta name="DC.identifier" content="http://hdl.handle.net/1234/5678"><meta name="DC.identifier" content="10.5555/second.1">')))
+      .toBe("10.5555/second.1");
+  });
+});
+
+describe("lone DOI adoption", () => {
+  const TITLE = "A distinctive article title about replication";
+  const page = (meta: string, body: string) =>
+    new JSDOM(`<!DOCTYPE html><html><head><meta name="citation_title" content="${TITLE}">${meta}</head><body>${body}</body></html>`,
+      {url: "https://example.org/article"}).window.document;
+
+  it("adopts the only DOI as the article's when the title is confirmed", () => {
+    const doc = page("", `<h1>${TITLE}</h1><a href="https://doi.org/10.5555/lone.1">doi</a>`);
+    beginDomScanPass();
+    const result = classifyPageDois(doc);
+    expect(result.articleDois).toEqual(["10.5555/lone.1"]);
+    expect(result.otherDois).toEqual([]);
+    expect(extractPrimaryDOI(doc)).toBe("10.5555/lone.1");
+    beginDomScanPass();
+    expect(extractPrimaryDOI(doc)).toBe("10.5555/lone.1");
+  });
+
+  it("does not adopt when two distinct DOIs are present", () => {
+    const doc = page("", `<h1>${TITLE}</h1><a href="https://doi.org/10.5555/one.1">a</a><a href="https://doi.org/10.5555/two.2">b</a>`);
+    beginDomScanPass();
+    expect(classifyPageDois(doc).articleDois).toEqual([]);
+    expect(extractPrimaryDOI(doc)).toBeNull();
+  });
+
+  it("does not adopt without a title matching the page metadata", () => {
+    const doc = new JSDOM(`<!DOCTYPE html><html><head></head><body><h1>An unrelated heading here</h1><a href="https://doi.org/10.5555/lone.2">doi</a></body></html>`,
+      {url: "https://example.org/other"}).window.document;
+    beginDomScanPass();
+    expect(classifyPageDois(doc).articleDois).toEqual([]);
+    expect(extractPrimaryDOI(doc)).toBeNull();
+  });
+});
+
+describe("lone DOI adoption — extensions and self-references", () => {
+  const TITLE = "A distinctive article title about replication";
+  const page = (body: string) =>
+    new JSDOM(`<!DOCTYPE html><html><head><meta name="citation_title" content="${TITLE}"></head><body>${body}</body></html>`,
+      {url: "https://example.org/preprint"}).window.document;
+
+  it("treats DOI text glued to neighbouring words as the same DOI", () => {
+    const doc = page(`<h1>${TITLE}</h1><a href="https://doi.org/10.5555/lone.1">doi</a>
+      <div>Cite: https://doi.org/10.5555/lone.1Chicago Manual of Style https://doi.org/10.5555/lone.1.Modern</div>`);
+    beginDomScanPass();
+    const result = classifyPageDois(doc);
+    expect(result.articleDois).toEqual(["10.5555/lone.1"]);
+    expect(result.otherDois).toEqual([]);
+  });
+
+  it("adopts a DOI from a reference entry that cites the page's own title", () => {
+    document.head.innerHTML = `<meta name="citation_title" content="${TITLE}">`;
+    document.body.innerHTML = `<h1>${TITLE}</h1>
+      <div class="references citations"><ul>
+        <li><p>Smith, J. 2018. "${TITLE}." Working Paper. <a href="https://doi.org/10.5555/self.1">https://doi.org/10.5555/self.1</a></p></li>
+      </ul></div>`;
+    beginDomScanPass();
+    const result = classifyPageDois(document);
+    expect(result.articleDois).toEqual(["10.5555/self.1"]);
+    expect(result.referenceDois).toEqual([]);
+    expect(extractPrimaryDOI(document)).toBe("10.5555/self.1");
+    document.head.innerHTML = "";
+    document.body.innerHTML = "";
+  });
+
+  it("does not adopt a reference whose entry is about something else", () => {
+    history.pushState({}, "", "/other-page");
+    document.head.innerHTML = `<meta name="citation_title" content="${TITLE}">`;
+    document.body.innerHTML = `<h1>${TITLE}</h1><div class="references citations"><ul>
+      <li><p>Smith, J. 2018. "Something else entirely." <a href="https://doi.org/10.5555/other.1">https://doi.org/10.5555/other.1</a></p></li>
+    </ul></div>`;
+    beginDomScanPass();
+    expect(classifyPageDois(document).articleDois).toEqual([]);
+    document.head.innerHTML = "";
+    document.body.innerHTML = "";
+  });
+});
+
+describe("findReferenceEntries — ignores FLoRA's own UI and empty wrappers", () => {
+  const docOf = (body: string) => new JSDOM(`<!DOCTYPE html><html><body>${body}</body></html>`).window.document;
+  const entry = (n: number) => `Author ${n}. A cited article number ${n}. Journal 20${10 + n}.`;
+
+  it("skips flora UI spans after a References heading", () => {
+    const doc = docOf(`<h2>References</h2><p>${entry(1)}</p><p>${entry(2)}</p>
+      <span class="flora-pill-row" data-flora-ui><span class="flora-indicator-pill">10.1234/abc</span></span>`);
+    expect(findReferenceEntries(doc)).toHaveLength(2);
+  });
+
+  it("skips pill popover rows nested in a reference list", () => {
+    const doc = docOf(`<div class="references"><div>${entry(1)}</div><div>${entry(2)}</div>
+      <div data-flora-ui><div>a</div><div>b</div><div>c</div></div></div>`);
+    const entries = findReferenceEntries(doc);
+    expect(entries).toHaveLength(2);
+    expect(entries.every((e) => !e.element.hasAttribute("data-flora-ui"))).toBe(true);
+  });
+
+  it("does not let empty sibling wrappers outvote the real entries", () => {
+    const doc = docOf(`<div class="references"><p></p><p></p><p></p>
+      <div class="ref">${entry(1)}</div><div class="ref">${entry(2)}</div></div>`);
+    const entries = findReferenceEntries(doc);
+    expect(entries).toHaveLength(2);
+    expect(entries.every((e) => e.element.classList.contains("ref"))).toBe(true);
+  });
+});
+
+describe("lone DOI adoption — heading cited with the DOI", () => {
+  const TITLE = "A distinctive article title about replication";
+  const DOI = "10.5555/self.cited";
+  const page = (body: string) =>
+    new JSDOM(`<!DOCTYPE html><html><head><title>Journal of Examples</title></head><body>${body}</body></html>`,
+      {url: "https://example.org/article"}).window.document;
+
+  it("adopts a DOI cited in a how-to-cite paragraph that names the heading's title", () => {
+    const doc = page(`<h1>${TITLE}</h1><p>How to cite: Smith J. (2020). ${TITLE}. Journal of Examples. <a href="https://doi.org/${DOI}">https://doi.org/${DOI}</a></p>`);
+    beginDomScanPass();
+    const result = classifyPageDois(doc);
+    expect(result.articleDois).toEqual([DOI]);
+    expect(result.otherDois).toEqual([]);
+  });
+
+  it("does not adopt when the citation names a different title", () => {
+    const doc = page(`<h1>${TITLE}</h1><p>See Smith J. (2020). A completely different paper on another subject. <a href="https://doi.org/${DOI}">https://doi.org/${DOI}</a></p>`);
+    beginDomScanPass();
+    expect(classifyPageDois(doc).articleDois).toEqual([]);
+  });
+
+  it("does not adopt when one block wraps both the heading and the DOI", () => {
+    const doc = page(`<blockquote><h1>${TITLE}</h1> <a href="https://doi.org/${DOI}">https://doi.org/${DOI}</a></blockquote>`);
+    beginDomScanPass();
+    expect(classifyPageDois(doc).articleDois).toEqual([]);
+  });
+});
+
+describe("classifyPageDois — heading-fallback reference lists", () => {
+  it("classes DOIs under a References heading as references", () => {
+    const doc = new JSDOM(`<!DOCTYPE html><html><body><h1>Some page</h1><h2>References</h2>
+      <div>Author 1. First cited article. Journal 2011. https://doi.org/10.5555/one.1</div>
+      <div>Author 2. Second cited article. Journal 2012. https://doi.org/10.5555/two.2</div></body></html>`).window.document;
+    beginDomScanPass();
+    const result = classifyPageDois(doc);
+    expect(result.referenceDois.sort()).toEqual(["10.5555/one.1", "10.5555/two.2"]);
+    expect(result.otherDois).toEqual([]);
+  });
+});
+
+describe("lone DOI adoption across history entries", () => {
+  const TITLE = "A distinctive article title about replication";
+
+  it("drops the adopted DOI after a same-URL navigation to a new history entry", () => {
+    const dom = new JSDOM(`<!DOCTYPE html><html><head><meta name="citation_title" content="${TITLE}"></head><body><h1>${TITLE}</h1><a href="https://doi.org/10.5555/lone.9">doi</a></body></html>`,
+      {url: "https://example.org/spa"});
+    const nav = {currentEntry: {key: "a"}};
+    const original = Object.getOwnPropertyDescriptor(globalThis, "window");
+    (globalThis as {window?: unknown}).window = {navigation: nav};
+    try {
+      beginDomScanPass();
+      expect(classifyPageDois(dom.window.document).articleDois).toEqual(["10.5555/lone.9"]);
+      nav.currentEntry.key = "b";
+      dom.window.document.body.innerHTML = "<p>Different page</p>";
+      beginDomScanPass();
+      expect(extractPrimaryDOI(dom.window.document)).toBeNull();
+    } finally {
+      if (original) Object.defineProperty(globalThis, "window", original);
+      else delete (globalThis as {window?: unknown}).window;
+    }
+  });
 });

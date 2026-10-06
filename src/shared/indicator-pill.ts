@@ -17,7 +17,7 @@ import type {DoiString, LookupState, RetractionResponse} from "@shared/types";
 import type {OpenAccessLocation, OpenAccessStatus} from "@shared/openaccess";
 import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
-import {noticePresentation} from "@shared/doi-retraction";
+import {noticePresentation, removeNoticePillsFor} from "@shared/doi-retraction";
 import {atlasDoiUrl} from "@shared/flora-atlas";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
 import {fetchCitationDetailed, preferredCitationFormat, type CitationFormat} from "@shared/citation";
@@ -27,6 +27,7 @@ import {getSettings} from "@shared/settings";
 import {MARKER_EDGE_GAP} from "@shared/editor-marker";
 import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
+import {PILL_ROW_CLASS} from "@shared/pill-row";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -44,6 +45,9 @@ function indicatorSelector(scope: IndicatorScope): string {
 
 export function removeIndicatorPills(root: ParentNode = document, scope: IndicatorScope = "pills"): void {
     for (const pill of root.querySelectorAll(indicatorSelector(scope))) pill.remove();
+    for (const row of root.querySelectorAll(`.${PILL_ROW_CLASS}`)) {
+        if (row.childElementCount === 0) row.remove();
+    }
 }
 
 export const PAGE_PROVENANCE = "Found on this page";
@@ -202,6 +206,7 @@ function leaveTopLayer(popover: HTMLElement): void {
 }
 
 const NOTICE_COLOR = "#a72f2f";
+const NOTICE_SEGMENT_ATTR = "data-flora-notice-segment";
 const MARKER_RESTING_SHADOW = "0 1px 2px rgba(27,31,36,0.12)";
 
 const FILL_ALPHA = "c7";
@@ -260,7 +265,7 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
     const label = document.createElement("span");
     label.setAttribute(SEGMENT_LABEL_ATTR, "");
     label.textContent = spec.label;
-    label.style.cssText = "font-size:10.5px;font-weight:600;letter-spacing:0.02em;line-height:1;";
+    label.style.cssText = "font-size:10.5px;font-weight:600;letter-spacing:0.02em;line-height:1;text-box:trim-both cap alphabetic;";
     el.appendChild(label);
 
     if (spec.exists && spec.count !== undefined) {
@@ -286,10 +291,13 @@ function refreshSegmentStrip(strip: HTMLElement): void {
 
         const start = i === 0 ? "9999px" : present && prev === false ? "4px" : "0";
         const end = i === segments.length - 1 ? "9999px" : present && next === false ? "4px" : "0";
-        seg.style.setProperty("border-radius", `${start} ${end} ${end} ${start}`);
+        seg.style.setProperty("border-start-start-radius", start);
+        seg.style.setProperty("border-end-start-radius", start);
+        seg.style.setProperty("border-start-end-radius", end);
+        seg.style.setProperty("border-end-end-radius", end);
 
         const gap = prev === null ? "0" : prev !== present ? "3px" : present ? "0" : "2px";
-        seg.style.setProperty("margin-left", gap, "important");
+        seg.style.setProperty("margin-inline-start", gap, "important");
 
         if (present && prev) strip.insertBefore(makeDivider(), seg);
     });
@@ -321,7 +329,7 @@ function applyMarkerScale(strip: HTMLElement): void {
         segment.style.setProperty("text-decoration", struck ? "line-through" : "none", "important");
         segment.style.setProperty("text-decoration-color", `${accent}${ABSENT_ALPHA}`, "important");
         segment.querySelector<HTMLElement>(`[${SEGMENT_COUNT_ATTR}]`)
-            ?.style.setProperty("margin-left", show ? "0px" : "5px", "important");
+            ?.style.setProperty("margin-inline-start", show ? "0px" : "5px", "important");
         if (!label) continue;
         label.style.setProperty("display", "inline-block");
         label.style.setProperty("overflow", "hidden");
@@ -392,29 +400,29 @@ interface BadgeSignal {
     actionLabel?: string;
 }
 
+function resolveNoticeSignal(retraction: RetractionResponse): BadgeSignal {
+    const presentation = noticePresentation(retraction.kind);
+    return {
+        available: true,
+        href: `https://doi.org/${retraction.doi}`,
+        segmentLabel: presentation.label,
+        segmentIcon: PILL_ALERT_SVG,
+        segmentFill: presentation.pillText,
+        accent: presentation.pillStroke,
+        rowTitle: retraction.kind === "concern" ? "Expression of concern" : presentation.label,
+        rowSubtitle: presentation.bannerCopy,
+        rowSubtitleShort: "",
+        actionLabel: "View notice",
+    };
+}
+
 // Replications take priority over reproductions when a DOI has both — the
 // badge shows one count/label, not two, to keep the pill's shape stable.
 function resolveBadgeSignal(
     doi: DoiString,
-    retraction: RetractionResponse | null | undefined,
     replicationsCount: number | null | undefined,
     reproductionsCount: number | null | undefined
 ): BadgeSignal {
-    if (retraction) {
-        const presentation = noticePresentation(retraction.kind);
-        return {
-            available: true,
-            href: `https://doi.org/${retraction.doi}`,
-            segmentLabel: presentation.label,
-            segmentIcon: PILL_ALERT_SVG,
-            segmentFill: presentation.pillText,
-            accent: presentation.pillStroke,
-            rowTitle: presentation.label,
-            rowSubtitle: presentation.bannerCopy,
-            rowSubtitleShort: "",
-            actionLabel: "View notice",
-        };
-    }
     if (replicationsCount && replicationsCount > 0) {
         return {
             available: true,
@@ -433,7 +441,7 @@ function resolveBadgeSignal(
         return {
             available: true,
             href: atlasDoiUrl([doi]),
-            segmentLabel: "Reproductions",
+            segmentLabel: "Reps",
             segmentIcon: PILL_REPEAT_SVG,
             segmentCount: reproductionsCount,
             accent: "#6d28d9",
@@ -454,9 +462,13 @@ function resolveBadgeSignal(
     };
 }
 
-function buildBadgeSegment(signal: BadgeSignal, color = "#853953"): HTMLElement {
+function buildBadgeSegment(
+    signal: BadgeSignal,
+    color = "#853953",
+    attr = "data-flora-badge-segment"
+): HTMLElement {
     return buildSegment({
-        attr: "data-flora-badge-segment",
+        attr,
         iconHtml: signal.segmentIcon,
         label: signal.segmentLabel,
         title: signal.available ? `${signal.rowTitle} — ${signal.rowSubtitle}` : signal.rowSubtitle,
@@ -464,6 +476,13 @@ function buildBadgeSegment(signal: BadgeSignal, color = "#853953"): HTMLElement 
         count: signal.segmentCount,
         fill: signal.segmentFill,
     }, color);
+}
+
+function buildNoticeSegment(retraction: RetractionResponse, color = "#853953"): HTMLElement {
+    const signal = resolveNoticeSignal(retraction);
+    const segment = buildBadgeSegment(signal, color, NOTICE_SEGMENT_ATTR);
+    segment.style.setProperty("box-shadow", `inset 0 0 0 1px ${signal.accent}`);
+    return segment;
 }
 
 // ──────────────────────────────────────────────
@@ -734,6 +753,22 @@ function buildPubPeerRow(state: PubPeerState, compact = false, retry?: () => voi
         onAction: retryable ? retry : undefined,
         actionLabel: retryable ? "Retry" : "View thread",
         attr: "data-flora-pubpeer-row",
+        compact,
+    });
+}
+
+function buildNoticeRow(retraction: RetractionResponse, compact = false): HTMLElement {
+    const signal = resolveNoticeSignal(retraction);
+    return buildRow({
+        iconHtml: DOT_ICON(signal.accent),
+        accent: signal.accent,
+        available: true,
+        title: signal.rowTitle,
+        subtitle: signal.rowSubtitle,
+        subtitleShort: signal.rowSubtitleShort,
+        href: signal.href,
+        actionLabel: signal.actionLabel,
+        attr: "data-flora-notice-row",
         compact,
     });
 }
@@ -1061,14 +1096,15 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     retryPubPeer();
 
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
-        opts.doi, opts.retraction, opts.replicationsCount, opts.reproductionsCount
+        opts.doi, opts.replicationsCount, opts.reproductionsCount
     ), compact));
+    if (opts.retraction) rows.appendChild(buildNoticeRow(opts.retraction, compact));
     return shieldFromPageCss(rows);
 }
 
 /**
  * Build the merged FLoRA indicator pill: DOI content + Open Access padlock +
- * PubPeer marker + retraction/replication badge, each segment split by a
+ * PubPeer marker + replication badge + (when present) retraction notice, each segment split by a
  * divider. Unavailable segments render dimmed rather than being removed, so
  * the pill's shape stays stable as async data lands. Hovering (or clicking,
  * to pin) the pill opens a popover with one interactive row per segment.
@@ -1159,7 +1195,10 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
 
     // Segment 4 — retraction/replication badge (already-resolved inputs).
     pill.appendChild(buildBadgeSegment(
-        resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount), color));
+        resolveBadgeSignal(doi, replicationsCount, reproductionsCount), color));
+
+    // Segment 5 — retraction/concern notice, present only when one exists.
+    if (retraction) pill.appendChild(buildNoticeSegment(retraction, color));
 
     refreshSegmentStrip(pill);
 
@@ -1493,20 +1532,36 @@ export function updateIndicatorPillBadges(
         const retraction = retractionByDoi.get(doi) ?? null;
         const state = pageState.get(doi);
         markerUpdates.get(wrapper)?.(state, retraction);
+        if (retraction) removeNoticePillsFor(doi);
         const replicationsCount = state?.status === "matched" ? state.result.record.stats.n_replications_total : null;
         const reproductionsCount = state?.status === "matched" ? state.result.record.stats.n_reproductions_total : null;
-        const signal = resolveBadgeSignal(doi, retraction, replicationsCount, reproductionsCount);
+        const signal = resolveBadgeSignal(doi, replicationsCount, reproductionsCount);
 
-        if (!retraction && (state?.status === "error" || state?.status === "loading")) {
+        if (state?.status === "error" || state?.status === "loading") {
             signal.rowSubtitle = state.status === "loading" ? "Checking FORRT…" : "FORRT unavailable";
         }
+        const strip = badgeSegment?.closest<HTMLElement>(`[${SEGMENT_STRIP_ATTR}]`) ?? null;
+        const accent = strip?.getAttribute(SEGMENT_ACCENT_ATTR) ?? undefined;
         if (badgeSegment) {
-            const strip = badgeSegment.closest<HTMLElement>(`[${SEGMENT_STRIP_ATTR}]`);
-            badgeSegment.replaceWith(buildBadgeSegment(
-                signal, strip?.getAttribute(SEGMENT_ACCENT_ATTR) ?? undefined));
+            badgeSegment.replaceWith(buildBadgeSegment(signal, accent));
+            const noticeSegment = strip?.querySelector<HTMLElement>(`[${NOTICE_SEGMENT_ATTR}]`);
+            if (strip && retraction) {
+                const next = buildNoticeSegment(retraction, accent);
+                if (noticeSegment) noticeSegment.replaceWith(next);
+                else strip.appendChild(next);
+            } else noticeSegment?.remove();
             if (strip) refreshSegmentStrip(strip);
         }
-        if (badgeRow && !retraction && (state?.status === "error" || state?.status === "loading")) {
+        const compact = wrapper.hasAttribute("data-flora-panel");
+        const noticeRow = wrapper.querySelector<HTMLElement>("[data-flora-notice-row]");
+        if (badgeRow) {
+            if (retraction) {
+                const next = shieldFromPageCss(buildNoticeRow(retraction, compact));
+                if (noticeRow) replaceIndicatorRow(noticeRow, next);
+                else badgeRow.after(next);
+            } else noticeRow?.remove();
+        }
+        if (badgeRow && (state?.status === "error" || state?.status === "loading")) {
             const pending = state.status === "loading";
             const retry = async () => {
                 const next = pageState;
@@ -1532,10 +1587,10 @@ export function updateIndicatorPillBadges(
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,
                 title: "FORRT", subtitle: pending ? "Checking…" : "Unavailable",
                 actionLabel: "Retry", onAction: pending ? undefined : () => { void retry(); },
-                attr: "data-flora-badge-row", compact: wrapper.hasAttribute("data-flora-panel"),
+                attr: "data-flora-badge-row", compact,
             })));
         } else if (badgeRow) {
-            replaceIndicatorRow(badgeRow, shieldFromPageCss(buildBadgeRow(signal, wrapper.hasAttribute("data-flora-panel"))));
+            replaceIndicatorRow(badgeRow, shieldFromPageCss(buildBadgeRow(signal, compact)));
         }
     }
 }

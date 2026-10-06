@@ -62,8 +62,10 @@ const args = process.argv.slice(2);
 const headed = !args.includes("--headless") && !process.env.CI;
 const only = args.find((a) => a.startsWith("--only="))?.slice("--only=".length).split(",");
 const refresh = args.includes("--refresh");
+const resume = args.includes("--resume");
 const csvPath = args.find((a) => a.startsWith("--csv="))?.slice("--csv=".length);
 const top = Number(args.find((a) => a.startsWith("--top="))?.slice("--top=".length)) || null;
+const concurrency = Math.max(1, Math.floor(Number(args.find((a) => a.startsWith("--concurrency="))?.slice("--concurrency=".length)) || 4));
 const checkWaitArg = args.find((a) => a.startsWith("--check-wait="))?.slice("--check-wait=".length);
 const checkWaitMs = headed ? Math.max(0, Number(checkWaitArg ?? DEFAULT_CHECK_WAIT_S) || 0) * 1000 : 0;
 const profileDir = args.find((a) => a.startsWith("--profile="))?.slice("--profile=".length)
@@ -90,7 +92,10 @@ async function launch(): Promise<Browser> {
             ...(process.env.CI ? ["--no-sandbox"] : []),
             `--disable-extensions-except=${REPO_ROOT}`,
             `--load-extension=${REPO_ROOT}`,
-            "--disable-features=DisableLoadExtensionCommandLineSwitch",
+            "--disable-features=DisableLoadExtensionCommandLineSwitch,CalculateNativeWinOcclusion",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
+            "--disable-background-timer-throttling",
             "--no-first-run",
             "--no-default-browser-check",
             `--window-size=${VIEWPORT.width},${VIEWPORT.height}`,
@@ -204,8 +209,35 @@ const OPEN_REPORT = `(() => {
     return true;
 })()`;
 
+const PANEL_STATE = `(() => {
+    const host = document.getElementById("flora-pubpeer-panel");
+    const tab = host?.querySelector("button[data-flora-tab]");
+    return {present: !!tab, busy: !!tab?.hasAttribute("data-flora-tab-busy"), open: host?.dataset.floraPanelOpen === "1"};
+})()`;
+
+const PANEL_OPEN_TIMEOUT_MS = 30_000;
+const PANEL_QUIET_MS = 600;
+
 function pause(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function openReport(page: Page): Promise<boolean> {
+    const deadline = Date.now() + PANEL_OPEN_TIMEOUT_MS;
+    let quietSince = 0;
+    while (Date.now() < deadline) {
+        const state = await page.evaluate(PANEL_STATE).catch(() => null) as {present: boolean; busy: boolean; open: boolean} | null;
+        if (!state?.present) return false;
+        if (state.open) {
+            if (!quietSince) quietSince = Date.now();
+            else if (Date.now() - quietSince >= PANEL_QUIET_MS) return true;
+        } else {
+            quietSince = 0;
+            await page.evaluate(OPEN_REPORT).catch(() => false);
+        }
+        await pause(300);
+    }
+    return false;
 }
 
 function isBotWall(state: PageState, httpStatus: number | null): boolean {
@@ -230,8 +262,8 @@ async function dismissConsent(page: Page): Promise<void> {
     }
 }
 
-async function waitForCheck(page: Page): Promise<boolean> {
-    process.stdout.write(`bot check — waiting up to ${checkWaitMs / 1000} s … `);
+async function waitForCheck(page: Page, label: string): Promise<boolean> {
+    console.log(`  ${label.padEnd(35)} bot check — waiting up to ${checkWaitMs / 1000} s …`);
     const started = Date.now();
     while (Date.now() - started < checkWaitMs) {
         await pause(1000);
@@ -285,7 +317,7 @@ function judge(result: Omit<Result, "verdict" | "reason" | "attempts">, settled:
 }
 
 async function attempt(browser: Browser, entry: Publisher, attemptNumber: number): Promise<Result> {
-    const page = await browser.newPage();
+    const page = await browser.newPage(concurrency > 1 ? {type: "window", windowBounds: {width: VIEWPORT.width, height: VIEWPORT.height}} : undefined);
     const oreErrors: string[] = [];
     const oreLog: string[] = [];
     page.on("console", (message) => {
@@ -307,14 +339,19 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
 
     const started = Date.now();
     try {
-        const response = await page.goto(entry.url, {waitUntil: "domcontentloaded", timeout: NAVIGATION_TIMEOUT_MS});
+        const response = await page.goto(entry.url, {waitUntil: "domcontentloaded", timeout: NAVIGATION_TIMEOUT_MS}).catch(async (err: Error) => {
+            if (!/ERR_ABORTED/.test(err.message)) throw err;
+            await page.waitForFunction("document.readyState !== 'loading'", {timeout: NAVIGATION_TIMEOUT_MS}).catch(() => {});
+            if (page.url() === "about:blank") throw err;
+            return null;
+        });
         await page.bringToFront();
         base.httpStatus = response?.status() ?? null;
         base.loadMs = Date.now() - started;
         await pause(1500);
         const early = await readState(page).catch(() => EMPTY_STATE);
         if (isBotWall(early, base.httpStatus)) {
-            const cleared = checkWaitMs > 0 && await waitForCheck(page);
+            const cleared = checkWaitMs > 0 && await waitForCheck(page, base.domain.slice(0, 34));
             if (!cleared) {
                 base.finalUrl = page.url();
                 base.pageTitle = early.pageTitle;
@@ -342,9 +379,12 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
             await pause(600);
             base.referenceScreenshot = await capture(page, shot(".references"));
         }
-        if (await page.evaluate(OPEN_REPORT)) {
-            await pause(800);
-            base.panelScreenshot = await capture(page, shot(".panel"));
+        if (await page.evaluate(PANEL_STATE).then((state) => (state as {present: boolean}).present).catch(() => false)) {
+            if (await openReport(page)) {
+                base.panelScreenshot = await capture(page, shot(".panel"));
+            } else {
+                oreLog.push("live: report panel did not open");
+            }
         }
         writeFileSync(path.join(SNAPSHOT_DIR, `${entry.id}.html`), await page.content());
 
@@ -352,6 +392,7 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
         const retried = attemptNumber > 1 && verdict.verdict === "pass" ? " Passed on the second attempt." : "";
         return {...base, ...verdict, reason: verdict.reason + retried, attempts: attemptNumber};
     } catch (err) {
+        if (!browser.connected) throw err;
         base.screenshot = await capture(page, shot(""));
         return {...base, verdict: "error", attempts: attemptNumber,
             reason: `The page could not be checked: ${(err as Error).message.split("\n")[0]}`};
@@ -471,29 +512,84 @@ async function main(): Promise<void> {
     const publishers = top ? chosen.slice(0, top) : chosen;
     if (publishers.length === 0) throw new Error(`No publishers match --only=${only?.join(",")}`);
 
-    rmSync(OUTPUT_DIR, {recursive: true, force: true});
+    const resultsFile = path.join(OUTPUT_DIR, "results.json");
+    let previous: Result[] = [];
+    if (resume && existsSync(resultsFile)) {
+        try {
+            previous = JSON.parse(readFileSync(resultsFile, "utf8"));
+        } catch {
+            console.warn("results.json is unreadable — starting without resumed results.");
+        }
+    }
+    if (!resume) rmSync(OUTPUT_DIR, {recursive: true, force: true});
     mkdirSync(SNAPSHOT_DIR, {recursive: true});
     const version = JSON.parse(readFileSync(path.join(REPO_ROOT, "manifest.json"), "utf8")).version as string;
     const startedAt = new Date();
 
-    const browser = await launch();
+    const done = new Map(previous.map((r) => [r.id, r]));
+    const slots: (Result | undefined)[] = publishers.map((p) => {
+        const result = done.get(p.id);
+        return result?.url === p.url ? result : undefined;
+    });
+    const queue = publishers.map((_, index) => index).filter((index) => !slots[index]);
+    if (done.size > 0) console.log(`Resuming: ${publishers.length - queue.length} already checked, ${queue.length} to go.`);
+    const save = () => writeFileSync(resultsFile, JSON.stringify(slots.filter((r): r is Result => r !== undefined), null, 2));
+
+    let browser = await launch();
+    let relaunching: Promise<void> | null = null;
+    const recover = async (failed: Browser): Promise<void> => {
+        if (relaunching) return relaunching;
+        if (browser !== failed) return;
+        relaunching = (async () => {
+            console.log("  Browser closed unexpectedly — relaunching …");
+            failed.process()?.kill();
+            const replacement = await launch();
+            try {
+                await prepareExtension(replacement);
+            } catch (err) {
+                await replacement.close().catch(() => {});
+                throw err;
+            }
+            browser = replacement;
+        })().finally(() => { relaunching = null; });
+        return relaunching;
+    };
+    const check = async (entry: Publisher): Promise<Result> => {
+        for (let tries = 0; ; tries++) {
+            if (relaunching) await relaunching.catch(() => {});
+            const used = browser;
+            try {
+                return await checkPublisher(used, entry);
+            } catch (err) {
+                if (used.connected || tries >= 2) throw err;
+                await recover(used).catch((relaunchErr) => console.log(`  Relaunch failed — ${(relaunchErr as Error).message.split("\n")[0]}`));
+            }
+        }
+    };
+    let next = 0;
+    const work = async (): Promise<void> => {
+        for (let checked = 0; next < queue.length; checked++) {
+            const index = queue[next++];
+            const entry = publishers[index];
+            if (checked > 0) await pause(PAUSE_BETWEEN_PAGES_MS);
+            const result = await check(entry);
+            slots[index] = result;
+            save();
+            console.log(`  ${(entry.domain ?? entry.publisher).slice(0, 34).padEnd(35)} ${VERDICT_LABEL[result.verdict].padEnd(10)} ${result.reason}`);
+        }
+    };
     const results: Result[] = [];
     try {
         await prepareExtension(browser);
-        for (const entry of publishers) {
-            process.stdout.write(`  ${(entry.domain ?? entry.publisher).slice(0, 34).padEnd(35)} `);
-            if (results.length > 0) await pause(PAUSE_BETWEEN_PAGES_MS);
-            const result = await checkPublisher(browser, entry);
-            results.push(result);
-            console.log(`${VERDICT_LABEL[result.verdict].padEnd(10)} ${result.reason}`);
-        }
-        writeFileSync(path.join(OUTPUT_DIR, "results.json"), JSON.stringify(results, null, 2));
-        const reportFile = writeReport(results, startedAt, version);
-        const pdfFile = await writePdf(reportFile);
-        console.log(`\nReport: ${reportFile}\nPDF:    ${pdfFile}`);
+        await Promise.all(Array.from({length: Math.min(concurrency, queue.length)}, work));
     } finally {
-        await browser.close();
+        results.push(...slots.filter((r): r is Result => r !== undefined));
+        save();
+        await browser.close().catch(() => {});
     }
+    const reportFile = writeReport(results, startedAt, version);
+    const pdfFile = await writePdf(reportFile);
+    console.log(`\nReport: ${reportFile}\nPDF:    ${pdfFile}`);
     if (results.some((r) => r.verdict === "fail" || r.verdict === "error")) process.exitCode = 1;
 }
 
