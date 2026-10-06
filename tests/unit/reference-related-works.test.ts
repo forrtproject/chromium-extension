@@ -63,7 +63,7 @@ describe("repeated custom-element reference entries", () => {
         const entries = findReferenceEntries(document);
 
         expect(entries.map((e) => e.element.tagName)).toEqual(["CITATION", "CITATION", "CITATION"]);
-        expect(entries.map((e) => e.doi)).toEqual(["10.3333/cite.1", "10.3333/cite.2", "10.3333/cite.3"]);
+        expect(entries.flatMap((e) => e.dois)).toEqual(["10.3333/cite.1", "10.3333/cite.2", "10.3333/cite.3"]);
     });
 
     it("resolves every component", async () => {

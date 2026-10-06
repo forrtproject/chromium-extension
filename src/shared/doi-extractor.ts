@@ -501,8 +501,8 @@ export function findReferenceContainers(doc: Document): Element[] {
 
 export interface ReferenceEntry {
   element: HTMLElement;
-  /** null when the entry needs DOI augmentation. */
-  doi: DoiString | null;
+  /** Empty when the entry needs DOI augmentation. */
+  dois: DoiString[];
   /** Canonical `PMC…` id, set only when the entry cites one and has no DOI. */
   pmcid: string | null;
   text: string;
@@ -526,26 +526,28 @@ function cleanReferenceText(text: string): string {
   return cleaned;
 }
 
-function extractDoiFromEntry(
+function extractDoisFromEntry(
   entry: HTMLElement,
   hostDoi: DoiString | null
-): DoiString | null {
+): DoiString[] {
   // Text wins over links: an entry's links are often "View"/"Cite" buttons
   // pointing at the *host* article, not the cited paper — using them first
   // made every Wiley cited-by row resolve to the host's own DOI.
   const text = entry.innerText ?? entry.textContent ?? "";
   const cleaned = decodeEncodedDois(text.replace(WORD_BREAK_CHARS, ""));
+  const inText = new Set<DoiString>();
   for (const match of cleaned.matchAll(DOI_TEXT_REGEX)) {
     const raw = cleanDoiTrailing(match[1]);
     if (!isValidDoiSuffix(raw)) continue;
     const doi = normaliseDOI(raw);
-    if (doi) return doi;
+    if (doi) inText.add(doi);
   }
+  if (inText.size > 0) return [...inText];
   for (const link of entry.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     const doi = extractDoiFromHref(link.href);
-    if (doi && doi !== hostDoi) return doi;
+    if (doi && doi !== hostDoi) return [doi];
   }
-  return null;
+  return [];
 }
 
 // Entries that cite a PubMed Central id and no DOI — either spelled out
@@ -704,12 +706,12 @@ export function findReferenceEntries(doc: Document): ReferenceEntry[] {
 
   const hostDoi = extractPrimaryDOI(doc);
   return elements.map((element) => {
-    const doi = extractDoiFromEntry(element, hostDoi);
+    const dois = extractDoisFromEntry(element, hostDoi);
     const text = cleanReferenceText(element.innerText ?? element.textContent ?? "");
     return {
       element,
-      doi,
-      pmcid: doi === null ? extractPmcIdFromEntry(element, text) : null,
+      dois,
+      pmcid: dois.length === 0 ? extractPmcIdFromEntry(element, text) : null,
       text,
     };
   });
@@ -770,9 +772,9 @@ function headingCitedWithDoi(doc: Document, doi: DoiString): HTMLElement | null 
 
 function ownReferenceDoi(doc: Document, title: HTMLElement, referenceFound: Set<DoiString>): DoiString | null {
   const own = findReferenceEntries(doc).filter(
-    (entry) => entry.doi && referenceFound.has(entry.doi) && titleContainsText(title, entry.text)
+    (entry) => entry.dois.length > 0 && referenceFound.has(entry.dois[0]) && titleContainsText(title, entry.text)
   );
-  return own.length === 1 ? own[0].doi : null;
+  return own.length === 1 ? own[0].dois[0] : null;
 }
 
 export function classifyPageDois(doc: Document): ClassifiedDois {

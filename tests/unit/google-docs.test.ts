@@ -67,7 +67,7 @@ describe('Google Docs reference adapter', () => {
     });
     it('removes canvas bidi delimiters before extracting DOI lookup keys', () => {
         emit({width: 816, height: 1056, runs: runs.map(run => ({...run, text: '\u202a' + run.text + '\u202c'}))});
-        expect(findReferenceEntries(document).map(e => e.doi)).toEqual([DOI, '10.1037/h0054651']);
+        expect(findReferenceEntries(document).flatMap(e => e.dois)).toEqual([DOI, '10.1037/h0054651']);
     });
     it('orders mixed-font fragments by horizontal position', () => {
         const paragraphs = docsParagraphs([
@@ -91,7 +91,7 @@ describe('Google Docs reference adapter', () => {
         const canvas = document.querySelector('canvas')!;
         const original = canvas.outerHTML;
         emit({ width: 816, height: 1056, runs });
-        expect(findReferenceEntries(document).map(e => e.doi)).toEqual([DOI, '10.1037/h0054651']);
+        expect(findReferenceEntries(document).flatMap(e => e.dois)).toEqual([DOI, '10.1037/h0054651']);
         const refs = await resolveReferenceDois();
         renderResolvedReferences(refs, new Map(), new Map());
         expect(document.querySelectorAll('.flora-docs-annotation [data-flora-marker]')).toHaveLength(2);

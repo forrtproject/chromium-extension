@@ -40,7 +40,7 @@ describe("Word Online", () => {
     it("finds a reference without a References heading and deduplicates hidden Word copies", () => {
         const entries = findReferenceEntries(document);
         expect(entries).toHaveLength(1);
-        expect(entries[0].doi).toBe(doi);
+        expect(entries[0].dois).toEqual([doi]);
         expect(entries[0].element.isConnected).toBe(false);
         expect(extractDoiOccurrences(document)).toHaveLength(1);
     });

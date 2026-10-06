@@ -11,7 +11,7 @@ const BY_PMC = "10.1000/by-pmc" as DoiString;
 function ref(doi: DoiString, mode: ResolvedReference["mode"] = "augment"): ResolvedReference {
     const element = document.createElement("li");
     document.body.appendChild(element);
-    return { entry: { element, text: `Citation for ${doi} (2020)`, doi: null } as ResolvedReference["entry"], doi, mode };
+    return { entry: { element, text: `Citation for ${doi} (2020)`, dois: [] } as ResolvedReference["entry"], doi, mode };
 }
 
 describe("ResolvedReferences", () => {

@@ -42,7 +42,7 @@ function loadFixture(): void {
 }
 
 function augmentTargetElement(): HTMLElement {
-  const target = findReferenceEntries(document).find((e) => e.doi === null);
+  const target = findReferenceEntries(document).find((e) => e.dois.length === 0);
   if (!target) throw new Error("fixture has no DOI-less reference entry");
   return target.element as HTMLElement;
 }

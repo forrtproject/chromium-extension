@@ -57,7 +57,7 @@ describe("reference pill placement (integration)", () => {
 
       const entry = entriesFromDocument()[0];
       const resolved: ResolvedReference[] = [
-        { entry: { element: entry, doi: "10.1/a" as DoiString, pmcid: null, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
+        { entry: { element: entry, dois: ["10.1/a" as DoiString], pmcid: null, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
       ];
 
       renderResolvedReferences(resolved, new Map(), new Map());
@@ -75,7 +75,7 @@ describe("reference pill placement (integration)", () => {
 
     const entry = entriesFromDocument()[0];
     const resolved: ResolvedReference[] = [
-      { entry: { element: entry, doi: "10.1/a" as DoiString, pmcid: null, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
+      { entry: { element: entry, dois: ["10.1/a" as DoiString], pmcid: null, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
     ];
 
     renderResolvedReferences(resolved, new Map(), new Map());
@@ -101,7 +101,7 @@ describe("reference pill placement (integration)", () => {
     }
 
     const resolved: ResolvedReference[] = [
-      { entry: { element: entry, doi: "10.1/a" as DoiString, pmcid: null, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
+      { entry: { element: entry, dois: ["10.1/a" as DoiString], pmcid: null, text: "ref" }, doi: "10.1/a" as DoiString, mode: "page" },
     ];
 
     renderResolvedReferences(resolved, new Map(), new Map());
@@ -118,7 +118,7 @@ function renderGeneric(html: string, entrySelector: string): HTMLElement {
   document.body.innerHTML = html;
   const entry = document.querySelector<HTMLElement>(entrySelector)!;
   const resolved: ResolvedReference[] = [
-    { entry: { element: entry, doi: GENERIC_DOI, pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" },
+    { entry: { element: entry, dois: [GENERIC_DOI], pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" },
   ];
   renderResolvedReferences(resolved, new Map(), new Map());
   return entry;
@@ -200,7 +200,7 @@ describe("generic reference placement puts the pill on its own row", () => {
       `<ol><li id="e">${LONG} <span class="flora-pill-row" data-flora-ui><span class="${INDICATOR_PILL_CLASS}" data-flora-loose-pill data-flora-doi="${GENERIC_DOI}"></span></span></li></ol>`;
     const entry = document.querySelector<HTMLElement>("#e")!;
     renderResolvedReferences(
-      [{ entry: { element: entry, doi: GENERIC_DOI, pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" }],
+      [{ entry: { element: entry, dois: [GENERIC_DOI], pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" }],
       new Map(), new Map());
     const pills = entry.querySelectorAll(`.${INDICATOR_PILL_CLASS}`);
     expect(pills).toHaveLength(1);
@@ -208,12 +208,29 @@ describe("generic reference placement puts the pill on its own row", () => {
     expect(entry.querySelectorAll(".flora-pill-row")).toHaveLength(1);
   });
 
+  it("gives each DOI of a multi-DOI entry its own pill in one shared row", () => {
+    setHostname("example.com");
+    const other = "10.1/b" as DoiString;
+    document.body.innerHTML =
+      `<ol><li id="e">${LONG} <span class="flora-pill-row" data-flora-ui><span class="${INDICATOR_PILL_CLASS}" data-flora-loose-pill data-flora-doi="${other}"></span></span></li></ol>`;
+    const element = document.querySelector<HTMLElement>("#e")!;
+    const entry = { element, dois: [GENERIC_DOI, other], pmcid: null, text: "ref" };
+    renderResolvedReferences(
+      [{ entry, doi: GENERIC_DOI, mode: "page" }, { entry, doi: other, mode: "page" }],
+      new Map(), new Map());
+    const pills = [...element.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)];
+    expect(pills.map((p) => p.getAttribute("data-flora-doi"))).toEqual([GENERIC_DOI, other]);
+    expect(pills.some((p) => p.hasAttribute("data-flora-loose-pill"))).toBe(false);
+    expect(element.querySelectorAll(".flora-pill-row")).toHaveLength(1);
+    expect(pills[1].parentElement).toBe(rowOf(element));
+  });
+
   it("shows a reference's notice on its indicator pill, with no stand-alone notice pill", () => {
     setHostname("example.com");
     document.body.innerHTML = `<ol><li id="e">${LONG}</li></ol>`;
     const entry = document.querySelector<HTMLElement>("#e")!;
     renderResolvedReferences(
-      [{ entry: { element: entry, doi: GENERIC_DOI, pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" }],
+      [{ entry: { element: entry, dois: [GENERIC_DOI], pmcid: null, text: "ref" }, doi: GENERIC_DOI, mode: "page" }],
       new Map([[GENERIC_DOI, { originDoi: GENERIC_DOI, doi: "10.9/n" as DoiString, kind: "retraction" }]]), new Map());
     expect(rowOf(entry).querySelector("[data-flora-notice-segment]")).not.toBeNull();
     expect(entry.querySelector(".flora-notice-pill")).toBeNull();

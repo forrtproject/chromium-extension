@@ -124,7 +124,7 @@ export type ReferenceMode = "augment" | "page" | "pmc";
 type PendingEntry =
   | { entry: ReferenceEntry; mode: "augment"; doi: null }
   | { entry: ReferenceEntry; mode: "pmc"; doi: null; pmcid: string }
-  | { entry: ReferenceEntry; mode: "page"; doi: DoiString };
+  | { entry: ReferenceEntry; mode: "page"; dois: DoiString[] };
 
 export interface ResolvedReference {
     entry: ReferenceEntry;
@@ -153,14 +153,15 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const pending: PendingEntry[] = [];
     for (const entry of entries) {
         if (entry.element.hasAttribute(REFERENCE_ENTRY_ATTR) || entry.element.querySelector(`[${REFERENCE_ENTRY_ATTR}]`)) continue;
-        if (primary && entry.doi === primary) continue;
+        const cited = entry.dois.filter((doi) => doi !== primary);
+        if (entry.dois.length > 0 && cited.length === 0) continue;
         if (entry.text.length < MIN_CITATION_LENGTH) continue;
         // Filter before augmenting: an out-of-scope block that reaches
         // Crossref/OpenAlex can come back with a confident-looking wrong DOI.
         if (!isInReferenceScope(entry.element, adapter)) continue;
         if (isInRelatedWorks(entry.element, article)) continue;
 
-        if (entry.doi === null) {
+        if (cited.length === 0) {
             // Exact id mapping — skips the year gate and augmentation budget.
             if (entry.pmcid) {
                 pending.push({entry, mode: "pmc", doi: null, pmcid: entry.pmcid});
@@ -169,7 +170,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
             if (!YEAR_RE.test(entry.text)) continue;
             pending.push({entry, mode: "augment", doi: null});
         } else {
-            pending.push({entry, mode: "page", doi: entry.doi});
+            pending.push({entry, mode: "page", dois: cited});
         }
     }
     if (pending.length === 0) return [];
@@ -221,7 +222,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const resolved: ResolvedReference[] = [];
     for (const p of queued) {
         if (p.mode === "page") {
-            resolved.push({entry: p.entry, doi: p.doi, mode: "page"});
+            for (const doi of p.dois) resolved.push({entry: p.entry, doi, mode: "page"});
         } else if (p.mode === "pmc") {
             if (!byPmcId.has(p.pmcid)) releaseReferenceEntry(p.entry);
             const doi = byPmcId.get(p.pmcid) ?? null;
@@ -273,6 +274,7 @@ export function renderResolvedReferences(
     pageState: ReadonlyMap<DoiString, LookupState>,
 ): void {
     const adapter = currentSiteAdapter();
+    const lastPillOf = new Map<HTMLElement, HTMLElement>();
     for (const {entry, doi, mode} of resolved) {
         const isAugmented = mode === "augment";
         const state = pageState.get(doi);
@@ -288,7 +290,14 @@ export function renderResolvedReferences(
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,
         });
-        placeReferencePill(entry.element, doi, pill, adapter);
+        const previous = lastPillOf.get(entry.element);
+        if (previous?.isConnected) {
+            removeLoosePills(entry.element, doi);
+            previous.after(pill);
+        } else {
+            placeReferencePill(entry.element, doi, pill, adapter);
+        }
+        lastPillOf.set(entry.element, pill);
         applyPillStyle(pill, adapter, "reference");
         debugLog(`References: surfaced "${entry.text.slice(0, 60)}" → ${doi} (${mode})`);
     }
