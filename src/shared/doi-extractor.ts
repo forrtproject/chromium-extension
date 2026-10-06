@@ -4,6 +4,7 @@ import type { DoiString, ClassifiedDois, PageType } from "./types";
 import { normaliseDOI } from "./doi-normalise";
 import { debugLog } from "./debug";
 import { FLORA_UI_SELECTOR } from "./flora-ui";
+import { currentPageEntry, isSamePage, type PageEntry } from "./page-identity";
 import { findArticleTitle, findMatchedArticleTitle, siteArticleTitle, titleContainsText } from "./article-title";
 
 // DOI suffixes may contain parens, semicolons, and slashes (e.g. SICI DOIs),
@@ -374,23 +375,26 @@ function extractFromVisibleText(doc: Document, found: Set<DoiString>): void {
 
 // Authoritative sources only — body text/links would pick up cited DOIs.
 let _primaryDoiCache: { epoch: number; doc: Document; result: DoiString | null } | null = null;
-let _adoptedPrimary: { doc: Document; url: string; doi: DoiString } | null = null;
+let _adoptedPrimary: { doc: Document; entry: PageEntry; doi: DoiString } | null = null;
 
 let _awaitingTitle = false;
 export const awaitingArticleTitle = () => _awaitingTitle;
 
-const pageKey = (doc: Document) => (doc.location?.href ?? "").replace(/#.*$/, "");
+const pageEntry = (doc: Document): PageEntry => ({ href: doc.location?.href ?? "", key: currentPageEntry().key });
 
 function adoptedPrimaryDoi(doc: Document): DoiString | null {
-  return _adoptedPrimary?.doc === doc && _adoptedPrimary.url === pageKey(doc) ? _adoptedPrimary.doi : null;
+  return _adoptedPrimary?.doc === doc && isSamePage(_adoptedPrimary.entry, pageEntry(doc)) ? _adoptedPrimary.doi : null;
 }
 
 const VERSION_SUFFIX = /^[._-]v?\d+$/i;
 
+const extendsAt = (d: DoiString, base: DoiString) => d.length > base.length && d.startsWith(base) && /[./_-]/.test(d[base.length]);
+
 function mostSpecificDoi(dois: DoiString[]): DoiString {
-  const [first] = dois;
-  return dois.find((d) => d.length > first.length && d.startsWith(first)
-    && /[./_-]/.test(d[first.length]) && !VERSION_SUFFIX.test(d.slice(first.length))) ?? first;
+  const deepest = dois
+    .filter((d) => dois.some((b) => extendsAt(d, b) && !VERSION_SUFFIX.test(d.slice(b.length))))
+    .sort((a, b) => b.length - a.length)[0];
+  return deepest ?? dois.find((d) => !dois.some((b) => extendsAt(d, b))) ?? dois[0];
 }
 
 export function extractPrimaryDOI(doc: Document): DoiString | null {
@@ -803,7 +807,7 @@ export function classifyPageDois(doc: Document): ClassifiedDois {
       for (const doi of [...otherFound]) if (doi.startsWith(lone)) otherFound.delete(doi);
       referenceFound.delete(lone);
       articleFound.add(lone);
-      _adoptedPrimary = { doc, url: pageKey(doc), doi: lone };
+      _adoptedPrimary = { doc, entry: pageEntry(doc), doi: lone };
       _primaryDoiCache = { epoch: _scanEpoch, doc, result: lone };
     }
   }

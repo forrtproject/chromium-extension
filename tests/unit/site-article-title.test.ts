@@ -80,6 +80,8 @@ describe("heiup", () => {
 
     it.each([
         [["10.17885/heiup.1157", "10.17885/heiup.1157.c19369"], "10.17885/heiup.1157.c19369"],
+        [["10.17885/heiup.1157", "10.17885/heiup.1157.c19369", "10.17885/heiup.1157.c19369.s2"], "10.17885/heiup.1157.c19369.s2"],
+        [["10.17885/heiup.1157_v2", "10.17885/heiup.1157"], "10.17885/heiup.1157"],
         [["10.7554/elife.1", "10.7554/elife.1.3"], "10.7554/elife.1"],
         [["10.31219/osf.io/5gskw", "10.31219/osf.io/5gskw_v1"], "10.31219/osf.io/5gskw"],
     ])("picks the primary from %j as %s", (dois, expected) => {

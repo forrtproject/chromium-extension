@@ -956,10 +956,13 @@ async function augmentFromTitle(): Promise<void> {
     }
 
     const titleEl = findArticleTitle(document);
-    const pageTitle = titleEl?.textContent?.trim() || document.title?.trim();
+    const pageTitle = metaContent(document, ['meta[name="citation_title"]', 'meta[name="dc.title" i]'])
+        || titleEl?.textContent?.trim()
+        || document.title?.trim();
 
     if (!pageTitle) return;
 
+    let resolvedDoi: DoiString | undefined;
     try {
         const augmented = await augmentDOIsViaWorker([{
             title: pageTitle,
@@ -967,7 +970,7 @@ async function augmentFromTitle(): Promise<void> {
             ...extractPageAugmentationMetadata(document),
         }]);
         if (stale()) return;
-        const resolvedDoi = augmented.get(pageTitle);
+        resolvedDoi = augmented.get(pageTitle) ?? undefined;
         debugLog("Title augmentation:", resolvedDoi ? `resolved to ${resolvedDoi}` : "no match", `(title: "${pageTitle}")`);
         if (resolvedDoi) {
             processedDois.add(resolvedDoi);
@@ -1009,6 +1012,11 @@ async function augmentFromTitle(): Promise<void> {
         }
     } catch (err) {
         debugWarn(`Title augmentation failed for "${pageTitle}" —`, err);
+        if (resolvedDoi && !stale()) {
+            pageState.set(resolvedDoi, {status: "error", message: err instanceof Error ? err.message : String(err)});
+            pageStateVersion++;
+            augmentAttempted = false;
+        }
     } finally {
         // Abandoned on this page, so the resumed pass gets to try the title again.
         // A newer generation owns the flag by then and keeps its own attempt.

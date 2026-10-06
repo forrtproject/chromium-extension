@@ -125,6 +125,12 @@ function removeStandalone(): void {
     standalone()?.remove();
 }
 
+function busyName(tab: HTMLElement): string {
+    const spoken = tab.dataset.floraTabSpoken ?? "";
+    const action = tab.dataset.floraTabLabel;
+    return reportSettled && tab !== standalone() && action ? `${spoken}. ${action}` : spoken;
+}
+
 function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
     if (!tab.hasAttribute("data-flora-tab-busy")) {
         unmarkClear(tab);
@@ -164,7 +170,8 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
 
     const spoken = percent > 0 ? `FORRT ORE is checking this page, ${percent}% done` : "FORRT ORE is checking this page";
     tab.title = label;
-    tab.setAttribute("aria-label", spoken);
+    tab.dataset.floraTabSpoken = spoken;
+    tab.setAttribute("aria-label", busyName(tab));
     if (tab === standalone()) {
         tab.setAttribute("role", "progressbar");
         tab.setAttribute("aria-valuemin", "0");
@@ -192,6 +199,7 @@ function clearBusy(tab: HTMLElement): void {
     delete tab.dataset.floraTabBackground;
     delete tab.dataset.floraTabCursor;
     delete tab.dataset.floraTabLabel;
+    delete tab.dataset.floraTabSpoken;
     tab.removeAttribute("title");
     tab.removeAttribute("aria-disabled");
     for (const attr of ["aria-valuemin", "aria-valuemax", "aria-valuenow"]) tab.removeAttribute(attr);
@@ -364,8 +372,10 @@ export function canOpenPanel(tab: HTMLElement): boolean {
 }
 
 export function setTabLabel(tab: HTMLElement, label: string): void {
-    if (isTabBusy(tab)) tab.dataset.floraTabLabel = label;
-    else tab.setAttribute("aria-label", label);
+    if (isTabBusy(tab)) {
+        tab.dataset.floraTabLabel = label;
+        tab.setAttribute("aria-label", busyName(tab));
+    } else tab.setAttribute("aria-label", label);
 }
 
 export function _resetProgressTabForTesting(): void {

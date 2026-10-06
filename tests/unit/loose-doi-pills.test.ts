@@ -49,6 +49,20 @@ describe("DOIs loose on a page, outside an article or reference list", () => {
         expect(brs[0].nextSibling!.textContent).toBe(`doi: ${LOOSE}`);
     });
 
+    it("keeps the pill out of a block-styled DOI link", () => {
+        document.body.innerHTML = `<div><a href="https://doi.org/${LOOSE}" style="display:block">${LOOSE}</a></div>`;
+        run(new Map([[LOOSE, "other"]]));
+        expect(document.querySelector("a")!.contains(pills()[0])).toBe(false);
+    });
+
+    it("places the row after a flex container instead of inside it", () => {
+        document.body.innerHTML = `<div id="wrap"><div style="display:flex"><span>Cite ${LOOSE}</span></div></div>`;
+        run(new Map([[LOOSE, "other"]]));
+        const flex = document.querySelector<HTMLElement>("[style]")!;
+        expect(flex.querySelector(".flora-pill-row")).toBeNull();
+        expect(flex.nextElementSibling!.classList.contains("flora-pill-row")).toBe(true);
+    });
+
     it("stops the line run at a block sibling", () => {
         document.body.innerHTML = `<div>Cite ${LOOSE} <span>inline</span><div>block</div>tail</div>`;
         run(new Map([[LOOSE, "other"]]));

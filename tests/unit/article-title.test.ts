@@ -52,8 +52,8 @@ describe("findArticleTitle", () => {
     it("does not let a weak reference select a non-heading", () => {
         const d = doc(
             `<meta property="og:title" content="${TITLE}">`,
-            `<span class="something-title">${TITLE}</span><h1 id="h">Another long heading text</h1>`);
-        expect(findArticleTitle(d)!.id).toBe("h");
+            `<div><span class="something-title">${TITLE}</span></div>`);
+        expect(findArticleTitle(d)).toBeNull();
     });
 
     it("returns the paragraph around a bold title", () => {

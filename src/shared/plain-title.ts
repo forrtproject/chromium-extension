@@ -18,7 +18,8 @@ export function decodeEntities(raw: string): string {
             const code = /^#x/i.test(entity) ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
             return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
         }
-        return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
+        const key = entity.toLowerCase();
+        return Object.hasOwn(NAMED_ENTITIES, key) ? NAMED_ENTITIES[key] : match;
     });
 }
 

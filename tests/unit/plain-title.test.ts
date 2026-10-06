@@ -15,6 +15,7 @@ describe("plainTitle", () => {
         ["&#916;9 and &#x394;9", "Δ9 and Δ9"],
         ["IQ < 70 and > 50", "IQ < 70 and > 50"],
         ["  spaced \n  out title  ", "spaced out title"],
+        ["&constructor; and &__proto__;", "&constructor; and &__proto__;"],
         ["", ""],
         [null, ""],
         [undefined, ""],

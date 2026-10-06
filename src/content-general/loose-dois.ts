@@ -52,14 +52,20 @@ function newLooseRow(pill: HTMLElement): HTMLElement {
     return row;
 }
 
+function isFlexOrGrid(el: Element): boolean {
+    const {display} = getComputedStyle(el);
+    return display.includes("flex") || display.includes("grid");
+}
+
 function placeBelowMentionLine(start: Node, pill: HTMLElement): void {
-    if (start instanceof Element && isBlockLevel(start)) {
+    if (start instanceof Element && isBlockLevel(start) && start.tagName !== "A" && !isFlexOrGrid(start)) {
         const last = start.lastElementChild;
         if (last?.hasAttribute(LOOSE_ROW_ATTR)) last.appendChild(pill);
         else start.appendChild(newLooseRow(pill));
         return;
     }
-    const end = lineRunEnd(start);
+    let end = lineRunEnd(start);
+    while (end.parentElement && isFlexOrGrid(end.parentElement)) end = end.parentElement;
     const next = end.nextSibling;
     if (next instanceof Element && next.hasAttribute(LOOSE_ROW_ATTR)) next.appendChild(pill);
     else end.parentNode!.insertBefore(newLooseRow(pill), next);

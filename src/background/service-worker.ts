@@ -1,5 +1,6 @@
 import {SharedRequest} from "@shared/shared-request";
 import {collectDebugReport, isIssueFormUrl, issueUrl, renderDebugReport} from "@shared/debug-report";
+import {redactDebugText} from "@shared/debug-redact";
 import {formatSnoozeEnd} from "@shared/snooze-durations";
 import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/work-cancellation";
 import {LocalCache, MONTH_MS} from "@shared/cache";
@@ -84,6 +85,11 @@ function leaveErrorState(tabId: number): Promise<void> {
     return Promise.resolve(chrome.action.setPopup?.({ tabId, popup: defaultPopup() })).then(() => {}, () => {});
 }
 
+function clearTabError(tabId: number): Promise<void> {
+    paintTab(tabId, ICONS.inactive, "FORRT ORE");
+    return leaveErrorState(tabId);
+}
+
 async function showPopup(tabId: number): Promise<void> {
     try {
         if (chrome.action.openPopup) {
@@ -148,7 +154,7 @@ function hostOf(url: string): string | null {
 
 function samePage(a: string, b: string): boolean {
     try {
-        const x = new URL(a), y = new URL(b);
+        const x = new URL(redactDebugText(a)), y = new URL(redactDebugText(b));
         return x.origin === y.origin && x.pathname === y.pathname;
     } catch {
         return false;
@@ -160,7 +166,7 @@ async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Pro
     const raw = await chrome.storage.session.get(key).catch(() => ({})) as Record<string, TabError | undefined>;
     const stored = raw[key];
     if (!stored || (tabUrl && !samePage(stored.pageUrl, tabUrl))) {
-        await leaveErrorState(tabId);
+        await clearTabError(tabId);
         await showPopup(tabId);
         return;
     }
@@ -187,7 +193,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     const key = TAB_ERROR_PREFIX + tabId;
     chrome.storage.session.get(key).then((raw) => {
         const stored = (raw as Record<string, TabError | undefined>)[key];
-        if (stored && !samePage(stored.pageUrl, url)) void leaveErrorState(tabId);
+        if (stored && !samePage(stored.pageUrl, url)) void clearTabError(tabId);
     }).catch(() => {});
 });
 

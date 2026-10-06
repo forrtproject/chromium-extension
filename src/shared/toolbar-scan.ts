@@ -92,6 +92,7 @@ export function noteScanReset(): void {
 
 export function noteScanHidden(): void {
     clearScanTimer();
+    if (shown === "scanning") reportActiveState(true);
     shown = "none";
     lastKey = "";
 }

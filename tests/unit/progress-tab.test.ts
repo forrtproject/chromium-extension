@@ -262,6 +262,7 @@ describe("progress tab", () => {
         settle();
         expect(panelTab.hasAttribute("data-flora-tab-busy")).toBe(true);
         expect(panelTab.hasAttribute("aria-disabled")).toBe(false);
+        expect(panelTab.getAttribute("aria-label")).toContain("Open the FORRT ORE panel");
 
         panelTab.click();
         expect(panelOpen()).toBe(true);

@@ -1,6 +1,13 @@
 import {describe, it, expect, beforeEach, afterEach, vi} from "vitest";
 import {scanAddedNodes, startDomListener} from "../../src/content-general/dom-listener";
 
+const awaiting = vi.hoisted(() => ({value: false}));
+
+vi.mock("../../src/shared/doi-extractor", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../../src/shared/doi-extractor")>()),
+    awaitingArticleTitle: () => awaiting.value,
+}));
+
 const DEBOUNCE_MS = 300;
 
 function add(html: string): Element {
@@ -155,6 +162,20 @@ describe("startDomListener", () => {
         // The records were never inspected, so the whole page is rescanned.
         expect(scanWholePage).toHaveBeenCalledTimes(1);
         hidden.mockRestore();
+    });
+
+    it("rescans on return when title metadata changed while the tab was hidden", async () => {
+        awaiting.value = true;
+        const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+        listen();
+        document.head.appendChild(Object.assign(document.createElement("meta"), {name: "citation_title"}));
+        await Promise.resolve();
+        hidden.mockReturnValue(false);
+        document.dispatchEvent(new Event("visibilitychange"));
+        vi.advanceTimersByTime(DEBOUNCE_MS);
+        expect(scanWholePage).toHaveBeenCalledTimes(1);
+        hidden.mockRestore();
+        awaiting.value = false;
     });
 
     it("skips the full scan for mutations with no DOI content", async () => {

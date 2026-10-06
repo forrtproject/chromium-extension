@@ -126,8 +126,9 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
     });
     observer.observe(document.body, {childList: true, subtree: true, characterData: isWordOnline()});
     if (document.head) new MutationObserver(() => {
-        if (document.hidden || !awaitingArticleTitle()) return;
+        if (!awaitingArticleTitle()) return;
         pendingFullScan = true;
+        if (document.hidden) { missedWhileHidden = true; return; }
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(flush, DEBOUNCE_MS);
     }).observe(document.head, {childList: true, subtree: true, attributes: true, attributeFilter: ["content"], characterData: true});

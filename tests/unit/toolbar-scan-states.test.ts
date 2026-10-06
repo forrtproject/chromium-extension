@@ -226,6 +226,26 @@ describe("the toolbar reflects scan progress and results", () => {
             expect(popup.at(-1)).toEqual({tabId: 7, popup: "dist/popup.html"});
         });
 
+        it("clears the error badge and title when the tab navigates to another page", async () => {
+            await scan(errorState, 7);
+            const onUpdated = lastListener<(id: number, info: {url?: string}) => void>(chrome.tabs.onUpdated.addListener);
+
+            onUpdated(7, {url: "https://example.org/other"});
+
+            await vi.waitFor(() => expect(badge.at(-1)).toEqual({tabId: 7, text: ""}));
+            expect(title.at(-1)).toEqual({tabId: 7, title: "FORRT ORE"});
+        });
+
+        it("opens the report when the stored URL had an email-like path redacted", async () => {
+            await scan({...errorState, pageUrl: "https://example.org/people/jane.doe@uni.edu/paper"}, 7);
+            const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
+
+            onClicked({id: 7, url: "https://example.org/people/jane.doe@uni.edu/paper"});
+
+            await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
+            expect(isIssueFormUrl(lastListener<{url: string}>(chrome.tabs.create).url)).toBe(true);
+        });
+
         it("keeps the error when the tab stays on the same page", async () => {
             await scan(errorState, 7);
             const onUpdated = lastListener<(id: number, info: {url?: string}) => void>(chrome.tabs.onUpdated.addListener);

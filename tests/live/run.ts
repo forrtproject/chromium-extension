@@ -392,6 +392,7 @@ async function attempt(browser: Browser, entry: Publisher, attemptNumber: number
         const retried = attemptNumber > 1 && verdict.verdict === "pass" ? " Passed on the second attempt." : "";
         return {...base, ...verdict, reason: verdict.reason + retried, attempts: attemptNumber};
     } catch (err) {
+        if (!browser.connected) throw err;
         base.screenshot = await capture(page, shot(""));
         return {...base, verdict: "error", attempts: attemptNumber,
             reason: `The page could not be checked: ${(err as Error).message.split("\n")[0]}`};
@@ -512,34 +513,51 @@ async function main(): Promise<void> {
     if (publishers.length === 0) throw new Error(`No publishers match --only=${only?.join(",")}`);
 
     const resultsFile = path.join(OUTPUT_DIR, "results.json");
-    const previous: Result[] = resume && existsSync(resultsFile) ? JSON.parse(readFileSync(resultsFile, "utf8")) : [];
+    let previous: Result[] = [];
+    if (resume && existsSync(resultsFile)) {
+        try {
+            previous = JSON.parse(readFileSync(resultsFile, "utf8"));
+        } catch {
+            console.warn("results.json is unreadable — starting without resumed results.");
+        }
+    }
     if (!resume) rmSync(OUTPUT_DIR, {recursive: true, force: true});
     mkdirSync(SNAPSHOT_DIR, {recursive: true});
     const version = JSON.parse(readFileSync(path.join(REPO_ROOT, "manifest.json"), "utf8")).version as string;
     const startedAt = new Date();
 
     const done = new Map(previous.map((r) => [r.id, r]));
-    const slots: (Result | undefined)[] = publishers.map((p) => done.get(p.id));
+    const slots: (Result | undefined)[] = publishers.map((p) => {
+        const result = done.get(p.id);
+        return result?.url === p.url ? result : undefined;
+    });
     const queue = publishers.map((_, index) => index).filter((index) => !slots[index]);
     if (done.size > 0) console.log(`Resuming: ${publishers.length - queue.length} already checked, ${queue.length} to go.`);
     const save = () => writeFileSync(resultsFile, JSON.stringify(slots.filter((r): r is Result => r !== undefined), null, 2));
 
     let browser = await launch();
     let relaunching: Promise<void> | null = null;
-    const recover = (): Promise<void> => relaunching ??= (async () => {
-        console.log("  Browser closed unexpectedly — relaunching …");
-        browser.process()?.kill();
-        browser = await launch();
-        await prepareExtension(browser);
-    })().finally(() => { relaunching = null; });
+    const recover = async (failed: Browser): Promise<void> => {
+        if (relaunching) return relaunching;
+        if (browser !== failed) return;
+        relaunching = (async () => {
+            console.log("  Browser closed unexpectedly — relaunching …");
+            failed.process()?.kill();
+            const replacement = await launch();
+            await prepareExtension(replacement);
+            browser = replacement;
+        })().finally(() => { relaunching = null; });
+        return relaunching;
+    };
     const check = async (entry: Publisher): Promise<Result> => {
         for (let tries = 0; ; tries++) {
             if (relaunching) await relaunching;
+            const used = browser;
             try {
-                return await checkPublisher(browser, entry);
+                return await checkPublisher(used, entry);
             } catch (err) {
-                if (browser.connected || tries >= 2) throw err;
-                await recover();
+                if (used.connected || tries >= 2) throw err;
+                await recover(used);
             }
         }
     };

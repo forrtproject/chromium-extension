@@ -256,6 +256,17 @@ describe("what the content script tells the toolbar about a scan", () => {
         expect(sent()).toHaveLength(before);
     });
 
+    it("clears the scanning badge when the UI is hidden mid-scan", () => {
+        useSource();
+        beginWorkIndicator({stages: ["scan", "lookup", "report"]});
+        expect(states().at(-1)).toEqual({phase: "scanning", papers: 2});
+
+        hideWorkIndicator();
+        endWorkIndicator();
+
+        expect(sent().at(-1)).toEqual(expect.objectContaining({type: "FLORA_ACTIVE_STATE", active: true}));
+    });
+
     it("tells the toolbar the finished result again when the UI is shown after a hide", async () => {
         useSource();
         pass();

@@ -1308,3 +1308,24 @@ describe("classifyPageDois — heading-fallback reference lists", () => {
     expect(result.otherDois).toEqual([]);
   });
 });
+
+describe("lone DOI adoption across history entries", () => {
+  const TITLE = "A distinctive article title about replication";
+
+  it("drops the adopted DOI after a same-URL navigation to a new history entry", () => {
+    const dom = new JSDOM(`<!DOCTYPE html><html><head><meta name="citation_title" content="${TITLE}"></head><body><h1>${TITLE}</h1><a href="https://doi.org/10.5555/lone.9">doi</a></body></html>`,
+      {url: "https://example.org/spa"});
+    const nav = {currentEntry: {key: "a"}};
+    (globalThis as {window?: unknown}).window = {navigation: nav};
+    try {
+      beginDomScanPass();
+      expect(classifyPageDois(dom.window.document).articleDois).toEqual(["10.5555/lone.9"]);
+      nav.currentEntry.key = "b";
+      dom.window.document.body.innerHTML = "<p>Different page</p>";
+      beginDomScanPass();
+      expect(extractPrimaryDOI(dom.window.document)).toBeNull();
+    } finally {
+      delete (globalThis as {window?: unknown}).window;
+    }
+  });
+});
