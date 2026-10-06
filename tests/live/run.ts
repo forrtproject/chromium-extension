@@ -556,13 +556,13 @@ async function main(): Promise<void> {
     };
     const check = async (entry: Publisher): Promise<Result> => {
         for (let tries = 0; ; tries++) {
-            if (relaunching) await relaunching;
+            if (relaunching) await relaunching.catch(() => {});
             const used = browser;
             try {
                 return await checkPublisher(used, entry);
             } catch (err) {
                 if (used.connected || tries >= 2) throw err;
-                await recover(used);
+                await recover(used).catch((relaunchErr) => console.log(`  Relaunch failed — ${(relaunchErr as Error).message.split("\n")[0]}`));
             }
         }
     };

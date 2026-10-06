@@ -63,7 +63,7 @@ export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
 export type ScanState =
     | {phase: "scanning"; papers: number}
     | {phase: "done"; papers: number; flagged: number; incomplete: boolean}
-    | {phase: "error"; pageUrl: string; error: RuntimeErrorInfo; entries: DebugLogEntry[]};
+    | {phase: "error"; pageUrl: string; pageKey: string; error: RuntimeErrorInfo; entries: DebugLogEntry[]};
 
 export interface ScanStateMessage {
     type: "FLORA_SCAN_STATE";
@@ -97,7 +97,7 @@ export function isScanStateMessage(msg: unknown): msg is ScanStateMessage {
     if (m.type !== "FLORA_SCAN_STATE" || typeof s !== "object" || s === null) return false;
     if (s.phase === "scanning") return isCount(s.papers);
     if (s.phase === "done") return isCount(s.papers) && isCount(s.flagged) && typeof s.incomplete === "boolean";
-    if (s.phase === "error") return typeof s.pageUrl === "string" && isRuntimeErrorInfo(s.error)
+    if (s.phase === "error") return typeof s.pageUrl === "string" && typeof s.pageKey === "string" && isRuntimeErrorInfo(s.error)
         && Array.isArray(s.entries) && s.entries.every(isDebugLogEntry);
     return false;
 }

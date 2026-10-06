@@ -65,7 +65,8 @@ function placeBelowMentionLine(start: Node, pill: HTMLElement): void {
         return;
     }
     let end = lineRunEnd(start);
-    while (end.parentElement && isFlexOrGrid(end.parentElement)) end = end.parentElement;
+    const body = end.ownerDocument?.body;
+    while (end.parentElement && end.parentElement !== body && isFlexOrGrid(end.parentElement)) end = end.parentElement;
     const next = end.nextSibling;
     if (next instanceof Element && next.hasAttribute(LOOSE_ROW_ATTR)) next.appendChild(pill);
     else end.parentNode!.insertBefore(newLooseRow(pill), next);

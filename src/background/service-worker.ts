@@ -1,6 +1,6 @@
 import {SharedRequest} from "@shared/shared-request";
 import {collectDebugReport, isIssueFormUrl, issueUrl, renderDebugReport} from "@shared/debug-report";
-import {redactDebugText} from "@shared/debug-redact";
+import {pageFingerprint} from "@shared/page-identity";
 import {formatSnoozeEnd} from "@shared/snooze-durations";
 import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/work-cancellation";
 import {LocalCache, MONTH_MS} from "@shared/cache";
@@ -57,7 +57,7 @@ const BADGE_COLOURS = { snoozed: "#853953", scanning: "#5f6368", flagged: "#8539
 const INCOMPLETE_NOTE = " — some checks unavailable, results incomplete";
 const TAB_ERROR_PREFIX = "flora_tab_error:";
 
-interface TabError { pageUrl: string; error: RuntimeErrorInfo; entries: DebugLogEntry[] }
+interface TabError { pageUrl: string; pageKey: string; error: RuntimeErrorInfo; entries: DebugLogEntry[] }
 
 const tabPaints = new Map<number, number>();
 
@@ -127,7 +127,7 @@ function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null
 
 function setTabScanState(tabId: number, state: ScanState): void {
     if (state.phase === "error") {
-        const stored: TabError = { pageUrl: state.pageUrl, error: state.error, entries: state.entries };
+        const stored: TabError = { pageUrl: state.pageUrl, pageKey: state.pageKey, error: state.error, entries: state.entries };
         chrome.storage.session.set({ [TAB_ERROR_PREFIX + tabId]: stored }).catch(() => {});
         chrome.action.setPopup?.({ tabId, popup: "" })?.catch?.(() => {});
         paintTab(tabId, ICONS.inactive, "FORRT ORE — something went wrong. Click to report a bug", "!", BADGE_COLOURS.error);
@@ -155,20 +155,15 @@ function hostOf(url: string): string | null {
     try { return new URL(url).hostname || null; } catch { return null; }
 }
 
-function samePage(a: string, b: string): boolean {
-    try {
-        const x = new URL(redactDebugText(a)), y = new URL(redactDebugText(b));
-        return x.origin === y.origin && x.pathname === y.pathname;
-    } catch {
-        return false;
-    }
+function samePage(stored: TabError, url: string): boolean {
+    return stored.pageKey === pageFingerprint(url);
 }
 
 async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Promise<void> {
     const key = TAB_ERROR_PREFIX + tabId;
     const raw = await chrome.storage.session.get(key).catch(() => ({})) as Record<string, TabError | undefined>;
     const stored = raw[key];
-    if (!stored || (tabUrl && !samePage(stored.pageUrl, tabUrl))) {
+    if (!stored || (tabUrl && !samePage(stored, tabUrl))) {
         await clearTabError(tabId);
         await showPopup(tabId);
         return;
@@ -197,7 +192,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     const paints = tabPaints.get(tabId);
     chrome.storage.session.get(key).then((raw) => {
         const stored = (raw as Record<string, TabError | undefined>)[key];
-        if (stored && !samePage(stored.pageUrl, url) && tabPaints.get(tabId) === paints) void clearTabError(tabId);
+        if (stored && !samePage(stored, url) && tabPaints.get(tabId) === paints) void clearTabError(tabId);
     }).catch(() => {});
 });
 

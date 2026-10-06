@@ -63,6 +63,19 @@ describe("DOIs loose on a page, outside an article or reference list", () => {
         expect(flex.nextElementSibling!.classList.contains("flora-pill-row")).toBe(true);
     });
 
+    it("keeps the row inside the body when the body itself is a flex container", () => {
+        document.body.style.display = "flex";
+        try {
+            document.body.innerHTML = `<div style="display:flex"><span>Cite ${LOOSE}</span></div>`;
+            run(new Map([[LOOSE, "other"]]));
+            const row = document.querySelector(".flora-pill-row")!;
+            expect(row.parentElement).toBe(document.body);
+            expect(row.previousElementSibling).toBe(document.querySelector("body > div"));
+        } finally {
+            document.body.style.display = "";
+        }
+    });
+
     it("stops the line run at a block sibling", () => {
         document.body.innerHTML = `<div>Cite ${LOOSE} <span>inline</span><div>block</div>tail</div>`;
         run(new Map([[LOOSE, "other"]]));

@@ -1,6 +1,7 @@
 import {reportActiveState, reportScanState} from "./active-state";
 import {onPubPeerVerdict} from "./pubpeer-api";
 import {redactDebugText} from "./debug-redact";
+import {pageFingerprint} from "./page-identity";
 import {recentDebugEntries, type RuntimeErrorInfo} from "./debug";
 import type {ScanState} from "./messages";
 
@@ -119,6 +120,7 @@ export function noteScanError(info: RuntimeErrorInfo): void {
     const state: ScanState = {
         phase: "error",
         pageUrl: redactDebugText(location.href),
+        pageKey: pageFingerprint(location.href),
         error: {
             message: redacted(info.message, 500),
             stack: info.stack === undefined ? undefined : redacted(info.stack, 4000),

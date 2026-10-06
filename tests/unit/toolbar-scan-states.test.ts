@@ -1,5 +1,6 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from "vitest";
 import {isIssueFormUrl} from "../../src/shared/debug-report";
+import {pageFingerprint} from "../../src/shared/page-identity";
 
 type Call = {tabId: number; [key: string]: unknown};
 
@@ -50,6 +51,7 @@ function lastListener<T>(spy: unknown): T {
 const errorState = {
     phase: "error",
     pageUrl: "https://example.org/paper?id=1",
+    pageKey: pageFingerprint("https://example.org/paper?id=1"),
     error: {message: "TypeError: boom", where: "scan"},
     entries: [{t: 1, level: "error", ctx: "example.org", msg: "kaboom"}],
 };
@@ -164,7 +166,7 @@ describe("the toolbar reflects scan progress and results", () => {
             await scan(errorState, 7);
             const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
 
-            onClicked({id: 7, url: "https://example.org/paper?id=2#top"});
+            onClicked({id: 7, url: "https://example.org/paper?id=1#top"});
 
             await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
             const url = lastListener<{url: string}>(chrome.tabs.create).url;
@@ -176,7 +178,7 @@ describe("the toolbar reflects scan progress and results", () => {
         it("falls back to the popup when no error is stored", async () => {
             const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
 
-            onClicked({id: 7, url: "https://example.org/paper"});
+            onClicked({id: 7, url: "https://example.org/paper?id=1"});
 
             await vi.waitFor(() => expect(chrome.action.openPopup).toHaveBeenCalled());
             expect(chrome.tabs.create).not.toHaveBeenCalled();
@@ -249,20 +251,35 @@ describe("the toolbar reflects scan progress and results", () => {
         });
 
         it("opens the report when the stored URL had an email-like path redacted", async () => {
-            await scan({...errorState, pageUrl: "https://example.org/people/jane.doe@uni.edu/paper"}, 7);
+            const raw = "https://example.org/people/jane.doe@uni.edu/paper";
+            await scan({...errorState, pageUrl: "https://example.org/people/[email]/paper", pageKey: pageFingerprint(raw)}, 7);
             const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
 
-            onClicked({id: 7, url: "https://example.org/people/jane.doe@uni.edu/paper"});
+            onClicked({id: 7, url: raw});
 
             await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
             expect(isIssueFormUrl(lastListener<{url: string}>(chrome.tabs.create).url)).toBe(true);
+        });
+
+        it.each([
+            ["a different query", "https://example.org/paper?id=2"],
+            ["a different path that redacts the same", "https://example.org/people/john.roe@uni.edu/paper"],
+        ])("treats %s as another page", async (_label, url) => {
+            const raw = "https://example.org/people/jane.doe@uni.edu/paper";
+            await scan({...errorState, pageUrl: "https://example.org/people/[email]/paper", pageKey: pageFingerprint(url.includes("id=2") ? "https://example.org/paper?id=1" : raw)}, 7);
+            const onUpdated = lastListener<(id: number, info: {url?: string}) => void>(chrome.tabs.onUpdated.addListener);
+
+            onUpdated(7, {url});
+
+            await vi.waitFor(() => expect(session.has("flora_tab_error:7")).toBe(false));
+            expect(popup.at(-1)).toEqual({tabId: 7, popup: "dist/popup.html"});
         });
 
         it("keeps the error when the tab stays on the same page", async () => {
             await scan(errorState, 7);
             const onUpdated = lastListener<(id: number, info: {url?: string}) => void>(chrome.tabs.onUpdated.addListener);
 
-            onUpdated(7, {url: "https://example.org/paper?id=2#top"});
+            onUpdated(7, {url: "https://example.org/paper?id=1#top"});
             onUpdated(7, {status: "complete"} as {url?: string});
             await new Promise((r) => setTimeout(r, 0));
 
@@ -279,7 +296,7 @@ describe("the toolbar reflects scan progress and results", () => {
                 (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({flora_debug_log: log});
                 await scan(errorState, 7);
                 const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
-                onClicked({id: 7, url: "https://example.org/paper"});
+                onClicked({id: 7, url: "https://example.org/paper?id=1"});
                 await vi.waitFor(() => expect(session.has("flora_pending_report")).toBe(true));
                 return (session.get("flora_pending_report") as {report: string}).report;
             }
