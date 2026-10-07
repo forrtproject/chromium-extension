@@ -6,7 +6,10 @@ on:
     branches: # on push to main
       - main
     paths-ignore:
-      - "**/*.json"
+      # Skip the daily retraction-data commits and docs-only changes, but not
+      # manifest.json/package.json: a version bump must rebuild the zip.
+      - "src/retractions.json"
+      - "docs/**"
     tags: # or a version tag push (any branch)
       - 'v*'
 
