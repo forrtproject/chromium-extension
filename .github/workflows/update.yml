@@ -20,11 +20,23 @@ permissions:
   contents: write # push the refreshed data to main
   statuses: write # mark the data-only commit as needing no visual review
 
+# Cron and manual runs queue instead of racing each other to push to main.
+concurrency:
+  group: update-retractions
+  cancel-in-progress: false
+
 jobs:
   update:
+    # The job self-approves its commit, so it must only ever extend main. A
+    # manual run on another branch would push that branch's commits along with it.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Keep the write token out of .git/config while the updater script
+          # runs; only the commit step below gets it.
+          persist-credentials: false
 
       - name: Skip if upstream has no recent commit
         id: check
@@ -88,6 +100,12 @@ jobs:
             echo "::error::Refusing to self-approve a commit that changes: $changed"
             exit 1
           fi
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --quiet origin main
+          if [ "$(git rev-parse HEAD~1)" != "$(git rev-parse origin/main)" ]; then
+            echo "::error::main moved since checkout; the next run will retry."
+            exit 1
+          fi
           sha="$(git rev-parse HEAD)"
           git push --force origin HEAD:refs/heads/bot/retractions-update
           gh api "repos/$GITHUB_REPOSITORY/statuses/$sha" \
@@ -95,4 +113,4 @@ jobs:
             -f description="Retraction data only; no visual review needed" \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           git push origin HEAD:main
-          git push origin --delete bot/retractions-update
+          git push origin --delete bot/retractions-update || echo "::warning::Could not delete bot/retractions-update; the next run overwrites it."
