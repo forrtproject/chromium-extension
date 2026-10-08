@@ -51,6 +51,8 @@ After making changes, run `npm run build` and click the **reload** icon on the e
 
 ## Development
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, bug reports, and pull-request guidance.
+
 ### Project structure
 
 ```
