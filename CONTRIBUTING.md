@@ -42,4 +42,6 @@ Preserve distinctions between unavailable providers, confirmed no-matches, repli
 
 Target `main`, keep the change focused, and link the issue where applicable. Explain the user-visible problem and resulting behaviour, list the checks you ran, and include before/after screenshots for visual changes. State any checks you could not run. Avoid unrelated formatting or dependency changes.
 
+Changes to visual fixtures, screenshots, or capture setup (including `package.json` or `manifest.json`) need visual approval. After the Visual evidence bot posts, ask a maintainer with write access to comment `visuals ok`; a fork author’s comment cannot approve the visuals. For a fork PR with changed screenshots, a maintainer must also move the branch into this repository so the workflow can commit baselines.
+
 Maintainers review scientific interpretation, privacy, compatibility, and test results before merging. Release creation and store publication are maintainer responsibilities; contributors do not need release credentials or production access.
