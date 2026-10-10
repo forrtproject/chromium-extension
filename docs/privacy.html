@@ -311,10 +311,12 @@
           those links can retrieve the list later; they are separate from the
           lookup cache on your device. Each set is encrypted before it is stored,
           under a key generated for that set alone and kept only inside the Atlas
-          link — FORRT does not hold the key and cannot read the DOI list back
-          from its own database. Anyone you give the link to can, so treat it as
-          you would the list itself. Sets are deleted automatically 30 days after
-          they are created; clearing extension storage does not delete one early.
+          link — FORRT's database never holds the key, so FORRT cannot read the
+          DOI list back from it. Anyone you give the link to can, so treat it as
+          you would the list itself. A set expires 30 days after it is created,
+          after which its link no longer opens it, and the encrypted record is
+          then deleted automatically, usually within a few days; clearing
+          extension storage does not delete one early.
         </li>
         <li>
           <strong>Third-party services</strong> (Crossref, OpenAlex, Unpaywall,
@@ -356,11 +358,16 @@
         and sent onward only to Crossref, OpenAlex, Unpaywall and NCBI. You can
         exercise the practical equivalent of these rights yourself at any time
         by editing or clearing your email in settings, clearing the Extension's
-        storage, or uninstalling it. A stored DOI set is a special case: it deletes
-        itself 30 days after it is created, and because FORRT's database holds no
-        key for it and nothing linking it to you, we can neither read one to confirm it is
-        yours nor attribute one to you — discarding the link is what takes it out
-        of use.
+        storage, or uninstalling it. A stored DOI set is a special case. It
+        expires 30 days after it is created: from then on its link no longer
+        opens it, and the encrypted record is deleted from FORRT's database
+        automatically, usually within a few days. Because FORRT's database holds
+        no key for a set and nothing linking it to you, we can neither read one
+        to confirm it is yours nor attribute one to you, so we cannot delete or
+        revoke a set early. Discarding your copy of the link only removes access
+        through that copy: it does not revoke copies you have shared or delete
+        the stored set, which anyone holding the complete link can open until it
+        expires.
       </p>
       <p>
         If you would like FORRT to look into anything on your behalf, write to
@@ -403,7 +410,7 @@
         the link is created and each time one is opened — and the API writes neither
         the list nor the key to its logs.
         What the encryption protects is the stored copy sitting between those moments,
-        which is the copy that exists for 30 days and the one most likely to outlive
+        which is the copy that is kept until the set expires and the one most likely to outlive
         your interest in it.
       </p>
       <p>
