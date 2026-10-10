@@ -244,6 +244,19 @@ never included.
 
 Confirmed FORRT no-matches are cached locally for five minutes to avoid repeated requests during scans. Newly added records may take up to five minutes to appear on a subsequent lookup; provider failures are not cached. These entries share the configured provider cache budget.
 
+### Atlas set links
+
+The page summary's "details" link opens the [Replication Atlas](https://forrt.org/flora-replication-atlas/) for every matched DOI on the page. A short list travels in the link itself (`?doi=a,b,c`). Once that URL would pass 2,500 characters (`needsAtlasSet` in `src/shared/flora-atlas.ts`), the extension instead stores the list through the FORRT API and links to it by token (`?set=<token>`):
+
+1. As soon as the summary renders, the service worker `POST`s the DOIs to `/v1/sets`. If the user clicks before the token is back, a reserved tab is redirected once it arrives.
+2. The API normalises and de-duplicates the DOIs, generates a fresh 256-bit key for this one set, encrypts `{dois, count, created}` with AES-256-GCM, and stores only the ciphertext, IV and auth tag, with a 30-day TTL. The key is never written to the database.
+3. It returns the token `<id>.<key>`:
+   - `id`: 8 hex characters, the DynamoDB row id. It finds the row but cannot decrypt it.
+   - `key`: the 32-byte AES key as 43 characters of unpadded base64url.
+4. The Atlas page sends the token to `GET /v1/sets/{token}`. The API looks up the row by `id`, decrypts it with `key`, and returns the DOIs. A wrong key, tampered row, unknown id or expired set all return the same `404 set_expired`, so the endpoint can't be used to test guesses.
+
+The full token is a bearer secret: anyone holding the link can read the list until it expires. Debug logs record only the `id` half (`setRowId` in `src/shared/flora-api.ts`), so issue reports never carry the key. The server sees the list in readable form when the link is created and each time it is opened; the encryption protects the stored copy. See section 11 of the [privacy policy](https://forrt.org/chromium-extension/privacy.html).
+
 ## Data sources & credits
 
 - **Replication / reproduction data** — [FORRT Replication Database](https://forrt.org/replication-database/).

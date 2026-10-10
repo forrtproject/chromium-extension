@@ -52,10 +52,11 @@
           enter in settings, which is passed to Crossref, OpenAlex, Unpaywall and NCBI
           because those services ask for one. On an article page, the address of
           that page goes to PubPeer with the comment lookup for the paper.
-          Retraction checks happen entirely on your own device. If you open a
-          long list of papers in the Replication Atlas, that list is stored
-          encrypted under a key that exists only inside the link you were
-          given — FORRT cannot read it back from its own database.
+          Retraction checks happen entirely on your own device. When the
+          Extension offers a link to a long list of papers in the Replication
+          Atlas, that list is stored encrypted under a key that exists only
+          inside the link — FORRT's database never holds the key, so FORRT
+          cannot read the list back from it.
         </p>
       </div>
 
@@ -106,11 +107,14 @@
           services only, and is never sent to FORRT's own servers.
         </li>
         <li>
-          <strong>A list of DOIs you chose to open in the Replication Atlas</strong>,
-          but only when that list is too long to travel inside the link itself.
-          The Extension sends it to FORRT's replication API, which encrypts it and
-          returns a short link; the list is not sent for ordinary lookups, and a
-          short selection travels in the link with no copy stored anywhere. What
+          <strong>The list of DOIs behind a Replication Atlas link</strong> — the
+          papers on a page that have replication records — but only when that list
+          is too long to travel inside the link itself. The Extension sends it to
+          FORRT's replication API as soon as the page summary showing the link
+          appears, so the link is ready to open; you do not have to click it for
+          the list to be sent. The API encrypts the list and returns a short link.
+          The list is not sent for ordinary lookups, and a short list travels in
+          the link with no copy stored anywhere. What
           the list reveals is which papers you grouped together, which is why it is
           stored the way section 11 describes.
         </li>
@@ -353,8 +357,8 @@
         exercise the practical equivalent of these rights yourself at any time
         by editing or clearing your email in settings, clearing the Extension's
         storage, or uninstalling it. A stored DOI set is a special case: it deletes
-        itself 30 days after it is created, and because FORRT holds no key for it
-        and nothing linking it to you, we can neither read one to confirm it is
+        itself 30 days after it is created, and because FORRT's database holds no
+        key for it and nothing linking it to you, we can neither read one to confirm it is
         yours nor attribute one to you — discarding the link is what takes it out
         of use.
       </p>
@@ -401,6 +405,13 @@
         What the encryption protects is the stored copy sitting between those moments,
         which is the copy that exists for 30 days and the one most likely to outlive
         your interest in it.
+      </p>
+      <p>
+        The key travels in the link's address, which points to the Atlas page on
+        forrt.org, so the web server hosting that page receives it with every
+        visit, as it does any web address. Treat an Atlas set link like a password:
+        anyone who has the whole link can read the list until it expires, while the
+        short identifier before the dot, without the key after it, reads nothing.
       </p>
       <p>
         The Extension requests only the browser permissions it needs — storage,
