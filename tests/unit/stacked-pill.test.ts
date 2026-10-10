@@ -57,6 +57,22 @@ describe("a reference with several DOIs gets one stacked pill", () => {
         expect(shown(stack)).toEqual([A]);
     });
 
+    it("stays open when paging to the last paper from a hover-opened popover", () => {
+        vi.useFakeTimers();
+        try {
+            const stack = build();
+            face(stack).dispatchEvent(new MouseEvent("mouseenter"));
+            const next = pager(stack, "Next paper");
+            next.focus();
+            next.click();
+            vi.advanceTimersByTime(1000);
+            expect(popover(stack).style.display).toBe("flex");
+            expect(document.activeElement).toBe(pager(stack, "Previous paper"));
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("repaints each paper's rows inside its own page", () => {
         const stack = build();
         face(stack).click();

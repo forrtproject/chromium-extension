@@ -1722,7 +1722,8 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
                 `display:inline-block;height:6px;width:${on ? 14 : 6}px;border-radius:3px;`
                 + `background:${on ? color : "#d0d7de"};transition:width 0.2s ease,background 0.2s ease;`;
         });
-        for (const [button, disabled] of [[prev, index === 0], [next, index === total - 1]] as const) {
+        for (const [button, disabled, other] of [[prev, index === 0, next], [next, index === total - 1, prev]] as const) {
+            if (disabled && document.activeElement === button) other.focus({preventScroll: true});
             button.disabled = disabled;
             button.style.opacity = disabled ? "0.35" : "1";
             button.style.cursor = disabled ? "default" : "pointer";
@@ -1753,6 +1754,7 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
     for (const [button, step] of [[prev, -1], [next, 1]] as const) {
         button.addEventListener("click", (e) => {
             e.stopPropagation();
+            pinIndicatorPopover(wrapper, true);
             goTo(active + step);
         });
     }
