@@ -783,17 +783,18 @@ type RegisteredReportState = RegisteredReport | null | "pending" | "unavailable"
 const RR_ACCENT = "#0f766e";
 
 function registeredReportDetail(report: RegisteredReport): {subtitle: string; subtitleShort: string; href: string; actionLabel: string} {
+    const linked = webUrl(report.linked);
     if (report.stage === 2) return {
-        subtitle: report.linked ? "Stage 2 report · Stage 1 protocol linked" : "Stage 2 report",
+        subtitle: linked ? "Stage 2 report · Stage 1 protocol linked" : "Stage 2 report",
         subtitleShort: "Stage 2",
-        href: report.linked ?? registeredReportEntryUrl(report),
-        actionLabel: report.linked ? "View protocol" : "View entry",
+        href: linked ?? registeredReportEntryUrl(report),
+        actionLabel: linked ? "View protocol" : "View entry",
     };
     if (report.stage === 1) return {
-        subtitle: report.linked ? "Stage 1 protocol · Stage 2 report published" : "Stage 1 protocol",
+        subtitle: linked ? "Stage 1 protocol · Stage 2 report published" : "Stage 1 protocol",
         subtitleShort: "Stage 1",
-        href: report.linked ?? registeredReportEntryUrl(report),
-        actionLabel: report.linked ? "View report" : "View entry",
+        href: linked ?? registeredReportEntryUrl(report),
+        actionLabel: linked ? "View report" : "View entry",
     };
     return {
         subtitle: "Listed as a Registered Report",

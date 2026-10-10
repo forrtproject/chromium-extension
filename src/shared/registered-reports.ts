@@ -43,10 +43,18 @@ function flushQueue(): Promise<void> {
     });
 }
 
+const inFlight = new Map<DoiString, Promise<void>>();
+
 export async function lookupRegisteredReport(doi: DoiString): Promise<RegisteredReport | null> {
     if (known.has(doi)) return known.get(doi)!;
-    queued.add(doi);
-    queuedBatch ??= flushQueue();
-    await queuedBatch;
+    let batch = inFlight.get(doi);
+    if (!batch) {
+        queued.add(doi);
+        batch = queuedBatch ??= flushQueue();
+        inFlight.set(doi, batch);
+        const settle = () => { inFlight.delete(doi); };
+        batch.then(settle, settle);
+    }
+    await batch;
     return known.get(doi) ?? null;
 }

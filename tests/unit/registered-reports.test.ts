@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { buildRegisteredReportMap, itemDoi, stageOf, type ZoteroItem } from "../../registered-reports-updater";
 import { createIndicatorPanel, updateIndicatorPillBadges } from "../../src/shared/indicator-pill";
+import { lookupRegisteredReport } from "../../src/shared/registered-reports";
 import type { DoiString, LookupState, RetractionResponse } from "../../src/shared/types";
 
 function item(key: string, data: Partial<ZoteroItem["data"]> & { tags?: string[] }): ZoteroItem {
@@ -40,7 +41,11 @@ describe("registered reports updater", () => {
 });
 
 describe("Registered Report row", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+  });
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.mocked(chrome.runtime.sendMessage).mockReset();
     document.body.innerHTML = "";
   });
@@ -83,5 +88,28 @@ describe("Registered Report row", () => {
     panel.querySelector<HTMLButtonElement>("[data-flora-rr-row] button")!.click();
     await vi.waitFor(() => expect(panel.querySelector<HTMLAnchorElement>("a[data-flora-rr-row]")?.href)
       .toBe("https://www.zotero.org/groups/5937153/registered_reports/items/K1"));
+  });
+
+  it("falls back to the database entry when the companion link is not a web URL", async () => {
+    const doi = "10.5555/rr-script-link" as DoiString;
+    answerRrChecks({ [doi]: { key: "BAD", stage: 2, linked: "javascript:alert(1)" } });
+    const panel = createIndicatorPanel({ doi });
+    await vi.waitFor(() => expect(panel.querySelector<HTMLAnchorElement>("a[data-flora-rr-row]")?.href)
+      .toBe("https://www.zotero.org/groups/5937153/registered_reports/items/BAD"));
+    expect(panel.querySelector("[data-flora-rr-row]")!.textContent).not.toContain("protocol linked");
+  });
+
+  it("shares a lookup that is still waiting on the worker instead of sending another", async () => {
+    const doi = "10.5555/rr-in-flight" as DoiString;
+    let answer: (value: unknown) => void = () => {};
+    vi.mocked(chrome.runtime.sendMessage).mockReturnValueOnce(new Promise((resolve) => { answer = resolve; }));
+    const first = lookupRegisteredReport(doi);
+    await new Promise((r) => setTimeout(r, 0));
+    const second = lookupRegisteredReport(doi);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
+    answer({ type: "FLORA_RR_CHECK_RESULT", results: { [doi]: { key: "K2", stage: 1 } } });
+    await expect(first).resolves.toEqual({ key: "K2", stage: 1 });
+    await expect(second).resolves.toEqual({ key: "K2", stage: 1 });
   });
 });
