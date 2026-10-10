@@ -33,7 +33,7 @@
     <main class="prose">
       <h1>Privacy Policy</h1>
       <p class="updated">
-        FORRT ORE — Open Research Extension · Last updated 6 September 2026
+        FORRT ORE — Open Research Extension · Last updated 7 October 2026
       </p>
 
       <p>
@@ -52,7 +52,11 @@
           enter in settings, which is passed to Crossref, OpenAlex, Unpaywall and NCBI
           because those services ask for one. On an article page, the address of
           that page goes to PubPeer with the comment lookup for the paper.
-          Retraction checks happen entirely on your own device.
+          Retraction checks happen entirely on your own device. When the
+          Extension offers a link to a long list of papers in the Replication
+          Atlas, that list is stored encrypted under a key that exists only
+          inside the link — FORRT's database never holds the key, so FORRT
+          cannot read the list back from it.
         </p>
       </div>
 
@@ -101,6 +105,18 @@
           API users to supply as a contact address. It is stored in Chrome's
           sync storage, is sent to those four
           services only, and is never sent to FORRT's own servers.
+        </li>
+        <li>
+          <strong>The list of DOIs behind a Replication Atlas link</strong> — the
+          papers on a page that have replication records — but only when that list
+          is too long to travel inside the link itself. The Extension sends it to
+          FORRT's replication API as soon as the page summary showing the link
+          appears, so the link is ready to open; you do not have to click it for
+          the list to be sent. The API encrypts the list and returns a short link.
+          The list is not sent for ordinary lookups, and a short list travels in
+          the link with no copy stored anywhere. What
+          the list reveals is which papers you grouped together, which is why it is
+          stored the way section 11 describes.
         </li>
         <li>
           <strong>The URL and hostname of the current page</strong>, used within
@@ -156,8 +172,9 @@
         log, which can contain paper identifiers, titles and page information.
         The issue-reporting tools let you review, copy, download or clear a
         report before you use it. Your configured contact email is excluded from
-        reports. “Report an issue” opens GitHub's new-issue form with the report
-        prefilled, so GitHub receives the report as the form opens; the issue
+        reports, as is the key half of any Atlas set link, so a report cannot hand
+        a reader the DOI list behind one. “Report an issue” opens GitHub's
+        new-issue form with the report prefilled, so GitHub receives the report as the form opens; the issue
         becomes public only when you press GitHub's own submit button. The
         report goes nowhere else.
       </p>
@@ -294,10 +311,12 @@
           those links can retrieve the list later; they are separate from the
           lookup cache on your device. Each set is encrypted before it is stored,
           under a key generated for that set alone and kept only inside the Atlas
-          link — FORRT does not hold the key and cannot read the DOI list back
-          from its own database. Anyone you give the link to can, so treat it as
-          you would the list itself. Sets are deleted automatically 30 days after
-          they are created; clearing extension storage does not delete one early.
+          link — FORRT's database never holds the key, so FORRT cannot read the
+          DOI list back from it. Anyone you give the link to can, so treat it as
+          you would the list itself. A set expires 30 days after it is created,
+          after which its link no longer opens it, and the encrypted record is
+          then deleted automatically, usually within a few days; clearing
+          extension storage does not delete one early.
         </li>
         <li>
           <strong>Third-party services</strong> (Crossref, OpenAlex, Unpaywall,
@@ -339,8 +358,19 @@
         and sent onward only to Crossref, OpenAlex, Unpaywall and NCBI. You can
         exercise the practical equivalent of these rights yourself at any time
         by editing or clearing your email in settings, clearing the Extension's
-        storage, or uninstalling it. If you would like FORRT to look into
-        anything on your behalf, write to
+        storage, or uninstalling it. A stored DOI set is a special case. It
+        expires 30 days after it is created: from then on its link no longer
+        opens it, and the encrypted record is deleted from FORRT's database
+        automatically, usually within a few days. Because FORRT's database holds
+        no key for a set and nothing linking it to you, we can neither read one
+        to confirm it is yours nor attribute one to you from our records alone.
+        Discarding your copy of the link only removes access
+        through that copy: it does not revoke copies you have shared or delete
+        the stored set, which anyone holding the complete link can open until it
+        expires.
+      </p>
+      <p>
+        If you would like FORRT to look into anything on your behalf, write to
         <a href="mailto:info@forrt.org">info@forrt.org</a> and we will respond.
       </p>
       <p>
@@ -361,11 +391,40 @@
       <h2>11. Security</h2>
       <p>
         All requests are made over HTTPS. Data stored locally is subject to your
-        browser's own security model. The Extension requests only the browser
-        permissions it needs — storage, extended storage for its cache, and
-        access to the tab you are actively viewing, plus alarms for scheduled
-        maintenance — and its full source code is
-        <a href="https://github.com/forrtproject/chromium-extension">public</a>.
+        browser's own security model.
+      </p>
+      <p>
+        <strong>DOI sets are encrypted at rest.</strong> When the Extension stores a
+        list of papers for a long Atlas link, FORRT's API generates a fresh 256-bit
+        key for that one list, encrypts it with AES-256-GCM, and writes only the
+        ciphertext to its database. The key is not kept: it is handed back as part of
+        the link, and the server can decrypt the list only when someone opens that
+        link and supplies it. A copy of the database on its own — a backup, a
+        snapshot, a misdirected export — decrypts to nothing. Because the encryption
+        is authenticated, a record altered in storage is rejected rather than served.
+        Each list has its own key, so one link that leaks exposes one list.
+      </p>
+      <p>
+        To be precise about what this does and does not protect: the list does pass
+        through FORRT's servers in readable form at the two moments it has to — when
+        the link is created and each time one is opened — and the API writes neither
+        the list nor the key to its logs.
+        What the encryption protects is the stored copy sitting between those moments,
+        which is the copy that is kept until the set expires and the one most likely to outlive
+        your interest in it.
+      </p>
+      <p>
+        The key travels in the link's address, which points to the Atlas page on
+        forrt.org, so the web server hosting that page receives it with every
+        visit, as it does any web address. Treat an Atlas set link like a password:
+        anyone who has the whole link can read the list until it expires, while the
+        short identifier before the dot, without the key after it, reads nothing.
+      </p>
+      <p>
+        The Extension requests only the browser permissions it needs — storage,
+        extended storage for its cache, and access to the tab you are actively
+        viewing, plus alarms for scheduled maintenance — and its full source code
+        is <a href="https://github.com/forrtproject/chromium-extension">public</a>.
       </p>
 
       <h2>12. Contact</h2>
