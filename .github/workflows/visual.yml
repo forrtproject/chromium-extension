@@ -93,3 +93,19 @@ jobs:
           path: visual-report/
           if-no-files-found: error
           retention-days: 30
+  # A run started with GITHUB_TOKEN raises no workflow_run event, so the
+  # publisher would never see this verification capture finish.
+  report:
+    needs: [resolve, capture]
+    if: always() && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            await github.rest.actions.createWorkflowDispatch({owner, repo,
+              workflow_id: 'visual-publish.yml', ref: context.payload.repository.default_branch,
+              inputs: {pr: String(context.payload.inputs.pr), run: String(context.runId)}});

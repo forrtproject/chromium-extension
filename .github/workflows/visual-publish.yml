@@ -11,6 +11,10 @@ on:
         description: Pull request number to refresh
         required: true
         type: number
+      run:
+        description: Visual evidence run to wait for (set by a dispatched capture)
+        required: false
+        type: string
 jobs:
   select:
     permissions:
@@ -56,6 +60,18 @@ jobs:
                  !(run.pull_requests?.some(p => p.number === pr.number) ||
                    (run.event === 'workflow_dispatch' && run.head_branch === pr.head.ref)))) return;
             let capture = run?.name === 'Visual evidence' ? run : null;
+            const requested = Number(context.payload.inputs?.run);
+            if (!capture && requested) {
+              for (let wait = 0; wait < 30; wait++) {
+                ({data: capture} = await github.rest.actions.getWorkflowRun({owner, repo, run_id: requested}));
+                if (capture.status === 'completed') break;
+                await new Promise(resolve => setTimeout(resolve, 10_000));
+              }
+              if (!capture.path?.startsWith('.github/workflows/visual.yml') ||
+                  capture.head_sha !== pr.head.sha ||
+                  capture.head_repository?.full_name !== pr.head.repo.full_name ||
+                  !(capture.event === 'workflow_dispatch' && capture.head_branch === pr.head.ref)) return;
+            }
             if (!capture) {
               const runs = await github.rest.actions.listWorkflowRuns({owner, repo,
                 workflow_id: 'visual.yml', head_sha: pr.head.sha, per_page: 100});
