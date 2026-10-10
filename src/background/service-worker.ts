@@ -8,8 +8,9 @@ import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
 import {RET_COUNT_KEY, RET_MAP_KEY, retractionEntryCount, storageSync, type RetractionMaps} from "@shared/data-extract";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
-import {LookupResponse, RetractionCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, type TakeReportResponse} from "@shared/messages";
+import type {RegisteredReport, RegisteredReportMap} from "@shared/registered-reports";
+import {LookupResponse, RetractionCheckResponse, RegisteredReportCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isRegisteredReportCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, type TakeReportResponse} from "@shared/messages";
 import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
@@ -320,6 +321,11 @@ chrome.runtime.onMessage.addListener(
                         error: "Service worker error",
                     } satisfies RetractionCheckResponse)
                 );
+            return true;
+        }
+
+        if (isRegisteredReportCheckRequest(message)) {
+            handleRegisteredReportCheck(message.dois).then(sendResponse);
             return true;
         }
 
@@ -830,4 +836,38 @@ async function runRetractionSync(missingReported: boolean): Promise<void> {
     } finally {
         clearInterval(keepAlive);
     }
+}
+
+// ── Registered Reports lookups ──────────────────────────────────────────────
+
+let registeredReportsLoad: Promise<Record<string, RegisteredReport>> | null = null;
+
+function loadRegisteredReports(): Promise<Record<string, RegisteredReport>> {
+    registeredReportsLoad ??= (async () => {
+        const response = await fetchWithDeadline(chrome.runtime.getURL("dist/registered-reports.json"), {signal: null});
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json() as RegisteredReportMap;
+        if (!data?.reports || typeof data.reports !== "object") throw new Error("Unexpected data shape");
+        return data.reports;
+    })().catch((error) => {
+        registeredReportsLoad = null;
+        throw error;
+    });
+    return registeredReportsLoad;
+}
+
+async function handleRegisteredReportCheck(dois: DoiString[]): Promise<RegisteredReportCheckResponse> {
+    let reports: Record<string, RegisteredReport>;
+    try {
+        reports = await loadRegisteredReports();
+    } catch (error) {
+        debugError("Registered Reports: bundled data failed to load —", error);
+        return {type: "FLORA_RR_CHECK_RESULT", results: {}, error: "Registered Reports data unavailable"};
+    }
+    const results: Record<string, RegisteredReport> = {};
+    for (const doi of dois) {
+        const report = reports[doi];
+        if (report) results[doi] = report;
+    }
+    return {type: "FLORA_RR_CHECK_RESULT", results};
 }

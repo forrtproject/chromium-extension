@@ -96,6 +96,7 @@ function copyStaticAssets() {
   // The service worker fetches this at runtime as the retraction fallback, so
   // it ships as a static asset instead of being bundled into any script.
   copyFileSync("src/retractions.json", "dist/retractions.json");
+  copyFileSync("src/registered-reports.json", "dist/registered-reports.json");
 }
 
 async function build() {

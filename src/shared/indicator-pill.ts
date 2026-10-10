@@ -20,6 +20,7 @@ import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation, removeNoticePillsFor} from "@shared/doi-retraction";
 import {atlasDoiUrl} from "@shared/flora-atlas";
+import {lookupRegisteredReport, registeredReportEntryUrl, type RegisteredReport} from "@shared/registered-reports";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
 import {fetchCitationDetailed, preferredCitationFormat, type CitationFormat} from "@shared/citation";
 import {debugWarn} from "@shared/debug";
@@ -208,6 +209,7 @@ function leaveTopLayer(popover: HTMLElement): void {
 
 const NOTICE_COLOR = "#a72f2f";
 const NOTICE_SEGMENT_ATTR = "data-flora-notice-segment";
+const RR_ROW_ATTR = "data-flora-rr-row";
 const MARKER_RESTING_SHADOW = "0 1px 2px rgba(27,31,36,0.12)";
 
 const FILL_ALPHA = "c7";
@@ -776,6 +778,49 @@ function buildNoticeRow(retraction: RetractionResponse, compact = false): HTMLEl
     });
 }
 
+type RegisteredReportState = RegisteredReport | null | "pending" | "unavailable";
+
+const RR_ACCENT = "#0f766e";
+
+function registeredReportDetail(report: RegisteredReport): {subtitle: string; subtitleShort: string; href: string; actionLabel: string} {
+    if (report.stage === 2) return {
+        subtitle: report.linked ? "Stage 2 report · Stage 1 protocol linked" : "Stage 2 report",
+        subtitleShort: "Stage 2",
+        href: report.linked ?? registeredReportEntryUrl(report),
+        actionLabel: report.linked ? "View protocol" : "View entry",
+    };
+    if (report.stage === 1) return {
+        subtitle: report.linked ? "Stage 1 protocol · Stage 2 report published" : "Stage 1 protocol",
+        subtitleShort: "Stage 1",
+        href: report.linked ?? registeredReportEntryUrl(report),
+        actionLabel: report.linked ? "View report" : "View entry",
+    };
+    return {
+        subtitle: "Listed as a Registered Report",
+        subtitleShort: "Listed",
+        href: registeredReportEntryUrl(report),
+        actionLabel: "View entry",
+    };
+}
+
+function buildRegisteredReportRow(state: RegisteredReportState, compact = false, retry?: () => void): HTMLElement {
+    const report = typeof state === "string" ? null : state;
+    const detail = report ? registeredReportDetail(report) : null;
+    return buildRow({
+        iconHtml: DOT_ICON(report ? RR_ACCENT : "#8b949e"),
+        accent: RR_ACCENT,
+        available: !!report,
+        title: "Registered Report",
+        subtitle: detail?.subtitle ?? (state === "pending" ? "Checking…" : state === "unavailable" ? "Unavailable" : "Not in the Registered Reports database"),
+        subtitleShort: detail?.subtitleShort ?? (state === "pending" ? "…" : state === "unavailable" ? "Unavailable" : "None"),
+        href: detail?.href,
+        onAction: state === "unavailable" ? retry : undefined,
+        actionLabel: detail?.actionLabel ?? (state === "unavailable" ? "Retry" : undefined),
+        attr: RR_ROW_ATTR,
+        compact,
+    });
+}
+
 function buildBadgeRow(signal: BadgeSignal, compact = false): HTMLElement {
     return buildRow({
         iconHtml: DOT_ICON(signal.accent),
@@ -1150,6 +1195,25 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
         opts.doi, opts.replicationsCount, opts.reproductionsCount
     ), compact));
+
+    let rrRow = buildRegisteredReportRow("pending", compact);
+    rows.appendChild(rrRow);
+    const showRegisteredReport = (state: RegisteredReportState): void => {
+        const next = shieldFromPageCss(buildRegisteredReportRow(state, compact, retryRegisteredReport));
+        replaceIndicatorRow(rrRow, next);
+        rrRow = next;
+    };
+    const loadRegisteredReport = (): void => {
+        void lookupRegisteredReport(opts.doi)
+            .catch((): RegisteredReportState => "unavailable")
+            .then(showRegisteredReport);
+    };
+    const retryRegisteredReport = (): void => {
+        showRegisteredReport("pending");
+        loadRegisteredReport();
+    };
+    loadRegisteredReport();
+
     if (opts.retraction) rows.appendChild(buildNoticeRow(opts.retraction, compact));
     return shieldFromPageCss(rows);
 }
@@ -1903,7 +1967,7 @@ export function updateIndicatorPillBadges(
             if (retraction) {
                 const next = shieldFromPageCss(buildNoticeRow(retraction, compact));
                 if (noticeRow) replaceIndicatorRow(noticeRow, next);
-                else badgeRow.after(next);
+                else (rowsRoot.querySelector(`[${RR_ROW_ATTR}]`) ?? badgeRow).after(next);
             } else noticeRow?.remove();
         }
         if (badgeRow && (state?.status === "error" || state?.status === "loading")) {

@@ -1,0 +1,42 @@
+# Refreshes src/registered-reports.json from the Registered Reports Zotero
+# library (group 5937153), the same source the RRDB export reads:
+#   https://github.com/LukasRoeseler/RRDB
+#
+# Cite: Montoya, A. K., et al. (2026). Database of Published Registered
+# Reports. https://doi.org/10.17605/OSF.IO/VUR72
+
+name: Update Registered Reports
+
+on:
+  schedule:
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - run: node registered-reports-updater.ts
+
+      - name: Commit changes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/registered-reports.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Data: refresh Registered Reports cache
+
+          Source: Registered Reports Zotero library (group 5937153). Cite:
+          Montoya et al. (2026), Database of Published Registered Reports,
+          https://doi.org/10.17605/OSF.IO/VUR72"
+            git push
+          fi
