@@ -208,7 +208,7 @@ describe("generic reference placement puts the pill on its own row", () => {
     expect(entry.querySelectorAll(".flora-pill-row")).toHaveLength(1);
   });
 
-  it("gives each DOI of a multi-DOI entry its own pill in one shared row", () => {
+  it("stacks the DOIs of a multi-DOI entry into one pill", () => {
     setHostname("example.com");
     const other = "10.1/b" as DoiString;
     document.body.innerHTML =
@@ -218,11 +218,12 @@ describe("generic reference placement puts the pill on its own row", () => {
     renderResolvedReferences(
       [{ entry, doi: GENERIC_DOI, mode: "page" }, { entry, doi: other, mode: "page" }],
       new Map(), new Map());
-    const pills = [...element.querySelectorAll(`.${INDICATOR_PILL_CLASS}`)];
+    const stack = rowOf(element).querySelector<HTMLElement>("[data-flora-stack]")!;
+    expect([...rowOf(element).children]).toEqual([stack]);
+    const pills = [...stack.querySelectorAll(`.${INDICATOR_PILL_CLASS}[data-flora-doi]`)];
     expect(pills.map((p) => p.getAttribute("data-flora-doi"))).toEqual([GENERIC_DOI, other]);
-    expect(pills.some((p) => p.hasAttribute("data-flora-loose-pill"))).toBe(false);
+    expect(element.querySelector("[data-flora-loose-pill]")).toBeNull();
     expect(element.querySelectorAll(".flora-pill-row")).toHaveLength(1);
-    expect(pills[1].parentElement).toBe(rowOf(element));
   });
 
   it("shows a reference's notice on its indicator pill, with no stand-alone notice pill", () => {

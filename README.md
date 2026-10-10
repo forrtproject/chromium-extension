@@ -251,6 +251,7 @@ Confirmed FORRT no-matches are cached locally for five minutes to avoid repeated
 - **Replication / reproduction data** — [FORRT Replication Database](https://forrt.org/replication-database/).
 - **Title → DOI resolution** — [Crossref](https://www.crossref.org/) and [OpenAlex](https://openalex.org/).
 - **Retractions** — [Retraction Watch](https://retractionwatch.com/) / The Center for Scientific Integrity, made openly available in partnership with [Crossref](https://gitlab.com/crossref/retraction-watch-data) under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Registered Reports** — the [Registered Reports Zotero library](https://www.zotero.org/groups/5937153/registered_reports/library), as exported by [RRDB](https://github.com/LukasRoeseler/RRDB). Cite: Montoya, A. K., Krenzer, W. L. D., Buchanan, E. M., Pronizius, E., Wang, Y. A., Morillo, D., … Armstrong, C. (2026). *Database of Published Registered Reports*. https://doi.org/10.17605/OSF.IO/VUR72
 
 ## License
 

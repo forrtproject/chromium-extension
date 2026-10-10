@@ -13,7 +13,12 @@ import {isDocumentEditor, editorAnnotationTarget} from "@shared/document-editor"
 import {augmentDOIsViaWorker, resolvePmcIdsViaWorker} from "@shared/messages";
 import {validateDOIs} from "@shared/doi-validate";
 import type {RetractionResponse} from "@shared/doi-retraction";
-import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
+import {
+    createIndicatorPill,
+    createStackedIndicatorPill,
+    INDICATOR_PILL_CLASS,
+    type IndicatorPillOptions,
+} from "@shared/indicator-pill";
 import {FLORA_UI_SELECTOR, REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {PILL_ROW_CLASS, pillRow} from "@shared/pill-row";
 import {LOOSE_PILL_ATTR} from "./loose-dois";
@@ -274,32 +279,58 @@ export function renderResolvedReferences(
     pageState: ReadonlyMap<DoiString, LookupState>,
 ): void {
     const adapter = currentSiteAdapter();
-    const lastPillOf = new Map<HTMLElement, HTMLElement>();
-    for (const {entry, doi, mode} of resolved) {
-        const isAugmented = mode === "augment";
+    const editor = isDocumentEditor();
+    const pillOptions = ({doi, mode}: ResolvedReference): IndicatorPillOptions => {
         const state = pageState.get(doi);
         const stats = state?.status === "matched" ? state.result.record.stats : null;
-        const pill = createIndicatorPill({
-            presentation: isDocumentEditor() ? "marker" : "pill",
+        return {
+            presentation: editor ? "marker" : "pill",
             doi,
             color: PILL_COLOR,
-            isAugmented,
+            isAugmented: mode === "augment",
             provenanceLabel: mode === "pmc" ? "Matched by PMC ID" : undefined,
             oaStatus: deferredOpenAccess(doi),
             retraction: retractionByDoi.get(doi) ?? null,
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,
-        });
-        const previous = lastPillOf.get(entry.element);
-        if (previous?.isConnected) {
-            removeLoosePills(entry.element, doi);
-            previous.after(pill);
-        } else {
-            placeReferencePill(entry.element, doi, pill, adapter);
-        }
-        lastPillOf.set(entry.element, pill);
-        applyPillStyle(pill, adapter, "reference");
-        debugLog(`References: surfaced "${entry.text.slice(0, 60)}" → ${doi} (${mode})`);
+        };
+    };
+
+    const byEntry = new Map<HTMLElement, ResolvedReference[]>();
+    for (const ref of resolved) {
+        const refs = byEntry.get(ref.entry.element) ?? [];
+        if (!refs.some((r) => r.doi === ref.doi)) refs.push(ref);
+        byEntry.set(ref.entry.element, refs);
     }
-    debugLog(`References: rendered ${resolved.length} inline indicator pill(s)`);
+
+    const place = (element: HTMLElement, refs: ResolvedReference[], pill: HTMLElement, after?: HTMLElement): void => {
+        for (const {doi} of refs.slice(1)) removeLoosePills(element, doi);
+        if (after?.isConnected) {
+            removeLoosePills(element, refs[0].doi);
+            after.after(pill);
+        } else {
+            placeReferencePill(element, refs[0].doi, pill, adapter);
+        }
+        applyPillStyle(pill, adapter, "reference");
+    };
+
+    let rendered = 0;
+    for (const [element, refs] of byEntry) {
+        if (refs.length > 1 && !editor) {
+            place(element, refs, createStackedIndicatorPill(refs.map(pillOptions)));
+            rendered++;
+        } else {
+            let previous: HTMLElement | undefined;
+            for (const ref of refs) {
+                const pill = createIndicatorPill(pillOptions(ref));
+                place(element, [ref], pill, previous);
+                previous = pill;
+                rendered++;
+            }
+        }
+        for (const {entry, doi, mode} of refs) {
+            debugLog(`References: surfaced "${entry.text.slice(0, 60)}" → ${doi} (${mode})`);
+        }
+    }
+    debugLog(`References: rendered ${rendered} inline indicator pill(s)`);
 }

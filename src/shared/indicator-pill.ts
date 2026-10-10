@@ -20,6 +20,7 @@ import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation, removeNoticePillsFor} from "@shared/doi-retraction";
 import {atlasDoiUrl} from "@shared/flora-atlas";
+import {lookupRegisteredReport, registeredReportEntryUrl, type RegisteredReport} from "@shared/registered-reports";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
 import {fetchCitationDetailed, preferredCitationFormat, type CitationFormat} from "@shared/citation";
 import {debugWarn} from "@shared/debug";
@@ -208,6 +209,7 @@ function leaveTopLayer(popover: HTMLElement): void {
 
 const NOTICE_COLOR = "#a72f2f";
 const NOTICE_SEGMENT_ATTR = "data-flora-notice-segment";
+const RR_ROW_ATTR = "data-flora-rr-row";
 const MARKER_RESTING_SHADOW = "0 1px 2px rgba(27,31,36,0.12)";
 
 const FILL_ALPHA = "c7";
@@ -229,7 +231,7 @@ interface SegmentSpec {
     label: string;
     title: string;
     exists: boolean;
-    count?: number;
+    count?: number | string;
     fill?: string;
     decoration?: string;
 }
@@ -341,13 +343,14 @@ function applyMarkerScale(strip: HTMLElement): void {
     }
 }
 
-function buildDoiSegment(isAugmented: boolean, provenanceLabel?: string, color = "#853953"): HTMLElement {
+function buildDoiSegment(isAugmented: boolean, provenanceLabel?: string, color = "#853953", stackPosition?: string): HTMLElement {
     return buildSegment({
         attr: "data-flora-doi-segment",
         iconHtml: PILL_LINK_SVG,
         label: "DOI",
         title: provenanceLabel ?? (isAugmented ? SEARCH_PROVENANCE : PAGE_PROVENANCE),
         exists: true,
+        count: stackPosition,
         decoration: isAugmented
             ? "text-decoration:underline dotted;text-underline-offset:2px;text-decoration-thickness:1px;"
             : undefined,
@@ -775,6 +778,50 @@ function buildNoticeRow(retraction: RetractionResponse, compact = false): HTMLEl
     });
 }
 
+type RegisteredReportState = RegisteredReport | null | "pending" | "unavailable";
+
+const RR_ACCENT = "#0f766e";
+
+function registeredReportDetail(report: RegisteredReport): {subtitle: string; subtitleShort: string; href: string; actionLabel: string} {
+    const linked = webUrl(report.linked);
+    if (report.stage === 2) return {
+        subtitle: linked ? "Stage 2 report · Stage 1 protocol linked" : "Stage 2 report",
+        subtitleShort: "Stage 2",
+        href: linked ?? registeredReportEntryUrl(report),
+        actionLabel: linked ? "View protocol" : "View entry",
+    };
+    if (report.stage === 1) return {
+        subtitle: linked ? "Stage 1 protocol · Stage 2 report published" : "Stage 1 protocol",
+        subtitleShort: "Stage 1",
+        href: linked ?? registeredReportEntryUrl(report),
+        actionLabel: linked ? "View report" : "View entry",
+    };
+    return {
+        subtitle: "Listed as a Registered Report",
+        subtitleShort: "Listed",
+        href: registeredReportEntryUrl(report),
+        actionLabel: "View entry",
+    };
+}
+
+function buildRegisteredReportRow(state: RegisteredReportState, compact = false, retry?: () => void): HTMLElement {
+    const report = typeof state === "string" ? null : state;
+    const detail = report ? registeredReportDetail(report) : null;
+    return buildRow({
+        iconHtml: DOT_ICON(report ? RR_ACCENT : "#8b949e"),
+        accent: RR_ACCENT,
+        available: !!report,
+        title: "Registered Report",
+        subtitle: detail?.subtitle ?? (state === "pending" ? "Checking…" : state === "unavailable" ? "Unavailable" : "Not in the Registered Reports database"),
+        subtitleShort: detail?.subtitleShort ?? (state === "pending" ? "…" : state === "unavailable" ? "Unavailable" : "None"),
+        href: detail?.href,
+        onAction: state === "unavailable" ? retry : undefined,
+        actionLabel: detail?.actionLabel ?? (state === "unavailable" ? "Retry" : undefined),
+        attr: RR_ROW_ATTR,
+        compact,
+    });
+}
+
 function buildBadgeRow(signal: BadgeSignal, compact = false): HTMLElement {
     return buildRow({
         iconHtml: DOT_ICON(signal.accent),
@@ -1149,6 +1196,25 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
     rows.appendChild(buildBadgeRow(resolveBadgeSignal(
         opts.doi, opts.replicationsCount, opts.reproductionsCount
     ), compact));
+
+    let rrRow = buildRegisteredReportRow("pending", compact);
+    rows.appendChild(rrRow);
+    const showRegisteredReport = (state: RegisteredReportState): void => {
+        const next = shieldFromPageCss(buildRegisteredReportRow(state, compact, retryRegisteredReport));
+        replaceIndicatorRow(rrRow, next);
+        rrRow = next;
+    };
+    const loadRegisteredReport = (): void => {
+        void lookupRegisteredReport(opts.doi)
+            .catch((): RegisteredReportState => "unavailable")
+            .then(showRegisteredReport);
+    };
+    const retryRegisteredReport = (): void => {
+        showRegisteredReport("pending");
+        loadRegisteredReport();
+    };
+    loadRegisteredReport();
+
     if (opts.retraction) rows.appendChild(buildNoticeRow(opts.retraction, compact));
     return shieldFromPageCss(rows);
 }
@@ -1250,11 +1316,22 @@ function deferredOa(
     return {request, start};
 }
 
+interface StackSlot {
+    rowsHost: HTMLElement;
+    position: string;
+}
+
+const rowsHosts = new WeakMap<HTMLElement, HTMLElement>();
+
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
+    return buildIndicatorPill(options);
+}
+
+function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HTMLElement {
     ensureFocusStyle();
     const {doi, color = "#853953", isAugmented = false, provenanceLabel, retraction = null, replicationsCount = null, reproductionsCount = null} = options;
     const {request: oaStatus, start: startOa} = deferredOa(options.oaStatus);
-    const markerMode = options.presentation === "marker";
+    const markerMode = options.presentation === "marker" && !slot;
     let restingBorder = `${color}${BORDER_ALPHA}`;
     let hoverBorder = `${color}${ABSENT_ALPHA}`;
 
@@ -1306,7 +1383,7 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
     });
 
     // Segment 1 — DOI content.
-    pill.appendChild(buildDoiSegment(isAugmented, provenanceLabel, color));
+    pill.appendChild(buildDoiSegment(isAugmented, provenanceLabel, color, slot?.position));
 
     // Segment 2 — Open Access padlock (async).
     let oaSegment = buildOaSegment(oaStatus ? "pending" : null, color);
@@ -1369,34 +1446,6 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         refreshMarker();
     }
 
-    // ── Popover — one interactive row per segment, plus DOI copy/open ──
-    const popover = document.createElement("div");
-    popover.setAttribute("role", "dialog");
-    popover.setAttribute("aria-label", `Open research details for ${doi}`);
-    popover.setAttribute("data-flora-popover", "");
-    if (TOP_LAYER) popover.setAttribute("popover", "manual");
-    // position:fixed (not absolute) so the popover is positioned against the
-    // viewport — an ancestor with overflow:hidden (common on article content
-    // columns) would otherwise clip it. Coordinates are set in show().
-    popover.style.cssText = `
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    min-width: 230px;
-    background: #ffffff;
-    border: 1px solid ${color}40;
-    border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(27,31,36,0.08), 0 4px 16px rgba(66,74,83,0.10);
-    padding: 8px;
-    z-index: 2147483647;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    font-size: 12px;
-    line-height: 18px;
-    flex-direction: column;
-    gap: 2px;
-  `;
-
     const lookups = startIndicatorLookups(doi, oaStatus);
     let faceOa = lookups.oa;
     let facePubPeer = lookups.pubpeer;
@@ -1422,18 +1471,73 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         }
     });
 
+    const popover = slot ? null : createPopover(color, `Open research details for ${doi}`);
+    const rowsHost = slot?.rowsHost ?? popover!;
+    if (slot) rowsHosts.set(wrapper, rowsHost);
     let rowsBuilt = false;
     const ensureRows = (): void => {
         startOa();
         if (rowsBuilt) return;
         rowsBuilt = true;
-        popover.appendChild(buildIndicatorRows({
+        rowsHost.appendChild(buildIndicatorRows({
             doi, color, isAugmented, provenanceLabel, lookups, retraction, replicationsCount, reproductionsCount,
         }));
         latestBadgeRepaint.get(wrapper)?.();
     };
     popoverBuilders.set(wrapper, ensureRows);
 
+    wrapper.appendChild(pill);
+    if (popover) {
+        wirePopover({wrapper, pill, popover, color, markerMode, ensureRows});
+        wrapper.appendChild(popover);
+    } else {
+        for (const attr of ["role", "tabindex", "aria-haspopup", "aria-expanded", "aria-label"]) pill.removeAttribute(attr);
+        pill.style.cursor = "inherit";
+    }
+    if (typeof options.oaStatus === "function") whenNearViewport(pill, startOa);
+    return shieldFromPageCss(wrapper);
+}
+
+function createPopover(color: string, label: string): HTMLElement {
+    const popover = document.createElement("div");
+    popover.setAttribute("role", "dialog");
+    popover.setAttribute("aria-label", label);
+    popover.setAttribute("data-flora-popover", "");
+    if (TOP_LAYER) popover.setAttribute("popover", "manual");
+    // position:fixed (not absolute) so the popover is positioned against the
+    // viewport — an ancestor with overflow:hidden (common on article content
+    // columns) would otherwise clip it. Coordinates are set in show().
+    popover.style.cssText = `
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-width: 230px;
+    background: #ffffff;
+    border: 1px solid ${color}40;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(27,31,36,0.08), 0 4px 16px rgba(66,74,83,0.10);
+    padding: 8px;
+    z-index: 2147483647;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    line-height: 18px;
+    flex-direction: column;
+    gap: 2px;
+  `;
+    return popover;
+}
+
+interface PopoverWiring {
+    wrapper: HTMLElement;
+    pill: HTMLElement;
+    popover: HTMLElement;
+    color: string;
+    markerMode: boolean;
+    ensureRows: () => void;
+}
+
+function wirePopover({wrapper, pill, popover, color, markerMode, ensureRows}: PopoverWiring): void {
     let hideTimeout: ReturnType<typeof setTimeout> | null = null;
     let pinned = false;
     let docClickHandler: ((e: MouseEvent) => void) | null = null;
@@ -1579,10 +1683,163 @@ export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement 
         unpin();
         pill.focus();
     });
+}
 
-    wrapper.appendChild(pill);
+const PAGER_PREV_SVG =
+    `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" ` +
+    `stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M7.5 2.5 4 6l3.5 3.5"/></svg>`;
+const PAGER_NEXT_SVG =
+    `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" ` +
+    `stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>`;
+
+function pagerButton(svg: string, label: string, color: string): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", label);
+    button.innerHTML = svg;
+    button.style.cssText =
+        "all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;"
+        + "width:22px;height:22px;border:1px solid #d0d7de;border-radius:6px;color:#57606a;cursor:pointer;flex-shrink:0;";
+    button.addEventListener("mouseenter", () => { if (!button.disabled) button.style.color = color; });
+    button.addEventListener("mouseleave", () => { button.style.color = "#57606a"; });
+    return button;
+}
+
+export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTMLElement {
+    if (papers.length < 2) return createIndicatorPill(papers[0]);
+    ensureFocusStyle();
+    const color = papers[0].color ?? "#853953";
+    const total = papers.length;
+
+    const wrapper = document.createElement("span");
+    wrapper.className = INDICATOR_PILL_CLASS;
+    wrapper.setAttribute("data-flora-stack", "");
+    wrapper.setAttribute("data-flora-ui", "");
+    wrapper.style.cssText = PILL_WRAPPER_STYLE;
+
+    const face = document.createElement("span");
+    face.setAttribute("role", "button");
+    face.setAttribute("tabindex", "0");
+    face.setAttribute("aria-haspopup", "dialog");
+    face.setAttribute("aria-expanded", "false");
+    face.setAttribute("aria-label",
+        `${total} papers in this reference: ${papers.map((p) => p.doi).join(", ")}. Press Enter for details.`);
+    face.style.cssText = "display:inline-block;line-height:0;cursor:pointer;border-radius:9999px;";
+
+    const popover = createPopover(color, `Open research details for ${total} papers`);
+    popover.style.width = "300px";
+    popover.style.maxWidth = "calc(100vw - 8px)";
+    popover.style.padding = "0";
+    popover.style.gap = "0";
+    popover.style.overflow = "hidden";
+
+    const header = document.createElement("div");
+    header.style.cssText =
+        "display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;border-bottom:1px solid #eaeef2;";
+    const label = document.createElement("span");
+    label.setAttribute("aria-live", "polite");
+    label.style.cssText = "flex:1;min-width:0;font-size:11px;font-weight:600;color:#57606a;letter-spacing:0.02em;";
+    const dots = document.createElement("span");
+    dots.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-right:4px;";
+    const prev = pagerButton(PAGER_PREV_SVG, "Previous paper", color);
+    const next = pagerButton(PAGER_NEXT_SVG, "Next paper", color);
+    header.append(label, dots, prev, next);
+
+    const track = document.createElement("div");
+    track.style.cssText =
+        "display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;";
+    popover.append(header, track);
+
+    const slides: HTMLElement[] = [];
+    const pills = papers.map((paper, i) => {
+        const slide = document.createElement("div");
+        slide.setAttribute("data-flora-stack-slide", "");
+        slide.style.cssText =
+            "flex:0 0 100%;min-width:0;box-sizing:border-box;padding:8px;scroll-snap-align:start;display:flex;flex-direction:column;";
+        track.appendChild(slide);
+        slides.push(slide);
+        const pill = buildIndicatorPill({...paper, presentation: "pill"}, {rowsHost: slide, position: `${i + 1}/${total}`});
+        pill.style.setProperty("top", "0");
+        pill.style.setProperty("margin-inline-start", "0", "important");
+        face.appendChild(pill);
+        return pill;
+    });
+    const dotEls = papers.map(() => {
+        const dot = document.createElement("span");
+        dots.appendChild(dot);
+        return dot;
+    });
+
+    let active = -1;
+    const reducedMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const setActive = (index: number): void => {
+        if (index === active) return;
+        const animate = active !== -1 && !reducedMotion;
+        active = index;
+        pills.forEach((pill, i) => pill.style.setProperty("display", i === index ? "inline-block" : "none", "important"));
+        if (animate && typeof pills[index].animate === "function") {
+            pills[index].animate([{opacity: 0.4}, {opacity: 1}], {duration: 180, easing: "ease-out"});
+        }
+        label.textContent = `Paper ${index + 1} of ${total}`;
+        dotEls.forEach((dot, i) => {
+            const on = i === index;
+            dot.style.cssText =
+                `display:inline-block;height:6px;width:${on ? 14 : 6}px;border-radius:3px;`
+                + `background:${on ? color : "#d0d7de"};transition:width 0.2s ease,background 0.2s ease;`;
+        });
+        for (const [button, disabled, other] of [[prev, index === 0, next], [next, index === total - 1, prev]] as const) {
+            if (disabled && document.activeElement === button) other.focus({preventScroll: true});
+            button.disabled = disabled;
+            button.style.opacity = disabled ? "0.35" : "1";
+            button.style.cursor = disabled ? "default" : "pointer";
+        }
+    };
+    let scrollingTo: number | null = null;
+    const scrollTrack = (index: number, behavior: ScrollBehavior): void => {
+        const left = index * track.clientWidth;
+        if (track.scrollLeft === left) return;
+        scrollingTo = index;
+        if (typeof track.scrollTo === "function") track.scrollTo({left, behavior});
+        else track.scrollLeft = left;
+    };
+    const goTo = (index: number): void => {
+        const target = Math.max(0, Math.min(total - 1, index));
+        setActive(target);
+        scrollTrack(target, reducedMotion ? "instant" : "smooth");
+    };
+    track.addEventListener("scroll", () => {
+        if (!track.clientWidth) return;
+        const shown = Math.round(track.scrollLeft / track.clientWidth);
+        if (scrollingTo !== null) {
+            if (shown === scrollingTo) scrollingTo = null;
+            return;
+        }
+        setActive(shown);
+    }, {passive: true});
+    for (const [button, step] of [[prev, -1], [next, 1]] as const) {
+        button.addEventListener("click", (e) => {
+            e.stopPropagation();
+            pinIndicatorPopover(wrapper, true);
+            goTo(active + step);
+        });
+    }
+    const pageWithArrows = (e: KeyboardEvent): void => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        goTo(active + (e.key === "ArrowRight" ? 1 : -1));
+    };
+    face.addEventListener("keydown", pageWithArrows);
+    popover.addEventListener("keydown", pageWithArrows);
+    setActive(0);
+
+    const ensureRows = (): void => {
+        for (const pill of pills) ensurePopoverRows(pill);
+        queueMicrotask(() => scrollTrack(active, "instant"));
+    };
+    popoverBuilders.set(wrapper, ensureRows);
+    wrapper.appendChild(face);
+    wirePopover({wrapper, pill: face, popover, color, markerMode: false, ensureRows});
     wrapper.appendChild(popover);
-    if (typeof options.oaStatus === "function") whenNearViewport(pill, startOa);
     return shieldFromPageCss(wrapper);
 }
 
@@ -1677,8 +1934,9 @@ export function updateIndicatorPillBadges(
         const doi = wrapper.getAttribute("data-flora-doi") as DoiString | null;
         if (!doi || (onlyDoi && doi !== onlyDoi)) continue;
         latestBadgeRepaint.set(wrapper, () => updateIndicatorPillBadges(root, pageState, getRedacts, scope, doi, hooks));
+        const rowsRoot = rowsHosts.get(wrapper) ?? wrapper;
         const badgeSegment = wrapper.querySelector<HTMLElement>("[data-flora-badge-segment]");
-        const badgeRow = wrapper.querySelector<HTMLElement>("[data-flora-badge-row]");
+        const badgeRow = rowsRoot.querySelector<HTMLElement>("[data-flora-badge-row]");
         if (!badgeSegment && !badgeRow) continue;
 
         const retraction = retractionByDoi.get(doi) ?? null;
@@ -1705,12 +1963,12 @@ export function updateIndicatorPillBadges(
             if (strip) refreshSegmentStrip(strip);
         }
         const compact = wrapper.hasAttribute("data-flora-panel");
-        const noticeRow = wrapper.querySelector<HTMLElement>("[data-flora-notice-row]");
+        const noticeRow = rowsRoot.querySelector<HTMLElement>("[data-flora-notice-row]");
         if (badgeRow) {
             if (retraction) {
                 const next = shieldFromPageCss(buildNoticeRow(retraction, compact));
                 if (noticeRow) replaceIndicatorRow(noticeRow, next);
-                else badgeRow.after(next);
+                else (rowsRoot.querySelector(`[${RR_ROW_ATTR}]`) ?? badgeRow).after(next);
             } else noticeRow?.remove();
         }
         if (badgeRow && (state?.status === "error" || state?.status === "loading")) {

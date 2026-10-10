@@ -2,6 +2,7 @@ import {activeWorkSignal, abortableDelay} from "./work-cancellation";
 import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse} from "./types";
 import type {AugmentSource} from "./doi-augment";
 import type {NcbiIdType} from "./pmc-resolve";
+import type {RegisteredReport} from "./registered-reports";
 import {debugLog} from "./debug";
 import type {DebugLogEntry, RuntimeErrorInfo} from "./debug";
 
@@ -157,6 +158,19 @@ export interface RetractionCheckRequest {
 export interface RetractionCheckResponse {
     type: "FLORA_RET_CHECK_RESULT";
     results: RetractionResponse[];
+    error?: string;
+}
+
+/** Content script → service worker: Registered Reports database entries for DOI(s) */
+export interface RegisteredReportCheckRequest {
+    type: "FLORA_RR_CHECK";
+    dois: DoiString[];
+}
+
+/** Service worker → content script: entries keyed by DOI; DOIs not in the database are absent */
+export interface RegisteredReportCheckResponse {
+    type: "FLORA_RR_CHECK_RESULT";
+    results: Record<string, RegisteredReport>;
     error?: string;
 }
 
@@ -383,7 +397,7 @@ export function isChannelClosed(err: unknown): boolean {
         /message (port|channel) closed before a response was received/i.test(err.message);
 }
 
-const RESEND_AFTER_CLOSE_TYPES = new Set(["FLORA_RET_CHECK"]);
+const RESEND_AFTER_CLOSE_TYPES = new Set(["FLORA_RET_CHECK", "FLORA_RR_CHECK"]);
 
 export function shouldResend(err: unknown, type: string | undefined): boolean {
     return isWorkerUnreachable(err) || (isChannelClosed(err) && RESEND_AFTER_CLOSE_TYPES.has(type ?? ""));
@@ -452,6 +466,15 @@ export function isRetractionCheckRequest(msg: unknown): msg is RetractionCheckRe
         typeof msg === "object" &&
         msg !== null &&
         (msg as Record<string, unknown>).type === "FLORA_RET_CHECK" &&
+        Array.isArray((msg as Record<string, unknown>).dois)
+    );
+}
+
+export function isRegisteredReportCheckRequest(msg: unknown): msg is RegisteredReportCheckRequest {
+    return (
+        typeof msg === "object" &&
+        msg !== null &&
+        (msg as Record<string, unknown>).type === "FLORA_RR_CHECK" &&
         Array.isArray((msg as Record<string, unknown>).dois)
     );
 }

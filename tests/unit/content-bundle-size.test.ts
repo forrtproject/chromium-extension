@@ -9,7 +9,7 @@ const contentEntries = [
 const execFileAsync = promisify(execFile);
 
 describe("content bundle composition", () => {
-    it("does not bundle the retraction fallback JSON into content scripts", async () => {
+    it("does not bundle the retraction or Registered Reports JSON into content scripts", async () => {
         const script = `
             import * as esbuild from "esbuild";
             const entries = ${JSON.stringify(contentEntries)};
@@ -30,6 +30,7 @@ describe("content bundle composition", () => {
                     entryPoint,
                     bytes: output.bytes,
                     hasRetractionsJson: Object.hasOwn(output.inputs, "src/retractions.json"),
+                    hasRegisteredReportsJson: Object.hasOwn(output.inputs, "src/registered-reports.json"),
                 });
             }
             console.log(JSON.stringify(results));
@@ -39,10 +40,12 @@ describe("content bundle composition", () => {
             entryPoint: string;
             bytes: number;
             hasRetractionsJson: boolean;
+            hasRegisteredReportsJson: boolean;
         }[];
 
         for (const result of results) {
             expect(result.hasRetractionsJson, result.entryPoint).toBe(false);
+            expect(result.hasRegisteredReportsJson, result.entryPoint).toBe(false);
             expect(result.bytes, result.entryPoint).toBeLessThan(300_000);
         }
     });
