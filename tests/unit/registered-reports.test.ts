@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { buildRegisteredReportMap, itemDoi, stageOf, type ZoteroItem } from "../../registered-reports-updater";
 import { createIndicatorPanel, updateIndicatorPillBadges } from "../../src/shared/indicator-pill";
 import { lookupRegisteredReport } from "../../src/shared/registered-reports";
+import { validRegisteredReportMap } from "../../src/shared/data-extract";
 import type { DoiString, LookupState, RetractionResponse } from "../../src/shared/types";
 
 function item(key: string, data: Partial<ZoteroItem["data"]> & { tags?: string[] }): ZoteroItem {
@@ -37,6 +38,35 @@ describe("registered reports updater", () => {
     expect(map.reports["10.1098/rsos.250508"]).toEqual({ key: "S2", stage: 2, linked: "https://osf.io/abcde" });
     expect(map.reports["10.5555/protocol"]).toEqual({ key: "P1", stage: 1, linked: "https://doi.org/10.5555/report" });
     expect(map.reports["10.5555/not"]).toBeUndefined();
+  });
+});
+
+describe("downloaded Registered Reports map", () => {
+  it("drops malformed entries and keeps the valid ones", () => {
+    expect(validRegisteredReportMap({
+      reports: {
+        "10.1/a": { key: "A", stage: 1, linked: "https://osf.io/a" },
+        "10.1/b": { key: "B", stage: null },
+        "10.1/c": { key: "", stage: 2 },
+        "10.1/d": { key: "D", stage: 3 },
+        "10.1/e": { key: "E", stage: 2, linked: 42 },
+        "10.1/f": ["F", 1],
+        "10.1/g": null,
+      },
+    })).toEqual({ reports: { "10.1/a": { key: "A", stage: 1, linked: "https://osf.io/a" }, "10.1/b": { key: "B", stage: null } } });
+  });
+
+  it("accepts an empty map", () => {
+    expect(validRegisteredReportMap({ reports: {} })).toEqual({ reports: {} });
+  });
+
+  it.each([
+    ["an array", [{ reports: {} }]],
+    ["an array of reports", { reports: [{ key: "A", stage: 1 }] }],
+    ["no reports", {}],
+    ["only invalid entries", { reports: { "10.1/a": { key: "A", stage: "1" } } }],
+  ])("rejects %s", (_label, data) => {
+    expect(validRegisteredReportMap(data)).toBeUndefined();
   });
 });
 

@@ -35,7 +35,7 @@ describe("a reference with several DOIs gets one stacked pill", () => {
         const stack = build();
         expect(shown(stack)).toEqual([A]);
         expect(deep(stack).querySelector("[data-flora-doi-segment]")!.textContent).toContain("1/2");
-        expect(deep(stack).querySelectorAll("[role=button]")).toHaveLength(1);
+        expect(stack.querySelectorAll(":scope > [role=button]")).toHaveLength(1);
     });
 
     it("opens one popover with a page of rows per paper", () => {

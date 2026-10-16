@@ -1,34 +1,28 @@
 import {debugLog, debugWarn} from "./debug";
 import {isPageTourOpen} from "./page-tour";
+import {safeSendMessage, type FeedbackPromptResponse, type FeedbackPromptStep} from "./messages";
 
 export const FEEDBACK_URL =
     "https://github.com/forrtproject/chromium-extension/issues/new?labels=feedback&title=Feedback%3A%20";
 
-const FEEDBACK_STATE_KEY = "flora_feedback_prompt";
 const FEEDBACK_HOST_ID = "flora-feedback-prompt";
+const FEEDBACK_MESSAGE = "A minute of feedback on what works and what doesn't helps us improve ORE.";
 const MIN_PAGES_BEFORE_ASKING = 3;
 const ASK_CHANCE = 0.25;
 const MIN_DELAY_MS = 8_000;
 const MAX_DELAY_MS = 30_000;
 
-interface FeedbackState {
-    shown: boolean;
-    pages: number;
+let offeredPage: number | undefined;
+
+function stepFeedbackPrompt(step: FeedbackPromptStep): Promise<FeedbackPromptResponse | undefined> {
+    return safeSendMessage<FeedbackPromptResponse>({type: "FLORA_FEEDBACK_PROMPT", step});
 }
 
-let offeredOnThisPage = false;
-
-async function readState(): Promise<FeedbackState> {
-    const raw = await chrome.storage.local.get(FEEDBACK_STATE_KEY);
-    const stored = raw[FEEDBACK_STATE_KEY] as Partial<FeedbackState> | undefined;
-    return {shown: stored?.shown === true, pages: typeof stored?.pages === "number" ? stored.pages : 0};
-}
-
-function buildPrompt(close: () => void): HTMLElement {
+function buildPrompt(close: () => void): {host: HTMLElement; announce: () => void} {
     const host = document.createElement("div");
     host.id = FEEDBACK_HOST_ID;
     host.setAttribute("data-flora-ui", "");
-    host.setAttribute("role", "dialog");
+    host.setAttribute("role", "region");
     host.setAttribute("aria-labelledby", "flora-feedback-title");
     host.style.cssText =
         "all:initial;position:fixed;left:18px;bottom:18px;z-index:2147483647;box-sizing:border-box;" +
@@ -56,8 +50,8 @@ function buildPrompt(close: () => void): HTMLElement {
     header.append(badge, title, dismiss);
 
     const body = document.createElement("div");
+    body.setAttribute("role", "status");
     body.style.cssText = "padding:12px;font-size:13px;line-height:1.5;color:#3c4043;";
-    body.textContent = "A minute of feedback on what works and what doesn't helps us improve ORE.";
 
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;justify-content:flex-end;gap:8px;padding:0 12px 12px;";
@@ -82,35 +76,58 @@ function buildPrompt(close: () => void): HTMLElement {
     actions.append(later, give);
 
     host.append(header, body, actions);
-    return host;
+    return {host, announce: () => { body.textContent = FEEDBACK_MESSAGE; }};
+}
+
+function showPrompt(): void {
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const onKeydown = (event: KeyboardEvent) => {
+        if (event.key === "Escape" && !event.defaultPrevented) close();
+    };
+    const close = () => {
+        document.removeEventListener("keydown", onKeydown);
+        const hadFocus = host.contains(document.activeElement);
+        host.remove();
+        if (hadFocus && returnFocus?.isConnected) returnFocus.focus({preventScroll: true});
+    };
+    const {host, announce} = buildPrompt(close);
+    document.body.appendChild(host);
+    document.addEventListener("keydown", onKeydown);
+    requestAnimationFrame(() => {
+        host.style.opacity = "1";
+        host.style.transform = "translateY(0)";
+        announce();
+    });
 }
 
 /**
  * Ask for feedback once ever, on a random page after ORE has marked up a few.
  * The prompt counts as used as soon as it shows, so no later page asks again.
  */
-export async function maybeOfferFeedback(canShow: () => boolean): Promise<void> {
-    if (offeredOnThisPage) return;
-    offeredOnThisPage = true;
+export async function maybeOfferFeedback(currentPage: () => number, canShow: () => boolean): Promise<void> {
+    const page = currentPage();
+    if (offeredPage === page) return;
+    offeredPage = page;
+    const showable = () =>
+        currentPage() === page && canShow() && !document.hidden && !isPageTourOpen() && !document.getElementById(FEEDBACK_HOST_ID);
     try {
-        const state = await readState();
-        if (state.shown) return;
-        const pages = state.pages + 1;
-        await chrome.storage.local.set({[FEEDBACK_STATE_KEY]: {...state, pages}});
-        if (pages < MIN_PAGES_BEFORE_ASKING || Math.random() > ASK_CHANCE) return;
+        const visit = await stepFeedbackPrompt("visit");
+        if (!visit?.granted || visit.pages < MIN_PAGES_BEFORE_ASKING || Math.random() > ASK_CHANCE) return;
 
         await new Promise((resolve) => setTimeout(resolve, MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS)));
-        if (!canShow() || document.hidden || isPageTourOpen() || document.getElementById(FEEDBACK_HOST_ID)) return;
-        if ((await readState()).shown) return;
-        await chrome.storage.local.set({[FEEDBACK_STATE_KEY]: {shown: true, pages}});
+        if (!showable()) return;
+        if (!(await stepFeedbackPrompt("claim"))?.granted) return;
 
-        const prompt = buildPrompt(() => prompt.remove());
-        document.body.appendChild(prompt);
-        requestAnimationFrame(() => {
-            prompt.style.opacity = "1";
-            prompt.style.transform = "translateY(0)";
-        });
-        debugLog("Feedback: prompt shown");
+        let shown = false;
+        try {
+            if (showable()) {
+                showPrompt();
+                shown = true;
+                debugLog("Feedback: prompt shown");
+            }
+        } finally {
+            if (!shown) await stepFeedbackPrompt("release");
+        }
     } catch (err) {
         debugWarn("Feedback: prompt check failed —", err);
     }

@@ -1,5 +1,5 @@
 import {fetchWithDeadline} from "@shared/work-cancellation";
-import type {RegisteredReportMap} from "./registered-reports";
+import type {RegisteredReport, RegisteredReportMap} from "./registered-reports";
 import {debugError} from "./debug";
 
 export const RET_MAP_KEY = "RetractionLookupLocal";
@@ -63,13 +63,31 @@ export const RR_SYNC_TIME_KEY = "flora_rr_synctime";
 const REGISTERED_REPORTS_JSON_URL =
     'https://raw.githubusercontent.com/forrtproject/chromium-extension/main/src/registered-reports.json'
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+function isRegisteredReport(value: unknown): value is RegisteredReport {
+    if (!isPlainObject(value)) return false;
+    const {key, stage, linked} = value;
+    return typeof key === 'string' && key.length > 0
+        && (stage === 1 || stage === 2 || stage === null)
+        && (linked === undefined || typeof linked === 'string');
+}
+
+export function validRegisteredReportMap(data: unknown): RegisteredReportMap | undefined {
+    if (!isPlainObject(data) || !isPlainObject(data.reports)) return undefined;
+    const entries = Object.entries(data.reports);
+    const reports = Object.fromEntries(entries.filter(([doi, report]) => doi && isRegisteredReport(report))) as Record<string, RegisteredReport>;
+    if (entries.length > 0 && Object.keys(reports).length === 0) return undefined;
+    return {reports};
+}
+
 export async function fetchRegisteredReportMap(): Promise<RegisteredReportMap | undefined> {
     try {
         const response = await fetchWithDeadline(REGISTERED_REPORTS_JSON_URL, {signal: null}, 60_000);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (data && typeof data === 'object' && data.reports && typeof data.reports === 'object')
-            return data as RegisteredReportMap;
+        const map = validRegisteredReportMap(await response.json());
+        if (map) return map;
         debugError("Registered Reports: unexpected data shape from", REGISTERED_REPORTS_JSON_URL);
     } catch (error) {
         debugError("Registered Reports: download failed —", error);

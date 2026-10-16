@@ -16,7 +16,7 @@
 
 import { redactDebugText } from "./debug-redact";
 import { isDetailedLogging, isFullLogBuild, recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
-import { readDebugLog } from "./debug-log";
+import { readDebugLog, withinLogAge } from "./debug-log";
 import { safeSendMessage } from "./messages";
 import { effectiveCacheQuotaMb, getSettings } from "./settings";
 import { getBlockedDomains, getDisabledSites } from "./domains";
@@ -51,13 +51,19 @@ export interface DebugReportContext {
 /** The stored log plus any in-memory lines it lacks, oldest first. */
 function mergeEntries(stored: DebugLogEntry[], ...tails: DebugLogEntry[][]): DebugLogEntry[] {
   const keyOf = (entry: DebugLogEntry) => `${entry.t}|${entry.level}|${entry.ctx}|${entry.msg}`;
-  const seen = new Set(stored.map(keyOf));
+  const have = new Map<string, number>();
+  for (const entry of stored) have.set(keyOf(entry), (have.get(keyOf(entry)) ?? 0) + 1);
   const extra: DebugLogEntry[] = [];
-  for (const entry of tails.flat()) {
-    const key = keyOf(entry);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    extra.push(entry);
+  for (const tail of tails) {
+    const inTail = new Map<string, number>();
+    for (const entry of tail) {
+      const key = keyOf(entry);
+      const count = (inTail.get(key) ?? 0) + 1;
+      inTail.set(key, count);
+      if (count <= (have.get(key) ?? 0)) continue;
+      have.set(key, count);
+      extra.push(entry);
+    }
   }
   return extra.length === 0 ? stored : [...stored, ...extra].sort((a, b) => a.t - b.t);
 }
@@ -76,20 +82,29 @@ export interface DebugReportData {
 
 const MAX_STACK_CHARS = 2_000;
 
-// Hosts of the services ORE itself calls. Any other URL in a log line is a page
-// the reader visited, so a report keeps only these.
-const SERVICE_HOSTS = /(^|\.)(doi\.org|crossref\.org|crosscite\.org|openalex\.org|semanticscholar\.org|unpaywall\.org|ncbi\.nlm\.nih\.gov|pubpeer\.com|forrt\.org|github\.com|githubusercontent\.com|zotero\.org)$/i;
+// The endpoints ORE itself calls. Any other URL in a log line is a page the
+// reader visited, so a report keeps only these.
+const SERVICE_URLS = /^https:\/\/(?:(?:dx\.)?doi\.org\/|api\.crossref\.org\/|api\.openalex\.org\/|api\.semanticscholar\.org\/|api\.unpaywall\.org\/|pmc\.ncbi\.nlm\.nih\.gov\/tools\/idconv\/|pubpeer\.com\/v3\/|rep-api\.forrt\.org\/|raw\.githubusercontent\.com\/forrtproject\/chromium-extension\/|github\.com\/forrtproject\/chromium-extension\/|www\.zotero\.org\/groups\/5937153\/)/i;
 
 function redactPageUrls(text: string, keepHost: string | null): string {
   return text.replace(/\bhttps?:\/\/[^\s"'<>()[\]]+/gi, (url) => {
+    if (SERVICE_URLS.test(url)) return url;
     let host: string;
     try {
       host = new URL(url).hostname.replace(/^www\./, "");
     } catch {
       return "[url]";
     }
-    return SERVICE_HOSTS.test(host) || (keepHost !== null && host === keepHost) ? url : "[url]";
+    return keepHost !== null && host === keepHost ? url : "[url]";
   });
+}
+
+function redactError(error: RuntimeErrorInfo, keepHost: string | null): RuntimeErrorInfo {
+  return {
+    ...error,
+    message: redactPageUrls(error.message, keepHost),
+    ...(error.stack ? { stack: redactPageUrls(error.stack, keepHost) } : {}),
+  };
 }
 
 /**
@@ -197,7 +212,7 @@ export function renderDebugReport(
     : [];
   const keepHost = data.pageHost ?? null;
   const lines: string[] = [
-    ...(data.error ? errorSection(data.error) : []),
+    ...(data.error ? errorSection(redactError(data.error, keepHost)) : []),
     "### Environment",
     "",
     ...data.environment.map((line) => `- ${line}`),
@@ -243,7 +258,7 @@ export async function collectDebugReport(
     getHiddenCommenters(),
   ]);
 
-  const all = mergeEntries(stored, recentDebugEntries(), context.pageEntries ?? []);
+  const all = mergeEntries(stored, withinLogAge(recentDebugEntries()), withinLogAge(context.pageEntries ?? []));
   const { entries, otherPageEntries } = focusOnPage(all, context.pageUrl);
   const host = pageHost(context.pageUrl)?.replace(/^www\./, "") ?? null;
 
@@ -439,7 +454,9 @@ export function issueUrl(options: {
   error?: RuntimeErrorInfo | null;
 }): IssueLink {
   const { domain, report } = options;
-  const error = options.error ?? report?.error ?? null;
+  const rawError = options.error ?? report?.error ?? null;
+  const keepHost = report?.pageHost ?? pageHost(domain)?.replace(/^www\./, "") ?? null;
+  const error = rawError && redactError(rawError, keepHost);
 
   if (!report || report.entries.length === 0) {
     const hint = report

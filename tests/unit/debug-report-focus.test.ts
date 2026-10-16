@@ -2,7 +2,10 @@ import {describe, expect, it, vi} from "vitest";
 import type {DebugLogEntry} from "../../src/shared/debug";
 
 const log = vi.hoisted(() => ({entries: [] as DebugLogEntry[]}));
-vi.mock("../../src/shared/debug-log", () => ({readDebugLog: vi.fn(async () => log.entries)}));
+vi.mock("../../src/shared/debug-log", async (importOriginal) => ({
+    ...await importOriginal<typeof import("../../src/shared/debug-log")>(),
+    readDebugLog: vi.fn(async () => log.entries),
+}));
 vi.mock("../../src/shared/settings", () => ({
     getSettings: vi.fn(async () => ({email: "a@b.c", citationStyle: "apa", cacheQuotaMb: 50})),
     effectiveCacheQuotaMb: (mb: number) => mb,

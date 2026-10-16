@@ -169,7 +169,7 @@ const DATA_SET_NAMES: Record<keyof ReferenceDataStatus, string> = {
   registeredReports: "Registered Reports",
 };
 
-safeSendMessage<ReferenceDataResponse>({ type: "FLORA_DATA_STATUS" }).then((response) => {
+safeSendMessage<ReferenceDataResponse>({ type: "FLORA_DATA_STATUS" }).catch(() => undefined).then((response) => {
   if (response?.status) showReferenceData(response.status);
   else dataRetractions.textContent = dataRegisteredReports.textContent = "Unavailable";
 });
@@ -178,10 +178,18 @@ getSettings().then(({ refreshDataOnStartup }) => {
   dataStartupToggle.checked = refreshDataOnStartup;
 });
 
-dataStartupToggle.addEventListener("change", () => {
-  void saveSettings({ refreshDataOnStartup: dataStartupToggle.checked });
+dataStartupToggle.addEventListener("change", async () => {
+  const refreshDataOnStartup = dataStartupToggle.checked;
+  try {
+    await saveSettings({ refreshDataOnStartup });
+  } catch (err) {
+    debugError("Settings: startup refresh save failed —", err);
+    dataStartupToggle.checked = !refreshDataOnStartup;
+    showDataStatus("Failed to save — please try again.", "error");
+    return;
+  }
   showDataStatus(
-    dataStartupToggle.checked
+    refreshDataOnStartup
       ? "Both lists will be downloaded each time the browser starts."
       : "Both lists will be refreshed weekly.",
     "success"
@@ -192,7 +200,7 @@ dataRefreshBtn.addEventListener("click", async () => {
   dataRefreshBtn.disabled = true;
   dataRefreshLabel.textContent = "Refreshing…";
   try {
-    const response = await safeSendMessage<ReferenceDataResponse>({ type: "FLORA_REFRESH_DATA" });
+    const response = await safeSendMessage<ReferenceDataResponse>({ type: "FLORA_REFRESH_DATA" }).catch(() => undefined);
     if (!response?.status) {
       showDataStatus("Couldn't reach ORE's background worker — try again.", "error");
       return;

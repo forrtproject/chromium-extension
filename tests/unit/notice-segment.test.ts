@@ -27,6 +27,7 @@ function matched(doi: DoiString, replications: number): Map<DoiString, LookupSta
 const segments = (pill: HTMLElement) =>
     [...pill.querySelectorAll<HTMLElement>("[data-flora-segment]")]
         .map(s => s.getAttributeNames().find(n => /^data-flora-\w+-segment$/.test(n)));
+const popoverOf = (pill: HTMLElement) => pill.querySelector<HTMLElement>("[data-flora-popover]")!;
 
 beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
@@ -60,8 +61,8 @@ describe("notice segment", () => {
 
     it("gets a popover row beside the replication row", () => {
         const pill = createIndicatorPill({doi: DOI, retraction, replicationsCount: 4});
-        expect(deep(pill).querySelector("[data-flora-notice-row]")!.textContent).toContain("Retracted");
-        expect(deep(pill).querySelector("[data-flora-badge-row]")!.textContent).toContain("Replications");
+        expect(deep(popoverOf(pill)).querySelector("[data-flora-notice-row]")!.textContent).toContain("Retracted");
+        expect(deep(popoverOf(pill)).querySelector("[data-flora-badge-row]")!.textContent).toContain("Replications");
         expect(createIndicatorPanel({doi: DOI, retraction}).querySelector("[data-flora-notice-row]")).not.toBeNull();
     });
 
@@ -77,7 +78,7 @@ describe("notice segment", () => {
         repaint([retraction]);
         expect(deep(pill).querySelector("[data-flora-notice-segment]")!.textContent).toContain("Retracted");
         expect(deep(pill).querySelector("[data-flora-badge-segment] [data-flora-segment-count]")!.textContent).toBe("3");
-        expect(deep(pill).querySelector("[data-flora-notice-row]")).not.toBeNull();
+        expect(deep(popoverOf(pill)).querySelector("[data-flora-notice-row]")).not.toBeNull();
 
         repaint([concern]);
         expect(deep(pill).querySelectorAll("[data-flora-notice-segment]")).toHaveLength(1);
@@ -85,7 +86,7 @@ describe("notice segment", () => {
 
         repaint([]);
         expect(deep(pill).querySelector("[data-flora-notice-segment]")).toBeNull();
-        expect(deep(pill).querySelector("[data-flora-notice-row]")).toBeNull();
+        expect(deep(popoverOf(pill)).querySelector("[data-flora-notice-row]")).toBeNull();
         expect(deep(pill).querySelector("[data-flora-badge-segment]")).not.toBeNull();
     });
 
@@ -98,6 +99,21 @@ describe("notice segment", () => {
         document.body.append(createIndicatorPill({doi: DOI}));
         updateIndicatorPillBadges(document, new Map(), () => [retraction], "pills", undefined, HOOKS);
         expect(deep(document).querySelectorAll(".flora-notice-pill")).toHaveLength(0);
+    });
+
+    it("retitles the badge segment when FORRT starts loading or fails with the same counts", () => {
+        const pill = createIndicatorPill({doi: DOI});
+        document.body.append(pill);
+        const badgeTitle = () => pill.querySelector<HTMLElement>("[data-flora-badge-segment]")!.title;
+        const repaint = (state?: LookupState) =>
+            updateIndicatorPillBadges(document, new Map(state ? [[DOI, state]] : []), () => [], "pills", undefined, HOOKS);
+
+        repaint();
+        expect(badgeTitle()).toBe("No replication or reproduction data found");
+        repaint({status: "loading"} as LookupState);
+        expect(badgeTitle()).toBe("Checking FORRT…");
+        repaint({status: "error", message: "x"} as LookupState);
+        expect(badgeTitle()).toBe("FORRT unavailable");
     });
 });
 

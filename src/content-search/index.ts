@@ -144,7 +144,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({ hidden: isSearchHidden() });
     } else if (type === "FLORA_GET_RECENT_LOG") {
-        sendResponse({ entries: recentDebugEntries() });
+        if (searchScriptOwns()) sendResponse({ entries: recentDebugEntries() });
     } else if (type === "FLORA_START_PAGE_TOUR") {
         if (searchScriptOwns()) sendResponse({ started: !isSearchHidden() && startPageTour("search") });
     }

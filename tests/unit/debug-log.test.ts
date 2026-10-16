@@ -179,6 +179,23 @@ describe("debug log store", () => {
     expect((await readDebugLog()).map((e) => e.msg)).toEqual(["today"]);
   });
 
+  it("drops an expired entry that arrived after newer ones", async () => {
+    const old = { t: Date.now() - MAX_LOG_AGE_MS - 60_000, level: "log" as const, ctx: "old.example", msg: "late batch" };
+    await appendDebugEntries([entry("first", 1), old, entry("second", 2)]);
+    expect((await readDebugLog()).map((e) => e.msg)).toEqual(["first", "second"]);
+  });
+
+  it("rewrites storage without expired entries when the worker starts", async () => {
+    vi.useFakeTimers();
+    localStore[DEBUG_LOG_KEY] = [
+      entry("today"),
+      { t: Date.now() - MAX_LOG_AGE_MS - 60_000, level: "log", ctx: "old.example", msg: "last week" },
+    ];
+    installDebugLogStore();
+    await vi.advanceTimersByTimeAsync(600);
+    expect((localStore[DEBUG_LOG_KEY] as DebugLogEntry[]).map((e) => e.msg)).toEqual(["today"]);
+  });
+
   it("persists appended entries and reads them back oldest first", async () => {
     vi.useFakeTimers();
     await appendDebugEntries([entry("first", 1), entry("second", 2)]);
@@ -328,13 +345,38 @@ describe("debug report", () => {
   });
 
   it("redacts short and encoded addresses in legacy error stacks without losing URL paths", () => {
-    const report = renderDebugReport({environment: [], settings: [], entries: [], error: {
+    const report = renderDebugReport({environment: [], settings: [], entries: [], pageHost: "example.org", error: {
       message: "Request failed", stack: "at https://example.org/works?contact=someone%40university%2Eedu&doi=10.1234/abc\n at worker (a@localhost; b@x.c)",
     }});
     expect(report).not.toContain("someone%40university%2Eedu");
     expect(report).not.toContain("a@localhost");
     expect(report).not.toContain("b@x.c");
     expect(report).toContain("https://example.org/works?contact=[redacted email]&doi=10.1234/abc");
+  });
+
+  it("removes page links from the error but keeps the reported page's", () => {
+    const error = {
+      message: "Failed on https://mail.google.com/mail/u/0/#inbox",
+      stack: "at https://private.example/doc/42\n at https://osf.io/abc\n at https://api.crossref.org/works/10.1/x",
+    };
+    const report = renderDebugReport({environment: [], settings: [], entries: [], pageHost: "osf.io", error});
+    expect(report).toContain("**Failed on [url]**");
+    expect(report).toContain("at [url]\n at https://osf.io/abc\n at https://api.crossref.org/works/10.1/x");
+    expect(report).not.toMatch(/mail\.google|private\.example/);
+
+    const parsed = new URL(issueUrl({domain: "osf.io", error}).url);
+    expect(parsed.searchParams.get("title")).toBe("Error: Failed on [url]");
+    expect(parsed.searchParams.get("body")).not.toContain("mail.google.com");
+  });
+
+  it("keeps ORE's own GitHub endpoints but not other GitHub links", () => {
+    const report = renderDebugReport({environment: [], settings: [], entries: [entry(
+      "fetched https://raw.githubusercontent.com/forrtproject/chromium-extension/main/src/retractions.json " +
+      "after https://github.com/acme/private-repo/issues/7 and https://raw.githubusercontent.com/acme/secret/main/x " +
+      "and https://pubmed.ncbi.nlm.nih.gov/123/",
+    )]});
+    expect(report).toContain("https://raw.githubusercontent.com/forrtproject/chromium-extension/main/src/retractions.json");
+    expect(report).not.toMatch(/acme|pubmed/);
   });
 
   it("redacts addresses that use the fuller local-part character set", () => {
@@ -347,7 +389,7 @@ describe("debug report", () => {
   });
 
   it("redacts a whole address behind a mailto: scheme or inside a URL path", () => {
-    const report = renderDebugReport({environment: [], settings: [], entries: [], error: {
+    const report = renderDebugReport({environment: [], settings: [], entries: [], pageHost: "api.example.org", error: {
       message: "Request failed",
       stack: "opened mailto:first/last@example.com\n at https://example.org/u/first/last@example.com/x" +
         "\n at https://api.example.org/u/first.last/second@example.com/x" +
@@ -357,7 +399,7 @@ describe("debug report", () => {
     expect(report).not.toContain("second");
     expect(report).not.toContain("example.com");
     expect(report).toContain("opened mailto:[redacted email]");
-    expect(report).toContain("https://example.org/[redacted email]/x");
+    expect(report).toContain("at [url]\n");
     expect(report).toContain("https://api.example.org/[redacted email]/x");
     expect(report).toContain("file:///[redacted email]");
   });
@@ -384,6 +426,18 @@ describe("debug report", () => {
     const body = bodyOf(issueUrl({ domain: "example.com" }));
     expect(body).toContain("toolbar menu");
     expect(body).not.toContain(REPORT_START);
+  });
+
+  it("keeps repeats from the page's tail that the stored log has fewer of", async () => {
+    localStore[DEBUG_LOG_KEY] = [entry("retrying", 5)];
+    const { data } = await buildDebugReport({ pageEntries: [entry("retrying", 5), entry("retrying", 5), entry("done", 6)] });
+    expect(data.entries.filter((e) => e.ctx === "test").map((e) => e.msg)).toEqual(["retrying", "retrying", "done"]);
+  });
+
+  it("leaves expired lines out of the in-memory tails", async () => {
+    const old = { t: Date.now() - MAX_LOG_AGE_MS - 60_000, level: "log" as const, ctx: "test", msg: "last week" };
+    const { data } = await buildDebugReport({ pageEntries: [old, entry("today", 1)] });
+    expect(data.entries.filter((e) => e.ctx === "test").map((e) => e.msg)).toEqual(["today"]);
   });
 
   it("always includes the installed extension version in the issue body", () => {

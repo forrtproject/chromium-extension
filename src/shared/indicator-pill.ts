@@ -490,7 +490,7 @@ function buildBadgeSegment(
 }
 
 function badgeFaceKey(signal: BadgeSignal, retraction: RetractionResponse | null): string {
-    return `${signal.available}|${signal.segmentCount ?? ""}|${signal.accent}|${retraction?.kind ?? ""}:${retraction?.doi ?? ""}`;
+    return `${signal.available}|${signal.segmentCount ?? ""}|${signal.accent}|${signal.rowSubtitle}|${retraction?.kind ?? ""}:${retraction?.doi ?? ""}`;
 }
 
 function buildNoticeSegment(retraction: RetractionResponse, color = "#853953"): HTMLElement {

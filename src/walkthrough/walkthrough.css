@@ -954,13 +954,13 @@ body {
 }
 
 .site-category-count {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .site-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
   gap: 0.25rem 1rem;
   max-height: 240px;
   overflow-y: auto;
@@ -971,13 +971,26 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   font-size: 13px;
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
 
+.site-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.site-row .site-option {
+  flex: 1;
+}
+
 .site-option small {
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .site-category input[type="checkbox"] {

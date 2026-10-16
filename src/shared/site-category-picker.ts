@@ -24,6 +24,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
   addError.setAttribute("role", "alert");
   addError.hidden = true;
   addForm.append(addInput, addButton);
+  addInput.disabled = addButton.disabled = true;
 
   const list = document.createElement("div");
   container.replaceChildren(addForm, addError, list);
@@ -38,19 +39,47 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     ...SITE_CATEGORIES,
   ];
 
-  const setSitesEnabled = async (domains: string[], enabled: boolean): Promise<void> => {
-    for (const domain of domains) {
-      if (enabled) disabledSites.delete(domain);
-      else disabledSites.add(domain);
+  const persistDisabledSites = async (next: Set<string>): Promise<boolean> => {
+    try {
+      await saveDisabledSites([...next].sort());
+    } catch {
+      showAddError("Couldn't save your site choices. Try again.");
+      render();
+      return false;
     }
-    await saveDisabledSites([...disabledSites].sort());
+    disabledSites = next;
+    return true;
+  };
+
+  const setSitesEnabled = async (domains: string[], enabled: boolean): Promise<boolean> => {
+    const next = new Set(disabledSites);
+    for (const domain of domains) {
+      if (enabled) next.delete(domain);
+      else next.add(domain);
+    }
+    if (!await persistDisabledSites(next)) return false;
+    addError.hidden = true;
     render();
+    return true;
+  };
+
+  const enableCustomSite = async (domain: string): Promise<boolean> => {
+    if (!disabledSites.has(domain)) return true;
+    const next = new Set(disabledSites);
+    next.delete(domain);
+    return persistDisabledSites(next);
   };
 
   const removeCustomSite = async (domain: string): Promise<void> => {
-    customSites = customSites.filter((d) => d !== domain);
-    await saveCustomSites(customSites);
-    if (disabledSites.delete(domain)) await saveDisabledSites([...disabledSites].sort());
+    const remaining = customSites.filter((d) => d !== domain);
+    try {
+      await saveCustomSites(remaining);
+    } catch {
+      showAddError(`Couldn't remove ${domain}. Try again.`);
+      return;
+    }
+    customSites = remaining;
+    await enableCustomSite(domain);
     render();
     onChange?.(`Removed ${domain}.`);
   };
@@ -63,19 +92,28 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       showAddError("Enter a domain such as journals.example.org.");
       return;
     }
-    const listedIn = categories().find((category) => category.sites.some((site) => siteDomains(site).includes(domain)));
-    if (listedIn) {
-      showAddError(`${domain} is already listed under ${listedIn.label}.`);
+    const forms = [domain, domain.startsWith("www.") ? domain.slice(4) : `www.${domain}`];
+    for (const category of categories()) {
+      const listed = category.sites.flatMap(siteDomains).find((d) => forms.includes(d));
+      if (listed) {
+        showAddError(`${listed} is already listed under ${category.label}.`);
+        return;
+      }
+    }
+    const added = [...customSites, domain].sort();
+    try {
+      await saveCustomSites(added);
+    } catch {
+      showAddError(`Couldn't add ${domain}. Try again.`);
       return;
     }
-    customSites = [...customSites, domain].sort();
-    await saveCustomSites(customSites);
-    if (disabledSites.delete(domain)) await saveDisabledSites([...disabledSites].sort());
+    customSites = added;
+    const enabled = await enableCustomSite(domain);
     addInput.value = "";
     const open = list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`);
     render();
     if (!open) list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`)!.open = true;
-    onChange?.(`ORE will run on ${domain}.`);
+    if (enabled) onChange?.(`ORE will run on ${domain}.`);
   });
 
   const render = (): void => {
@@ -104,9 +142,9 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       all.setAttribute("aria-label", `Run ORE on ${category.label} sites`);
       all.addEventListener("click", (e) => e.stopPropagation());
       all.addEventListener("change", () => {
-        void setSitesEnabled(domains, all.checked).then(() =>
-          onChange?.(`ORE ${all.checked ? "turned on" : "turned off"} for ${category.label.toLowerCase()}.`)
-        );
+        void setSitesEnabled(domains, all.checked).then((saved) => {
+          if (saved) onChange?.(`ORE ${all.checked ? "turned on" : "turned off"} for ${category.label.toLowerCase()}.`);
+        });
       });
 
       const name = document.createElement("span");
@@ -126,9 +164,9 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
         box.type = "checkbox";
         box.checked = isOn(site);
         box.addEventListener("change", () => {
-          void setSitesEnabled(siteDomains(site), box.checked).then(() =>
-            onChange?.(`ORE ${box.checked ? "turned on" : "turned off"} on ${site.domain}.`)
-          );
+          void setSitesEnabled(siteDomains(site), box.checked).then((saved) => {
+            if (saved) onChange?.(`ORE ${box.checked ? "turned on" : "turned off"} on ${site.domain}.`);
+          });
         });
         const label = document.createElement("span");
         label.textContent = site.label ?? site.domain;
@@ -139,19 +177,20 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
           if (site.aliases?.length) host.title = siteDomains(site).join(", ");
           option.append(host);
         }
-        if (category.id === CUSTOM_CATEGORY_ID) {
-          const remove = document.createElement("button");
-          remove.type = "button";
-          remove.className = "site-remove";
-          remove.textContent = "×";
-          remove.setAttribute("aria-label", `Remove ${site.domain}`);
-          remove.addEventListener("click", (e) => {
-            e.preventDefault();
-            void removeCustomSite(site.domain);
-          });
-          option.append(remove);
+        if (category.id !== CUSTOM_CATEGORY_ID) {
+          sites.appendChild(option);
+          continue;
         }
-        sites.appendChild(option);
+        const row = document.createElement("div");
+        row.className = "site-row";
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "site-remove";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", `Remove ${site.domain}`);
+        remove.addEventListener("click", () => void removeCustomSite(site.domain));
+        row.append(option, remove);
+        sites.appendChild(row);
       }
       details.appendChild(sites);
       list.appendChild(details);
@@ -162,5 +201,6 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     disabledSites = new Set(disabled);
     customSites = custom;
     render();
+    addInput.disabled = addButton.disabled = false;
   });
 }

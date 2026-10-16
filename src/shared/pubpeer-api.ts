@@ -160,8 +160,54 @@ export async function lookupPubPeerForDois<T extends string>(
   dois: T[], unavailable = new Set<string>(),
   signal: AbortSignal | null | undefined = activeWorkSignal()
 ): Promise<Map<T, PubPeerFeedback>> {
+  if (dois.length === 0) return new Map();
+  const flightKey = signal ?? null;
+  let flights = inFlight.get(flightKey);
+  if (!flights) { flights = new Map(); inFlight.set(flightKey, flights); }
+  const owned: T[] = [];
+  const joined: T[] = [];
+  const settlers = new Map<string, (outcome: FlightOutcome) => void>();
+  for (const doi of dois) {
+    const key = cacheKey(doi);
+    if (settlers.has(key)) { owned.push(doi); continue; }
+    if (flights.has(key)) { joined.push(doi); continue; }
+    flights.set(key, new Promise((resolve) => settlers.set(key, resolve)));
+    owned.push(doi);
+  }
+  const awaited = new Map(joined.map((doi) => [doi, flights.get(cacheKey(doi))!] as const));
+
+  const outcomes = new Map<string, PubPeerFeedback | null>();
+  let result: Map<T, PubPeerFeedback>;
+  try {
+    result = owned.length > 0 ? await lookupUnsharedDois(owned, unavailable, signal, outcomes) : new Map();
+  } finally {
+    for (const [key, settle] of settlers) {
+      settle(outcomes.has(key) ? outcomes.get(key)! : FLIGHT_UNAVAILABLE);
+      flights.delete(key);
+    }
+    if (flights.size === 0 && inFlight.get(flightKey) === flights) inFlight.delete(flightKey);
+  }
+  if (awaited.size === 0) return result;
+
+  const hidden = await getHiddenCommenters();
+  for (const [doi, flight] of awaited) {
+    const outcome = await flight;
+    if (outcome === FLIGHT_UNAVAILABLE) unavailable.add(doi);
+    else if (outcome) result.set(doi, applyCommenterMutes(outcome, hidden));
+  }
+  return result;
+}
+
+const FLIGHT_UNAVAILABLE = Symbol("unavailable");
+type FlightOutcome = PubPeerFeedback | null | typeof FLIGHT_UNAVAILABLE;
+const inFlight = new Map<AbortSignal | null, Map<string, Promise<FlightOutcome>>>();
+
+async function lookupUnsharedDois<T extends string>(
+  dois: T[], unavailable: Set<string>,
+  signal: AbortSignal | null | undefined,
+  outcomes: Map<string, PubPeerFeedback | null>
+): Promise<Map<T, PubPeerFeedback>> {
   const result = new Map<T, PubPeerFeedback>();
-  if (dois.length === 0) return result;
   const hidden = await getHiddenCommenters();
   const visible = (feedback: PubPeerFeedback): PubPeerFeedback =>
     applyCommenterMutes(feedback, hidden);
@@ -175,6 +221,7 @@ export async function lookupPubPeerForDois<T extends string>(
     // A confirmed miss stays a miss; a cached hit the callers cannot use is
     // fetched again.
     if (entry && (entry.feedback === null || isUsableFeedback(entry.feedback))) {
+      outcomes.set(cacheKey(doi), entry.feedback);
       if (entry.feedback) result.set(doi, visible(entry.feedback));
     } else {
       uncached.push(doi);
@@ -220,6 +267,7 @@ export async function lookupPubPeerForDois<T extends string>(
   for (const doi of uncached) {
     const feedback = hitByDoi.get(cacheKey(doi)) ?? null;
     writes.push([cacheKey(doi), { feedback }]);
+    outcomes.set(cacheKey(doi), feedback);
     if (feedback) result.set(doi, visible(feedback));
   }
   void PUBPEER_CACHE.setMany(writes);
@@ -289,5 +337,6 @@ export function _resetPubPeerCacheForTesting(): void {
   if (flushHandle !== null) clearTimeout(flushHandle);
   flushHandle = null;
   pendingDois.clear();
+  inFlight.clear();
   rateLimitedUntil = 0;
 }

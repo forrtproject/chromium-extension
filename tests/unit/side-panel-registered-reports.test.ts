@@ -36,6 +36,18 @@ describe("Registered Reports in the side panel", () => {
         expect(document.querySelectorAll("[data-flora-rr-tag]")).toHaveLength(1);
     });
 
+    it("tags every row that shows the same Registered Report", async () => {
+        sendMessage().mockImplementation(async (msg: {type: string}) => msg.type === "FLORA_RR_CHECK"
+            ? {type: "FLORA_RR_CHECK_RESULT", results: {[REFS[1].doi]: {key: "K2", stage: 1}}}
+            : undefined);
+        const {renderSidePanel} = await import("../../src/content-general/injector");
+        const state = new Map<DoiString, LookupState>([[ARTICLE, {status: "matched", result: mockResult(), source: "extracted"}]]);
+        const context = new Map<DoiString, DoiContext>([[ARTICLE, "article"]]);
+        renderSidePanel([], [REFS[1], {doi: REFS[1].doi, title: "Same paper, cited again"}], state, context, new Map(), [], "Article");
+
+        await vi.waitFor(() => expect(document.querySelectorAll("[data-flora-rr-tag]")).toHaveLength(2));
+    });
+
     it("logs a failed lookup once, not once per reference", async () => {
         sendMessage().mockImplementation(async (msg: {type: string}) => msg.type === "FLORA_RR_CHECK"
             ? {type: "FLORA_RR_CHECK_RESULT", results: {}, error: "Registered Reports data unavailable"}

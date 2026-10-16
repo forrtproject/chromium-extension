@@ -127,7 +127,7 @@ function updateDebugUI(): void {
   debugToggle.checked = debugOn;
   debugHint.textContent = debugOn
     ? "On. Reload the page to see ORE's progress and record a detailed log."
-    : "Shows ORE's progress on each page and keeps a detailed log for issue reports.";
+    : "Turn on to see ORE's progress on each page and send a detailed log with issue reports.";
   logCopyRow.hidden = !debugOn;
 }
 
@@ -149,7 +149,6 @@ async function init(): Promise<void> {
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";
     reportBtn.style.display = "none";
-    screenshotRow.hidden = true;
     return;
   }
 
@@ -164,7 +163,6 @@ async function init(): Promise<void> {
       blockBtn.style.display = "none";
       hideBtn.style.display = "none";
       reportBtn.style.display = "none";
-      screenshotRow.hidden = true;
       return;
     }
     currentDomain = url.hostname;
@@ -175,7 +173,6 @@ async function init(): Promise<void> {
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";
     reportBtn.style.display = "none";
-    screenshotRow.hidden = true;
     return;
   }
 
@@ -184,6 +181,7 @@ async function init(): Promise<void> {
   snoozedUntil = await getSnooze(currentDomain);
   updateSnoozeUI();
   reportBtn.style.display = "";
+  screenshotRow.hidden = false;
 
   // Ask the content script whether UI is currently hidden
   if (activeTabId != null) {
@@ -298,6 +296,8 @@ screenshotToggle.addEventListener("change", () => {
 async function captureScreenshot(): Promise<string | undefined> {
   if (activeWindowId == null) return undefined;
   try {
+    const [visible] = await chrome.tabs.query({ active: true, windowId: activeWindowId });
+    if (visible?.id !== activeTabId) return undefined;
     return await chrome.tabs.captureVisibleTab(activeWindowId, { format: "png" });
   } catch (err) {
     debugWarn("Popup: screenshot capture failed —", err);

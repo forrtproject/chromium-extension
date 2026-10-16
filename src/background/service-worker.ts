@@ -6,7 +6,7 @@ import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
-import {RET_COUNT_KEY, RET_MAP_KEY, RET_SYNC_TIME_KEY, RR_MAP_KEY, RR_SYNC_TIME_KEY, registeredReportsSync, retractionEntryCount, storageSync, type RetractionMaps} from "@shared/data-extract";
+import {RET_COUNT_KEY, RET_MAP_KEY, RET_SYNC_TIME_KEY, RR_MAP_KEY, RR_SYNC_TIME_KEY, registeredReportsSync, retractionEntryCount, validRegisteredReportMap, storageSync, type RetractionMaps} from "@shared/data-extract";
 import {getSettings} from "@shared/settings";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import type {RegisteredReport, RegisteredReportMap} from "@shared/registered-reports";
@@ -18,6 +18,7 @@ import {resolveOpenAlexIds} from "@shared/openalex-resolve";
 import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
 import {debugError, debugLog, debugWarn, isDebugEnabledAsync, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
+import {isFeedbackPromptRequest, type FeedbackPromptResponse, type FeedbackPromptStep} from "@shared/messages";
 
 // The worker-wide manager budgets all providers together.
 const cache = new LocalCache<ReplicationResult>("flora", 0);
@@ -163,8 +164,9 @@ function samePage(stored: TabError, url: string): boolean {
 }
 
 async function captureForReport(windowId: number | undefined): Promise<string | undefined> {
-    if (windowId == null || !(await getSettings()).attachScreenshot) return undefined;
+    if (windowId == null) return undefined;
     try {
+        if (!(await getSettings()).attachScreenshot) return undefined;
         return await chrome.tabs.captureVisibleTab(windowId, {format: "png"});
     } catch (err) {
         debugWarn("Toolbar: screenshot capture failed —", err);
@@ -183,11 +185,12 @@ async function openTabErrorIssue(tabId: number, tabUrl: string | undefined, wind
     }
     const domain = hostOf(stored.pageUrl);
     let url = issueUrl({ domain, error: stored.error }).url;
+    const screenshot = captureForReport(windowId);
     try {
         const data = await collectDebugReport({ pageUrl: stored.pageUrl, error: stored.error });
         data.entries = mergeEntries(data.entries, stored.entries);
         url = issueUrl({ domain, report: data, error: stored.error }).url;
-        await stashReport(renderDebugReport(data), await captureForReport(windowId));
+        await stashReport(renderDebugReport(data), await screenshot);
     } catch (err) {
         debugError("Toolbar: building the error report failed —", err);
     }
@@ -286,7 +289,7 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (isStashReportRequest(message)) {
-            stashReport(message.report, message.screenshot).then(() => sendResponse({ok: true}));
+            stashReport(message.report, message.screenshot).then((ok) => sendResponse({ok}));
             return true;
         }
 
@@ -356,6 +359,11 @@ chrome.runtime.onMessage.addListener(
 
         if (isRegisteredReportCheckRequest(message)) {
             handleRegisteredReportCheck(message.dois).then(sendResponse);
+            return true;
+        }
+
+        if (isFeedbackPromptRequest(message)) {
+            stepFeedbackPrompt(message.step).then(sendResponse).catch(() => sendResponse(undefined));
             return true;
         }
 
@@ -495,14 +503,20 @@ const PENDING_REPORT_KEY = "flora_pending_report";
  */
 const PENDING_REPORT_TTL_MS = 15 * 60 * 1000;
 
-async function stashReport(report: string, screenshot?: string): Promise<void> {
+async function stashReport(report: string, screenshot?: string): Promise<boolean> {
     try {
         await chrome.storage.session.set({
             [PENDING_REPORT_KEY]: {report, screenshot, createdAt: Date.now()},
         });
+        return true;
     } catch (err) {
+        if (screenshot) {
+            debugWarn("Debug report: could not park the screenshot, parking the report without it —", err);
+            return stashReport(report);
+        }
         // The report is still on the clipboard; only the autofill handoff is lost.
         debugError("Debug report: could not park the report for the issue form —", err);
+        return false;
     }
 }
 
@@ -886,17 +900,15 @@ let registeredReportsLoad: Promise<Record<string, RegisteredReport>> | null = nu
 async function loadBundledRegisteredReports(): Promise<Record<string, RegisteredReport>> {
     const response = await fetchWithDeadline(chrome.runtime.getURL("dist/registered-reports.json"), {signal: null});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json() as RegisteredReportMap;
-    if (!data?.reports || typeof data.reports !== "object") throw new Error("Unexpected data shape");
+    const data = validRegisteredReportMap(await response.json());
+    if (!data) throw new Error("Unexpected data shape");
     return data.reports;
 }
 
 function loadRegisteredReports(): Promise<Record<string, RegisteredReport>> {
     registeredReportsLoad ??= (async () => {
-        const raw = await chrome.storage.local.get(RR_MAP_KEY).catch(() => ({})) as Record<string, RegisteredReportMap | undefined>;
-        const stored = raw[RR_MAP_KEY];
-        if (stored?.reports && Object.keys(stored.reports).length > 0) return stored.reports;
-        return loadBundledRegisteredReports();
+        const raw = await chrome.storage.local.get(RR_MAP_KEY).catch(() => ({})) as Record<string, unknown>;
+        return validRegisteredReportMap(raw[RR_MAP_KEY])?.reports ?? loadBundledRegisteredReports();
     })().catch((error) => {
         registeredReportsLoad = null;
         throw error;
@@ -922,16 +934,26 @@ async function handleRegisteredReportCheck(dois: DoiString[]): Promise<Registere
 
 const RR_SYNC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 let rrSyncInFlight: Promise<boolean> | null = null;
+let rrForcedSyncInFlight: Promise<boolean> | null = null;
 
 function syncRegisteredReports(force = false): Promise<boolean> {
-    rrSyncInFlight ??= (async () => {
+    const pending = force ? rrForcedSyncInFlight : rrSyncInFlight;
+    if (pending) return pending;
+    const previous = rrSyncInFlight;
+    const sync: Promise<boolean> = (async () => {
+        await previous?.catch(() => {});
         if (!force) {
             const last = (await chrome.storage.local.get(RR_SYNC_TIME_KEY))[RR_SYNC_TIME_KEY];
             if (typeof last === "number" && Date.now() - last < RR_SYNC_INTERVAL_MS) return true;
         }
         return withKeepAlive(registeredReportsSync());
-    })().finally(() => { rrSyncInFlight = null; });
-    return rrSyncInFlight;
+    })().finally(() => {
+        if (rrSyncInFlight === sync) rrSyncInFlight = null;
+        if (rrForcedSyncInFlight === sync) rrForcedSyncInFlight = null;
+    });
+    rrSyncInFlight = sync;
+    if (force) rrForcedSyncInFlight = sync;
+    return sync;
 }
 
 const timeOrNull = (value: unknown): number | null => typeof value === "number" ? value : null;
@@ -959,4 +981,25 @@ async function refreshReferenceData(): Promise<{status: ReferenceDataStatus; fai
     if (!registeredReports) failed.push("registeredReports");
     if (failed.length) debugWarn(`Reference data: refresh failed for ${failed.join(", ")}`);
     return {status: await referenceDataStatus(), failed};
+}
+
+const FEEDBACK_STATE_KEY = "flora_feedback_prompt";
+let feedbackPromptQueue: Promise<unknown> = Promise.resolve();
+
+export function stepFeedbackPrompt(step: FeedbackPromptStep): Promise<FeedbackPromptResponse> {
+    const result = feedbackPromptQueue.then(async (): Promise<FeedbackPromptResponse> => {
+        const stored = (await chrome.storage.local.get(FEEDBACK_STATE_KEY))[FEEDBACK_STATE_KEY] as {shown?: unknown; pages?: unknown} | undefined;
+        const shown = stored?.shown === true;
+        const pages = typeof stored?.pages === "number" ? stored.pages : 0;
+        if (step === "release") {
+            await chrome.storage.local.set({[FEEDBACK_STATE_KEY]: {shown: false, pages}});
+            return {granted: true, pages};
+        }
+        if (shown) return {granted: false, pages};
+        const next = step === "visit" ? {shown: false, pages: pages + 1} : {shown: true, pages};
+        await chrome.storage.local.set({[FEEDBACK_STATE_KEY]: next});
+        return {granted: true, pages: next.pages};
+    });
+    feedbackPromptQueue = result.catch(() => {});
+    return result;
 }

@@ -202,6 +202,7 @@ describe("the first-run tour", () => {
             await offer;
             expect(isPageTourOpen()).toBe(false);
             expect(store.flora_page_tour_seen).toBeUndefined();
+            expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
         } finally {
             rect.mockRestore();
         }

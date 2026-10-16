@@ -27,7 +27,7 @@ function installDomainInvalidation(): void {
       if (area === "local" && changes[SNOOZE_KEY]) {
         cachedSnoozes = (changes[SNOOZE_KEY].newValue as Record<string, number> | undefined) ?? {};
       }
-      if (area === "sync" && changes[DISABLED_SITES_KEY]) {
+      if (area === "local" && changes[DISABLED_SITES_KEY]) {
         cachedDisabledSites = (changes[DISABLED_SITES_KEY].newValue as string[] | undefined) ?? [...DEFAULT_DISABLED_SITES];
       }
     });
@@ -66,18 +66,25 @@ export async function getDisabledSites(): Promise<string[]> {
   installDomainInvalidation();
   if (cachedDisabledSites) return cachedDisabledSites;
   try {
-    const raw = await chrome.storage.sync.get(DISABLED_SITES_KEY);
-    cachedDisabledSites = (raw[DISABLED_SITES_KEY] as string[] | undefined) ?? [...DEFAULT_DISABLED_SITES];
+    const local = (await chrome.storage.local.get(DISABLED_SITES_KEY))[DISABLED_SITES_KEY] as string[] | undefined;
+    cachedDisabledSites = local ?? await migrateDisabledSitesFromSync() ?? [...DEFAULT_DISABLED_SITES];
   } catch (err) {
-    debugError("Disabled sites: read failed — every catalog site will be treated as allowed:", err);
-    cachedDisabledSites = [];
+    debugError("Disabled sites: read failed — falling back to the off-by-default sites:", err);
+    cachedDisabledSites = [...DEFAULT_DISABLED_SITES];
   }
   return cachedDisabledSites;
 }
 
+// Earlier builds kept this list in sync storage, where its 8 KB per-item quota rejects large selections.
+async function migrateDisabledSitesFromSync(): Promise<string[] | undefined> {
+  const synced = (await chrome.storage.sync.get(DISABLED_SITES_KEY))[DISABLED_SITES_KEY] as string[] | undefined;
+  if (synced) await chrome.storage.local.set({ [DISABLED_SITES_KEY]: synced });
+  return synced;
+}
+
 export async function saveDisabledSites(domains: string[]): Promise<void> {
+  await chrome.storage.local.set({ [DISABLED_SITES_KEY]: domains });
   cachedDisabledSites = domains;
-  await chrome.storage.sync.set({ [DISABLED_SITES_KEY]: domains });
 }
 
 const CUSTOM_SITES_KEY = "flora_custom_sites";
@@ -97,9 +104,9 @@ export async function saveCustomSites(domains: string[]): Promise<void> {
   await chrome.storage.sync.set({ [CUSTOM_SITES_KEY]: domains });
 }
 
-/** Lower-cased bare host from what a user typed, or null when it is not a domain. */
+/** Lower-cased host from what a user typed, or null when it is not a domain. */
 export function normaliseSiteInput(input: string): string | null {
-  const host = input.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/[/?#:].*$/, "").replace(/^www\./, "");
+  const host = input.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/[/?#:].*$/, "");
   return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(host) ? host : null;
 }
 
@@ -250,8 +257,8 @@ export function onDomainPauseChange(
   recheckAt(current.snoozedUntil);
   try {
     chrome.storage.onChanged?.addListener((changes, area) => {
-      const blocklistChanged = area === "sync" && (changes[BLACKLIST_KEY] || changes[DISABLED_SITES_KEY]);
-      if (!blocklistChanged && !(area === "local" && changes[SNOOZE_KEY])) return;
+      const blocklistChanged = area === "sync" && changes[BLACKLIST_KEY];
+      if (!blocklistChanged && !(area === "local" && (changes[SNOOZE_KEY] || changes[DISABLED_SITES_KEY]))) return;
       emit();
     });
   } catch {

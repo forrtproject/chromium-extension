@@ -48,7 +48,8 @@ describe("a pill dropped into a publisher-styled container", () => {
     it("pins the popover's outer box against a site's own dialog styles", () => {
         const popover = createIndicatorPill({ doi: DOI }).querySelector<HTMLElement>("[data-flora-popover]")!;
 
-        for (const prop of ["transform", "filter", "opacity", "visibility"]) {
+        for (const [prop, value] of [["transform", "none"], ["filter", "none"], ["opacity", "1"], ["visibility", "visible"]]) {
+            expect(popover.style.getPropertyValue(prop), prop).toBe(value);
             expect(popover.style.getPropertyPriority(prop), prop).toBe("important");
         }
         expect(popover.shadowRoot!.querySelector("style")!.textContent).toContain(":host::before, :host::after { content: none !important;");

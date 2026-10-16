@@ -368,7 +368,7 @@ async function captureFixture(
         const popover = [...document.querySelectorAll<HTMLElement>("[data-flora-popover]")]
           .find(el => getComputedStyle(el).display !== "none");
         return !!popover && ["data-flora-oa-row", "data-flora-pubpeer-row"].every(attr => {
-          const row = popover.querySelector(`[${attr}]`);
+          const row = (popover.shadowRoot ?? popover).querySelector(`[${attr}]`);
           const subtitle = row?.querySelector("[data-flora-row-sub]")?.textContent?.trim();
           // Capture both the base UI and the changed UI once their provider
           // results settle; requiring Retry here would reject older versions.

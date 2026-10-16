@@ -773,7 +773,7 @@ label {
 
 .site-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: 0.25rem 1rem;
   max-height: 320px;
   overflow-y: auto;
@@ -784,9 +784,24 @@ label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+  margin-bottom: 0;
   font-size: 13px;
+  font-weight: 400;
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
   cursor: pointer;
+}
+
+.site-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.site-row .site-option {
+  flex: 1;
 }
 
 .site-option small {

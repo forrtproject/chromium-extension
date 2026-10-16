@@ -47,7 +47,27 @@ export const OFF_BY_DEFAULT_CATEGORIES: SiteCategory[] = [
     id: "search",
     label: "Web search",
     sites: [
-      { domain: "www.google.com", label: "Google Search" },
+      {
+        domain: "www.google.com",
+        label: "Google Search",
+        aliases: [
+          "www.google.co.uk",
+          "www.google.co.in",
+          "www.google.co.jp",
+          "www.google.co.kr",
+          "www.google.co.za",
+          "www.google.co.id",
+          "www.google.co.th",
+          "www.google.co.il",
+          "www.google.ca",
+          "www.google.de",
+          "www.google.fr",
+          "www.google.es",
+          "www.google.it",
+          "www.google.com.br",
+          "www.google.com.au",
+        ],
+      },
       { domain: "www.bing.com", label: "Bing" },
       { domain: "duckduckgo.com", label: "DuckDuckGo" },
     ],
@@ -55,4 +75,4 @@ export const OFF_BY_DEFAULT_CATEGORIES: SiteCategory[] = [
 ];
 
 export const DEFAULT_DISABLED_SITES: string[] = OFF_BY_DEFAULT_CATEGORIES.flatMap((category) =>
-  category.sites.map((site) => site.domain));
+  category.sites.flatMap((site) => [site.domain, ...(site.aliases ?? [])]));

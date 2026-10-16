@@ -1192,7 +1192,7 @@ export function renderSidePanel(
 
   const rrSlot = document.createElement("div");
   summary.appendChild(rrSlot);
-  const rrTagRows = new Map<DoiString, HTMLElement>();
+  const rrTagRows = new Map<DoiString, HTMLElement[]>();
 
   // Replication/reproduction/original entry lists from FORRT API
   const renderEntrySection = (
@@ -1481,7 +1481,7 @@ export function renderSidePanel(
       tagsRow.appendChild(commentTag);
     }
 
-    rrTagRows.set(doi, tagsRow);
+    rrTagRows.set(doi, [...(rrTagRows.get(doi) ?? []), tagsRow]);
 
     li.appendChild(titleLink);
     li.appendChild(tagsRow);
@@ -1564,9 +1564,9 @@ export function renderSidePanel(
         if (host.dataset.floraPanelStale === "1") return;
         const article = articleDois[0] ? reports.get(articleDois[0]) : null;
         if (article && rrSlot.isConnected) rrSlot.replaceWith(buildRegisteredReportBanner(article));
-        for (const [doi, row] of rrTagRows) {
+        for (const [doi, rows] of rrTagRows) {
           const report = reports.get(doi);
-          if (report) row.appendChild(buildRegisteredReportTag(report));
+          if (report) for (const row of rows) row.appendChild(buildRegisteredReportTag(report));
         }
       })
       .catch((err) => {

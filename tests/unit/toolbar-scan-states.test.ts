@@ -177,6 +177,31 @@ describe("the toolbar reflects scan progress and results", () => {
             await vi.waitFor(() => expect(session.has("flora_pending_report")).toBe(true));
         });
 
+        it("captures the screenshot before building the report", async () => {
+            const tabs = chrome.tabs as unknown as Record<string, unknown>;
+            const shot = "data:image/png;base64,AAAA";
+            tabs.captureVisibleTab = vi.fn(async () => shot);
+            vi.mocked(chrome.storage.sync.get).mockResolvedValue({flora_settings: {attachScreenshot: true}});
+            let releaseLog!: (value: unknown) => void;
+            vi.mocked(chrome.storage.local.get).mockReturnValue(new Promise((resolve) => { releaseLog = resolve; }) as never);
+            try {
+                await scan(errorState, 7);
+                const onClicked = lastListener<(tab: {id: number; url: string; windowId: number}) => void>(chrome.action.onClicked.addListener);
+
+                onClicked({id: 7, url: "https://example.org/paper?id=1", windowId: 3});
+
+                await vi.waitFor(() => expect(tabs.captureVisibleTab).toHaveBeenCalledWith(3, {format: "png"}));
+                expect(session.has("flora_pending_report")).toBe(false);
+                releaseLog({});
+                await vi.waitFor(() => expect(session.has("flora_pending_report")).toBe(true));
+                expect((session.get("flora_pending_report") as {screenshot?: string}).screenshot).toBe(shot);
+            } finally {
+                vi.mocked(chrome.storage.local.get).mockResolvedValue({});
+                vi.mocked(chrome.storage.sync.get).mockResolvedValue({});
+                delete tabs.captureVisibleTab;
+            }
+        });
+
         it("falls back to the popup when no error is stored", async () => {
             const onClicked = lastListener<(tab: {id: number; url: string}) => void>(chrome.action.onClicked.addListener);
 

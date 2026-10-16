@@ -2,8 +2,11 @@ import {beginCancellableWork, endCancellableWork, cancelWork} from "../../src/sh
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   lookupPubPeerForDoi,
+  lookupPubPeerForDois,
   _resetPubPeerCacheForTesting,
 } from "../../src/shared/pubpeer-api";
+import {createIndicatorPill} from "../../src/shared/indicator-pill";
+import type {DoiString} from "../../src/shared/types";
 
 /**
  * One merged indicator pill is rendered per reference, and each one looks up
@@ -166,6 +169,67 @@ describe("lookupPubPeerForDoi batching", () => {
     await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
     fetchMock.mockResolvedValue({ok: true, status: 200, json: async () => ({feedbacks: []})});
     await expect(lookupPubPeerForDoi("10.1234/a")).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  function holdFetch(): {release: () => void; fail: () => void} {
+    let release!: () => void;
+    let fail!: () => void;
+    const gate = new Promise<void>((resolve, reject) => { release = resolve; fail = () => reject(new Error("network down")); });
+    const respond = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+      await Promise.race([gate, new Promise((_, reject) => init.signal?.addEventListener("abort", () => reject(init.signal!.reason)))]);
+      return respond();
+    });
+    return {release, fail};
+  }
+
+  it("lets a pill drawn while a prefetch is still pending share that request", async () => {
+    vi.useFakeTimers();
+    const {release} = holdFetch();
+    const prefetch = lookupPubPeerForDois(["10.1234/A"]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    createIndicatorPill({doi: "10.1234/a" as DoiString});
+    const single = lookupPubPeerForDoi("10.1234/a");
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    release();
+    expect((await prefetch).get("10.1234/A")?.total_comments).toBe(3);
+    expect((await single)?.total_comments).toBe(3);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a shared request's failure to every caller, so each pill can offer Retry", async () => {
+    vi.useFakeTimers();
+    const {fail} = holdFetch();
+    const unavailable = new Set<string>();
+    const prefetch = lookupPubPeerForDois(["10.1234/a"], unavailable);
+    await vi.advanceTimersByTimeAsync(0);
+    const single = expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");
+    await vi.advanceTimersByTimeAsync(100);
+    fail();
+    await prefetch;
+    await single;
+    expect(unavailable.has("10.1234/a")).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let a new scan join a cancelled scan's request", async () => {
+    vi.useFakeTimers();
+    const {release} = holdFetch();
+    beginCancellableWork();
+    const stale = lookupPubPeerForDois(["10.1234/a"]);
+    await vi.advanceTimersByTimeAsync(0);
+    cancelWork();
+    endCancellableWork();
+    await stale;
+    const fresh = lookupPubPeerForDoi("10.1234/a");
+    await vi.advanceTimersByTimeAsync(100);
+    release();
+    expect((await fresh)?.total_comments).toBe(3);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -75,6 +75,7 @@ const pageState = new Map<DoiString, LookupState>();
 // PubPeer answers gathered before pills are drawn, so a pill's face is final when it appears.
 const knownPubPeer = new Map<DoiString, PubPeerFeedback | null>();
 const PILL_DATA_WAIT_MS = 3000;
+const DOCUMENT_FRAME_LOG_GRACE_MS = 150;
 // Retraction notices for the page: `pageNotices` is replaced by each check of
 // the page's own DOIs, `refNotices` accumulates those of resolved references
 // (whose DOIs are not on the page), and `redacts` is the union everyone reads.
@@ -176,7 +177,14 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({hidden: floraHidden});
     } else if (type === "FLORA_GET_RECENT_LOG") {
-        if (window === window.top) sendResponse({entries: recentDebugEntries()});
+        if (searchScriptOwns()) return;
+        if (window !== window.top) {
+            if (recentDebugEntries().length > 0) sendResponse({entries: recentDebugEntries()});
+            return;
+        }
+        // The first frame to answer wins; let an Office document frame doing the work answer before the host page.
+        setTimeout(() => sendResponse({entries: recentDebugEntries()}), DOCUMENT_FRAME_LOG_GRACE_MS);
+        return true;
     } else if (type === "FLORA_START_PAGE_TOUR") {
         const started = pageTourAllowed() && startPageTour("article");
         // Every frame, and content-search on its own pages, hears this; only the page's owner should answer.
@@ -778,7 +786,7 @@ async function runScanPass(): Promise<void> {
                     pubpeer: knownPubPeer,
                 });
                 repaintBadges();
-                if (document.querySelector(`.${INDICATOR_PILL_CLASS}`)) void maybeOfferFeedback(() => !floraHidden && pageTourAllowed());
+                if (document.querySelector(`.${INDICATOR_PILL_CLASS}`)) void maybeOfferFeedback(() => pageGeneration, () => !floraHidden && pageTourAllowed());
                 const flagged = matched.length > 0 || redacts.length > 0;
                 if (refsPending > 0) {
                     // Verdict waits for the references still being resolved.

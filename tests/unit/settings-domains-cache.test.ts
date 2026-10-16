@@ -58,7 +58,7 @@ describe("settings/domain storage caches", () => {
     await expect(isDomainBlocked("sub.example.com")).resolves.toBe(true);
     await expect(isDomainBlocked("other.org")).resolves.toBe(false);
     expect(chrome.storage.sync.get).toHaveBeenCalledWith("flora_blocked_domains");
-    expect(chrome.storage.sync.get).toHaveBeenCalledWith("flora_disabled_sites");
+    expect(chrome.storage.local.get).toHaveBeenCalledWith("flora_disabled_sites");
     expect(chrome.storage.sync.get).toHaveBeenCalledTimes(2);
   });
 

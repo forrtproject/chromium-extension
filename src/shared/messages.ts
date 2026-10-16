@@ -520,3 +520,21 @@ export function isSheetFetchRequest(msg: unknown): msg is SheetFetchRequest {
         /^\d+$/.test((msg as Record<string, unknown>).gid as string)
     );
 }
+
+export type FeedbackPromptStep = "visit" | "claim" | "release";
+
+export interface FeedbackPromptRequest {
+    type: "FLORA_FEEDBACK_PROMPT";
+    step: FeedbackPromptStep;
+}
+
+export interface FeedbackPromptResponse {
+    granted: boolean;
+    pages: number;
+}
+
+export function isFeedbackPromptRequest(msg: unknown): msg is FeedbackPromptRequest {
+    if (typeof msg !== "object" || msg === null) return false;
+    const {type, step} = msg as Record<string, unknown>;
+    return type === "FLORA_FEEDBACK_PROMPT" && (step === "visit" || step === "claim" || step === "release");
+}

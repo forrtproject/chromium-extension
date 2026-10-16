@@ -34,9 +34,11 @@ vi.mock("../../src/shared/settings", async importOriginal => ({
 }));
 
 const mockStorageSync = vi.fn().mockResolvedValue(true);
+const mockRegisteredReportsSync = vi.fn().mockResolvedValue(true);
 vi.mock("../../src/shared/data-extract", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../../src/shared/data-extract")>()),
     storageSync: () => mockStorageSync(),
+    registeredReportsSync: () => mockRegisteredReportsSync(),
 }));
 
 // Mock cache
@@ -111,6 +113,7 @@ describe("service-worker", () => {
         mockLookupDOIs.mockReset();
         mockResolvePmcIds.mockReset();
         mockStorageSync.mockClear();
+        mockRegisteredReportsSync.mockReset().mockResolvedValue(true);
         (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({});
         (chrome.alarms.get as ReturnType<typeof vi.fn>).mockReset().mockResolvedValue(undefined);
         (chrome.alarms.create as ReturnType<typeof vi.fn>).mockReset();
@@ -716,6 +719,97 @@ describe("service-worker", () => {
         expect((await second).results[MOCK_RESULT.doi]).toEqual(MOCK_RESULT);
         expect(cacheStore.get(`flora:${MOCK_RESULT.doi}`)).toEqual(MOCK_RESULT);
         expect(mockLookupDOIs).toHaveBeenCalledTimes(1);
+    });
+
+    describe("Registered Reports data", () => {
+        const RR_DOI = "10.5555/rr";
+        const BUNDLED = {reports: {[RR_DOI]: {key: "BUNDLED", stage: 2}}};
+
+        function storeLocal(values: Record<string, unknown>): void {
+            vi.mocked(chrome.storage.local.get).mockImplementation((async (keys: unknown) => {
+                const wanted = Array.isArray(keys) ? keys : [keys];
+                return Object.fromEntries(wanted.filter((key) => key in values).map((key) => [key, values[key as string]]));
+            }) as never);
+        }
+
+        function stubBundled(): ReturnType<typeof vi.fn> {
+            const fetchMock = vi.fn(async () => new Response(JSON.stringify(BUNDLED)));
+            vi.stubGlobal("fetch", fetchMock);
+            return fetchMock;
+        }
+
+        function send<T>(message: unknown): Promise<T> {
+            return new Promise((resolve) => { messageHandler(message, {}, resolve as (r: unknown) => void); });
+        }
+
+        it("uses a refreshed map with no entries instead of the bundled copy", async () => {
+            storeLocal({flora_rr_map: {reports: {}}});
+            const fetchMock = stubBundled();
+
+            const response = await send<{results: Record<string, unknown>; error?: string}>({type: "FLORA_RR_CHECK", dois: [RR_DOI]});
+
+            expect(response.error).toBeUndefined();
+            expect(response.results).toEqual({});
+            expect(fetchMock).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            ["no valid entries", {reports: {[RR_DOI]: {key: "", stage: 3}}}],
+            ["an array of reports", {reports: [{key: "K", stage: 1}]}],
+        ])("falls back to the bundled copy when the stored map has %s", async (_label, stored) => {
+            storeLocal({flora_rr_map: stored});
+            stubBundled();
+
+            const response = await send<{results: Record<string, unknown>}>({type: "FLORA_RR_CHECK", dois: [RR_DOI]});
+
+            expect(response.results).toEqual({[RR_DOI]: {key: "BUNDLED", stage: 2}});
+        });
+
+        it("downloads on a manual refresh even while a scheduled sync is skipping as recent", async () => {
+            let releaseSyncTime!: (value: unknown) => void;
+            vi.mocked(chrome.storage.local.get).mockImplementation(((keys: unknown) =>
+                keys === "flora_rr_synctime"
+                    ? new Promise((resolve) => { releaseSyncTime = resolve; })
+                    : Promise.resolve({})) as never);
+            stubBundled();
+
+            alarmHandler({name: "flora-retraction-sync"});
+            await vi.waitFor(() => expect(releaseSyncTime).toBeDefined());
+            const refresh = send<{failed?: string[]}>({type: "FLORA_REFRESH_DATA"});
+            releaseSyncTime({flora_rr_synctime: Date.now()});
+
+            expect((await refresh).failed).toEqual([]);
+            expect(mockRegisteredReportsSync).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("parking an issue report", () => {
+        function stash(screenshot?: string): Promise<{ok: boolean}> {
+            return new Promise((resolve) => {
+                messageHandler({type: "FLORA_STASH_REPORT", report: "the report", ...(screenshot ? {screenshot} : {})},
+                    {}, resolve as (r: unknown) => void);
+            });
+        }
+
+        const SHOT = "data:image/png;base64,AAAA";
+
+        it("keeps the report when the screenshot is too large to park", async () => {
+            vi.mocked(chrome.storage.session.set).mockReset()
+                .mockRejectedValueOnce(new Error("QUOTA_BYTES quota exceeded"))
+                .mockResolvedValue(undefined);
+
+            expect(await stash(SHOT)).toEqual({ok: true});
+            const parked = vi.mocked(chrome.storage.session.set).mock.calls.at(-1)![0] as Record<string, {report: string; screenshot?: string}>;
+            expect(parked.flora_pending_report.report).toBe("the report");
+            expect(parked.flora_pending_report.screenshot).toBeUndefined();
+        });
+
+        it("acknowledges failure when nothing could be parked", async () => {
+            vi.mocked(chrome.storage.session.set).mockReset().mockRejectedValue(new Error("unavailable"));
+
+            expect(await stash(SHOT)).toEqual({ok: false});
+            vi.mocked(chrome.storage.session.set).mockReset().mockResolvedValue(undefined);
+        });
     });
 
     describe("PMC id resolution", () => {
