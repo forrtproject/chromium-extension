@@ -1,5 +1,6 @@
 import {createIndicatorPill, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {deferredOpenAccess} from "@shared/openaccess";
+import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {isDocumentEditor} from "@shared/document-editor";
 import {findArticleTitle} from "@shared/article-title";
 import {isInRelatedWorks} from "@shared/related-works";
@@ -87,13 +88,14 @@ export interface LooseDoiInputs {
     pageState: ReadonlyMap<DoiString, LookupState>;
     noticed: ReadonlySet<DoiString>;
     primary?: DoiString | null;
+    pubpeer?: ReadonlyMap<DoiString, PubPeerFeedback | null>;
 }
 
 function isPrefixOfPrimary(doi: DoiString, primary: DoiString | null | undefined): boolean {
     return !!primary && primary.length > doi.length && primary.startsWith(doi) && /[./_-]/.test(primary[doi.length]);
 }
 
-export function injectLooseDoiPills({occurrences, context, pageState, noticed, primary}: LooseDoiInputs): number {
+export function injectLooseDoiPills({occurrences, context, pageState, noticed, primary, pubpeer}: LooseDoiInputs): number {
     if (isDocumentEditor()) return 0;
     const article = findArticleTitle(document);
     const onPage = loosePillDoisOnPage();
@@ -114,6 +116,7 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed, p
         const pill = createIndicatorPill({
             doi: occ.doi,
             oaStatus: deferredOpenAccess(occ.doi),
+            pubpeer: pubpeer?.get(occ.doi),
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,
         });

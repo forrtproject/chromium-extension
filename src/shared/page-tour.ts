@@ -30,6 +30,12 @@ function shown(el: Element | null): el is HTMLElement {
     return el.checkVisibility?.() ?? true;
 }
 
+function inViewport(el: HTMLElement): boolean {
+    const rect = el.getBoundingClientRect();
+    if (!rect.width && !rect.height) return true;
+    return rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth;
+}
+
 function firstShown(selector: string, exclude?: (el: HTMLElement) => boolean): HTMLElement | null {
     for (const el of document.querySelectorAll<HTMLElement>(selector)) {
         if (shown(el) && !exclude?.(el)) return el;
@@ -313,7 +319,13 @@ export async function offerFirstPageTour(surface: TourSurface, canShow: () => bo
             offered.delete(surface);
             return;
         }
-        if (!runPageTour(stopsFor(surface))) {
+        // Starting off screen would scroll the reader away from what they are reading.
+        const stops = stopsFor(surface);
+        if (!stops[0] || !inViewport(stops[0].target)) {
+            offered.delete(surface);
+            return;
+        }
+        if (!runPageTour(stops)) {
             offered.delete(surface);
             return;
         }

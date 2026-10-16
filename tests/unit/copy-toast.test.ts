@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {deep} from "../helpers";
 import {createIndicatorPill as createClosedPill, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import {_resetCitationCacheForTesting} from "../../src/shared/citation";
 import {dismissToast} from "../../src/shared/toast";
@@ -36,11 +37,11 @@ function toastText(): string {
 
 /** The copy-DOI button — its title flips to "Copied", so match on what it is not. */
 function copyBtn(host: HTMLElement): HTMLElement {
-  return host.querySelector<HTMLElement>("button:not([data-flora-citation-copy])")!;
+  return deep(host).querySelector<HTMLElement>("button:not([data-flora-citation-copy])")!;
 }
 
 function citeBtn(host: HTMLElement): HTMLElement {
-  return host.querySelector<HTMLElement>("[data-flora-citation-copy]")!;
+  return deep(host).querySelector<HTMLElement>("[data-flora-citation-copy]")!;
 }
 
 describe("copy confirmation toast", () => {
@@ -147,7 +148,7 @@ describe("copy confirmation toast", () => {
     copyBtn(pill).click();
     await vi.waitFor(() => expect(toastText()).toContain("DOI copied"));
 
-    expect(document.querySelectorAll("#flora-action-toast")).toHaveLength(1);
+    expect(deep(document).querySelectorAll("#flora-action-toast")).toHaveLength(1);
   });
 
   it("marks itself as FLoRA's own so the DOI scan skips its text", async () => {

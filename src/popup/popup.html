@@ -57,6 +57,30 @@
 
       <div class="popup-divider"></div>
 
+      <button id="report-btn" class="popup-btn popup-btn--report" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        <span id="report-btn-label">Report an issue on this domain</span>
+      </button>
+
+      <div id="screenshot-row">
+        <label class="popup-toggle popup-toggle--sub" for="screenshot-toggle">
+          <span class="popup-toggle-label">Include a screenshot</span>
+          <span class="toggle-switch">
+            <input type="checkbox" id="screenshot-toggle" />
+            <span class="toggle-track"></span>
+          </span>
+        </label>
+        <p class="popup-hint popup-hint--sub">
+          It shows us exactly what you saw, so the problem is much easier to find and fix.
+        </p>
+      </div>
+
+      <div class="popup-divider"></div>
+
       <label class="popup-toggle" for="debug-toggle">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 2h8" />
@@ -72,8 +96,7 @@
       </label>
 
       <p id="debug-hint" class="popup-hint">
-        Turn this on, reload the page and reproduce the problem — then report
-        the issue and the log comes with it.
+        Shows ORE's progress on each page and keeps a detailed log for issue reports.
       </p>
 
       <label class="popup-toggle popup-toggle--sub" for="log-copy-toggle" id="log-copy-row" hidden>
@@ -84,41 +107,13 @@
         </span>
       </label>
 
-      <button id="report-btn" class="popup-btn popup-btn--report" type="button">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-        <span id="report-btn-label">Report an issue on this domain</span>
-      </button>
-
       <div class="popup-divider"></div>
 
-      <button id="page-tour-btn" class="popup-btn popup-btn--tour" type="button">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-        </svg>
-        Show me around this page
-      </button>
-
-      <button id="tour-btn" class="popup-btn popup-btn--tour" type="button">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-        How it works
-      </button>
-
-      <button id="options-btn" class="popup-btn popup-btn--options" type="button">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-        Settings
-      </button>
+      <nav class="popup-footer" aria-label="More">
+        <button id="page-tour-btn" class="popup-link" type="button">Page tour</button>
+        <button id="tour-btn" class="popup-link" type="button">How it works</button>
+        <button id="options-btn" class="popup-link" type="button">Settings</button>
+      </nav>
     </div>
 
     <div id="popup-status" class="popup-status" hidden></div>

@@ -19,6 +19,15 @@ export const DEBUG_LOG_KEY = "flora_debug_log";
  */
 export const MAX_LOG_ENTRIES = 800;
 
+/** Entries older than this are dropped: the log records which sites were visited. */
+export const MAX_LOG_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function withinAge(entries: DebugLogEntry[]): DebugLogEntry[] {
+  const cutoff = Date.now() - MAX_LOG_AGE_MS;
+  const first = entries.findIndex((entry) => entry.t >= cutoff);
+  return first === -1 ? [] : first === 0 ? entries : entries.slice(first);
+}
+
 /** Debounce on persistence so a burst of entries costs one storage write. */
 const PERSIST_DELAY_MS = 500;
 
@@ -31,7 +40,7 @@ function readStored(): Promise<DebugLogEntry[]> {
     .get(DEBUG_LOG_KEY)
     .then((raw) => {
       const stored = raw?.[DEBUG_LOG_KEY];
-      return Array.isArray(stored) ? (stored as DebugLogEntry[]) : [];
+      return Array.isArray(stored) ? withinAge(stored as DebugLogEntry[]) : [];
     })
     .catch(() => []);
 }
@@ -71,12 +80,14 @@ export async function appendDebugEntries(entries: DebugLogEntry[]): Promise<void
   const log = await load();
   log.push(...entries);
   if (log.length > MAX_LOG_ENTRIES) log.splice(0, log.length - MAX_LOG_ENTRIES);
+  const fresh = withinAge(log);
+  if (fresh !== log) log.splice(0, log.length - fresh.length);
   schedulePersist();
 }
 
 /** Read the full captured log, oldest first. */
 export async function readDebugLog(): Promise<DebugLogEntry[]> {
-  if (buffer) return [...buffer];
+  if (buffer) return withinAge([...buffer]);
   return readStored();
 }
 

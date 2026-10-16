@@ -8,9 +8,12 @@
 
 const BLACKLIST_KEY = "flora_blocked_domains";
 const SNOOZE_KEY = "flora_snoozed_domains";
+const DISABLED_SITES_KEY = "flora_disabled_sites";
 import { debugError } from "./debug";
+import { DEFAULT_DISABLED_SITES } from "./site-categories-off";
 let cachedBlockedDomains: string[] | null = null;
 let cachedSnoozes: Record<string, number> | null = null;
+let cachedDisabledSites: string[] | null = null;
 let domainListenerInstalled = false;
 
 function installDomainInvalidation(): void {
@@ -23,6 +26,9 @@ function installDomainInvalidation(): void {
       }
       if (area === "local" && changes[SNOOZE_KEY]) {
         cachedSnoozes = (changes[SNOOZE_KEY].newValue as Record<string, number> | undefined) ?? {};
+      }
+      if (area === "sync" && changes[DISABLED_SITES_KEY]) {
+        cachedDisabledSites = (changes[DISABLED_SITES_KEY].newValue as string[] | undefined) ?? [...DEFAULT_DISABLED_SITES];
       }
     });
   } catch {
@@ -53,6 +59,51 @@ export async function saveBlockedDomains(domains: string[]): Promise<void> {
 }
 
 /**
+ * Sites from the category catalog (site-categories.ts) the user has switched
+ * off. Until they choose, the off-by-default categories apply.
+ */
+export async function getDisabledSites(): Promise<string[]> {
+  installDomainInvalidation();
+  if (cachedDisabledSites) return cachedDisabledSites;
+  try {
+    const raw = await chrome.storage.sync.get(DISABLED_SITES_KEY);
+    cachedDisabledSites = (raw[DISABLED_SITES_KEY] as string[] | undefined) ?? [...DEFAULT_DISABLED_SITES];
+  } catch (err) {
+    debugError("Disabled sites: read failed — every catalog site will be treated as allowed:", err);
+    cachedDisabledSites = [];
+  }
+  return cachedDisabledSites;
+}
+
+export async function saveDisabledSites(domains: string[]): Promise<void> {
+  cachedDisabledSites = domains;
+  await chrome.storage.sync.set({ [DISABLED_SITES_KEY]: domains });
+}
+
+const CUSTOM_SITES_KEY = "flora_custom_sites";
+
+/** Domains the user added to the site picker themselves. */
+export async function getCustomSites(): Promise<string[]> {
+  try {
+    const raw = await chrome.storage.sync.get(CUSTOM_SITES_KEY);
+    return (raw[CUSTOM_SITES_KEY] as string[] | undefined) ?? [];
+  } catch (err) {
+    debugError("Custom sites: read failed —", err);
+    return [];
+  }
+}
+
+export async function saveCustomSites(domains: string[]): Promise<void> {
+  await chrome.storage.sync.set({ [CUSTOM_SITES_KEY]: domains });
+}
+
+/** Lower-cased bare host from what a user typed, or null when it is not a domain. */
+export function normaliseSiteInput(input: string): string | null {
+  const host = input.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/[/?#:].*$/, "").replace(/^www\./, "");
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(host) ? host : null;
+}
+
+/**
  * Check whether a hostname is blocked.
  *
  * Returns `true` if `hostname` equals a blocked domain or is a
@@ -60,13 +111,9 @@ export async function saveBlockedDomains(domains: string[]): Promise<void> {
  * `sub.example.com`).
  */
 export async function isDomainBlocked(hostname: string): Promise<boolean> {
-  const blocked = await getBlockedDomains();
+  const [blocked, disabled] = await Promise.all([getBlockedDomains(), getDisabledSites()]);
   const host = hostname.toLowerCase();
-
-  for (const domain of blocked) {
-    if (matchesDomain(host, domain)) return true;
-  }
-  return false;
+  return [...blocked, ...disabled].some((domain) => matchesDomain(host, domain));
 }
 
 /** Add a hostname to the blocked-domain list. */
@@ -203,7 +250,8 @@ export function onDomainPauseChange(
   recheckAt(current.snoozedUntil);
   try {
     chrome.storage.onChanged?.addListener((changes, area) => {
-      if (!(area === "sync" && changes[BLACKLIST_KEY]) && !(area === "local" && changes[SNOOZE_KEY])) return;
+      const blocklistChanged = area === "sync" && (changes[BLACKLIST_KEY] || changes[DISABLED_SITES_KEY]);
+      if (!blocklistChanged && !(area === "local" && changes[SNOOZE_KEY])) return;
       emit();
     });
   } catch {

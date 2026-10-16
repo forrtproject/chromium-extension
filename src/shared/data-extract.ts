@@ -1,8 +1,10 @@
 import {fetchWithDeadline} from "@shared/work-cancellation";
+import type {RegisteredReportMap} from "./registered-reports";
 import {debugError} from "./debug";
 
 export const RET_MAP_KEY = "RetractionLookupLocal";
 export const RET_COUNT_KEY = "flora_retraction_count";
+export const RET_SYNC_TIME_KEY = "synctime";
 
 export function retractionEntryCount(map: RetractionMaps | undefined): number {
     return map ? Object.keys(map.retractions || {}).length + Object.keys(map.concerns || {}).length : 0;
@@ -51,6 +53,32 @@ export async function fetchRetractionMap(): Promise<RetractionMaps | undefined> 
 export async function storageSync(): Promise<boolean> {
     const map = await fetchRetractionMap();
     if (!map) return false;
-    await chrome.storage.local.set({[RET_MAP_KEY]: map, [RET_COUNT_KEY]: retractionEntryCount(map), synctime: Date.now()});
+    await chrome.storage.local.set({[RET_MAP_KEY]: map, [RET_COUNT_KEY]: retractionEntryCount(map), [RET_SYNC_TIME_KEY]: Date.now()});
+    return true;
+}
+
+export const RR_MAP_KEY = "flora_rr_map";
+export const RR_SYNC_TIME_KEY = "flora_rr_synctime";
+
+const REGISTERED_REPORTS_JSON_URL =
+    'https://raw.githubusercontent.com/forrtproject/chromium-extension/main/src/registered-reports.json'
+
+export async function fetchRegisteredReportMap(): Promise<RegisteredReportMap | undefined> {
+    try {
+        const response = await fetchWithDeadline(REGISTERED_REPORTS_JSON_URL, {signal: null}, 60_000);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data && typeof data === 'object' && data.reports && typeof data.reports === 'object')
+            return data as RegisteredReportMap;
+        debugError("Registered Reports: unexpected data shape from", REGISTERED_REPORTS_JSON_URL);
+    } catch (error) {
+        debugError("Registered Reports: download failed —", error);
+    }
+}
+
+export async function registeredReportsSync(): Promise<boolean> {
+    const map = await fetchRegisteredReportMap();
+    if (!map) return false;
+    await chrome.storage.local.set({[RR_MAP_KEY]: map, [RR_SYNC_TIME_KEY]: Date.now()});
     return true;
 }

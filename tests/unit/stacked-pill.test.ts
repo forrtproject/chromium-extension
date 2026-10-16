@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
+import {deep} from "../helpers";
 
 vi.mock("../../src/shared/pubpeer-api", () => ({
     lookupPubPeerForDoi: vi.fn(() => new Promise(() => {})),
@@ -11,15 +12,15 @@ const A = "10.1234/first" as DoiString;
 const B = "10.1234/second" as DoiString;
 const HOOKS = {generation: () => 1};
 
-const face = (stack: HTMLElement) => stack.querySelector<HTMLElement>(":scope > [role=button]")!;
-const popover = (stack: HTMLElement) => stack.querySelector<HTMLElement>("[data-flora-popover]")!;
-const slides = (stack: HTMLElement) => [...stack.querySelectorAll<HTMLElement>("[data-flora-stack-slide]")];
+const face = (stack: HTMLElement) => deep(stack).querySelector<HTMLElement>(":scope > [role=button]")!;
+const popover = (stack: HTMLElement) => deep(stack).querySelector<HTMLElement>("[data-flora-popover]")!;
+const slides = (stack: HTMLElement) => deep(stack).querySelectorAll<HTMLElement>("[data-flora-stack-slide]");
 const shown = (stack: HTMLElement) =>
     [...stack.querySelectorAll<HTMLElement>("[data-flora-doi]")]
         .filter((p) => p.style.getPropertyValue("display") !== "none")
         .map((p) => p.getAttribute("data-flora-doi"));
 const pager = (stack: HTMLElement, label: string) =>
-    popover(stack).querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+    deep(popover(stack)).querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
 
 function build(): HTMLElement {
     const stack = createStackedIndicatorPill([{doi: A}, {doi: B}]);
@@ -33,8 +34,8 @@ describe("a reference with several DOIs gets one stacked pill", () => {
     it("shows one paper on the face, numbered within the stack", () => {
         const stack = build();
         expect(shown(stack)).toEqual([A]);
-        expect(stack.querySelector("[data-flora-doi-segment]")!.textContent).toContain("1/2");
-        expect(stack.querySelectorAll("[role=button]")).toHaveLength(1);
+        expect(deep(stack).querySelector("[data-flora-doi-segment]")!.textContent).toContain("1/2");
+        expect(deep(stack).querySelectorAll("[role=button]")).toHaveLength(1);
     });
 
     it("opens one popover with a page of rows per paper", () => {
@@ -42,7 +43,7 @@ describe("a reference with several DOIs gets one stacked pill", () => {
         face(stack).click();
         expect(popover(stack).style.display).toBe("flex");
         expect(slides(stack).map((s) => s.querySelector("[data-flora-doi-text]")!.textContent)).toEqual([A, B]);
-        expect(popover(stack).textContent).toContain("Paper 1 of 2");
+        expect(popover(stack).shadowRoot!.textContent).toContain("Paper 1 of 2");
     });
 
     it("pages between the papers and moves the face with them", () => {
@@ -51,7 +52,7 @@ describe("a reference with several DOIs gets one stacked pill", () => {
         expect(pager(stack, "Previous paper").disabled).toBe(true);
         pager(stack, "Next paper").click();
         expect(shown(stack)).toEqual([B]);
-        expect(popover(stack).textContent).toContain("Paper 2 of 2");
+        expect(popover(stack).shadowRoot!.textContent).toContain("Paper 2 of 2");
         expect(pager(stack, "Next paper").disabled).toBe(true);
         face(stack).dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowLeft", bubbles: true}));
         expect(shown(stack)).toEqual([A]);
@@ -67,7 +68,7 @@ describe("a reference with several DOIs gets one stacked pill", () => {
             next.click();
             vi.advanceTimersByTime(1000);
             expect(popover(stack).style.display).toBe("flex");
-            expect(document.activeElement).toBe(pager(stack, "Previous paper"));
+            expect(popover(stack).shadowRoot!.activeElement).toBe(pager(stack, "Previous paper"));
         } finally {
             vi.useRealTimers();
         }

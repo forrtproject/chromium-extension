@@ -6,7 +6,7 @@ function alertToast(): HTMLElement | null {
     return document.querySelector<HTMLElement>("[data-flora-tone]");
 }
 
-describe("toasts under debug mode", () => {
+describe("toast timing", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         document.body.innerHTML = "";
@@ -29,18 +29,17 @@ describe("toasts under debug mode", () => {
         expect(alertToast()).toBeNull();
     });
 
-    it("holds a toast until dismissed while debug logging is on", () => {
+    it("still fades an ordinary toast while debug mode is on", () => {
         setDebug(true);
         showToast("Checked 3 papers");
 
         vi.advanceTimersByTime(10_000);
 
-        expect(alertToast(), "debug mode must hold the toast").not.toBeNull();
+        expect(alertToast(), "only the progress toast is held in debug mode").toBeNull();
     });
 
-    it("gives a held toast a close button that dismisses it", () => {
-        setDebug(true);
-        showToast("Checked 3 papers");
+    it("gives a toast without a timeout a close button that dismisses it", () => {
+        showToast("Checked 3 papers", {duration: 0});
         vi.advanceTimersByTime(10_000);
 
         const close = alertToast()!.querySelector<HTMLElement>("[data-flora-toast-close]");
@@ -52,8 +51,7 @@ describe("toasts under debug mode", () => {
     });
 
     it("makes a held toast clickable, not pointer-events:none", () => {
-        setDebug(true);
-        showToast("Checked 3 papers");
+        showToast("Checked 3 papers", {duration: 0});
 
         expect(alertToast()!.style.pointerEvents).toBe("auto");
     });

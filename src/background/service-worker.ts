@@ -6,11 +6,12 @@ import {cancelWorkerRequest, runWorkerRequest, fetchWithDeadline} from "@shared/
 import {LocalCache, MONTH_MS} from "@shared/cache";
 import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
-import {RET_COUNT_KEY, RET_MAP_KEY, retractionEntryCount, storageSync, type RetractionMaps} from "@shared/data-extract";
+import {RET_COUNT_KEY, RET_MAP_KEY, RET_SYNC_TIME_KEY, RR_MAP_KEY, RR_SYNC_TIME_KEY, registeredReportsSync, retractionEntryCount, storageSync, type RetractionMaps} from "@shared/data-extract";
+import {getSettings} from "@shared/settings";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import type {RegisteredReport, RegisteredReportMap} from "@shared/registered-reports";
 import {LookupResponse, RetractionCheckResponse, RegisteredReportCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
-import {isLookupRequest, isRetractionCheckRequest, isRegisteredReportCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, type TakeReportResponse} from "@shared/messages";
+import {isLookupRequest, isRetractionCheckRequest, isRegisteredReportCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, isReferenceDataRequest, type TakeReportResponse, type ReferenceDataResponse, type ReferenceDataStatus} from "@shared/messages";
 import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
@@ -41,6 +42,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
         cachedRetractionSource = null;
         retractionSourceLoad = null;
     }
+    if (area === "local" && RR_MAP_KEY in changes) registeredReportsLoad = null;
 });
 
 // ── Toolbar icon: the manifest supplies the gray default. A tab whose content
@@ -160,7 +162,17 @@ function samePage(stored: TabError, url: string): boolean {
     return stored.pageKey === pageFingerprint(url);
 }
 
-async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Promise<void> {
+async function captureForReport(windowId: number | undefined): Promise<string | undefined> {
+    if (windowId == null || !(await getSettings()).attachScreenshot) return undefined;
+    try {
+        return await chrome.tabs.captureVisibleTab(windowId, {format: "png"});
+    } catch (err) {
+        debugWarn("Toolbar: screenshot capture failed —", err);
+        return undefined;
+    }
+}
+
+async function openTabErrorIssue(tabId: number, tabUrl: string | undefined, windowId?: number): Promise<void> {
     const key = TAB_ERROR_PREFIX + tabId;
     const raw = await chrome.storage.session.get(key).catch(() => ({})) as Record<string, TabError | undefined>;
     const stored = raw[key];
@@ -175,7 +187,7 @@ async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Pro
         const data = await collectDebugReport({ pageUrl: stored.pageUrl, error: stored.error });
         data.entries = mergeEntries(data.entries, stored.entries);
         url = issueUrl({ domain, report: data, error: stored.error }).url;
-        await stashReport(renderDebugReport(data));
+        await stashReport(renderDebugReport(data), await captureForReport(windowId));
     } catch (err) {
         debugError("Toolbar: building the error report failed —", err);
     }
@@ -183,7 +195,7 @@ async function openTabErrorIssue(tabId: number, tabUrl: string | undefined): Pro
 }
 
 chrome.action.onClicked.addListener((tab) => {
-    if (tab.id != null) void openTabErrorIssue(tab.id, tab.url);
+    if (tab.id != null) void openTabErrorIssue(tab.id, tab.url, tab.windowId);
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
@@ -208,11 +220,15 @@ chrome.runtime.onInstalled.addListener((details) => {
         chrome.tabs.create({ url: chrome.runtime.getURL("dist/walkthrough.html") });
     }
     syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
+    syncRegisteredReports().catch((err) => debugError("Registered Reports: sync failed —", err));
 });
 
-// Refresh retraction data once per browser session (weekly interval enforced inside).
 chrome.runtime.onStartup.addListener(() => {
-    syncRetractionsInfo().catch((err) => debugError("Retractions: sync failed —", err));
+    getSettings()
+        .then(({refreshDataOnStartup}) => refreshDataOnStartup
+            ? refreshReferenceData().then(() => {})
+            : Promise.all([syncRetractionsInfo(), syncRegisteredReports()]).then(() => {}))
+        .catch((err) => debugError("Reference data: startup sync failed —", err));
 });
 
 const RETRACTION_SYNC_ALARM = "flora-retraction-sync";
@@ -225,6 +241,7 @@ async function ensureRetractionSyncAlarm(): Promise<void> {
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === RETRACTION_SYNC_ALARM) {
         syncRetractionsInfo().catch((err) => debugError("Retractions: scheduled sync failed —", err));
+        syncRegisteredReports().catch((err) => debugError("Registered Reports: scheduled sync failed —", err));
     }
 });
 
@@ -269,14 +286,14 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (isStashReportRequest(message)) {
-            stashReport(message.report).then(() => sendResponse({ok: true}));
+            stashReport(message.report, message.screenshot).then(() => sendResponse({ok: true}));
             return true;
         }
 
         if (isTakeReportRequest(message)) {
             takeReport(message.type === "FLORA_TAKE_REPORT")
-                .then((report) =>
-                    sendResponse({type: "FLORA_TAKE_REPORT_RESULT", report} satisfies TakeReportResponse)
+                .then((pending) =>
+                    sendResponse({type: "FLORA_TAKE_REPORT_RESULT", report: pending?.report ?? null, screenshot: pending?.screenshot ?? null} satisfies TakeReportResponse)
                 )
                 .catch(() =>
                     sendResponse({type: "FLORA_TAKE_REPORT_RESULT", report: null} satisfies TakeReportResponse)
@@ -321,6 +338,19 @@ chrome.runtime.onMessage.addListener(
                         error: "Service worker error",
                     } satisfies RetractionCheckResponse)
                 );
+            return true;
+        }
+
+        if (isReferenceDataRequest(message)) {
+            const work = message.type === "FLORA_REFRESH_DATA"
+                ? refreshReferenceData()
+                : referenceDataStatus().then((status) => ({status, failed: undefined}));
+            work.then(({status, failed}) =>
+                sendResponse({type: "FLORA_DATA_STATUS_RESULT", status, failed} satisfies ReferenceDataResponse))
+                .catch((err) => {
+                    debugError("Reference data: status request failed —", err);
+                    sendResponse(undefined);
+                });
             return true;
         }
 
@@ -465,10 +495,10 @@ const PENDING_REPORT_KEY = "flora_pending_report";
  */
 const PENDING_REPORT_TTL_MS = 15 * 60 * 1000;
 
-async function stashReport(report: string): Promise<void> {
+async function stashReport(report: string, screenshot?: string): Promise<void> {
     try {
         await chrome.storage.session.set({
-            [PENDING_REPORT_KEY]: {report, createdAt: Date.now()},
+            [PENDING_REPORT_KEY]: {report, screenshot, createdAt: Date.now()},
         });
     } catch (err) {
         // The report is still on the clipboard; only the autofill handoff is lost.
@@ -481,16 +511,16 @@ async function stashReport(report: string): Promise<void> {
  * asks "is one waiting?" so a failed autofill can say so without throwing the
  * report away.
  */
-async function takeReport(consume: boolean): Promise<string | null> {
+async function takeReport(consume: boolean): Promise<{report: string; screenshot: string | null} | null> {
     const raw = await chrome.storage.session.get(PENDING_REPORT_KEY);
     const pending = raw?.[PENDING_REPORT_KEY] as
-        | {report?: string; createdAt?: number}
+        | {report?: string; screenshot?: string; createdAt?: number}
         | undefined;
     if (!pending?.report) return null;
 
     const expired = Date.now() - (pending.createdAt ?? 0) > PENDING_REPORT_TTL_MS;
     if (consume || expired) await chrome.storage.session.remove(PENDING_REPORT_KEY);
-    return expired ? null : pending.report;
+    return expired ? null : {report: pending.report, screenshot: pending.screenshot ?? null};
 }
 
 async function handleLookup(dois: DoiString[], signal?: AbortSignal): Promise<LookupResponse> {
@@ -792,6 +822,13 @@ export function syncRetractionsInfo(mapMissing = false): Promise<void> {
     return syncInFlight;
 }
 
+async function forceRetractionSync(): Promise<boolean> {
+    await syncInFlight?.catch(() => {});
+    const done = withKeepAlive(storageSync());
+    syncInFlight = done.then(() => {}, () => {}).finally(() => { syncInFlight = null; });
+    return done;
+}
+
 // A missing map makes every check ask for a sync, so a download that keeps
 // failing must not be retried on each of them. The attempt time is held in
 // memory for the life of this worker and stored as well, because the worker
@@ -814,8 +851,8 @@ async function runRetractionSync(missingReported: boolean): Promise<void> {
     const currentTime = Date.now();
     const mapMissing = missingReported && retractionEntryCount(
         (await chrome.storage.local.get(RET_MAP_KEY))[RET_MAP_KEY] as RetractionMaps | undefined) === 0;
-    const previous = await chrome.storage.local.get(["synctime", RET_COUNT_KEY, SYNC_ATTEMPT_KEY]);
-    const lastSync = previous.synctime || 0;
+    const previous = await chrome.storage.local.get([RET_SYNC_TIME_KEY, RET_COUNT_KEY, SYNC_ATTEMPT_KEY]);
+    const lastSync = previous[RET_SYNC_TIME_KEY] || 0;
     const nextUpdate = lastSync + minInterval;
     if (mapMissing && previous[RET_COUNT_KEY] !== 0) {
         await chrome.storage.local.set({[RET_COUNT_KEY]: 0})
@@ -829,10 +866,14 @@ async function runRetractionSync(missingReported: boolean): Promise<void> {
     lastSyncAttemptAt = currentTime;
     await chrome.storage.local.set({[SYNC_ATTEMPT_KEY]: currentTime})
         .catch(err => debugWarn("Retraction sync: attempt time not stored —", err));
-    // Chrome stops a worker whose fetch response takes over 30 s; extension API calls reset that timer.
+    await withKeepAlive(storageSync());
+}
+
+// Chrome stops a worker whose fetch response takes over 30 s; extension API calls reset that timer.
+async function withKeepAlive<T>(work: Promise<T>): Promise<T> {
     const keepAlive = setInterval(() => { chrome.runtime.getPlatformInfo?.().catch(() => {}); }, 20_000);
     try {
-        await storageSync();
+        return await work;
     } finally {
         clearInterval(keepAlive);
     }
@@ -842,13 +883,20 @@ async function runRetractionSync(missingReported: boolean): Promise<void> {
 
 let registeredReportsLoad: Promise<Record<string, RegisteredReport>> | null = null;
 
+async function loadBundledRegisteredReports(): Promise<Record<string, RegisteredReport>> {
+    const response = await fetchWithDeadline(chrome.runtime.getURL("dist/registered-reports.json"), {signal: null});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json() as RegisteredReportMap;
+    if (!data?.reports || typeof data.reports !== "object") throw new Error("Unexpected data shape");
+    return data.reports;
+}
+
 function loadRegisteredReports(): Promise<Record<string, RegisteredReport>> {
     registeredReportsLoad ??= (async () => {
-        const response = await fetchWithDeadline(chrome.runtime.getURL("dist/registered-reports.json"), {signal: null});
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json() as RegisteredReportMap;
-        if (!data?.reports || typeof data.reports !== "object") throw new Error("Unexpected data shape");
-        return data.reports;
+        const raw = await chrome.storage.local.get(RR_MAP_KEY).catch(() => ({})) as Record<string, RegisteredReportMap | undefined>;
+        const stored = raw[RR_MAP_KEY];
+        if (stored?.reports && Object.keys(stored.reports).length > 0) return stored.reports;
+        return loadBundledRegisteredReports();
     })().catch((error) => {
         registeredReportsLoad = null;
         throw error;
@@ -861,7 +909,7 @@ async function handleRegisteredReportCheck(dois: DoiString[]): Promise<Registere
     try {
         reports = await loadRegisteredReports();
     } catch (error) {
-        debugError("Registered Reports: bundled data failed to load —", error);
+        debugError("Registered Reports: data failed to load —", error);
         return {type: "FLORA_RR_CHECK_RESULT", results: {}, error: "Registered Reports data unavailable"};
     }
     const results: Record<string, RegisteredReport> = {};
@@ -870,4 +918,45 @@ async function handleRegisteredReportCheck(dois: DoiString[]): Promise<Registere
         if (report) results[doi] = report;
     }
     return {type: "FLORA_RR_CHECK_RESULT", results};
+}
+
+const RR_SYNC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+let rrSyncInFlight: Promise<boolean> | null = null;
+
+function syncRegisteredReports(force = false): Promise<boolean> {
+    rrSyncInFlight ??= (async () => {
+        if (!force) {
+            const last = (await chrome.storage.local.get(RR_SYNC_TIME_KEY))[RR_SYNC_TIME_KEY];
+            if (typeof last === "number" && Date.now() - last < RR_SYNC_INTERVAL_MS) return true;
+        }
+        return withKeepAlive(registeredReportsSync());
+    })().finally(() => { rrSyncInFlight = null; });
+    return rrSyncInFlight;
+}
+
+const timeOrNull = (value: unknown): number | null => typeof value === "number" ? value : null;
+
+async function referenceDataStatus(): Promise<ReferenceDataStatus> {
+    const stored = await chrome.storage.local.get([RET_COUNT_KEY, RET_SYNC_TIME_KEY, RR_SYNC_TIME_KEY]);
+    const reports = await loadRegisteredReports().catch(() => ({}));
+    const retractionCount = typeof stored[RET_COUNT_KEY] === "number"
+        ? stored[RET_COUNT_KEY] as number
+        : retractionEntryCount(await getRetractionSource().catch(() => undefined));
+    return {
+        retractions: {count: retractionCount, updatedAt: timeOrNull(stored[RET_SYNC_TIME_KEY])},
+        registeredReports: {count: Object.keys(reports).length, updatedAt: timeOrNull(stored[RR_SYNC_TIME_KEY])},
+    };
+}
+
+async function refreshReferenceData(): Promise<{status: ReferenceDataStatus; failed: Array<keyof ReferenceDataStatus>}> {
+    debugLog("Reference data: refreshing retractions and Registered Reports");
+    const [retractions, registeredReports] = await Promise.all([
+        forceRetractionSync().catch(() => false),
+        syncRegisteredReports(true).catch(() => false),
+    ]);
+    const failed: Array<keyof ReferenceDataStatus> = [];
+    if (!retractions) failed.push("retractions");
+    if (!registeredReports) failed.push("registeredReports");
+    if (failed.length) debugWarn(`Reference data: refresh failed for ${failed.join(", ")}`);
+    return {status: await referenceDataStatus(), failed};
 }

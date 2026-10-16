@@ -1,9 +1,13 @@
 /**
- * Debug logger — gated by a flag in chrome.storage.local.
+ * Debug logger.
  *
- * When debug mode is on, every debugLog/Warn/Error call is both printed to the
- * console and captured into a persistent log the user can attach to an issue
- * report (see debug-log.ts for the store and debug-report.ts for the report).
+ * Warnings and errors are always captured into a persistent log the user can
+ * attach to an issue report (see debug-log.ts for the store and debug-report.ts
+ * for the report). Routine debugLog lines join them only while debug mode is on
+ * or in a testing build. Every line is also
+ * kept in a short in-memory tail, so a report from a page still has context.
+ * Debug mode, a flag in chrome.storage.local, also adds the on-page progress
+ * toast and console output.
  *
  * Capture is deliberately one-way: contexts that can't own the store (content
  * scripts, popup, options) batch their entries and ship them to the service
@@ -37,6 +41,13 @@ export interface RuntimeErrorInfo {
 export type RuntimeErrorListener = (info: RuntimeErrorInfo) => void;
 
 export const DEBUG_FLAG_KEY = "flora_debug";
+
+declare const __ORE_FULL_LOG__: boolean | undefined;
+
+/** Testing builds keep every line; the release workflow builds with this off. */
+export function isFullLogBuild(): boolean {
+  return typeof __ORE_FULL_LOG__ !== "undefined" && __ORE_FULL_LOG__ === true;
+}
 
 /** Longest single captured message; anything beyond this is truncated. */
 const MAX_MESSAGE_CHARS = 2000;
@@ -158,7 +169,7 @@ function capture(level: DebugLevel, args: unknown[]): void {
   recent.push(entry);
   if (recent.length > RECENT_LIMIT) recent.shift();
 
-  if (!_enabled) return;
+  if (level === "log" && !isDetailedLogging()) return;
   pending.push(entry);
 
   if (pending.length >= FLUSH_AT_ENTRIES) {
@@ -319,14 +330,19 @@ export function isDebugEnabled(): boolean {
   return _enabled;
 }
 
+/** Whether routine lines are being stored, not just warnings and errors. */
+export function isDetailedLogging(): boolean {
+  return _enabled || isFullLogBuild();
+}
+
 /** Ship any buffered entries now (e.g. before a popup closes). */
 export function flushDebugLog(): void {
   flush();
 }
 
 export function debugLog(...args: unknown[]): void {
-  if (!_enabled) return;
   capture("log", args);
+  if (!_enabled) return;
   console.log("[FLoRA]", ...args);
 }
 

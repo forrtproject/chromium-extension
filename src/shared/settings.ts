@@ -22,6 +22,10 @@ export interface FloraSettings {
    * each pass so the log for a slow or wrong pass is one click away.
    */
   offerLogCopyAfterPass: boolean;
+  /** Re-download the retraction and Registered Reports data every time the browser starts. */
+  refreshDataOnStartup: boolean;
+  /** Opted in to attaching a screenshot of the page to issue reports. */
+  attachScreenshot: boolean;
 }
 
 /** Floor for a non-zero cache budget, so a sweep can never squeeze out the
@@ -40,6 +44,8 @@ const DEFAULTS: FloraSettings = {
   citationStyle: "apa",
   cacheQuotaMb: 50,
   offerLogCopyAfterPass: false,
+  refreshDataOnStartup: false,
+  attachScreenshot: false,
 };
 
 let cachedSettings: FloraSettings | null = null;

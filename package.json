@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsx esbuild.config.ts",
+    "build:release": "tsx esbuild.config.ts --release",
     "watch": "tsx esbuild.config.ts --watch",
     "test": "vitest run",
     "test:watch": "vitest",

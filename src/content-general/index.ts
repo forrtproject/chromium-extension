@@ -42,7 +42,7 @@ import {
 import {resetWorkSummary} from "@shared/progress-toast";
 import {lookupPubPeer, lookupPubPeerForDois, pubPeerVerdict, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {setScanSummarySource, type ScanSummary} from "@shared/toolbar-scan";
-import {debugError, debugLog, debugWarn} from "@shared/debug";
+import {debugError, debugLog, debugWarn, recentDebugEntries} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isOwnRepoUrl} from "@shared/debug-report";
 import {isSetupComplete} from "@shared/settings";
@@ -68,9 +68,13 @@ import {startDomListener} from "./dom-listener";
 import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {isExcelOnline, startExcelOnline, excelOnlineText, excelWorkbookKey, excelContentRevision} from "@shared/excel-online";
 import {injectLooseDoiPills, resetLooseDoiPills} from "./loose-dois";
+import {maybeOfferFeedback} from "@shared/feedback-prompt";
 import {hasReplication, lookUpMissingReferenceStates, ResolvedReferences} from "./reference-states";
 
 const pageState = new Map<DoiString, LookupState>();
+// PubPeer answers gathered before pills are drawn, so a pill's face is final when it appears.
+const knownPubPeer = new Map<DoiString, PubPeerFeedback | null>();
+const PILL_DATA_WAIT_MS = 3000;
 // Retraction notices for the page: `pageNotices` is replaced by each check of
 // the page's own DOIs, `refNotices` accumulates those of resolved references
 // (whose DOIs are not on the page), and `redacts` is the union everyone reads.
@@ -171,6 +175,8 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         sendResponse({ok: true});
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({hidden: floraHidden});
+    } else if (type === "FLORA_GET_RECENT_LOG") {
+        if (window === window.top) sendResponse({entries: recentDebugEntries()});
     } else if (type === "FLORA_START_PAGE_TOUR") {
         const started = pageTourAllowed() && startPageTour("article");
         // Every frame, and content-search on its own pages, hears this; only the page's owner should answer.
@@ -293,6 +299,24 @@ async function primaryDoiFastPath(): Promise<void> {
     } finally {
         endWorkIndicator();
     }
+}
+
+async function prefetchPubPeer(dois: DoiString[]): Promise<void> {
+    const missing = [...new Set(dois)].filter((doi) => !knownPubPeer.has(doi));
+    if (missing.length === 0) return;
+    const unavailable = new Set<string>();
+    const lookup = lookupPubPeerForDois(missing, unavailable)
+        .then((found) => {
+            for (const doi of missing) if (!unavailable.has(doi)) knownPubPeer.set(doi, found.get(doi) ?? null);
+        })
+        .catch((err) => debugWarn(`PubPeer: prefetch for ${missing.length} pill(s) failed —`, err));
+    await Promise.race([lookup, new Promise((resolve) => setTimeout(resolve, PILL_DATA_WAIT_MS))]);
+}
+
+function looseAndTitleDois(dois: DoiString[]): DoiString[] {
+    const primary = extractPrimaryDOI(document);
+    const loose = dois.filter((doi) => doiContext.get(doi) === "other");
+    return primary ? [primary, ...loose] : loose;
 }
 
 function whenIdle(fn: () => void, timeout = 1000): void {
@@ -459,6 +483,7 @@ function syncPageNavigation(): void {
     lastReferenceDoiKey = "";
     lastRenderedPageStateVersion = -1;
     pageState.clear();
+    knownPubPeer.clear();
     redacts = [];
     pageNotices = [];
     refNotices.clear();
@@ -596,23 +621,11 @@ async function runScanPass(): Promise<void> {
         }
         pageNotices = notices;
         refreshRedacts();
-        if (!isSheets) {
-            placeTitleIndicatorPill();
-            repaintBadges();
-        }
+        if (!isSheets) repaintBadges();
         injectInlineRetractionPills(
             pageOccurrences,
             new Map(redacts.map((r) => [r.originDoi, r] as const)),
         );
-    }
-    if (!isSheets) {
-        injectLooseDoiPills({
-            occurrences: pageOccurrences,
-            primary: extractPrimaryDOI(document),
-            context: doiContext,
-            pageState,
-            noticed: new Set(redacts.map((r) => r.originDoi)),
-        });
     }
     const refsDone = finishReferences(refsPromise);
 
@@ -641,6 +654,7 @@ async function runScanPass(): Promise<void> {
             context: doiContext,
             pageState,
             noticed: new Set(redacts.map((r) => r.originDoi)),
+            pubpeer: knownPubPeer,
         });
         if (!isSheets) repaintBadges();
         if (!isSheets) void checkPubPeer(refsDone);
@@ -752,6 +766,8 @@ async function runScanPass(): Promise<void> {
 
             // Merged indicator pills (skip on Google Sheets — modal only).
             if (!isSheets) {
+                await prefetchPubPeer(looseAndTitleDois(dois));
+                if (pageChanged() || floraHidden || isWorkCancelled()) return;
                 placeTitleIndicatorPill();
                 injectLooseDoiPills({
                     occurrences: pageOccurrences,
@@ -759,8 +775,10 @@ async function runScanPass(): Promise<void> {
                     context: doiContext,
                     pageState,
                     noticed: new Set(redacts.map((r) => r.originDoi)),
+                    pubpeer: knownPubPeer,
                 });
                 repaintBadges();
+                if (document.querySelector(`.${INDICATOR_PILL_CLASS}`)) void maybeOfferFeedback(() => !floraHidden && pageTourAllowed());
                 const flagged = matched.length > 0 || redacts.length > 0;
                 if (refsPending > 0) {
                     // Verdict waits for the references still being resolved.
@@ -839,8 +857,17 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
                     notices = checked;
                     for (const n of notices) refNotices.set(n.originDoi, n);
                     refreshRedacts();
+                    const refDois = [...new Set(resolvedRefs.map((r) => r.doi))];
+                    const abandoned = () => stale() || floraHidden || isWorkCancelled();
+                    const looked = await lookUpReferenceStates(refDois, abandoned);
+                    if (looked) await prefetchPubPeer(refDois);
+                    if (stale()) return [];
+                    if (!looked || floraHidden || isWorkCancelled()) {
+                        releaseReferenceEntries(resolvedRefs);
+                        return [];
+                    }
                     reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
-                    renderResolvedReferences(resolvedRefs, new Map(redacts.map((r) => [r.originDoi, r] as const)), pageState);
+                    renderResolvedReferences(resolvedRefs, new Map(redacts.map((r) => [r.originDoi, r] as const)), pageState, knownPubPeer);
                     if (!isSheets) repaintBadges();
                 } catch (err) {
                     if (stale()) return [];
@@ -893,6 +920,7 @@ function placeTitleIndicatorPill(): void {
     const pill = createIndicatorPill({
         doi: primaryDoi,
         oaStatus: fetchOpenAccess(primaryDoi),
+        pubpeer: knownPubPeer.get(primaryDoi),
         retraction,
         replicationsCount: stats?.n_replications_total ?? null,
         reproductionsCount: stats?.n_reproductions_total ?? null,
@@ -959,7 +987,7 @@ async function augmentFromTitle(): Promise<void> {
         }]);
         if (stale()) return;
         resolvedDoi = augmented.get(pageTitle) ?? undefined;
-        debugLog("Title augmentation:", resolvedDoi ? `resolved to ${resolvedDoi}` : "no match", `(title: "${pageTitle}")`);
+        debugLog("Title augmentation:", resolvedDoi ? `resolved to ${resolvedDoi}` : "no match");
         if (resolvedDoi) {
             processedDois.add(resolvedDoi);
             const request: LookupRequest = {
@@ -986,11 +1014,18 @@ async function augmentFromTitle(): Promise<void> {
                 try {
                     const notices = await checkPageRetractions([resolvedDoi]);
                     if (!notices || stale()) return;
+                    await prefetchPubPeer([resolvedDoi]);
+                    if (stale()) return;
                     // Same marker as placeTitleIndicatorPill so neither path double-pills.
+                    const state = pageState.get(resolvedDoi);
+                    const stats = state?.status === "matched" ? state.result.record.stats : null;
                     const pill = createIndicatorPill({
                         doi: resolvedDoi,
                         oaStatus: fetchOpenAccess(resolvedDoi),
+                        pubpeer: knownPubPeer.get(resolvedDoi),
                         retraction: notices[0] ?? null,
+                        replicationsCount: stats?.n_replications_total ?? null,
+                        reproductionsCount: stats?.n_reproductions_total ?? null,
                     });
                     insertTitlePill(pill, titleEl);
                 } catch (err) {
@@ -999,7 +1034,7 @@ async function augmentFromTitle(): Promise<void> {
             }
         }
     } catch (err) {
-        debugWarn(`Title augmentation failed for "${pageTitle}" —`, err);
+        debugWarn("Title augmentation failed —", err);
         if (resolvedDoi && !stale()) {
             pageState.set(resolvedDoi, {status: "error", message: err instanceof Error ? err.message : String(err)});
             pageStateVersion++;

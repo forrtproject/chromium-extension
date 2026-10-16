@@ -3,6 +3,8 @@ import {
   _resetDebugForTesting,
   debugError,
   debugLog,
+  debugWarn,
+  isFullLogBuild,
   recentDebugEntries,
   flushDebugLog,
   isDebugEnabled,
@@ -18,6 +20,7 @@ import {
   installDebugLogStore,
   readDebugLog,
   DEBUG_LOG_KEY,
+  MAX_LOG_AGE_MS,
 } from "@shared/debug-log";
 import {
   REPORT_PLACEHOLDER,
@@ -34,8 +37,10 @@ import { _resetSettingsCacheForTesting } from "@shared/settings";
 /** Backing store so local-storage reads see what the writes put there. */
 let localStore: Record<string, unknown> = {};
 
+const NOW = Date.now();
+
 function entry(msg: string, t = 0): DebugLogEntry {
-  return { t, level: "log", ctx: "test", msg };
+  return { t: NOW + t, level: "log", ctx: "test", msg };
 }
 
 beforeEach(() => {
@@ -70,15 +75,31 @@ afterEach(() => {
 });
 
 describe("debug capture", () => {
-  it("captures nothing while debug mode is off", () => {
+  it("stores only warnings and errors while debug mode is off, but remembers every line on the page", () => {
     const sink = vi.fn();
     setDebugSink(sink);
 
     debugLog("looked up 3 DOIs");
+    debugWarn("PubPeer rate limited");
     flushDebugLog();
 
     expect(isDebugEnabled()).toBe(false);
-    expect(sink).not.toHaveBeenCalled();
+    expect((sink.mock.calls[0][0] as DebugLogEntry[]).map((e) => e.msg)).toEqual(["PubPeer rate limited"]);
+    expect(recentDebugEntries().map((e) => e.msg)).toEqual(["looked up 3 DOIs", "PubPeer rate limited"]);
+  });
+
+  it("stores routine lines in a testing build", () => {
+    vi.stubGlobal("__ORE_FULL_LOG__", true);
+    try {
+      const sink = vi.fn();
+      setDebugSink(sink);
+      debugLog("testing build line");
+      flushDebugLog();
+      expect(isFullLogBuild()).toBe(true);
+      expect((sink.mock.calls[0][0] as DebugLogEntry[]).map((e) => e.msg)).toEqual(["testing build line"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("ships captured entries to the sink once debug mode is on", () => {
@@ -149,6 +170,15 @@ describe("debug capture", () => {
 });
 
 describe("debug log store", () => {
+  it("drops entries older than seven days", async () => {
+    localStore[DEBUG_LOG_KEY] = [
+      { t: Date.now() - MAX_LOG_AGE_MS - 60_000, level: "log", ctx: "old.example", msg: "last week" },
+      entry("today"),
+    ];
+    _resetDebugLogForTesting();
+    expect((await readDebugLog()).map((e) => e.msg)).toEqual(["today"]);
+  });
+
   it("persists appended entries and reads them back oldest first", async () => {
     vi.useFakeTimers();
     await appendDebugEntries([entry("first", 1), entry("second", 2)]);
@@ -333,7 +363,7 @@ describe("debug report", () => {
   });
 
   it("applies the report size limit after redacting legacy short addresses", () => {
-    const report = renderDebugReport({environment: [], settings: [], entries: Array.from({length: 30}, (_, i) => entry("a@b ".repeat(400), i))});
+    const report = renderDebugReport({environment: [], settings: [], entries: Array.from({length: 30}, (_, i) => entry(`${i} ${"a@b ".repeat(400)}`, i))});
     expect(report).not.toContain("a@b");
     expect(report.length).toBeLessThan(51000);
     expect(report).toContain("earlier entries trimmed");
@@ -352,7 +382,7 @@ describe("debug report", () => {
 
   it("tells the user how to produce a log when there isn't one", () => {
     const body = bodyOf(issueUrl({ domain: "example.com" }));
-    expect(body).toContain("debug mode");
+    expect(body).toContain("toolbar menu");
     expect(body).not.toContain(REPORT_START);
   });
 

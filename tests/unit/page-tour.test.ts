@@ -190,6 +190,23 @@ describe("the first-run tour", () => {
         expect(isPageTourOpen()).toBe(true);
     });
 
+    it("does not scroll a reader away from what they are reading", async () => {
+        vi.useFakeTimers();
+        await articlePage();
+        const offScreen = {top: 5000, bottom: 5020, left: 10, right: 200, width: 190, height: 20, x: 10, y: 5000, toJSON: () => ({})};
+        const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(offScreen as DOMRect);
+        try {
+            const {offerFirstPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
+            const offer = offerFirstPageTour("article", () => true);
+            await vi.advanceTimersByTimeAsync(2000);
+            await offer;
+            expect(isPageTourOpen()).toBe(false);
+            expect(store.flora_page_tour_seen).toBeUndefined();
+        } finally {
+            rect.mockRestore();
+        }
+    });
+
     it("stays away while ORE is hidden on the page", async () => {
         vi.useFakeTimers();
         await articlePage();

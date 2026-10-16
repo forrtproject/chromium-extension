@@ -1,5 +1,7 @@
 import { effectiveCacheQuotaMb, getSettings, MIN_CACHE_QUOTA_MB, saveSettings } from "../shared/settings";
 import { getBlockedDomains, saveBlockedDomains } from "../shared/domains";
+import { mountSiteCategoryPicker } from "../shared/site-category-picker";
+import { safeSendMessage, type ReferenceDataResponse, type ReferenceDataSetStatus, type ReferenceDataStatus } from "../shared/messages";
 import { CITATION_FORMATS, citationFormat, fetchCitation } from "../shared/citation";
 import {
   getHiddenCommenters,
@@ -131,6 +133,95 @@ cacheQuotaSaveBtn.addEventListener("click", async () => {
   } finally {
     cacheQuotaSaveBtn.disabled = false;
   }
+});
+
+// ── Reference data ──────────────────────────────────────────────────
+
+const dataRetractions = document.getElementById("data-retractions")!;
+const dataRegisteredReports = document.getElementById("data-registered-reports")!;
+const dataRefreshBtn = document.getElementById("data-refresh-btn") as HTMLButtonElement;
+const dataRefreshLabel = document.getElementById("data-refresh-label")!;
+const dataStartupToggle = document.getElementById("data-startup-toggle") as HTMLInputElement;
+const dataStatusMsg = document.getElementById("data-status-msg") as HTMLParagraphElement;
+
+function describeDataSet(set: ReferenceDataSetStatus): string {
+  const entries = `${set.count.toLocaleString()} ${set.count === 1 ? "entry" : "entries"}`;
+  if (set.updatedAt === null) return `${entries} · bundled with ORE`;
+  return `${entries} · updated ${new Date(set.updatedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
+}
+
+function showReferenceData(status: ReferenceDataStatus): void {
+  dataRetractions.textContent = describeDataSet(status.retractions);
+  dataRegisteredReports.textContent = describeDataSet(status.registeredReports);
+}
+
+function showDataStatus(msg: string, type: "success" | "error"): void {
+  dataStatusMsg.textContent = msg;
+  dataStatusMsg.className = `status domain-status ${type}`;
+  dataStatusMsg.hidden = false;
+  setTimeout(() => {
+    dataStatusMsg.hidden = true;
+  }, 5000);
+}
+
+const DATA_SET_NAMES: Record<keyof ReferenceDataStatus, string> = {
+  retractions: "retractions",
+  registeredReports: "Registered Reports",
+};
+
+safeSendMessage<ReferenceDataResponse>({ type: "FLORA_DATA_STATUS" }).then((response) => {
+  if (response?.status) showReferenceData(response.status);
+  else dataRetractions.textContent = dataRegisteredReports.textContent = "Unavailable";
+});
+
+getSettings().then(({ refreshDataOnStartup }) => {
+  dataStartupToggle.checked = refreshDataOnStartup;
+});
+
+dataStartupToggle.addEventListener("change", () => {
+  void saveSettings({ refreshDataOnStartup: dataStartupToggle.checked });
+  showDataStatus(
+    dataStartupToggle.checked
+      ? "Both lists will be downloaded each time the browser starts."
+      : "Both lists will be refreshed weekly.",
+    "success"
+  );
+});
+
+dataRefreshBtn.addEventListener("click", async () => {
+  dataRefreshBtn.disabled = true;
+  dataRefreshLabel.textContent = "Refreshing…";
+  try {
+    const response = await safeSendMessage<ReferenceDataResponse>({ type: "FLORA_REFRESH_DATA" });
+    if (!response?.status) {
+      showDataStatus("Couldn't reach ORE's background worker — try again.", "error");
+      return;
+    }
+    showReferenceData(response.status);
+    const failed = response.failed ?? [];
+    showDataStatus(
+      failed.length === 0
+        ? "Retractions and Registered Reports are up to date."
+        : `Couldn't download ${failed.map((key) => DATA_SET_NAMES[key]).join(" or ")} — the previous copy is still in use.`,
+      failed.length === 0 ? "success" : "error"
+    );
+  } finally {
+    dataRefreshBtn.disabled = false;
+    dataRefreshLabel.textContent = "Refresh now";
+  }
+});
+
+// ── Site categories ─────────────────────────────────────────────────
+
+const siteStatusMsg = document.getElementById("site-status-msg") as HTMLParagraphElement;
+
+mountSiteCategoryPicker(document.getElementById("site-categories") as HTMLDivElement, (msg) => {
+  siteStatusMsg.textContent = msg;
+  siteStatusMsg.className = "status domain-status success";
+  siteStatusMsg.hidden = false;
+  setTimeout(() => {
+    siteStatusMsg.hidden = true;
+  }, 3000);
 });
 
 // ── Domain blocklist ────────────────────────────────────────────────
@@ -328,7 +419,6 @@ const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
 const debugPreview = document.getElementById("debug-preview") as HTMLPreElement;
 const debugStatus = document.getElementById("debug-status") as HTMLParagraphElement;
 const debugReportBtn = document.getElementById("debug-report-btn") as HTMLButtonElement;
-const debugReportLabel = document.getElementById("debug-report-label")!;
 const debugCopyBtn = document.getElementById("debug-copy-btn") as HTMLButtonElement;
 const debugDownloadBtn = document.getElementById("debug-download-btn") as HTMLButtonElement;
 const debugRefreshBtn = document.getElementById("debug-refresh-btn") as HTMLButtonElement;
@@ -336,15 +426,6 @@ const debugClearBtn = document.getElementById("debug-clear-btn") as HTMLButtonEl
 
 /** Latest rendered report — what the copy/download/issue buttons act on. */
 let debugReport = "";
-
-function updateDebugUI(enabled: boolean): void {
-  debugToggle.checked = enabled;
-  debugPreview.hidden = !enabled;
-  for (const control of [debugCopyBtn, debugDownloadBtn, debugRefreshBtn, debugClearBtn]) {
-    control.hidden = !enabled;
-  }
-  debugReportLabel.textContent = enabled ? "Report an issue with this log" : "Report an issue";
-}
 
 function showDebugStatus(msg: string, type: "success" | "error"): void {
   debugStatus.textContent = msg;
@@ -375,18 +456,16 @@ async function copyDebugReport(): Promise<boolean> {
 }
 
 isDebugEnabledAsync().then((enabled) => {
-  updateDebugUI(enabled);
-  if (enabled) void refreshDebugReport();
+  debugToggle.checked = enabled;
 });
+void refreshDebugReport();
 
 debugToggle.addEventListener("change", () => {
   setDebug(debugToggle.checked);
-  updateDebugUI(debugToggle.checked);
-  if (debugToggle.checked) void refreshDebugReport();
   showDebugStatus(
     debugToggle.checked
-      ? "Debug mode on — reload the page that misbehaves, reproduce the problem, then come back and refresh the report."
-      : "Debug mode off. The log already captured is kept until you clear it.",
+      ? "Debug mode on — reload a page to see ORE's progress toast."
+      : "Debug mode off. Warnings and errors are still logged.",
     "success"
   );
 });
@@ -419,12 +498,6 @@ debugDownloadBtn.addEventListener("click", async () => {
 });
 
 debugReportBtn.addEventListener("click", async () => {
-  if (!debugToggle.checked) {
-    chrome.tabs.create({ url: issueUrl({}).url });
-    showDebugStatus("Opening a GitHub issue.", "success");
-    return;
-  }
-
   const data = await refreshDebugReport();
   const link = issueUrl({ report: data });
   const stashed = await stashIssueReport(debugReport);

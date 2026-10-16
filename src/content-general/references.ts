@@ -23,6 +23,7 @@ import {FLORA_UI_SELECTOR, REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {PILL_ROW_CLASS, pillRow} from "@shared/pill-row";
 import {LOOSE_PILL_ATTR} from "./loose-dois";
 import {deferredOpenAccess} from "@shared/openaccess";
+import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {count, reportWorkStage} from "@shared/progress-toast";
 import {debugLog, debugWarn} from "@shared/debug";
 import type {DoiString, LookupState} from "@shared/types";
@@ -277,6 +278,7 @@ export function renderResolvedReferences(
     resolved: ResolvedReference[],
     retractionByDoi: Map<DoiString, RetractionResponse>,
     pageState: ReadonlyMap<DoiString, LookupState>,
+    pubpeer: ReadonlyMap<DoiString, PubPeerFeedback | null> = new Map(),
 ): void {
     const adapter = currentSiteAdapter();
     const editor = isDocumentEditor();
@@ -290,6 +292,7 @@ export function renderResolvedReferences(
             isAugmented: mode === "augment",
             provenanceLabel: mode === "pmc" ? "Matched by PMC ID" : undefined,
             oaStatus: deferredOpenAccess(doi),
+            pubpeer: pubpeer.get(doi),
             retraction: retractionByDoi.get(doi) ?? null,
             replicationsCount: stats?.n_replications_total ?? null,
             reproductionsCount: stats?.n_reproductions_total ?? null,

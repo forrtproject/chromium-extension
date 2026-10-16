@@ -48,12 +48,14 @@ function lastListener<T>(spy: unknown): T {
     return (spy as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0] as T;
 }
 
+const LOG_TIME = Date.now() - 60_000;
+
 const errorState = {
     phase: "error",
     pageUrl: "https://example.org/paper?id=1",
     pageKey: pageFingerprint("https://example.org/paper?id=1"),
     error: {message: "TypeError: boom", where: "scan"},
-    entries: [{t: 1, level: "error", ctx: "example.org", msg: "kaboom"}],
+    entries: [{t: LOG_TIME + 1, level: "error", ctx: "example.org", msg: "kaboom"}],
 };
 
 describe("the toolbar reflects scan progress and results", () => {
@@ -288,7 +290,7 @@ describe("the toolbar reflects scan progress and results", () => {
         });
 
         describe("the report's log entries", () => {
-            const worker = {t: 5, level: "log", ctx: "background", msg: "worker line"};
+            const worker = {t: LOG_TIME + 5, level: "log", ctx: "background", msg: "worker line"};
 
             afterEach(() => { (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({}); });
 
