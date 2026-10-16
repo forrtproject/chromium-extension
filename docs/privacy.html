@@ -33,7 +33,7 @@
     <main class="prose">
       <h1>Privacy Policy</h1>
       <p class="updated">
-        FORRT ORE — Open Research Extension · Last updated 7 October 2026
+        FORRT ORE — Open Research Extension · Last updated 16 October 2026
       </p>
 
       <p>
@@ -54,9 +54,9 @@
           that page goes to PubPeer with the comment lookup for the paper.
           Retraction checks happen entirely on your own device. When the
           Extension offers a link to a long list of papers in the Replication
-          Atlas, that list is stored encrypted under a key that exists only
-          inside the link — FORRT's database never holds the key, so FORRT
-          cannot read the list back from it.
+          Atlas, that list is encrypted on your device before it is stored, under
+          a key that exists only inside the link — FORRT never receives the key,
+          so FORRT cannot read the list.
         </p>
       </div>
 
@@ -112,8 +112,9 @@
           is too long to travel inside the link itself. The Extension sends it to
           FORRT's replication API as soon as the page summary showing the link
           appears, so the link is ready to open; you do not have to click it for
-          the list to be sent. The API encrypts the list and returns a short link.
-          The list is not sent for ordinary lookups, and a short list travels in
+          the list to be sent. The Extension encrypts the list on your device
+          first, so what reaches FORRT is unreadable, and the API returns a short
+          link. The list is not sent for ordinary lookups, and a short list travels in
           the link with no copy stored anywhere. What
           the list reveals is which papers you grouped together, which is why it is
           stored the way section 11 describes.
@@ -195,7 +196,7 @@
         <tbody>
           <tr>
             <td>FORRT replication API (<code>rep-api.forrt.org</code>)</td>
-            <td>DOIs, in batches; DOI lists for long Atlas links, encrypted before they are stored</td>
+            <td>DOIs, in batches; DOI lists for long Atlas links, encrypted on your device before they are sent</td>
             <td>Replication and reproduction records; storing DOI sets referenced by a shorter Atlas link</td>
           </tr>
           <tr>
@@ -309,10 +310,10 @@
           <strong>FORRT API requests</strong> retrieve evidence for the submitted
           DOIs. DOI sets created for long Atlas links are stored by FORRT so
           those links can retrieve the list later; they are separate from the
-          lookup cache on your device. Each set is encrypted before it is stored,
-          under a key generated for that set alone and kept only inside the Atlas
-          link — FORRT's database never holds the key, so FORRT cannot read the
-          DOI list back from it. Anyone you give the link to can, so treat it as
+          lookup cache on your device. Each set is encrypted on your device before
+          it is sent, under a key generated for that set alone and kept only inside
+          the Atlas link — FORRT never receives the key, so FORRT cannot read the
+          DOI list. Anyone you give the link to can, so treat it as
           you would the list itself. A set expires 30 days after it is created,
           after which its link no longer opens it, and the encrypted record is
           then deleted automatically, usually within a few days; clearing
@@ -394,31 +395,28 @@
         browser's own security model.
       </p>
       <p>
-        <strong>DOI sets are encrypted at rest.</strong> When the Extension stores a
-        list of papers for a long Atlas link, FORRT's API generates a fresh 256-bit
-        key for that one list, encrypts it with AES-256-GCM, and writes only the
-        ciphertext to its database. The key is not kept: it is handed back as part of
-        the link, and the server can decrypt the list only when someone opens that
-        link and supplies it. A copy of the database on its own — a backup, a
-        snapshot, a misdirected export — decrypts to nothing. Because the encryption
-        is authenticated, a record altered in storage is rejected rather than served.
-        Each list has its own key, so one link that leaks exposes one list.
+        <strong>DOI sets are encrypted on your device.</strong> When the Extension
+        stores a list of papers for a long Atlas link, it generates a fresh 256-bit
+        key for that one list in your browser, encrypts the list with AES-256-GCM,
+        and sends FORRT only the result. FORRT stores that ciphertext and returns a
+        short identifier; the Extension adds the key to the link itself. When the
+        link is opened, the Atlas page fetches the ciphertext and decrypts it in the
+        reader's browser. Because the encryption is authenticated, a record altered
+        in storage is rejected rather than shown. Each list has its own key, so one
+        link that leaks exposes one list.
       </p>
       <p>
-        To be precise about what this does and does not protect: the list does pass
-        through FORRT's servers in readable form at the two moments it has to — when
-        the link is created and each time one is opened — and the API writes neither
-        the list nor the key to its logs.
-        What the encryption protects is the stored copy sitting between those moments,
-        which is the copy that is kept until the set expires and the one most likely to outlive
-        your interest in it.
+        FORRT never receives the key or the list in readable form — not when the
+        link is created and not when it is opened. The key sits in the part of the
+        link after the <code>#</code>, which browsers keep to themselves and do not
+        send to any server, including the forrt.org server that hosts the Atlas page.
+        FORRT's database, its logs and its servers hold only ciphertext they have no
+        way to decrypt.
       </p>
       <p>
-        The key travels in the link's address, which points to the Atlas page on
-        forrt.org, so the web server hosting that page receives it with every
-        visit, as it does any web address. Treat an Atlas set link like a password:
-        anyone who has the whole link can read the list until it expires, while the
-        short identifier before the dot, without the key after it, reads nothing.
+        Treat an Atlas set link like a password: anyone who has the whole link can
+        read the list until it expires, while the short identifier without the key
+        reads nothing.
       </p>
       <p>
         The Extension requests only the browser permissions it needs — storage,

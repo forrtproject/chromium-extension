@@ -11,6 +11,19 @@ describe("redacting DOI-set keys", () => {
     );
   });
 
+  it("catches the key in an Atlas link's fragment", () => {
+    const out = redactDebugText(
+      `Navigating to https://forrt.org/flora-replication-atlas/?set=d7dbaac1#k=${KEY}`
+    );
+    expect(out).not.toContain(KEY);
+    expect(out).toContain("?set=d7dbaac1#k=[redacted key]");
+  });
+
+  it("catches a fragment key that was encoded into another URL", () => {
+    const out = redactDebugText(`https://example.org/?next=%3Fset%3Dd7dbaac1%23k%3D${KEY}`);
+    expect(out).not.toContain(KEY);
+  });
+
   it("catches a token riding inside an Atlas URL", () => {
     const out = redactDebugText(
       `Navigating to https://forrt.org/flora-replication-atlas/?set=${TOKEN}`
