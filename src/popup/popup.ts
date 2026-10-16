@@ -7,7 +7,7 @@ import {
   snoozeDomain,
 } from "../shared/domains";
 import {SNOOZE_CHOICES, formatSnoozeEnd} from "../shared/snooze-durations";
-import { debugError, debugWarn, isDebugEnabledAsync, setDebug } from "../shared/debug";
+import { debugError, debugWarn, isDebugEnabledAsync, setDebug, type DebugLogEntry } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 import { getSettings, saveSettings } from "../shared/settings";
 
@@ -24,11 +24,12 @@ const pageTourBtn = document.getElementById("page-tour-btn")!;
 const tourBtn = document.getElementById("tour-btn")!;
 const optionsBtn = document.getElementById("options-btn")!;
 const reportBtn = document.getElementById("report-btn")!;
-const reportLabel = document.getElementById("report-btn-label")!;
 const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
 const debugHint = document.getElementById("debug-hint")!;
 const logCopyRow = document.getElementById("log-copy-row")!;
 const logCopyToggle = document.getElementById("log-copy-toggle") as HTMLInputElement;
+const screenshotRow = document.getElementById("screenshot-row")!;
+const screenshotToggle = document.getElementById("screenshot-toggle") as HTMLInputElement;
 const statusEl = document.getElementById("popup-status")!;
 const versionEl = document.getElementById("popup-version")!;
 
@@ -42,6 +43,7 @@ let snoozedUntil: number | null = null;
 let hidden = false;
 let debugOn = false;
 let activeTabId: number | undefined;
+let activeWindowId: number | undefined;
 
 reportBtn.style.display = "none";
 
@@ -124,18 +126,17 @@ function updateHideUI(): void {
 function updateDebugUI(): void {
   debugToggle.checked = debugOn;
   debugHint.textContent = debugOn
-    ? "Recording. Reload the page, reproduce the problem, then report the issue — the log is filled into the GitHub form for you."
-    : "Turn this on, reload the page and reproduce the problem — then report the issue and the log comes with it.";
-  reportLabel.textContent = debugOn
-    ? "Report an issue with debug log"
-    : "Report an issue on this domain";
+    ? "On. Reload the page to see ORE's progress and record a detailed log."
+    : "Turn on to see ORE's progress on each page and send a detailed log with issue reports.";
   logCopyRow.hidden = !debugOn;
 }
 
 async function init(): Promise<void> {
   buildSnoozeOptions();
   debugOn = await isDebugEnabledAsync();
-  logCopyToggle.checked = (await getSettings()).offerLogCopyAfterPass;
+  const settings = await getSettings();
+  logCopyToggle.checked = settings.offerLogCopyAfterPass;
+  screenshotToggle.checked = settings.attachScreenshot;
   updateDebugUI();
 
   const requested = new URLSearchParams(location.search).get("tabId");
@@ -152,6 +153,7 @@ async function init(): Promise<void> {
   }
 
   activeTabId = tab.id;
+  activeWindowId = tab.windowId;
 
   try {
     const url = new URL(tab.url);
@@ -179,6 +181,7 @@ async function init(): Promise<void> {
   snoozedUntil = await getSnooze(currentDomain);
   updateSnoozeUI();
   reportBtn.style.display = "";
+  screenshotRow.hidden = false;
 
   // Ask the content script whether UI is currently hidden
   if (activeTabId != null) {
@@ -218,7 +221,7 @@ blockBtn.addEventListener("click", async () => {
     blocked = await isDomainBlocked(currentDomain);
     reportSnoozeState(snoozedUntil);
     showStatus(blocked
-        ? `${currentDomain} is still covered by a blocked parent domain — edit it in Settings`
+        ? `${currentDomain} is still turned off by a blocked parent domain or site category — edit it in Settings`
         : `Unblocked ${currentDomain} — reload to apply`, blocked ? "error" : "success");
   } else {
     if (!domains.includes(currentDomain)) {
@@ -281,44 +284,68 @@ debugToggle.addEventListener("change", () => {
   setDebug(debugOn);
   updateDebugUI();
   showStatus(
-    debugOn ? "Debug mode on — reload the page to record it" : "Debug mode off",
+    debugOn ? "Debug mode on — reload the page to see ORE's progress" : "Debug mode off",
     "success"
   );
 });
+
+screenshotToggle.addEventListener("change", () => {
+  void saveSettings({ attachScreenshot: screenshotToggle.checked });
+});
+
+async function captureScreenshot(): Promise<string | undefined> {
+  if (activeWindowId == null) return undefined;
+  try {
+    const [visible] = await chrome.tabs.query({ active: true, windowId: activeWindowId });
+    if (visible?.id !== activeTabId) return undefined;
+    return await chrome.tabs.captureVisibleTab(activeWindowId, { format: "png" });
+  } catch (err) {
+    debugWarn("Popup: screenshot capture failed —", err);
+    return undefined;
+  }
+}
+
+async function pageEntries(): Promise<DebugLogEntry[]> {
+  if (activeTabId == null) return [];
+  try {
+    const reply = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_GET_RECENT_LOG" }) as { entries?: DebugLogEntry[] } | undefined;
+    return Array.isArray(reply?.entries) ? reply.entries : [];
+  } catch {
+    return [];
+  }
+}
 
 // Keep a one-line "Copy log" toast up after each pass (debug mode only)
 logCopyToggle.addEventListener("change", () => {
   void saveSettings({ offerLogCopyAfterPass: logCopyToggle.checked });
 });
 
-// Report an issue on the current domain. With debug mode on the report is
-// parked in the service worker, and the content script on the issue form fills
-// it into the body — the log can't ride in the URL, GitHub rejects issue links
-// that long. It also goes to the clipboard so a failed autofill is still one
-// paste away rather than a dead end.
+// Report an issue on the current domain. The report is parked in the service
+// worker, and the content script on the issue form fills it into the body — the
+// log can't ride in the URL, GitHub rejects issue links that long. It also goes
+// to the clipboard so a failed autofill is still one paste away.
 reportBtn.addEventListener("click", async () => {
   if (!currentDomain) return;
 
   let attached = false;
   let link = issueUrl({ domain: currentDomain });
 
-  if (debugOn) {
-    try {
-      const { text, data } = await buildDebugReport({ pageUrl: currentDomain });
-      link = issueUrl({ domain: currentDomain, report: data });
-      // Park the full log even when the URL already carries a trimmed one: the
-      // issue form upgrades it in place if it can.
-      const stashed = await stashIssueReport(text);
-      attached = link.embedded || stashed;
-      await navigator.clipboard.writeText(text).catch(() => {});
-    } catch (err) {
-      debugError("Popup: building the debug report failed —", err);
-    }
+  try {
+    const screenshot = screenshotToggle.checked ? await captureScreenshot() : undefined;
+    const { text, data } = await buildDebugReport({ pageUrl: currentDomain, pageEntries: await pageEntries() });
+    link = issueUrl({ domain: currentDomain, report: data });
+    // Park the full log even when the URL already carries a trimmed one: the
+    // issue form upgrades it in place if it can.
+    const stashed = await stashIssueReport(text, screenshot);
+    attached = link.embedded || stashed;
+    await navigator.clipboard.writeText(text).catch(() => {});
+  } catch (err) {
+    debugError("Popup: building the debug report failed —", err);
   }
 
   chrome.tabs.create({ url: link.url });
 
-  if (debugOn && !attached) {
+  if (!attached) {
     showStatus("Couldn't attach the log — grab it from Settings", "error");
     return;
   }

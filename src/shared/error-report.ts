@@ -2,7 +2,7 @@
 // that, on click, opens ORE's GitHub issue form prefilled with the error, the
 // page, and the log tail.
 
-import { debugError, debugLog, debugWarn, isDebugEnabled, setRuntimeErrorListener, type RuntimeErrorInfo } from "@shared/debug";
+import { debugError, debugLog, debugWarn, setRuntimeErrorListener, type RuntimeErrorInfo } from "@shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "@shared/debug-report";
 import { showToast } from "@shared/toast";
 import { writeClipboard } from "@shared/clipboard";
@@ -40,15 +40,6 @@ export function offerErrorReport(info: RuntimeErrorInfo): void {
     offered.add(id);
     offeredCount++;
 
-    if (isDebugEnabled()) {
-        showToast("ORE hit an error — opening the issue form with the log.", {
-            tone: "error",
-            action: {label: "Reopen", onClick: () => openIssue(info)},
-        });
-        void openIssue(info);
-        return;
-    }
-
     showToast("ORE hit an error on this page.", {
         tone: "error",
         action: { label: "Report it", onClick: () => openIssue(info) },
@@ -67,7 +58,7 @@ async function openIssue(info: RuntimeErrorInfo): Promise<void> {
         debugError("Error report: building the debug report failed —", err);
     }
 
-    if (isDebugEnabled() && await openViaWorker(link.url)) return;
+    if (await openViaWorker(link.url)) return;
     if (window.open(link.url, "_blank", "noopener") !== null) return;
 
     // Blocked by the page or the browser — hand over the link instead.

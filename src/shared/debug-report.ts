@@ -15,11 +15,11 @@
  */
 
 import { redactDebugText } from "./debug-redact";
-import { recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
-import { readDebugLog } from "./debug-log";
+import { isDetailedLogging, isFullLogBuild, recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
+import { readDebugLog, withinLogAge } from "./debug-log";
 import { safeSendMessage } from "./messages";
 import { effectiveCacheQuotaMb, getSettings } from "./settings";
-import { getBlockedDomains } from "./domains";
+import { getBlockedDomains, getDisabledSites } from "./domains";
 import { getHiddenCommenters } from "./pubpeer-filter";
 
 /**
@@ -44,6 +44,28 @@ export interface DebugReportContext {
   /** Page the user was on when they hit the problem, if known. */
   pageUrl?: string | null;
   error?: RuntimeErrorInfo | null;
+  /** The page's own in-memory tail, which holds routine lines the stored log may not. */
+  pageEntries?: DebugLogEntry[];
+}
+
+/** The stored log plus any in-memory lines it lacks, oldest first. */
+function mergeEntries(stored: DebugLogEntry[], ...tails: DebugLogEntry[][]): DebugLogEntry[] {
+  const keyOf = (entry: DebugLogEntry) => `${entry.t}|${entry.level}|${entry.ctx}|${entry.msg}`;
+  const have = new Map<string, number>();
+  for (const entry of stored) have.set(keyOf(entry), (have.get(keyOf(entry)) ?? 0) + 1);
+  const extra: DebugLogEntry[] = [];
+  for (const tail of tails) {
+    const inTail = new Map<string, number>();
+    for (const entry of tail) {
+      const key = keyOf(entry);
+      const count = (inTail.get(key) ?? 0) + 1;
+      inTail.set(key, count);
+      if (count <= (have.get(key) ?? 0)) continue;
+      have.set(key, count);
+      extra.push(entry);
+    }
+  }
+  return extra.length === 0 ? stored : [...stored, ...extra].sort((a, b) => a.t - b.t);
 }
 
 /** The report's parts, kept separate so the log can be re-rendered shorter. */
@@ -52,11 +74,70 @@ export interface DebugReportData {
   settings: string[];
   entries: DebugLogEntry[];
   error?: RuntimeErrorInfo | null;
-  otherTabs?: { ctx: string; count: number }[];
+  /** Entries from pages other than the one being reported, left out of the log. */
+  otherPageEntries?: number;
+  /** The reported page's host: the only page context named in the log. */
+  pageHost?: string | null;
 }
 
 const MAX_STACK_CHARS = 2_000;
-const MAX_OTHER_TABS_NAMED = 8;
+
+// The endpoints ORE itself calls. Any other URL in a log line is a page the
+// reader visited, so a report keeps only these.
+const SERVICE_URLS = /^https:\/\/(?:(?:dx\.)?doi\.org\/|api\.crossref\.org\/|api\.openalex\.org\/|api\.semanticscholar\.org\/|api\.unpaywall\.org\/|pmc\.ncbi\.nlm\.nih\.gov\/tools\/idconv\/|pubpeer\.com\/v3\/|rep-api\.forrt\.org\/|raw\.githubusercontent\.com\/forrtproject\/chromium-extension\/|github\.com\/forrtproject\/chromium-extension\/|www\.zotero\.org\/groups\/5937153\/)/i;
+
+function redactPageUrls(text: string, keepHost: string | null): string {
+  return text.replace(/\bhttps?:\/\/[^\s"'<>()[\]]+/gi, (url) => {
+    if (SERVICE_URLS.test(url)) return url;
+    let host: string;
+    try {
+      host = new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      return "[url]";
+    }
+    return keepHost !== null && host === keepHost ? url : "[url]";
+  });
+}
+
+function redactError(error: RuntimeErrorInfo, keepHost: string | null): RuntimeErrorInfo {
+  return {
+    ...error,
+    message: redactPageUrls(error.message, keepHost),
+    ...(error.stack ? { stack: redactPageUrls(error.stack, keepHost) } : {}),
+  };
+}
+
+/**
+ * Name page contexts "page 1", "page 2", … in order of appearance, so a report
+ * shows which lines came from the same tab without saying which sites were open.
+ */
+function anonymiseContexts(entries: DebugLogEntry[], keepHost: string | null): DebugLogEntry[] {
+  const labels = new Map<string, string>();
+  return entries.map((entry) => {
+    const ctx = entry.ctx.replace(/^www\./, "");
+    if (EXTENSION_CONTEXTS.has(ctx) || (keepHost !== null && ctx === keepHost)) return entry;
+    if (/\.officeapps\.live\.com$/.test(ctx)) return { ...entry, ctx: "office frame" };
+    let label = labels.get(ctx);
+    if (!label) {
+      label = `page ${labels.size + 1}`;
+      labels.set(ctx, label);
+    }
+    return { ...entry, ctx: label };
+  });
+}
+
+function collapseRepeats(entries: DebugLogEntry[]): Array<DebugLogEntry & { repeats: number }> {
+  const out: Array<DebugLogEntry & { repeats: number }> = [];
+  for (const entry of entries) {
+    const last = out[out.length - 1];
+    if (last && last.ctx === entry.ctx && last.level === entry.level && last.msg === entry.msg) {
+      last.repeats++;
+    } else {
+      out.push({ ...entry, repeats: 1 });
+    }
+  }
+  return out;
+}
 
 function errorSection(error: RuntimeErrorInfo): string[] {
   const lines = ["### Error", "", `**${error.message}**`, ""];
@@ -125,14 +206,13 @@ export function renderDebugReport(
       ? `### Debug log (most recent ${shown.length} of ${total} entries)`
       : `### Debug log (${total} ${total === 1 ? "entry" : "entries"})`;
 
-  const others = data.otherTabs ?? [];
-  const named = others.slice(0, MAX_OTHER_TABS_NAMED).map((o) => `${o.ctx} (${o.count})`);
-  if (others.length > MAX_OTHER_TABS_NAMED) named.push(`and ${others.length - MAX_OTHER_TABS_NAMED} more`);
-  const otherNote = others.length
-    ? [`_Left out ${others.reduce((sum, o) => sum + o.count, 0)} entries from other tabs: ${named.join(", ")}._`, ""]
+  const others = data.otherPageEntries ?? 0;
+  const otherNote = others > 0
+    ? [`_Left out ${others} ${others === 1 ? "entry" : "entries"} from other pages._`, ""]
     : [];
+  const keepHost = data.pageHost ?? null;
   const lines: string[] = [
-    ...(data.error ? errorSection(data.error) : []),
+    ...(data.error ? errorSection(redactError(data.error, keepHost)) : []),
     "### Environment",
     "",
     ...data.environment.map((line) => `- ${line}`),
@@ -147,14 +227,16 @@ export function renderDebugReport(
   ];
 
   if (shown.length === 0) {
-    lines.push(others.length
+    lines.push(others > 0
       ? "_No entries from this page yet. Reload the page, reproduce the problem, then copy the report again._"
-      : "_No entries captured. Turn debug mode on, reproduce the problem, then copy the report again._"
+      : "_No entries captured yet. Reproduce the problem, then copy the report again._"
     );
     return redactDebugText(lines.join("\n"));
   }
 
-  let body = redactDebugText(shown.map(formatDebugEntry).join("\n"));
+  const rendered = collapseRepeats(anonymiseContexts(shown, keepHost)).map((entry) =>
+    entry.repeats > 1 ? `${formatDebugEntry(entry)}  (×${entry.repeats})` : formatDebugEntry(entry));
+  let body = redactPageUrls(redactDebugText(rendered.join("\n")), keepHost);
   if (omitted > 0) body = `… ${omitted} earlier entries trimmed …\n${body}`;
   if (body.length > MAX_REPORT_CHARS) {
     body = `… earlier entries trimmed …\n${body.slice(body.length - MAX_REPORT_CHARS)}`;
@@ -168,23 +250,25 @@ export function renderDebugReport(
 export async function collectDebugReport(
   context: DebugReportContext = {}
 ): Promise<DebugReportData> {
-  const [stored, settings, blockedDomains, mutedCommenters] = await Promise.all([
+  const [stored, settings, blockedDomains, disabledSites, mutedCommenters] = await Promise.all([
     readDebugLog(),
     getSettings(),
     getBlockedDomains(),
+    getDisabledSites(),
     getHiddenCommenters(),
   ]);
 
-  const inMemory = recentDebugEntries();
-  const { entries, otherTabs } = focusOnPage(stored.length > 0 ? stored : inMemory, context.pageUrl);
+  const all = mergeEntries(stored, withinLogAge(recentDebugEntries()), withinLogAge(context.pageEntries ?? []));
+  const { entries, otherPageEntries } = focusOnPage(all, context.pageUrl);
+  const host = pageHost(context.pageUrl)?.replace(/^www\./, "") ?? null;
 
   const environment = [
     `Extension: ${extensionIdentity()}`,
     `User agent: ${userAgent()}`,
     `Report generated: ${new Date().toISOString()}`,
-    `Log source: ${stored.length > 0 ? "debug mode (full)" : "in-memory tail (debug mode off)"}`,
+    `Detailed logging: ${isFullLogBuild() ? "on (testing build)" : isDetailedLogging() ? "on" : "off — warnings, errors and the page's recent lines only"}`,
   ];
-  if (context.pageUrl) environment.push(`Page: ${context.pageUrl}`);
+  if (host) environment.push(`Page: ${host}`);
 
   const settingsLines = [
     // The address itself is never included — only whether one is configured,
@@ -193,10 +277,11 @@ export async function collectDebugReport(
     `Citation style: ${settings.citationStyle}`,
     `Cache limit: ${settings.cacheQuotaMb === 0 ? "unlimited" : `${effectiveCacheQuotaMb(settings.cacheQuotaMb)} MB`}`,
     `Blocked domains: ${blockedDomains.length}`,
+    `Sites switched off by category: ${disabledSites.length}`,
     `Muted PubPeer commenters: ${mutedCommenters.length}`,
   ];
 
-  return { environment, settings: settingsLines, entries, error: context.error ?? null, otherTabs };
+  return { environment, settings: settingsLines, entries, error: context.error ?? null, otherPageEntries, pageHost: host };
 }
 
 function pageHost(pageUrl: string | null | undefined): string | null {
@@ -215,18 +300,15 @@ const OFFICE_HOSTS =
 function focusOnPage(
   all: DebugLogEntry[],
   pageUrl: string | null | undefined,
-): { entries: DebugLogEntry[]; otherTabs: { ctx: string; count: number }[] } {
+): { entries: DebugLogEntry[]; otherPageEntries: number } {
   const host = pageHost(pageUrl)?.replace(/^www\./, "");
-  if (!host) return { entries: all, otherTabs: [] };
+  if (!host) return { entries: all, otherPageEntries: 0 };
   const officePage = OFFICE_HOSTS.test(host);
   const belongs = (ctx: string): boolean =>
     ctx.replace(/^www\./, "") === host || EXTENSION_CONTEXTS.has(ctx)
     || (officePage && ctx.endsWith(".officeapps.live.com"));
   const entries = all.filter((entry) => belongs(entry.ctx));
-  const counts = new Map<string, number>();
-  for (const entry of all) if (!belongs(entry.ctx)) counts.set(entry.ctx, (counts.get(entry.ctx) ?? 0) + 1);
-  const otherTabs = [...counts.entries()].map(([ctx, count]) => ({ ctx, count })).sort((a, b) => b.count - a.count);
-  return { entries, otherTabs };
+  return { entries, otherPageEntries: all.length - entries.length };
 }
 
 /** Collect and render the full report the user can copy, save or attach. */
@@ -246,10 +328,11 @@ export async function buildDebugReport(
  * false when the worker didn't acknowledge, so the caller can fall back to
  * opening an issue that asks the user to paste it instead.
  */
-export async function stashIssueReport(report: string): Promise<boolean> {
+export async function stashIssueReport(report: string, screenshot?: string): Promise<boolean> {
   const ack = await safeSendMessage<{ ok?: boolean }>({
     type: "FLORA_STASH_REPORT",
     report,
+    ...(screenshot ? { screenshot } : {}),
   });
   return ack?.ok === true;
 }
@@ -371,12 +454,14 @@ export function issueUrl(options: {
   error?: RuntimeErrorInfo | null;
 }): IssueLink {
   const { domain, report } = options;
-  const error = options.error ?? report?.error ?? null;
+  const rawError = options.error ?? report?.error ?? null;
+  const keepHost = report?.pageHost ?? pageHost(domain)?.replace(/^www\./, "") ?? null;
+  const error = rawError && redactError(rawError, keepHost);
 
   if (!report || report.entries.length === 0) {
     const hint = report
       ? REPORT_PLACEHOLDER
-      : "<!-- Optional: turn on debug mode from the ORE toolbar menu, reproduce the problem, then report it again — the log comes with it. -->";
+      : "<!-- Optional: reproduce the problem, then report it from the ORE toolbar menu — the log comes with it. -->";
     return { url: linkFor(domain, hint, error), embedded: false, embeddedEntries: 0 };
   }
 

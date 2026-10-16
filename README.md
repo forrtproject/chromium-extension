@@ -219,7 +219,8 @@ never included.
 
 | Command              | Description                    |
 | -------------------- | ------------------------------ |
-| `npm run build`      | Build the extension (one-time) |
+| `npm run build`      | Build the extension (one-time); testing build that keeps a detailed debug log |
+| `npm run build:release` | Build for release: only warnings and errors are logged unless the user turns on debug mode |
 | `npm run watch`      | Build and watch for changes    |
 | `npm test`           | Run all unit tests             |
 | `npm run test:watch` | Run tests in watch mode        |

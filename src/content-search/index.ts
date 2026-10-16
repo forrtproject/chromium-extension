@@ -6,7 +6,7 @@ import {resolveSearchSite} from "./sites";
 import {observeSearchResults, processIfResultsPage} from "./observer";
 import {isSearchHidden, retryUnansweredSearchResults, searchScanSummary, setSearchHidden} from "./pipeline";
 import {setScanSummarySource} from "@shared/toolbar-scan";
-import {debugError, debugLog} from "@shared/debug";
+import {debugError, debugLog, recentDebugEntries} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
 import {isSetupComplete} from "@shared/settings";
 import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/domains";
@@ -75,13 +75,13 @@ function startWhenResumed(adapter: SearchAdapter, atLoad: DomainPause): void {
 
         const adapter = resolveSearchSite(location.hostname);
         if (!adapter) {
-            debugLog("Search content script: no adapter for", location.hostname);
+            debugLog("Search content script: no adapter for this site");
             return;
         }
 
         const pause = await getDomainPause([location.hostname]);
         if (pause.blocked || pause.snoozedUntil !== null) {
-            debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}:`, location.hostname);
+            debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}`);
             if (pause.blocked) reportBlocked();
             else reportActiveState(false, pause.snoozedUntil);
             startWhenResumed(adapter, pause);
@@ -143,6 +143,8 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         sendResponse({ ok: true });
     } else if (type === "FLORA_GET_STATE") {
         sendResponse({ hidden: isSearchHidden() });
+    } else if (type === "FLORA_GET_RECENT_LOG") {
+        if (searchScriptOwns()) sendResponse({ entries: recentDebugEntries() });
     } else if (type === "FLORA_START_PAGE_TOUR") {
         if (searchScriptOwns()) sendResponse({ started: !isSearchHidden() && startPageTour("search") });
     }

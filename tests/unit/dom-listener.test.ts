@@ -293,21 +293,18 @@ describe("skipped-scan logging", () => {
         }
     });
 
-    it("notes the first skip straight after debug mode is switched on", async () => {
+    it("notes a skip with debug mode off, since the log is always kept", async () => {
         vi.useFakeTimers();
-        const {recentDebugEntries, setDebug, _resetDebugForTesting} = await import("../../src/shared/debug");
+        const {recentDebugEntries, _resetDebugForTesting} = await import("../../src/shared/debug");
+        _resetDebugForTesting();
         const count = () => recentDebugEntries().filter((e) => e.msg.includes("mutation carried no DOI candidates")).length;
         document.body.innerHTML = "<main id='feed'></main>";
         const feed = document.getElementById("feed")!;
         const observer = startDomListener({scanWholePage: vi.fn(), getLastUrl: () => location.href});
         try {
-            feed.appendChild(document.createElement("div")).textContent = "before debug";
+            feed.appendChild(document.createElement("div")).textContent = "no DOI here";
             await vi.advanceTimersByTimeAsync(500);
-            setDebug(true);
-            const before = count();
-            feed.appendChild(document.createElement("div")).textContent = "after debug";
-            await vi.advanceTimersByTimeAsync(500);
-            expect(count() - before).toBe(1);
+            expect(count()).toBe(1);
         } finally {
             observer.disconnect();
             _resetDebugForTesting();

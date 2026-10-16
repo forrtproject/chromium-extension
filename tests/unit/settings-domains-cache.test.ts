@@ -8,6 +8,8 @@ const FULL_SETTINGS = {
   citationStyle: "apa",
   cacheQuotaMb: 50,
   offerLogCopyAfterPass: false,
+  refreshDataOnStartup: false,
+  attachScreenshot: false,
 };
 
 describe("settings/domain storage caches", () => {
@@ -54,7 +56,10 @@ describe("settings/domain storage caches", () => {
 
     await expect(getBlockedDomains()).resolves.toEqual(["example.com"]);
     await expect(isDomainBlocked("sub.example.com")).resolves.toBe(true);
-    expect(chrome.storage.sync.get).toHaveBeenCalledTimes(1);
+    await expect(isDomainBlocked("other.org")).resolves.toBe(false);
+    expect(chrome.storage.sync.get).toHaveBeenCalledWith("flora_blocked_domains");
+    expect(chrome.storage.local.get).toHaveBeenCalledWith("flora_disabled_sites");
+    expect(chrome.storage.sync.get).toHaveBeenCalledTimes(2);
   });
 
   it("updates the blocked-domain cache when domains are saved", async () => {

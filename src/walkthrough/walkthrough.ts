@@ -1,6 +1,7 @@
 import {installOfflineFixtures, mountDemos} from "./demos";
+import {mountSiteCategoryPicker} from "../shared/site-category-picker";
 
-const TOTAL = 9;
+const TOTAL = 10;
 let current = 0;
 
 function activate(n: number): void {
@@ -47,7 +48,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("skip-btn")?.addEventListener("click", finish);
 
+  mountSiteCategoryPicker(document.getElementById("wt-site-categories")!);
+
   document.addEventListener("keydown", (e) => {
+    if (e.target instanceof Element && e.target.closest(
+      "input, button, select, textarea, summary, [contenteditable], #wt-site-categories"
+    )) return;
     if (e.key === "ArrowRight") activate(current + 1);
     if (e.key === "ArrowLeft") activate(current - 1);
   });

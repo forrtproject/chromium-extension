@@ -140,6 +140,58 @@ async function insertAndHold(report: string): Promise<HoldOutcome> {
   return held ? "held" : "reverted";
 }
 
+const UPLOAD_WAIT_MS = 10_000;
+
+function pngFromDataUrl(dataUrl: string): Blob {
+  const bytes = atob(dataUrl.slice(dataUrl.indexOf(",") + 1));
+  const buffer = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
+  return new Blob([buffer], { type: "image/png" });
+}
+
+/** GitHub uploads a pasted image and writes its markdown into the body. */
+async function pasteScreenshot(png: Blob): Promise<boolean> {
+  const field = findBodyField();
+  if (!field) return false;
+  const before = field.value;
+  const transfer = new DataTransfer();
+  transfer.items.add(new File([png], "ore-screenshot.png", { type: "image/png" }));
+  field.focus();
+  field.setSelectionRange(field.value.length, field.value.length);
+  field.dispatchEvent(new ClipboardEvent("paste", { clipboardData: transfer, bubbles: true, cancelable: true }));
+  const deadline = Date.now() + UPLOAD_WAIT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const value = findBodyField()?.value ?? "";
+    if (value !== before && /!\[[^\]]*\]\(https:\/\/|<img\b/i.test(value.replace(before, ""))) return true;
+  }
+  return false;
+}
+
+async function attachScreenshot(dataUrl: string): Promise<boolean> {
+  const png = pngFromDataUrl(dataUrl);
+  if (await pasteScreenshot(png)) {
+    debugLog("GitHub: screenshot attached to the issue form");
+    return true;
+  }
+  debugLog("GitHub: screenshot upload not confirmed — offering it on the clipboard");
+  showToast("ORE couldn't attach the screenshot by itself.", {
+    tone: "info",
+    action: {
+      label: "Copy screenshot",
+      onClick: async () => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+          showToast("Screenshot copied — paste it into the issue.", { duration: 5000 });
+        } catch {
+          showToast("Couldn't copy the screenshot.", { tone: "error" });
+        }
+      },
+    },
+  });
+  return false;
+}
+
 async function fillIssueForm(): Promise<void> {
   if (!isIssueFormUrl(location.href)) return;
 
@@ -171,7 +223,10 @@ async function fillIssueForm(): Promise<void> {
   const outcome = await insertAndHold(report);
   if (outcome === "held") {
     debugLog("GitHub: debug report inserted into the issue form");
-    showToast("ORE attached the debug log to this issue.", { duration: 4000 });
+    const withScreenshot = response?.screenshot ? await attachScreenshot(response.screenshot) : false;
+    if (!response?.screenshot || withScreenshot) {
+      showToast(withScreenshot ? "ORE attached the debug log and a screenshot to this issue." : "ORE attached the debug log to this issue.", { duration: 4000 });
+    }
     return;
   }
   if (outcome === "gone") {

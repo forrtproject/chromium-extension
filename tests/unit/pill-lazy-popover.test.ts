@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
+import {deep} from "../helpers";
 
 const pubpeer = vi.hoisted(() => ({resolve: (_: unknown) => {}}));
 vi.mock("../../src/shared/pubpeer-api", () => ({
@@ -10,8 +11,8 @@ import type {DoiString, LookupState} from "../../src/shared/types";
 
 const DOI = "10.1234/lazy" as DoiString;
 const HOOKS = {generation: () => 1};
-const open = (pill: HTMLElement) => pill.querySelector<HTMLElement>("[role=button]")!.click();
-const popover = (pill: HTMLElement) => pill.querySelector<HTMLElement>("[data-flora-popover]")!;
+const open = (pill: HTMLElement) => deep(pill).querySelector<HTMLElement>("[role=button]")!.click();
+const popover = (pill: HTMLElement) => deep(pill).querySelector<HTMLElement>("[data-flora-popover]")!;
 
 beforeEach(() => { document.body.innerHTML = ""; });
 
@@ -19,19 +20,19 @@ describe("the pill's popover is built when it first opens", () => {
     it("carries no rows until then", () => {
         const pill = createIndicatorPill({doi: DOI, oaStatus: Promise.resolve(null)});
         document.body.appendChild(pill);
-        expect(popover(pill).childElementCount).toBe(0);
+        expect(popover(pill).shadowRoot!.querySelector("[data-flora-badge-row]")).toBeNull();
         open(pill);
-        expect(popover(pill).querySelector("[data-flora-badge-row]")).not.toBeNull();
+        expect(deep(popover(pill)).querySelector("[data-flora-badge-row]")).not.toBeNull();
     });
 
     it("shows a lookup that landed before it opened", async () => {
         const pill = createIndicatorPill({doi: DOI, oaStatus: Promise.resolve({isOa: true, url: "https://repo.example.org/a.pdf"})});
         document.body.appendChild(pill);
         pubpeer.resolve({total_comments: 2, url: "https://pubpeer.com/p/1"});
-        await vi.waitFor(() => expect(pill.querySelector("[data-flora-pubpeer-segment]")!.textContent).toContain("2"));
+        await vi.waitFor(() => expect(deep(pill).querySelector("[data-flora-pubpeer-segment]")!.textContent).toContain("2"));
         open(pill);
-        expect(popover(pill).textContent).toContain("Free full text available");
-        expect(popover(pill).textContent).toContain("2 comments");
+        expect(popover(pill).shadowRoot!.textContent).toContain("Free full text available");
+        expect(popover(pill).shadowRoot!.textContent).toContain("2 comments");
     });
 
     it("shows a replication count repainted before it opened", () => {
@@ -43,6 +44,6 @@ describe("the pill's popover is built when it first opens", () => {
         } as unknown as LookupState]]);
         updateIndicatorPillBadges(document, state, () => [], "pills", undefined, HOOKS);
         open(pill);
-        expect(popover(pill).querySelector("[data-flora-badge-row]")!.textContent).toContain("5 replications");
+        expect(deep(popover(pill)).querySelector("[data-flora-badge-row]")!.textContent).toContain("5 replications");
     });
 });

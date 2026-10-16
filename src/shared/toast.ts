@@ -9,7 +9,6 @@
 // stacking, so rapid clicks down a reference list never pile up.
 
 import {WORK_TOAST_ID, floatingBottom} from "./progress-toast";
-import {isDebugEnabled} from "./debug";
 
 const TOAST_ID = "flora-action-toast";
 const ALERT_TOAST_ID = "flora-alert-toast";
@@ -157,9 +156,7 @@ export interface ToastOptions {
 export function showToast(message: string, options: ToastOptions = {}): HTMLElement {
     const tone = options.tone ?? "success";
     const action = options.action;
-    const duration = isDebugEnabled()
-        ? 0
-        : options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
+    const duration = options.duration ?? (action ? 0 : tone === "error" ? 2600 : 2000);
     const dismissible = !!action || duration === 0;
 
     const id = hostId(action);

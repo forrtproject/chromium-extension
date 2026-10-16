@@ -19,6 +19,15 @@ export const DEBUG_LOG_KEY = "flora_debug_log";
  */
 export const MAX_LOG_ENTRIES = 800;
 
+/** Entries older than this are dropped: the log records which sites were visited. */
+export const MAX_LOG_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function withinLogAge(entries: DebugLogEntry[]): DebugLogEntry[] {
+  const cutoff = Date.now() - MAX_LOG_AGE_MS;
+  const fresh = (entry: DebugLogEntry | null) => typeof entry?.t === "number" && entry.t >= cutoff;
+  return entries.every(fresh) ? entries : entries.filter(fresh);
+}
+
 /** Debounce on persistence so a burst of entries costs one storage write. */
 const PERSIST_DELAY_MS = 500;
 
@@ -26,14 +35,13 @@ let buffer: DebugLogEntry[] | null = null;
 let loading: Promise<DebugLogEntry[]> | null = null;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
-function readStored(): Promise<DebugLogEntry[]> {
-  return chrome.storage.local
-    .get(DEBUG_LOG_KEY)
-    .then((raw) => {
-      const stored = raw?.[DEBUG_LOG_KEY];
-      return Array.isArray(stored) ? (stored as DebugLogEntry[]) : [];
-    })
-    .catch(() => []);
+async function readStored(): Promise<DebugLogEntry[]> {
+  try {
+    const stored = (await chrome.storage.local.get(DEBUG_LOG_KEY))?.[DEBUG_LOG_KEY];
+    return Array.isArray(stored) ? (stored as DebugLogEntry[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 async function load(): Promise<DebugLogEntry[]> {
@@ -43,7 +51,10 @@ async function load(): Promise<DebugLogEntry[]> {
   if (!loading) loading = readStored();
   const stored = await loading;
   loading = null;
-  if (!buffer) buffer = stored;
+  if (!buffer) {
+    buffer = [...withinLogAge(stored)];
+    if (buffer.length !== stored.length) schedulePersist();
+  }
   return buffer;
 }
 
@@ -70,14 +81,15 @@ export async function appendDebugEntries(entries: DebugLogEntry[]): Promise<void
   if (!Array.isArray(entries) || entries.length === 0) return;
   const log = await load();
   log.push(...entries);
+  const fresh = withinLogAge(log);
+  if (fresh !== log) log.splice(0, log.length, ...fresh);
   if (log.length > MAX_LOG_ENTRIES) log.splice(0, log.length - MAX_LOG_ENTRIES);
   schedulePersist();
 }
 
 /** Read the full captured log, oldest first. */
 export async function readDebugLog(): Promise<DebugLogEntry[]> {
-  if (buffer) return [...buffer];
-  return readStored();
+  return [...withinLogAge(buffer ?? await readStored())];
 }
 
 /** Drop every captured entry. */
@@ -95,6 +107,9 @@ export async function clearDebugLog(): Promise<void> {
 export function installDebugLogStore(): void {
   setDebugSink((entries) => {
     void appendDebugEntries(entries);
+  });
+  void readStored().then((stored) => {
+    if (!buffer && withinLogAge(stored) !== stored) return load();
   });
 
   try {

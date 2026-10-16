@@ -29,6 +29,8 @@ export function isDebugEntriesRequest(msg: unknown): msg is DebugEntriesRequest 
 export interface StashReportRequest {
     type: "FLORA_STASH_REPORT";
     report: string;
+    /** PNG data URL of the page, captured only after the user opted in. */
+    screenshot?: string;
 }
 
 /**
@@ -44,15 +46,43 @@ export interface TakeReportRequest {
 export interface TakeReportResponse {
     type: "FLORA_TAKE_REPORT_RESULT";
     report: string | null;
+    screenshot?: string | null;
 }
 
 export function isStashReportRequest(msg: unknown): msg is StashReportRequest {
-    return (
-        typeof msg === "object" &&
-        msg !== null &&
-        (msg as Record<string, unknown>).type === "FLORA_STASH_REPORT" &&
-        typeof (msg as Record<string, unknown>).report === "string"
-    );
+    if (typeof msg !== "object" || msg === null) return false;
+    const {type, report, screenshot} = msg as Record<string, unknown>;
+    return type === "FLORA_STASH_REPORT" && typeof report === "string"
+        && (screenshot === undefined || (typeof screenshot === "string" && screenshot.startsWith("data:image/png;base64,")));
+}
+
+export interface ReferenceDataSetStatus {
+    count: number;
+    /** Epoch ms of the last successful download, or null when only the bundled copy is in use. */
+    updatedAt: number | null;
+}
+
+export interface ReferenceDataStatus {
+    retractions: ReferenceDataSetStatus;
+    registeredReports: ReferenceDataSetStatus;
+}
+
+/** Options page → service worker: report the reference data in use, refreshing it first when asked. */
+export interface ReferenceDataRequest {
+    type: "FLORA_DATA_STATUS" | "FLORA_REFRESH_DATA";
+}
+
+export interface ReferenceDataResponse {
+    type: "FLORA_DATA_STATUS_RESULT";
+    status: ReferenceDataStatus;
+    /** Refresh only: which downloads failed. */
+    failed?: Array<keyof ReferenceDataStatus>;
+}
+
+export function isReferenceDataRequest(msg: unknown): msg is ReferenceDataRequest {
+    if (typeof msg !== "object" || msg === null) return false;
+    const type = (msg as Record<string, unknown>).type;
+    return type === "FLORA_DATA_STATUS" || type === "FLORA_REFRESH_DATA";
 }
 
 export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
@@ -489,4 +519,22 @@ export function isSheetFetchRequest(msg: unknown): msg is SheetFetchRequest {
         typeof (msg as Record<string, unknown>).gid === "string" &&
         /^\d+$/.test((msg as Record<string, unknown>).gid as string)
     );
+}
+
+export type FeedbackPromptStep = "visit" | "claim" | "release";
+
+export interface FeedbackPromptRequest {
+    type: "FLORA_FEEDBACK_PROMPT";
+    step: FeedbackPromptStep;
+}
+
+export interface FeedbackPromptResponse {
+    granted: boolean;
+    pages: number;
+}
+
+export function isFeedbackPromptRequest(msg: unknown): msg is FeedbackPromptRequest {
+    if (typeof msg !== "object" || msg === null) return false;
+    const {type, step} = msg as Record<string, unknown>;
+    return type === "FLORA_FEEDBACK_PROMPT" && (step === "visit" || step === "claim" || step === "release");
 }

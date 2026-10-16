@@ -211,6 +211,72 @@
             <p id="cache-quota-status" class="status domain-status" hidden></p>
           </div>
 
+          <!-- ═══ REFERENCE DATA ═══ -->
+          <div class="detail-card" style="margin-top: 1.25rem">
+            <div class="dh">
+              <div class="dh-label">Reference Data</div>
+              <h2 class="dh-title">Retractions &amp; Registered Reports</h2>
+              <div class="dh-authors">
+                ORE checks papers against a local copy of the
+                <a href="https://retractionwatch.com/" target="_blank" rel="noopener">Retraction Watch</a>
+                database and the
+                <a href="https://www.zotero.org/groups/5937153/registered_reports" target="_blank" rel="noopener">Registered Reports</a>
+                library. Both are refreshed weekly in the background; refresh
+                them now, or every time the browser starts.
+              </div>
+            </div>
+
+            <div id="data-status" class="data-status" aria-live="polite">
+              <div class="data-row">
+                <span class="data-name">Retractions &amp; expressions of concern</span>
+                <span class="data-meta" id="data-retractions">Loading…</span>
+              </div>
+              <div class="data-row">
+                <span class="data-name">Registered Reports</span>
+                <span class="data-meta" id="data-registered-reports">Loading…</span>
+              </div>
+            </div>
+
+            <div class="action-bar debug-bar">
+              <button type="button" id="data-refresh-btn" class="ab-btn accent">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                <span id="data-refresh-label">Refresh now</span>
+              </button>
+            </div>
+
+            <label class="toggle-row">
+              <span class="toggle-row-text">Update automatically every time the browser opens</span>
+              <span class="toggle-switch">
+                <input type="checkbox" id="data-startup-toggle" />
+                <span class="toggle-track"></span>
+              </span>
+            </label>
+
+            <p id="data-status-msg" class="status domain-status" hidden></p>
+          </div>
+
+          <!-- ═══ SITE CATEGORIES ═══ -->
+          <div class="detail-card" style="margin-top: 1.25rem">
+            <div class="dh">
+              <div class="dh-label">Where ORE Runs</div>
+              <h2 class="dh-title">Sites by Category</h2>
+              <div class="dh-authors">
+                ORE runs on journals, publishers, preprint servers and
+                documents, and on any site not listed here. Shopping, video,
+                messaging and web search start switched off. Untick a category
+                to turn ORE off on all of its sites, or open it to choose site
+                by site. Changes apply when a page is next loaded.
+              </div>
+            </div>
+
+            <div id="site-categories" class="site-categories"></div>
+
+            <p id="site-status-msg" class="status domain-status" hidden></p>
+          </div>
+
           <!-- ═══ BLOCKED DOMAINS ═══ -->
           <div class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
@@ -317,11 +383,12 @@
               <div class="dh-label">Troubleshooting</div>
               <h2 class="dh-title">Debug Mode &amp; Issue Reports</h2>
               <div class="dh-authors">
-                If something looks wrong, switch debug mode on, reload the page
-                that misbehaves and reproduce the problem &mdash; ORE then keeps
-                a log of what it did. Report the issue and that log is written
-                straight into the GitHub form; read it here first if you'd like
-                to see what you're sending.
+                ORE always logs its warnings and errors. If something looks
+                wrong, reproduce the problem and report the issue &mdash; the
+                log is written straight into the GitHub form. Read it here
+                first if you'd like to see what you're sending. Debug mode
+                keeps a detailed log and adds a progress toast to each page so
+                you can watch ORE work.
               </div>
 
               <div class="dh-callout" role="note">
@@ -343,9 +410,12 @@
                 <div class="dh-callout-body">
                   <div class="dh-callout-title">What the log contains</div>
                   <p class="dh-callout-text">
-                    The log records what ORE looked up and where: DOIs found on
-                    the pages you visit, the hostnames of those pages, API
-                    outcomes and any errors. It stays on this computer and is
+                    The log records what ORE looked up: DOIs found on the pages
+                    you visit, API outcomes and any errors. A report names only
+                    the site you report from; other pages appear as
+                    &ldquo;page&nbsp;1&rdquo;, &ldquo;page&nbsp;2&rdquo; and their
+                    links are removed. Entries older than seven days are
+                    deleted. The log stays on this computer and is
                     <strong>never sent anywhere</strong> until you choose to
                     open an issue with it &mdash; and nothing is submitted until
                     you press GitHub's own button.
@@ -360,7 +430,7 @@
 
             <label class="toggle-row">
               <span class="toggle-row-text"
-                >Debug mode &mdash; record a diagnostic log while I browse</span
+                >Debug mode &mdash; show ORE's progress on each page</span
               >
               <span class="toggle-switch">
                 <input type="checkbox" id="debug-toggle" />
@@ -375,16 +445,16 @@
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                <span id="debug-report-label">Report an issue</span>
+                <span id="debug-report-label">Report an issue with this log</span>
               </button>
-              <button type="button" id="debug-copy-btn" class="ab-btn debug-log-control" hidden>
+              <button type="button" id="debug-copy-btn" class="ab-btn debug-log-control">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
                 Copy report
               </button>
-              <button type="button" id="debug-download-btn" class="ab-btn debug-log-control" hidden>
+              <button type="button" id="debug-download-btn" class="ab-btn debug-log-control">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
@@ -392,14 +462,14 @@
                 </svg>
                 Download
               </button>
-              <button type="button" id="debug-refresh-btn" class="ab-btn debug-log-control" hidden>
+              <button type="button" id="debug-refresh-btn" class="ab-btn debug-log-control">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="23 4 23 10 17 10" />
                   <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                 </svg>
                 Refresh
               </button>
-              <button type="button" id="debug-clear-btn" class="ab-btn debug-log-control" hidden>
+              <button type="button" id="debug-clear-btn" class="ab-btn debug-log-control">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -410,7 +480,7 @@
 
             <p id="debug-status" class="status domain-status" hidden></p>
 
-            <pre id="debug-preview" class="debug-preview" aria-label="Debug report preview" hidden></pre>
+            <pre id="debug-preview" class="debug-preview" aria-label="Debug report preview"></pre>
           </div>
         </div>
       </div>

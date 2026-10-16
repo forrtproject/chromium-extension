@@ -14,6 +14,7 @@ import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
 import { hasCustomTabTop, positionTabOnRightEdge, saveCustomTabTop } from "@shared/tab-position";
 import { adoptPanelTab, canOpenPanel, releasePanelTab, setTabLabel } from "@shared/progress-tab";
 import { plainTitle } from "@shared/plain-title";
+import { lookupRegisteredReports, registeredReportDetail, RR_ACCENT, type RegisteredReport } from "@shared/registered-reports";
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
@@ -751,6 +752,46 @@ function headerAction(icon: string, label: string, onClick: () => void): HTMLBut
   return btn;
 }
 
+function buildRegisteredReportBanner(report: RegisteredReport): HTMLAnchorElement {
+  const detail = registeredReportDetail(report);
+  const banner = document.createElement("a");
+  banner.href = detail.href;
+  banner.target = "_blank";
+  banner.rel = "noopener noreferrer";
+  banner.title = detail.actionLabel;
+  banner.setAttribute("data-flora-rr-banner", "");
+  banner.style.cssText =
+    "display:flex;align-items:center;gap:8px;margin:0 16px 12px;padding:10px 12px;" +
+    `background:#f0fdfa;border:1px solid #99f6e4;border-left:4px solid ${RR_ACCENT};` +
+    "border-radius:8px;text-decoration:none;";
+  const dot = document.createElement("span");
+  dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${RR_ACCENT};flex-shrink:0;`;
+  const text = document.createElement("span");
+  text.style.cssText = `flex:1;font-size:12px;font-weight:600;color:${RR_ACCENT};line-height:1.4;`;
+  text.textContent = `Registered Report — ${detail.subtitle}`;
+  const action = document.createElement("span");
+  action.style.cssText = `flex-shrink:0;font-size:11px;font-weight:600;color:${RR_ACCENT};`;
+  action.textContent = `${detail.actionLabel} ↗`;
+  banner.append(dot, text, action);
+  return banner;
+}
+
+function buildRegisteredReportTag(report: RegisteredReport): HTMLAnchorElement {
+  const detail = registeredReportDetail(report);
+  const tag = document.createElement("a");
+  tag.href = detail.href;
+  tag.target = "_blank";
+  tag.rel = "noopener noreferrer";
+  tag.title = `Registered Report — ${detail.subtitle}`;
+  tag.setAttribute("data-flora-rr-tag", "");
+  tag.style.cssText =
+    `flex-shrink:0;font-size:10px;font-weight:600;color:${RR_ACCENT};` +
+    "background:#f0fdfa;border:1px solid #99f6e4;padding:1px 7px;border-radius:10px;" +
+    "white-space:nowrap;text-decoration:none;cursor:pointer;";
+  tag.textContent = report.stage ? `Registered Report · Stage ${report.stage}` : "Registered Report";
+  return tag;
+}
+
 function toReportEntry(entry: {
   doi?: string | null; title?: string | null; journal?: string | null;
   year?: number | null; url?: string | null; outcome?: string | null;
@@ -1149,6 +1190,10 @@ export function renderSidePanel(
     summary.appendChild(noticeBanner);
   }
 
+  const rrSlot = document.createElement("div");
+  summary.appendChild(rrSlot);
+  const rrTagRows = new Map<DoiString, HTMLElement[]>();
+
   // Replication/reproduction/original entry lists from FORRT API
   const renderEntrySection = (
     entries: Array<{
@@ -1436,6 +1481,8 @@ export function renderSidePanel(
       tagsRow.appendChild(commentTag);
     }
 
+    rrTagRows.set(doi, [...(rrTagRows.get(doi) ?? []), tagsRow]);
+
     li.appendChild(titleLink);
     li.appendChild(tagsRow);
     return li;
@@ -1509,6 +1556,25 @@ export function renderSidePanel(
   // still appear in the full References list below as well.
   // Full reference list — every flagged reference.
   renderRefSection("References", references, "reference");
+
+  const rrDois = [...articleDois.slice(0, 1), ...rrTagRows.keys()];
+  if (rrDois.length > 0) {
+    void lookupRegisteredReports(rrDois)
+      .then((reports) => {
+        if (host.dataset.floraPanelStale === "1") return;
+        const article = articleDois[0] ? reports.get(articleDois[0]) : null;
+        if (article && rrSlot.isConnected) rrSlot.replaceWith(buildRegisteredReportBanner(article));
+        for (const [doi, rows] of rrTagRows) {
+          const report = reports.get(doi);
+          if (report) for (const row of rows) row.appendChild(buildRegisteredReportTag(report));
+        }
+      })
+      .catch((err) => {
+        // A page left behind by an extension reload can no longer reach the worker; that is not a fault.
+        if (!chrome.runtime?.id) return;
+        debugWarn(`Side panel: Registered Reports lookup failed for ${rrDois.length} DOI(s) —`, err);
+      });
+  }
 
   // Single scrollable body between header and footer
   const scrollBody = document.createElement("div");

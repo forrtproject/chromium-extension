@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {deep} from "../helpers";
 import {createIndicatorPill as createClosedPill, PAGE_PROVENANCE, SEARCH_PROVENANCE, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import type { DoiString } from "../../src/shared/types";
 
@@ -26,13 +27,13 @@ describe("indicator pill provenance", () => {
   });
 
   it("underlines the unconfirmed DOI", () => {
-    const seg = build(true).querySelector("[data-flora-doi-segment]") as HTMLElement;
+    const seg = deep(build(true)).querySelector("[data-flora-doi-segment]") as HTMLElement;
     expect(seg.style.textDecoration).toContain("underline");
     expect(seg.textContent).toContain("DOI");
   });
 
   it("labels the popover's DOI row with the link glyph, as the panel does", () => {
-    const row = build(false).querySelector("[data-flora-doi-text]")!.parentElement!;
+    const row = deep(build(false)).querySelector("[data-flora-doi-text]")!.parentElement!;
     const icon = row.firstElementChild as HTMLElement;
 
     expect(icon.querySelector("svg")).not.toBeNull();
@@ -40,7 +41,7 @@ describe("indicator pill provenance", () => {
   });
 
   it("leaves a confirmed DOI un-underlined", () => {
-    const seg = build(false).querySelector("[data-flora-doi-segment]") as HTMLElement;
+    const seg = deep(build(false)).querySelector("[data-flora-doi-segment]") as HTMLElement;
     expect(seg.style.textDecoration).not.toContain("underline");
     expect(seg.querySelector("svg")).not.toBeNull();
   });
@@ -63,16 +64,16 @@ describe("indicator pill provenance", () => {
     });
 
     await vi.waitFor(() =>
-      expect(pill.querySelector("a[data-flora-oa-primary]")).not.toBeNull()
+      expect(deep(pill).querySelector("a[data-flora-oa-primary]")).not.toBeNull()
     );
-    const primary = pill.querySelector<HTMLAnchorElement>("a[data-flora-oa-primary]")!;
+    const primary = deep(pill).querySelector<HTMLAnchorElement>("a[data-flora-oa-primary]")!;
     expect(primary.href).toBe("https://publisher.example/a.pdf");
     expect(primary.target).toBe("_blank");
 
-    const list = pill.querySelector<HTMLElement>("[data-flora-oa-row] > div:last-child")!;
+    const list = deep(pill).querySelector<HTMLElement>("[data-flora-oa-row] > div:last-child")!;
     expect(list.style.display).toBe("none");
 
-    pill.querySelector<HTMLElement>("[data-flora-oa-choices]")!.click();
+    deep(pill).querySelector<HTMLElement>("[data-flora-oa-choices]")!.click();
 
     expect(list.style.display).toBe("flex");
     expect([...list.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
@@ -98,16 +99,16 @@ describe("indicator pill provenance", () => {
     });
 
     await vi.waitFor(() =>
-      expect(pill.querySelector("[data-flora-oa-choices]")).not.toBeNull()
+      expect(deep(pill).querySelector("[data-flora-oa-choices]")).not.toBeNull()
     );
-    expect(pill.querySelector("[data-flora-oa-choices]")!.closest("a")).toBeNull();
+    expect(deep(pill).querySelector("[data-flora-oa-choices]")!.closest("a")).toBeNull();
   });
 
   it("marks provenance on the popover's DOI by underline, not in words", () => {
     // The DOI row is one line; a provenance sentence beside it is the line the
     // DOI itself needs. The reason stays reachable on hover.
     const doiText = (isAugmented: boolean) =>
-      build(isAugmented).querySelector<HTMLElement>("[data-flora-doi-text]")!;
+      deep(build(isAugmented)).querySelector<HTMLElement>("[data-flora-doi-text]")!;
 
     expect(doiText(false).style.textDecoration).not.toContain("underline");
     expect(doiText(false).title).toBe(PAGE_PROVENANCE);
@@ -131,7 +132,7 @@ describe("indicator pill provenance", () => {
       doi: "10.1234/x" as DoiString,
       provenanceLabel: "Matched by PMC ID",
     });
-    expect(pill.querySelector<HTMLElement>("[data-flora-doi-text]")!.title)
+    expect(deep(pill).querySelector<HTMLElement>("[data-flora-doi-text]")!.title)
       .toBe("Matched by PMC ID");
   });
 });

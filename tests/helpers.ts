@@ -78,3 +78,28 @@ export function mockResult(
     ...overrides,
   };
 }
+
+function searchRoots(root: ParentNode): ParentNode[] {
+  const roots: ParentNode[] = [root];
+  if (root instanceof Element && root.shadowRoot) roots.push(...searchRoots(root.shadowRoot));
+  for (const el of root.querySelectorAll("*")) {
+    if (el.shadowRoot) roots.push(...searchRoots(el.shadowRoot));
+  }
+  return roots;
+}
+
+/** Query a node and every open shadow root inside it: a pill and its popover, as the reader sees them. */
+export function deep(root: ParentNode) {
+  return {
+    querySelector<E extends Element = HTMLElement>(selector: string): E | null {
+      for (const r of searchRoots(root)) {
+        const hit = r.querySelector<E>(selector);
+        if (hit) return hit;
+      }
+      return null;
+    },
+    querySelectorAll<E extends Element = HTMLElement>(selector: string): E[] {
+      return searchRoots(root).flatMap((r) => [...r.querySelectorAll<E>(selector)]);
+    },
+  };
+}

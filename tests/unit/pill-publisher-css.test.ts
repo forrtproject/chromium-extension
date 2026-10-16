@@ -32,16 +32,27 @@ describe("a pill dropped into a publisher-styled container", () => {
         }
     });
 
-    it("keeps the popover rows shielded too", () => {
+    it("keeps the popover rows out of reach of the page's stylesheets", () => {
         const pill = createIndicatorPill({ doi: DOI });
-        const popover = pill.querySelector<HTMLElement>("[data-flora-popover]");
+        const popover = pill.querySelector<HTMLElement>("[data-flora-popover]")!;
 
-        expect(popover).not.toBeNull();
-        const rows = popover!.querySelectorAll<HTMLElement>("span, div");
-        expect(rows.length).toBeGreaterThan(5);
-        for (const row of rows) {
-            expect(row.style.getPropertyValue("border-right-width")).not.toBe("");
+        expect(popover.localName, "a custom tag, so page div and span rules miss the host").toBe("flora-popover");
+        expect(popover.shadowRoot, "the rows live behind a shadow boundary").not.toBeNull();
+        expect(popover.querySelector("[data-flora-badge-row]"), "nothing in the page DOM a page rule could match").toBeNull();
+        expect(popover.shadowRoot!.querySelector("[data-flora-badge-row]")).not.toBeNull();
+        const reset = popover.shadowRoot!.querySelector("style")!.textContent!;
+        expect(reset).toContain("margin: 0; padding: 0; border-width: 0;");
+        expect(reset).toMatch(/:focus-visible \{ outline: 2px solid/);
+    });
+
+    it("pins the popover's outer box against a site's own dialog styles", () => {
+        const popover = createIndicatorPill({ doi: DOI }).querySelector<HTMLElement>("[data-flora-popover]")!;
+
+        for (const [prop, value] of [["transform", "none"], ["filter", "none"], ["opacity", "1"], ["visibility", "visible"]]) {
+            expect(popover.style.getPropertyValue(prop), prop).toBe(value);
+            expect(popover.style.getPropertyPriority(prop), prop).toBe("important");
         }
+        expect(popover.shadowRoot!.querySelector("style")!.textContent).toContain(":host::before, :host::after { content: none !important;");
     });
 
     it("leaves each element's own box values alone", () => {

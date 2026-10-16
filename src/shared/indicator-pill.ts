@@ -20,7 +20,7 @@ import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {lookupPubPeerForDoi} from "@shared/pubpeer-api";
 import {noticePresentation, removeNoticePillsFor} from "@shared/doi-retraction";
 import {atlasDoiUrl} from "@shared/flora-atlas";
-import {lookupRegisteredReport, registeredReportEntryUrl, type RegisteredReport} from "@shared/registered-reports";
+import {lookupRegisteredReport, registeredReportDetail, RR_ACCENT, type RegisteredReport} from "@shared/registered-reports";
 import {OA_UNLOCK_SVG} from "@shared/doi-label";
 import {fetchCitationDetailed, preferredCitationFormat, type CitationFormat} from "@shared/citation";
 import {debugWarn} from "@shared/debug";
@@ -189,6 +189,7 @@ const SEGMENT_COUNT_ATTR = "data-flora-segment-count";
 const MARKER_ATTR = "data-flora-compact-marker";
 const MARKER_EXPANDED_ATTR = "data-flora-marker-expanded";
 const SEGMENT_PRESENT_ATTR = "data-flora-present";
+const SEGMENT_PENDING_ATTR = "data-flora-pending";
 const SEGMENT_DIVIDER_ATTR = "data-flora-segment-divider";
 const SEGMENT_STRIP_ATTR = "data-flora-segments";
 const SEGMENT_ACCENT_ATTR = "data-flora-accent";
@@ -231,6 +232,8 @@ interface SegmentSpec {
     label: string;
     title: string;
     exists: boolean;
+    /** Still being checked: drawn faded and pulsing instead of struck through. */
+    pending?: boolean;
     count?: number | string;
     fill?: string;
     decoration?: string;
@@ -242,12 +245,13 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
         ? spec.fill ?? `${color}${FILL_HOVER_ALPHA}`
         : `${color}${ABSENT_HOVER_ALPHA}`;
     const decoration = spec.decoration
-        ?? (spec.exists ? "text-decoration:none;" : `text-decoration:line-through;text-decoration-color:${color}${ABSENT_ALPHA};`);
+        ?? (spec.exists || spec.pending ? "text-decoration:none;" : `text-decoration:line-through;text-decoration-color:${color}${ABSENT_ALPHA};`);
 
     const el = document.createElement("span");
     el.setAttribute(spec.attr, "");
     el.setAttribute(SEGMENT_ATTR, "");
     if (spec.exists) el.setAttribute(SEGMENT_PRESENT_ATTR, "");
+    if (spec.pending) el.setAttribute(SEGMENT_PENDING_ATTR, "");
     el.title = spec.title;
     el.style.cssText = `
     display:inline-flex;align-items:center;gap:5px;flex-shrink:0;
@@ -261,7 +265,8 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
     el.addEventListener("mouseleave", () => { el.style.background = rest; });
 
     const icon = document.createElement("span");
-    icon.style.cssText = `display:inline-flex;align-items:center;line-height:0;opacity:${spec.exists ? "1" : "0.6"};`;
+    icon.style.cssText = `display:inline-flex;align-items:center;line-height:0;opacity:${spec.exists ? "1" : "0.6"};`
+        + (spec.pending ? "animation:flora-segment-pending 1.2s ease-in-out infinite;" : "");
     icon.innerHTML = spec.iconHtml;
     el.appendChild(icon);
 
@@ -328,7 +333,7 @@ function applyMarkerScale(strip: HTMLElement): void {
         if (show) budget -= natural + LABEL_EXTRA_WIDTH;
         segment.style.setProperty("padding", show ? "3px 8px" : "3px 6px", "important");
         segment.style.setProperty("gap", show ? "5px" : "0", "important");
-        const struck = show && !segment.hasAttribute(SEGMENT_PRESENT_ATTR);
+        const struck = show && !segment.hasAttribute(SEGMENT_PRESENT_ATTR) && !segment.hasAttribute(SEGMENT_PENDING_ATTR);
         segment.style.setProperty("text-decoration", struck ? "line-through" : "none", "important");
         segment.style.setProperty("text-decoration-color", `${accent}${ABSENT_ALPHA}`, "important");
         segment.querySelector<HTMLElement>(`[${SEGMENT_COUNT_ATTR}]`)
@@ -363,8 +368,9 @@ function buildOaSegment(state: OaState, color = "#853953"): HTMLElement {
         attr: "data-flora-oa-segment",
         iconHtml: OA_UNLOCK_SVG.replace('width="12" height="12"', 'width="11" height="11"'),
         label: "OA",
-        title: `Open Access — ${oaSubtitle(state, available)}`,
+        title: state === "pending" ? "Checking for a free copy…" : `Open Access — ${oaSubtitle(state, available)}`,
         exists: available,
+        pending: state === "pending",
     }, color);
 }
 
@@ -386,6 +392,7 @@ function buildPubPeerSegment(
         label: "PubPeer",
         title,
         exists: available,
+        pending: answered === "pending",
         count: available && feedback ? feedback.total_comments : undefined,
     }, color);
 }
@@ -482,6 +489,10 @@ function buildBadgeSegment(
     }, color);
 }
 
+function badgeFaceKey(signal: BadgeSignal, retraction: RetractionResponse | null): string {
+    return `${signal.available}|${signal.segmentCount ?? ""}|${signal.accent}|${signal.rowSubtitle}|${retraction?.kind ?? ""}:${retraction?.doi ?? ""}`;
+}
+
 function buildNoticeSegment(retraction: RetractionResponse, color = "#853953"): HTMLElement {
     const signal = resolveNoticeSignal(retraction);
     const segment = buildBadgeSegment(signal, color, NOTICE_SEGMENT_ATTR);
@@ -572,7 +583,7 @@ function buildRow(opts: {
 
 /** Keep keyboard position when an async provider row replaces its focused control. */
 function replaceIndicatorRow(previous: HTMLElement, next: HTMLElement): void {
-    const focused = previous.contains(document.activeElement);
+    const focused = previous.contains((previous.getRootNode() as Document | ShadowRoot).activeElement);
     previous.replaceWith(next);
     if (focused) {
         const target = next.matches("a,button") ? next : next.querySelector<HTMLElement>("a,button") ?? next;
@@ -780,30 +791,6 @@ function buildNoticeRow(retraction: RetractionResponse, compact = false): HTMLEl
 
 type RegisteredReportState = RegisteredReport | null | "pending" | "unavailable";
 
-const RR_ACCENT = "#0f766e";
-
-function registeredReportDetail(report: RegisteredReport): {subtitle: string; subtitleShort: string; href: string; actionLabel: string} {
-    const linked = webUrl(report.linked);
-    if (report.stage === 2) return {
-        subtitle: linked ? "Stage 2 report · Stage 1 protocol linked" : "Stage 2 report",
-        subtitleShort: "Stage 2",
-        href: linked ?? registeredReportEntryUrl(report),
-        actionLabel: linked ? "View protocol" : "View entry",
-    };
-    if (report.stage === 1) return {
-        subtitle: linked ? "Stage 1 protocol · Stage 2 report published" : "Stage 1 protocol",
-        subtitleShort: "Stage 1",
-        href: linked ?? registeredReportEntryUrl(report),
-        actionLabel: linked ? "View report" : "View entry",
-    };
-    return {
-        subtitle: "Listed as a Registered Report",
-        subtitleShort: "Listed",
-        href: registeredReportEntryUrl(report),
-        actionLabel: "View entry",
-    };
-}
-
 function buildRegisteredReportRow(state: RegisteredReportState, compact = false, retry?: () => void): HTMLElement {
     const report = typeof state === "string" ? null : state;
     const detail = report ? registeredReportDetail(report) : null;
@@ -854,6 +841,8 @@ export interface IndicatorPillOptions {
     oaStatus?: Promise<OpenAccessStatus | null> | (() => Promise<OpenAccessStatus | null>);
     /** Already-resolved retraction/concern notice for this DOI, if any. */
     retraction?: RetractionResponse | null;
+    /** PubPeer answer the caller already has (null: no thread). Undefined makes the pill look it up. */
+    pubpeer?: PubPeerFeedback | null;
     /** Already-known replication count for this DOI, if any (pass only when > 0). Takes priority over reproductionsCount. */
     replicationsCount?: number | null;
     /** Already-known reproduction count for this DOI, if any (pass only when > 0). Shown only when replicationsCount is absent. */
@@ -1087,7 +1076,11 @@ interface IndicatorLookups {
  * same answers. A cancelled lookup settles to "Not checked", which offers a
  * Retry; nothing re-fetches it otherwise.
  */
-function startIndicatorLookups(doi: DoiString, oaStatus: Promise<OpenAccessStatus | null> | undefined): IndicatorLookups {
+function startIndicatorLookups(
+    doi: DoiString,
+    oaStatus: Promise<OpenAccessStatus | null> | undefined,
+    knownPubPeer?: PubPeerFeedback | null,
+): IndicatorLookups {
     const listeners: Array<() => void> = [];
     const changed = () => { for (const listener of listeners) listener(); };
     const lookups: IndicatorLookups = {
@@ -1123,7 +1116,8 @@ function startIndicatorLookups(doi: DoiString, oaStatus: Promise<OpenAccessStatu
             });
     };
     if (oaStatus) loadOa(oaStatus);
-    lookups.retryPubPeer();
+    if (knownPubPeer === undefined) lookups.retryPubPeer();
+    else lookups.pubpeer = knownPubPeer;
     return lookups;
 }
 
@@ -1389,15 +1383,17 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
     let oaSegment = buildOaSegment(oaStatus ? "pending" : null, color);
     pill.appendChild(oaSegment);
 
-    // Segment 3 — PubPeer marker (async, fetched internally so callers don't
-    // each need to import pubpeer-api.ts; per-pill lookups are coalesced into
-    // one batch request and cached).
-    let pubpeerSegment = buildPubPeerSegment(null, "pending", color);
+    // Segment 3 — PubPeer marker. Callers that already hold the answer pass it
+    // in; otherwise per-pill lookups are coalesced into one cached batch request.
+    const lookups = startIndicatorLookups(doi, oaStatus, options.pubpeer);
+    const initialFeedback = typeof lookups.pubpeer === "string" ? null : lookups.pubpeer;
+    let pubpeerSegment = buildPubPeerSegment(initialFeedback, pubPeerAnswered(lookups.pubpeer), color);
     pill.appendChild(pubpeerSegment);
 
     // Segment 4 — retraction/replication badge (already-resolved inputs).
-    pill.appendChild(buildBadgeSegment(
-        resolveBadgeSignal(doi, replicationsCount, reproductionsCount), color));
+    const badgeSignal = resolveBadgeSignal(doi, replicationsCount, reproductionsCount);
+    pill.appendChild(buildBadgeSegment(badgeSignal, color));
+    wrapper.dataset.floraBadgeFace = badgeFaceKey(badgeSignal, retraction);
 
     // Segment 5 — retraction/concern notice, present only when one exists.
     if (retraction) pill.appendChild(buildNoticeSegment(retraction, color));
@@ -1407,8 +1403,8 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
     let markerState: LookupState["status"] | undefined;
     let markerStudies = (replicationsCount ?? 0) + (reproductionsCount ?? 0);
     let markerNotice = retraction;
-    let markerComments = 0;
-    let markerAnswered: PubPeerAnswered = "pending";
+    let markerComments = initialFeedback?.total_comments ?? 0;
+    let markerAnswered: PubPeerAnswered = pubPeerAnswered(lookups.pubpeer);
     const refreshMarker = () => {
         if (!markerMode) return;
         const pending = markerAnswered === "pending" || markerState === "loading" || markerState === undefined && !markerStudies;
@@ -1446,7 +1442,6 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
         refreshMarker();
     }
 
-    const lookups = startIndicatorLookups(doi, oaStatus);
     let faceOa = lookups.oa;
     let facePubPeer = lookups.pubpeer;
     lookups.subscribe(() => {
@@ -1472,8 +1467,8 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
     });
 
     const popover = slot ? null : createPopover(color, `Open research details for ${doi}`);
-    const rowsHost = slot?.rowsHost ?? popover!;
-    if (slot) rowsHosts.set(wrapper, rowsHost);
+    const rowsHost: HTMLElement | ShadowRoot = slot?.rowsHost ?? popover!.shadowRoot!;
+    if (slot) rowsHosts.set(wrapper, slot.rowsHost);
     let rowsBuilt = false;
     const ensureRows = (): void => {
         startOa();
@@ -1498,8 +1493,31 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
     return shieldFromPageCss(wrapper);
 }
 
+// Page stylesheets cannot cross a shadow boundary, so this sheet replaces the
+// inline shielding: unset box properties are zero and focus rings stay visible.
+const POPOVER_SHADOW_CSS =
+    ":host::before, :host::after { content: none !important; display: none !important; }"
+    + "*, *::before, *::after { box-sizing: border-box; }"
+    + "* { margin: 0; padding: 0; border-width: 0; }"
+    + "svg { display: block; }"
+    + ":focus-visible { outline: 2px solid #853953; outline-offset: 2px; }"
+    + ":where(button, a):not(:focus-visible) { outline: none; }";
+
+const POPOVER_HOST_GUARDS = [
+    ["transform", "none"], ["translate", "none"], ["rotate", "none"], ["scale", "none"],
+    ["filter", "none"], ["backdrop-filter", "none"], ["opacity", "1"], ["visibility", "visible"],
+    ["clip-path", "none"], ["mix-blend-mode", "normal"], ["zoom", "1"],
+    ["min-height", "0"], ["max-height", "none"], ["margin", "0"], ["animation", "none"], ["transition", "none"],
+] as const;
+
+/** Where a pill's popover rows live: inside the popover's shadow root. */
+function popoverRowsRoot(wrapper: HTMLElement): ShadowRoot | null {
+    return wrapper.querySelector<HTMLElement>(":scope > [data-flora-popover]")?.shadowRoot ?? null;
+}
+
 function createPopover(color: string, label: string): HTMLElement {
-    const popover = document.createElement("div");
+    // A custom tag, so a site's own div and span rules never match the host either.
+    const popover = document.createElement("flora-popover");
     popover.setAttribute("role", "dialog");
     popover.setAttribute("aria-label", label);
     popover.setAttribute("data-flora-popover", "");
@@ -1521,10 +1539,21 @@ function createPopover(color: string, label: string): HTMLElement {
     z-index: 2147483647;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     font-size: 12px;
+    font-weight: 400;
+    font-style: normal;
     line-height: 18px;
+    color: #1f2328;
+    text-align: left;
+    white-space: normal;
     flex-direction: column;
     gap: 2px;
   `;
+    // Sites style their own modals through [role="dialog"], which this host carries.
+    for (const [prop, value] of POPOVER_HOST_GUARDS) popover.style.setProperty(prop, value, "important");
+    const root = popover.attachShadow({mode: "open"});
+    const style = document.createElement("style");
+    style.textContent = POPOVER_SHADOW_CSS;
+    root.appendChild(style);
     return popover;
 }
 
@@ -1748,7 +1777,7 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
     const track = document.createElement("div");
     track.style.cssText =
         "display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;";
-    popover.append(header, track);
+    popover.shadowRoot!.append(header, track);
 
     const slides: HTMLElement[] = [];
     const pills = papers.map((paper, i) => {
@@ -1788,7 +1817,7 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
                 + `background:${on ? color : "#d0d7de"};transition:width 0.2s ease,background 0.2s ease;`;
         });
         for (const [button, disabled, other] of [[prev, index === 0, next], [next, index === total - 1, prev]] as const) {
-            if (disabled && document.activeElement === button) other.focus({preventScroll: true});
+            if (disabled && (button.getRootNode() as Document | ShadowRoot).activeElement === button) other.focus({preventScroll: true});
             button.disabled = disabled;
             button.style.opacity = disabled ? "0.35" : "1";
             button.style.cursor = disabled ? "default" : "pointer";
@@ -1906,7 +1935,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
 
     ensurePanelStyle();
     wrapper.appendChild(buildIndicatorRows({
-        doi, color, isAugmented, provenanceLabel, lookups: startIndicatorLookups(doi, oaStatus),
+        doi, color, isAugmented, provenanceLabel, lookups: startIndicatorLookups(doi, oaStatus, options.pubpeer),
         retraction, replicationsCount, reproductionsCount, compact: true,
     }));
     if (typeof options.oaStatus === "function") whenNearViewport(wrapper, startOa);
@@ -1934,7 +1963,7 @@ export function updateIndicatorPillBadges(
         const doi = wrapper.getAttribute("data-flora-doi") as DoiString | null;
         if (!doi || (onlyDoi && doi !== onlyDoi)) continue;
         latestBadgeRepaint.set(wrapper, () => updateIndicatorPillBadges(root, pageState, getRedacts, scope, doi, hooks));
-        const rowsRoot = rowsHosts.get(wrapper) ?? wrapper;
+        const rowsRoot: ParentNode = rowsHosts.get(wrapper) ?? popoverRowsRoot(wrapper) ?? wrapper;
         const badgeSegment = wrapper.querySelector<HTMLElement>("[data-flora-badge-segment]");
         const badgeRow = rowsRoot.querySelector<HTMLElement>("[data-flora-badge-row]");
         if (!badgeSegment && !badgeRow) continue;
@@ -1952,7 +1981,9 @@ export function updateIndicatorPillBadges(
         }
         const strip = badgeSegment?.closest<HTMLElement>(`[${SEGMENT_STRIP_ATTR}]`) ?? null;
         const accent = strip?.getAttribute(SEGMENT_ACCENT_ATTR) ?? undefined;
-        if (badgeSegment) {
+        const faceKey = badgeFaceKey(signal, retraction);
+        if (badgeSegment && wrapper.dataset.floraBadgeFace !== faceKey) {
+            wrapper.dataset.floraBadgeFace = faceKey;
             badgeSegment.replaceWith(buildBadgeSegment(signal, accent));
             const noticeSegment = strip?.querySelector<HTMLElement>(`[${NOTICE_SEGMENT_ATTR}]`);
             if (strip && retraction) {

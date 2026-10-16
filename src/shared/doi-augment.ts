@@ -3,7 +3,7 @@ import type {DoiString, DoiAugmentRequest} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
-import {debugLog, debugWarn, isDebugEnabled} from "./debug";
+import {debugLog, debugWarn} from "./debug";
 import {RequestGate} from "./request-gate";
 
 const OPENALEX_BASE = "https://api.openalex.org/works";
@@ -341,7 +341,6 @@ function logQueryOutcome(
     accepted: DoiCandidate[],
     rejected: Array<{score: number; coverage: number; title: string}>
 ): void {
-    if (!isDebugEnabled()) return;
     const head = `Augment [${source}] "${title.slice(0, 80)}": ${returned} result(s), ${accepted.length} usable`;
     if (accepted.length > 0) {
         const list = accepted

@@ -27,7 +27,9 @@ export function ensureFocusStyle(): void {
     );
     style.textContent =
         `${focused.join(", ")} { outline: 2px solid #853953; outline-offset: 2px; }`
-        + `${suppressed.join(", ")} { outline: none !important; }`;
+        + `${suppressed.join(", ")} { outline: none !important; }`
+        + "@keyframes flora-segment-pending { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }"
+        + "@media (prefers-reduced-motion: reduce) { [data-flora-pending] * { animation: none !important; } }";
     (document.head ?? document.documentElement).appendChild(style);
 }
 

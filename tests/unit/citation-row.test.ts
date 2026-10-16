@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {deep} from "../helpers";
 import {createIndicatorPill as createClosedPill, createIndicatorPanel, ensurePopoverRows} from "../../src/shared/indicator-pill";
 import {_resetCitationCacheForTesting} from "../../src/shared/citation";
 import type {DoiString} from "../../src/shared/types";
@@ -34,7 +35,7 @@ function acceptHeader(call: unknown[]): string {
 }
 
 function citeBtn(host: HTMLElement): HTMLElement {
-  return host.querySelector<HTMLElement>("[data-flora-citation-copy]")!;
+  return deep(host).querySelector<HTMLElement>("[data-flora-citation-copy]")!;
 }
 
 function storedSettings(stored: Record<string, unknown>): void {
@@ -65,7 +66,7 @@ describe("cite action", () => {
     const pill = createIndicatorPill({doi: DOI});
     // The action is an icon beside the DOI; a separate labelled row would
     // repeat what the quote glyph already says.
-    expect(pill.querySelector("[data-flora-citation-row]")).toBeNull();
+    expect(deep(pill).querySelector("[data-flora-citation-row]")).toBeNull();
     expect(citeBtn(pill).textContent).toBe("");
     expect(citeBtn(pill).querySelector("svg")).not.toBeNull();
   });
@@ -92,8 +93,8 @@ describe("cite action", () => {
 
   it("offers copying and nothing else — the style is a settings decision", () => {
     const pill = createIndicatorPill({doi: DOI});
-    expect(pill.querySelector("select")).toBeNull();
-    expect(pill.querySelector("[data-flora-citation-text]")).toBeNull();
+    expect(deep(pill).querySelector("select")).toBeNull();
+    expect(deep(pill).querySelector("[data-flora-citation-text]")).toBeNull();
   });
 
   it("copies in the style the reader chose in settings", async () => {

@@ -132,6 +132,12 @@ describe("following a pause set in another tab", () => {
     expect(seen.at(-1)).toEqual({blocked: true, snoozedUntil: null});
   });
 
+  it("reports a site switched off in the site picker", async () => {
+    const {seen, change} = await watch(["www.example.org"]);
+    await change("local", "flora_disabled_sites", ["example.org"]);
+    expect(seen.at(-1)).toEqual({blocked: true, snoozedUntil: null});
+  });
+
   it("reports a snooze set from another tab", async () => {
     const {seen, change} = await watch(["example.org"]);
     const until = Date.now() + 3_600_000;

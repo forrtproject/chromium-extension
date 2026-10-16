@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import {deep} from "../helpers";
 
 const mockGetSettings = vi.fn();
 vi.mock("../../src/shared/settings", () => ({
@@ -24,11 +25,11 @@ function createIndicatorPill(...args: Parameters<typeof createClosedPill>): HTML
 const DOI = "10.1000/pending" as DoiString;
 
 function rowText(pill: HTMLElement, attr: string): string {
-    return pill.querySelector(`[${attr}]`)?.textContent ?? "";
+    return deep(pill).querySelector(`[${attr}]`)?.textContent ?? "";
 }
 
 function oaTooltip(pill: HTMLElement): string {
-    return pill.querySelector<HTMLElement>("[data-flora-oa-segment]")?.title ?? "";
+    return deep(pill).querySelector<HTMLElement>("[data-flora-oa-segment]")?.title ?? "";
 }
 
 function deferred<T>() {
@@ -101,19 +102,20 @@ describe("pending lookups are not shown as negatives", () => {
         await vi.waitFor(() => expect(rowText(pill, "data-flora-oa-row")).toContain("Unavailable"));
         expect(oaTooltip(pill)).toContain("Unavailable");
         vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ok: true, json: async () => ({is_oa: true, best_oa_location: {url: "https://example.org/free"}})}));
-        pill.querySelector<HTMLButtonElement>("[data-flora-oa-row] button")!.focus();
-        pill.querySelector<HTMLButtonElement>("[data-flora-oa-row] button")!.click();
+        deep(pill).querySelector<HTMLButtonElement>("[data-flora-oa-row] button")!.focus();
+        deep(pill).querySelector<HTMLButtonElement>("[data-flora-oa-row] button")!.click();
         await vi.waitFor(() => expect(rowText(pill, "data-flora-oa-row")).toContain("Free full text available"));
         expect(oaTooltip(pill)).toContain("Free full text available");
-        expect(pill.querySelector("[data-flora-oa-row] button")).toBeNull();
-        expect(pill.querySelector("[data-flora-oa-row]")!.contains(document.activeElement)).toBe(true);
+        expect(deep(pill).querySelector("[data-flora-oa-row] button")).toBeNull();
+        const oaRow = deep(pill).querySelector("[data-flora-oa-row]")!;
+        expect(oaRow.contains((oaRow.getRootNode() as ShadowRoot).activeElement)).toBe(true);
     });
 
     it("offers Retry for unavailable PubPeer data but treats a successful empty reply as no discussion", async () => {
         mockLookupPubPeer.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(null);
         const pill = createIndicatorPill({doi: DOI, oaStatus: null, retraction: null});
         await vi.waitFor(() => expect(rowText(pill, "data-flora-pubpeer-row")).toContain("Unavailable"));
-        pill.querySelector<HTMLButtonElement>("[data-flora-pubpeer-row] button")!.click();
+        deep(pill).querySelector<HTMLButtonElement>("[data-flora-pubpeer-row] button")!.click();
         await vi.waitFor(() => expect(rowText(pill, "data-flora-pubpeer-row")).toContain("No discussion found"));
         expect(mockLookupPubPeer).toHaveBeenCalledTimes(2);
     });
@@ -126,7 +128,7 @@ describe("pending lookups are not shown as negatives", () => {
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(rowText(pill, "data-flora-pubpeer-row")).toContain("Not checked");
         expect(rowText(pill, "data-flora-pubpeer-row")).not.toContain("Unavailable");
-        expect(pill.querySelector("[data-flora-pubpeer-row] button")?.textContent).toContain("Retry");
+        expect(deep(pill).querySelector("[data-flora-pubpeer-row] button")?.textContent).toContain("Retry");
     });
 
     it("offers a retry on the Open Access row when the pass is cancelled", async () => {
@@ -135,7 +137,7 @@ describe("pending lookups are not shown as negatives", () => {
         oa.reject(new DOMException("Work cancelled", "AbortError"));
         await vi.waitFor(() => expect(rowText(pill, "data-flora-oa-row")).toContain("Not checked"));
         expect(rowText(pill, "data-flora-oa-row")).not.toContain("Unavailable");
-        expect(pill.querySelector("[data-flora-oa-row] button")?.textContent).toContain("Retry");
+        expect(deep(pill).querySelector("[data-flora-oa-row] button")?.textContent).toContain("Retry");
     });
 
     it("shows no OA row pending state when no lookup was started", () => {
@@ -175,7 +177,7 @@ describe("open access without a contact email", () => {
         oa.resolve(null);
 
         await vi.waitFor(() =>
-            expect(pill.querySelector("[data-flora-oa-row] button")).not.toBeNull()
+            expect(deep(pill).querySelector("[data-flora-oa-row] button")).not.toBeNull()
         );
     });
 });
