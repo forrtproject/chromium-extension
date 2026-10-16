@@ -406,12 +406,9 @@
         link that leaks exposes one list.
       </p>
       <p>
-        FORRT never receives the key or the list in readable form — not when the
-        link is created and not when it is opened. The key sits in the part of the
-        link after the <code>#</code>, which browsers keep to themselves and do not
-        send to any server, including the forrt.org server that hosts the Atlas page.
-        FORRT's database, its logs and its servers hold only ciphertext they have no
-        way to decrypt.
+        The key is not included in the HTTP request, but the Atlas page's JavaScript
+        can read the fragment and decrypt the set. This protects against API or
+        storage access, not against code served by the Atlas origin.
       </p>
       <p>
         Treat an Atlas set link like a password: anyone who has the whole link can
