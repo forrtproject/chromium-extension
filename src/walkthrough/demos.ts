@@ -107,7 +107,13 @@ export function installOfflineFixtures(): void {
                 sync: {get: empty, set: () => Promise.resolve()},
                 onChanged: {addListener: () => {}},
             },
-            runtime: {sendMessage: () => Promise.resolve(undefined), lastError: null, id: "tour"},
+            runtime: {
+                sendMessage: (message: {type?: string}) => Promise.resolve(message?.type === "FLORA_RR_CHECK"
+                    ? {type: "FLORA_RR_CHECK_RESULT", results: {}}
+                    : undefined),
+                lastError: null,
+                id: "tour",
+            },
         };
     }
 }

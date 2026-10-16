@@ -21,12 +21,13 @@ import {
   install,
 } from "@puppeteer/browsers";
 import puppeteer from "puppeteer-core";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const VERSION = JSON.parse(readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8")).version as string;
 const OUT_DIR = path.join(REPO_ROOT, "docs", "img");
 
 /** Walkthrough step index -> screenshot file name; null for prose-only steps. */
@@ -51,8 +52,14 @@ window.chrome = {
     session: { get: () => Promise.resolve({}), set: () => Promise.resolve() },
     onChanged: { addListener: () => {} },
   },
-  runtime: { sendMessage: () => Promise.resolve({}), getURL: (p) => p, openOptionsPage: () => {}, lastError: null },
-  tabs: { query: () => Promise.resolve([{ id: 1, url: "https://journals.sagepub.com/doi/10.1177/0956797612441216" }]) },
+  runtime: {
+    sendMessage: () => Promise.resolve({}), getURL: (p) => p, openOptionsPage: () => {}, lastError: null,
+    getManifest: () => ({ name: "FORRT ORE", version: "${VERSION}" }),
+  },
+  tabs: {
+    query: () => Promise.resolve([{ id: 1, windowId: 1, url: "https://journals.sagepub.com/doi/10.1177/0956797612441216" }]),
+    sendMessage: () => Promise.reject(new Error("no content script")),
+  },
 };
 `;
 
