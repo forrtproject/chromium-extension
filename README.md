@@ -249,16 +249,14 @@ Confirmed FORRT no-matches are cached locally for five minutes to avoid repeated
 
 ### Atlas set links
 
-The page summary's "details" link opens the [Replication Atlas](https://forrt.org/flora-replication-atlas/) for every matched DOI on the page. A short list travels in the link itself (`?doi=a,b,c`). Once that URL would pass 2,500 characters (`needsAtlasSet` in `src/shared/flora-atlas.ts`), the extension instead stores the list through the FORRT API and links to it by token (`?set=<token>`):
+The page summary's "details" link opens the [Replication Atlas](https://forrt.org/flora-replication-atlas/) for every matched DOI on the page. A short list travels in the link itself (`?doi=a,b,c`). Once that URL would pass 2,500 characters (`needsAtlasSet` in `src/shared/flora-atlas.ts`), the extension instead stores the list, encrypted, through the FORRT API and links to it as `?set=<id>#k=<key>`:
 
-1. As soon as the summary renders, the service worker `POST`s the DOIs to `/v1/sets`. If the user clicks before the token is back, a reserved tab is redirected once it arrives.
-2. The API normalises and de-duplicates the DOIs, generates a fresh 256-bit key for this one set, encrypts `{dois, count, created}` with AES-256-GCM, and stores only the ciphertext, IV and auth tag, with a 30-day TTL. The key is never written to the database.
-3. It returns the token `<id>.<key>`:
-   - `id`: 8 hex characters, the DynamoDB row id. It finds the row but cannot decrypt it.
-   - `key`: the 32-byte AES key as 43 characters of unpadded base64url.
-4. The Atlas page sends the token to `GET /v1/sets/{token}`. The API looks up the row by `id`, decrypts it with `key`, and returns the DOIs. A wrong key, tampered row, unknown id or expired set all return the same `404 set_expired`, so the endpoint can't be used to test guesses.
+1. As soon as the summary renders, the service worker encrypts the DOIs (`sealDoiSet` in `src/shared/set-crypto.ts`): a fresh 256-bit key and 12-byte IV per set, AES-256-GCM over `{dois, created}` with `flora-doi-set:v2` as additional authenticated data. If the user clicks before the link is ready, a reserved tab is redirected once it is.
+2. It `POST`s only `{data, iv}` to `/v1/sets`. The API stores the ciphertext with a 30-day TTL and returns an 8-hex `id`. The key never leaves the browser.
+3. `atlasSetUrl` puts the `id` in the query and the key (43 characters of unpadded base64url) in the `#k=` fragment. Browsers never send the fragment to a server, so neither the API nor forrt.org sees the key.
+4. The Atlas reads `k` from the fragment, fetches the ciphertext with `GET /v1/sets/{id}`, and decrypts it in the browser. A wrong or damaged key fails GCM's tag check and the Atlas reports the link as incomplete; an unknown or expired id returns `404 set_expired`.
 
-The full token is a bearer secret: anyone holding the link can read the list until it expires. Debug logs record only the `id` half (`setRowId` in `src/shared/flora-api.ts`), so issue reports never carry the key. The server sees the list in readable form when the link is created and each time it is opened; the encryption protects the stored copy. See section 11 of the [privacy policy](https://forrt.org/chromium-extension/privacy.html).
+The full link is a bearer secret: anyone holding it can read the list until it expires. Inside the extension the set travels as `<id>.<key>` until it becomes a link; debug logs record only the `id`, and `redactDebugText` strips the key from either form, so issue reports never carry it. See section 11 of the [privacy policy](https://forrt.org/chromium-extension/privacy.html).
 
 ## Data sources & credits
 

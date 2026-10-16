@@ -8,8 +8,24 @@ import { setDebug, recentDebugEntries, _resetDebugForTesting } from "../../src/s
 const API_URL = "https://rep-api.forrt.org/v1/original-lookup";
 const SETS_URL = "https://rep-api.forrt.org/v1/sets";
 
-// Row id, then the AES key the set was encrypted with — the shape the server hands back.
-const SET_TOKEN = "d7dbaac1.hT9v1RkQ0s_bXm4pE7ZLn2yWgC8jUdA6oIvF3rKqNxM";
+const SET_ID = "d7dbaac1";
+const AAD = new TextEncoder().encode("flora-doi-set:v2");
+
+const fromBase64url = (s: string) =>
+  Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+
+/** Decrypt a posted body with the key half of the token, as the Atlas does. */
+async function openSet(body: { data: string; iv: string }, token: string) {
+  const key = await crypto.subtle.importKey(
+    "raw", fromBase64url(token.split(".")[1]), "AES-GCM", false, ["decrypt"]
+  );
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: fromBase64url(body.iv), additionalData: AAD },
+    key,
+    fromBase64url(body.data)
+  );
+  return JSON.parse(new TextDecoder().decode(plain)) as { dois: string[]; created: string };
+}
 
 const server = setupServer();
 
@@ -200,30 +216,54 @@ describe("lookupDOIs", () => {
 });
 
 describe("createDoiSet", () => {
-  it("posts the DOIs and returns the set id", async () => {
-    let body: unknown;
+  it("posts only ciphertext and returns <id>.<key>", async () => {
+    let raw = "";
     server.use(
       http.post(SETS_URL, async ({ request }) => {
-        body = await request.json();
-        return HttpResponse.json({ id: SET_TOKEN, count: 2 });
+        raw = await request.text();
+        return HttpResponse.json({ id: SET_ID, expires: "2026-11-15T10:00:00Z" });
       })
     );
 
-    const setId = await createDoiSet([doi("10.1038/a"), doi("10.1038/b")]);
+    const token = await createDoiSet([doi("10.1038/a"), doi("10.1038/b"), doi("10.1038/a")]);
 
-    expect(setId).toBe(SET_TOKEN);
-    expect(body).toEqual({ dois: ["10.1038/a", "10.1038/b"] });
+    expect(token).toMatch(/^d7dbaac1\.[A-Za-z0-9_-]{43}$/);
+    const body = JSON.parse(raw);
+    expect(Object.keys(body).sort()).toEqual(["data", "iv"]);
+    expect(raw).not.toContain("10.1038");
+    expect(raw).not.toContain(token!.split(".")[1]);
+
+    const opened = await openSet(body, token!);
+    expect(opened.dois).toEqual(["10.1038/a", "10.1038/b"]);
+    expect(opened.created).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/);
   });
 
-  it("keeps the key half out of the debug log", async () => {
+  it("uses a fresh key and IV for every set", async () => {
+    const bodies: { data: string; iv: string }[] = [];
+    server.use(
+      http.post(SETS_URL, async ({ request }) => {
+        bodies.push(await request.json() as { data: string; iv: string });
+        return HttpResponse.json({ id: SET_ID });
+      })
+    );
+
+    const a = await createDoiSet([doi("10.1038/a")]);
+    const b = await createDoiSet([doi("10.1038/a")]);
+
+    expect(a!.split(".")[1]).not.toBe(b!.split(".")[1]);
+    expect(bodies[0].iv).not.toBe(bodies[1].iv);
+    expect(bodies[0].data).not.toBe(bodies[1].data);
+  });
+
+  it("keeps the key out of the debug log", async () => {
     const logged: unknown[] = [];
     const spy = vi.spyOn(console, "log").mockImplementation((...args) => {
       logged.push(...args);
     });
     setDebug(true);
-    server.use(http.post(SETS_URL, () => HttpResponse.json({ id: SET_TOKEN, count: 1 })));
+    server.use(http.post(SETS_URL, () => HttpResponse.json({ id: SET_ID })));
 
-    await createDoiSet([doi("10.1038/a")]);
+    const token = await createDoiSet([doi("10.1038/a")]);
 
     const transcript = logged.map(String).join(" ");
     const reported = recentDebugEntries().map((e) => e.msg).join(" ");
@@ -232,19 +272,15 @@ describe("createDoiSet", () => {
 
     // The line has to have been written, or the assertion below proves nothing.
     expect(transcript).toContain("Created DOI set d7dbaac1");
-    expect(transcript).not.toContain(SET_TOKEN.split(".")[1]);
-    expect(reported).not.toContain(SET_TOKEN.split(".")[1]);
+    expect(transcript).not.toContain(token!.split(".")[1]);
+    expect(reported).not.toContain(token!.split(".")[1]);
   });
 
-  it("returns null for a token that lost its key half in transit", async () => {
-    server.use(http.post(SETS_URL, () => HttpResponse.json({ id: "d7dbaac1", count: 1 })));
-
-    expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
-  });
-
-  it("returns null for a token whose key is the wrong length", async () => {
+  it("returns null for an id that is not 8 hex characters", async () => {
     server.use(
-      http.post(SETS_URL, () => HttpResponse.json({ id: "d7dbaac1.tooshort", count: 1 }))
+      http.post(SETS_URL, () =>
+        HttpResponse.json({ id: "d7dbaac1.hT9v1RkQ0s_bXm4pE7ZLn2yWgC8jUdA6oIvF3rKqNxM" })
+      )
     );
 
     expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
@@ -267,7 +303,7 @@ describe("createDoiSet", () => {
   });
 
   it("returns null when the response carries no id", async () => {
-    server.use(http.post(SETS_URL, () => HttpResponse.json({ count: 1 })));
+    server.use(http.post(SETS_URL, () => HttpResponse.json({ expires: "x" })));
 
     expect(await createDoiSet([doi("10.1038/a")])).toBeNull();
   });

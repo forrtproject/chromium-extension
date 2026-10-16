@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { DoiString, ReplicationResult } from "./types";
 import { ReplicationResultSchema } from "./types";
 import { debugLog, debugError } from "./debug";
+import { sealDoiSet } from "./set-crypto";
 
 // Loose envelope — validate each result individually below so one malformed
 // entry can't fail the whole batch.
@@ -10,16 +11,10 @@ const ResponseEnvelopeSchema = z.object({
   results: z.record(z.string(), z.unknown()),
 });
 
-// `<row id>.<key>` — the second half is the AES key the server encrypted the set with and
-// never keeps, so a token that arrives truncated can never be resolved and is not worth a link.
-const SET_TOKEN = /^[0-9a-f]{8}\.[A-Za-z0-9_-]{43}$/;
-
+// The API hands back only the row id: the key was generated here and never sent.
 const SetSchema = z.object({
-  id: z.string().regex(SET_TOKEN),
+  id: z.string().regex(/^[0-9a-f]{8}$/),
 });
-
-/** The addressable half of a set token, safe to log — the key half is not. */
-const setRowId = (token: string) => token.slice(0, token.indexOf("."));
 
 const API_BASE = "https://rep-api.forrt.org";
 const BATCH_SIZE = 50;
@@ -77,15 +72,22 @@ export async function lookupDOIs(
   return results;
 }
 
+/**
+ * Encrypt `dois` locally, store the ciphertext, and return the set token `<row id>.<key>`.
+ * `atlasSetUrl` splits the token so the key lands in the link's #fragment, out of reach of
+ * every server — including the API, which never receives it.
+ */
 export async function createDoiSet(dois: DoiString[], signal?: AbortSignal): Promise<string | null> {
-  if (dois.length === 0) return null;
+  const unique = [...new Set(dois)];
+  if (unique.length === 0) return null;
 
   try {
+    const { data, iv, key } = await sealDoiSet(unique);
     const response = await fetchWithDeadline(`${API_BASE}/v1/sets`, {
       signal,
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dois }),
+      body: JSON.stringify({ data, iv }),
     });
 
     if (!response.ok) {
@@ -93,10 +95,11 @@ export async function createDoiSet(dois: DoiString[], signal?: AbortSignal): Pro
     }
 
     const { id } = SetSchema.parse(await response.json());
-    debugLog(`Created DOI set ${setRowId(id)} for ${dois.length} DOIs`);
-    return id;
+    // The id alone is safe to log; the key is what reads the list.
+    debugLog(`Created DOI set ${id} for ${unique.length} DOIs`);
+    return `${id}.${key}`;
   } catch (err) {
-    debugError(`Could not create a DOI set for ${dois.length} DOIs:`, err);
+    debugError(`Could not create a DOI set for ${unique.length} DOIs:`, err);
     return null;
   }
 }

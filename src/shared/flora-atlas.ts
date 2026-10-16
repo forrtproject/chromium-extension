@@ -9,8 +9,15 @@ export function atlasDoiUrl(dois: readonly string[]): string {
     return `${ATLAS_BASE}?doi=${encodeURIComponent(dois.join(","))}`;
 }
 
+/**
+ * `setId` is `<row id>.<key>`. The key goes in the #fragment, which the browser never sends
+ * to forrt.org or anywhere else; the Atlas reads it from there and decrypts the set itself.
+ */
 export function atlasSetUrl(setId: string): string {
-    return `${ATLAS_BASE}?set=${encodeURIComponent(setId)}`;
+    const dot = setId.indexOf(".");
+    const id = setId.slice(0, dot);
+    const key = setId.slice(dot + 1);
+    return `${ATLAS_BASE}?set=${encodeURIComponent(id)}#k=${encodeURIComponent(key)}`;
 }
 
 export function needsAtlasSet(dois: readonly string[]): boolean {
