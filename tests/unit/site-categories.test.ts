@@ -122,6 +122,21 @@ describe("sites switched off by category", () => {
         expect(localStore.flora_disabled_sites).toEqual(["reddit.com"]);
     });
 
+    it("extends an earlier Google Search choice to its country sites, but only when it was switched off", async () => {
+        syncStore.flora_disabled_sites = ["www.google.com", "youtube.com"];
+        let {isDomainBlocked} = await import("../../src/shared/domains");
+        await expect(isDomainBlocked("www.google.de")).resolves.toBe(true);
+        await expect(isDomainBlocked("www.google.com.au")).resolves.toBe(true);
+        await expect(isDomainBlocked("scholar.google.de")).resolves.toBe(false);
+
+        vi.resetModules();
+        localStore = {};
+        syncStore = {flora_disabled_sites: ["youtube.com"]};
+        ({isDomainBlocked} = await import("../../src/shared/domains"));
+        await expect(isDomainBlocked("www.google.de")).resolves.toBe(false);
+        await expect(isDomainBlocked("youtube.com")).resolves.toBe(true);
+    });
+
     it("leaves Scholar and Docs alone when Google Search is switched off", async () => {
         const {isDomainBlocked, saveDisabledSites} = await import("../../src/shared/domains");
         await saveDisabledSites(["www.google.com"]);
@@ -228,6 +243,62 @@ describe("site picker", () => {
         expect(container.querySelector<HTMLInputElement>('details[data-category="publishers"] summary input')!.checked).toBe(true);
         const {isDomainBlocked} = await import("../../src/shared/domains");
         await expect(isDomainBlocked("academic.oup.com")).resolves.toBe(false);
+    });
+
+    it("keeps both of two quick changes while the first save is still running", async () => {
+        const container = await mountPicker();
+        const realSet = chrome.storage.local.set;
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        chrome.storage.local.set = vi.fn(async (items: Record<string, unknown>) => {
+            await gate;
+            return (realSet as unknown as (i: Record<string, unknown>) => Promise<void>)(items);
+        }) as unknown as typeof chrome.storage.local.set;
+
+        container.querySelector<HTMLInputElement>('details[data-category="publishers"] summary input')!.click();
+        container.querySelector<HTMLInputElement>('details[data-category="medicine"] summary input')!.click();
+        release();
+
+        const {DEFAULT_DISABLED_SITES} = await import("../../src/shared/site-categories-off");
+        await vi.waitFor(() => expect((localStore.flora_disabled_sites as string[]).length)
+            .toBeGreaterThan(DEFAULT_DISABLED_SITES.length + 100));
+        const saved = localStore.flora_disabled_sites as string[];
+        expect(saved).toContain("academic.oup.com");
+        expect(saved).toContain("bmj.com");
+    });
+
+    it("keeps an add made while a removal is still saving", async () => {
+        syncStore.flora_custom_sites = ["first.example.org"];
+        const container = await mountPicker();
+        const realSet = chrome.storage.sync.set;
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        chrome.storage.sync.set = vi.fn(async (items: Record<string, unknown>) => {
+            await gate;
+            return (realSet as unknown as (i: Record<string, unknown>) => Promise<void>)(items);
+        }) as unknown as typeof chrome.storage.sync.set;
+
+        container.querySelector<HTMLButtonElement>(".site-remove")!.click();
+        container.querySelector<HTMLInputElement>(".site-add input")!.value = "second.example.org";
+        container.querySelector("form")!.dispatchEvent(new Event("submit", {cancelable: true}));
+        release();
+
+        await vi.waitFor(() => expect(syncStore.flora_custom_sites).toEqual(["second.example.org"]));
+    });
+
+    it("leaves a custom site in place when switching it back on fails", async () => {
+        syncStore.flora_custom_sites = ["my-lab.example.org"];
+        localStore.flora_disabled_sites = ["my-lab.example.org"];
+        const onChange = vi.fn();
+        const container = await mountPicker(onChange);
+        chrome.storage.local.set = vi.fn().mockRejectedValue(new Error("storage unavailable"));
+
+        container.querySelector<HTMLButtonElement>(".site-remove")!.click();
+
+        await vi.waitFor(() => expect(container.querySelector<HTMLElement>(".site-add-error")!.hidden).toBe(false));
+        expect(onChange).not.toHaveBeenCalled();
+        expect(syncStore.flora_custom_sites).toEqual(["my-lab.example.org"]);
+        expect(container.querySelector('details[data-category="custom"]')).not.toBeNull();
     });
 
     it("keeps a custom site's remove button outside its checkbox label", async () => {

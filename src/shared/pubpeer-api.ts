@@ -167,11 +167,15 @@ export async function lookupPubPeerForDois<T extends string>(
   const owned: T[] = [];
   const joined: T[] = [];
   const settlers = new Map<string, (outcome: FlightOutcome) => void>();
+  const ownerOf = new Map<string, T>();
+  const repeats: Array<[T, T]> = [];
   for (const doi of dois) {
     const key = cacheKey(doi);
-    if (settlers.has(key)) { owned.push(doi); continue; }
+    const owner = ownerOf.get(key);
+    if (owner !== undefined) { repeats.push([doi, owner]); continue; }
     if (flights.has(key)) { joined.push(doi); continue; }
     flights.set(key, new Promise((resolve) => settlers.set(key, resolve)));
+    ownerOf.set(key, doi);
     owned.push(doi);
   }
   const awaited = new Map(joined.map((doi) => [doi, flights.get(cacheKey(doi))!] as const));
@@ -186,6 +190,11 @@ export async function lookupPubPeerForDois<T extends string>(
       flights.delete(key);
     }
     if (flights.size === 0 && inFlight.get(flightKey) === flights) inFlight.delete(flightKey);
+  }
+  for (const [repeat, owner] of repeats) {
+    const hit = result.get(owner);
+    if (hit) result.set(repeat, hit);
+    if (unavailable.has(owner)) unavailable.add(repeat);
   }
   if (awaited.size === 0) return result;
 

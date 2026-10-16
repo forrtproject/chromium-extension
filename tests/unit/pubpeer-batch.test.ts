@@ -217,6 +217,16 @@ describe("lookupPubPeerForDoi batching", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("sends a DOI once when one call names it twice, and answers both spellings", async () => {
+    const result = await lookupPubPeerForDois(["10.1234/A", "10.1234/a"], new Set(), null);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.dois).toEqual(["10.1234/a"]);
+    expect(result.get("10.1234/A")?.total_comments).toBe(3);
+    expect(result.get("10.1234/a")?.total_comments).toBe(3);
+  });
+
   it("does not let a new scan join a cancelled scan's request", async () => {
     vi.useFakeTimers();
     const {release} = holdFetch();

@@ -179,6 +179,14 @@ describe("debug log store", () => {
     expect((await readDebugLog()).map((e) => e.msg)).toEqual(["today"]);
   });
 
+  it("skips malformed stored entries instead of failing every read and write", async () => {
+    localStore[DEBUG_LOG_KEY] = [null, entry("today"), { level: "log", ctx: "x", msg: "no timestamp" }];
+    _resetDebugLogForTesting();
+    expect((await readDebugLog()).map((e) => e.msg)).toEqual(["today"]);
+    await appendDebugEntries([entry("next", 1)]);
+    expect((await readDebugLog()).map((e) => e.msg)).toEqual(["today", "next"]);
+  });
+
   it("drops an expired entry that arrived after newer ones", async () => {
     const old = { t: Date.now() - MAX_LOG_AGE_MS - 60_000, level: "log" as const, ctx: "old.example", msg: "late batch" };
     await appendDebugEntries([entry("first", 1), old, entry("second", 2)]);

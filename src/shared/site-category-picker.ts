@@ -39,6 +39,13 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     ...SITE_CATEGORIES,
   ];
 
+  let pending: Promise<unknown> = Promise.resolve();
+  const serial = <T>(change: () => Promise<T>): Promise<T> => {
+    const run = pending.then(change);
+    pending = run.catch(() => {});
+    return run;
+  };
+
   const persistDisabledSites = async (next: Set<string>): Promise<boolean> => {
     try {
       await saveDisabledSites([...next].sort());
@@ -51,7 +58,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     return true;
   };
 
-  const setSitesEnabled = async (domains: string[], enabled: boolean): Promise<boolean> => {
+  const setSitesEnabled = (domains: string[], enabled: boolean): Promise<boolean> => serial(async () => {
     const next = new Set(disabledSites);
     for (const domain of domains) {
       if (enabled) next.delete(domain);
@@ -61,7 +68,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     addError.hidden = true;
     render();
     return true;
-  };
+  });
 
   const enableCustomSite = async (domain: string): Promise<boolean> => {
     if (!disabledSites.has(domain)) return true;
@@ -70,21 +77,24 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     return persistDisabledSites(next);
   };
 
-  const removeCustomSite = async (domain: string): Promise<void> => {
+  const removeCustomSite = (domain: string): Promise<void> => serial(async () => {
+    const wasDisabled = disabledSites.has(domain);
+    if (!await enableCustomSite(domain)) return;
     const remaining = customSites.filter((d) => d !== domain);
     try {
       await saveCustomSites(remaining);
     } catch {
+      if (wasDisabled) await persistDisabledSites(new Set([...disabledSites, domain]));
       showAddError(`Couldn't remove ${domain}. Try again.`);
+      render();
       return;
     }
     customSites = remaining;
-    await enableCustomSite(domain);
     render();
     onChange?.(`Removed ${domain}.`);
-  };
+  });
 
-  addForm.addEventListener("submit", async (event) => {
+  addForm.addEventListener("submit", (event) => {
     event.preventDefault();
     addError.hidden = true;
     const domain = normaliseSiteInput(addInput.value);
@@ -92,28 +102,30 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       showAddError("Enter a domain such as journals.example.org.");
       return;
     }
-    const forms = [domain, domain.startsWith("www.") ? domain.slice(4) : `www.${domain}`];
-    for (const category of categories()) {
-      const listed = category.sites.flatMap(siteDomains).find((d) => forms.includes(d));
-      if (listed) {
-        showAddError(`${listed} is already listed under ${category.label}.`);
+    void serial(async () => {
+      const forms = [domain, domain.startsWith("www.") ? domain.slice(4) : `www.${domain}`];
+      for (const category of categories()) {
+        const listed = category.sites.flatMap(siteDomains).find((d) => forms.includes(d));
+        if (listed) {
+          showAddError(`${listed} is already listed under ${category.label}.`);
+          return;
+        }
+      }
+      const added = [...customSites, domain].sort();
+      try {
+        await saveCustomSites(added);
+      } catch {
+        showAddError(`Couldn't add ${domain}. Try again.`);
         return;
       }
-    }
-    const added = [...customSites, domain].sort();
-    try {
-      await saveCustomSites(added);
-    } catch {
-      showAddError(`Couldn't add ${domain}. Try again.`);
-      return;
-    }
-    customSites = added;
-    const enabled = await enableCustomSite(domain);
-    addInput.value = "";
-    const open = list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`);
-    render();
-    if (!open) list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`)!.open = true;
-    if (enabled) onChange?.(`ORE will run on ${domain}.`);
+      customSites = added;
+      const enabled = await enableCustomSite(domain);
+      addInput.value = "";
+      const open = list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`);
+      render();
+      if (!open) list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`)!.open = true;
+      if (enabled) onChange?.(`ORE will run on ${domain}.`);
+    });
   });
 
   const render = (): void => {

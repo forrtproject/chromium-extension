@@ -46,6 +46,9 @@ describe("Registered Reports in the side panel", () => {
         renderSidePanel([], [REFS[1], {doi: REFS[1].doi, title: "Same paper, cited again"}], state, context, new Map(), [], "Article");
 
         await vi.waitFor(() => expect(document.querySelectorAll("[data-flora-rr-tag]")).toHaveLength(2));
+        const rows = new Set([...document.querySelectorAll("[data-flora-rr-tag]")].map((tag) => tag.closest("li")));
+        expect(rows.size, "each cited row carries its own tag").toBe(2);
+        expect(rows.has(null)).toBe(false);
     });
 
     it("logs a failed lookup once, not once per reference", async () => {

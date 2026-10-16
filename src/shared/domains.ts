@@ -10,7 +10,7 @@ const BLACKLIST_KEY = "flora_blocked_domains";
 const SNOOZE_KEY = "flora_snoozed_domains";
 const DISABLED_SITES_KEY = "flora_disabled_sites";
 import { debugError } from "./debug";
-import { DEFAULT_DISABLED_SITES } from "./site-categories-off";
+import { DEFAULT_DISABLED_SITES, OFF_BY_DEFAULT_CATEGORIES } from "./site-categories-off";
 let cachedBlockedDomains: string[] | null = null;
 let cachedSnoozes: Record<string, number> | null = null;
 let cachedDisabledSites: string[] | null = null;
@@ -67,7 +67,8 @@ export async function getDisabledSites(): Promise<string[]> {
   if (cachedDisabledSites) return cachedDisabledSites;
   try {
     const local = (await chrome.storage.local.get(DISABLED_SITES_KEY))[DISABLED_SITES_KEY] as string[] | undefined;
-    cachedDisabledSites = local ?? await migrateDisabledSitesFromSync() ?? [...DEFAULT_DISABLED_SITES];
+    const stored = local ?? await migrateDisabledSitesFromSync();
+    cachedDisabledSites = stored ? withAliases(stored) : [...DEFAULT_DISABLED_SITES];
   } catch (err) {
     debugError("Disabled sites: read failed — falling back to the off-by-default sites:", err);
     cachedDisabledSites = [...DEFAULT_DISABLED_SITES];
@@ -80,6 +81,15 @@ async function migrateDisabledSitesFromSync(): Promise<string[] | undefined> {
   const synced = (await chrome.storage.sync.get(DISABLED_SITES_KEY))[DISABLED_SITES_KEY] as string[] | undefined;
   if (synced) await chrome.storage.local.set({ [DISABLED_SITES_KEY]: synced });
   return synced;
+}
+
+// A list saved before a site gained aliases (Google Search's country hosts) names only its main domain.
+function withAliases(domains: string[]): string[] {
+  const listed = new Set(domains);
+  const missing = OFF_BY_DEFAULT_CATEGORIES.flatMap((category) => category.sites)
+    .filter((site) => site.aliases && listed.has(site.domain))
+    .flatMap((site) => site.aliases!.filter((alias) => !listed.has(alias)));
+  return missing.length === 0 ? domains : [...domains, ...missing];
 }
 
 export async function saveDisabledSites(domains: string[]): Promise<void> {

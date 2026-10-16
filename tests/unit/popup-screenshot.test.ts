@@ -26,7 +26,7 @@ describe("the popup's screenshot option", () => {
         chrome.runtime.getManifest = vi.fn(() => ({version: "0.0.0"})) as never;
         chrome.tabs.get = vi.fn().mockResolvedValue(PAGE) as never;
         chrome.tabs.query = vi.fn(async (query: chrome.tabs.QueryInfo) =>
-            query.currentWindow ? [PAGE] : [visibleTab]) as never;
+            query.currentWindow ? [PAGE] : query.windowId === PAGE.windowId ? [visibleTab] : []) as never;
         chrome.tabs.sendMessage = vi.fn().mockRejectedValue(new Error("no content script")) as never;
         chrome.tabs.captureVisibleTab = vi.fn().mockResolvedValue("data:image/png;base64,AAAA") as never;
         chrome.tabs.create = vi.fn() as never;

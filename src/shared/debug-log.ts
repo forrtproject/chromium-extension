@@ -24,7 +24,7 @@ export const MAX_LOG_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function withinLogAge(entries: DebugLogEntry[]): DebugLogEntry[] {
   const cutoff = Date.now() - MAX_LOG_AGE_MS;
-  const fresh = (entry: DebugLogEntry) => entry.t >= cutoff;
+  const fresh = (entry: DebugLogEntry | null) => typeof entry?.t === "number" && entry.t >= cutoff;
   return entries.every(fresh) ? entries : entries.filter(fresh);
 }
 
