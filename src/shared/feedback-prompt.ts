@@ -2,8 +2,7 @@ import {debugLog, debugWarn} from "./debug";
 import {isPageTourOpen} from "./page-tour";
 import {safeSendMessage, type FeedbackPromptResponse, type FeedbackPromptStep} from "./messages";
 
-export const FEEDBACK_URL =
-    "https://github.com/forrtproject/chromium-extension/issues/new?labels=feedback&title=Feedback%3A%20";
+export const FEEDBACK_URL = "https://forms.gle/pRppkMZfs6kf1ht6A";
 
 const FEEDBACK_HOST_ID = "flora-feedback-prompt";
 const FEEDBACK_MESSAGE = "A minute of feedback on what works and what doesn't helps us improve ORE.";
@@ -26,40 +25,43 @@ function buildPrompt(close: () => void): {host: HTMLElement; announce: () => voi
     host.setAttribute("aria-labelledby", "flora-feedback-title");
     host.style.cssText =
         "all:initial;position:fixed;left:18px;bottom:18px;z-index:2147483647;box-sizing:border-box;" +
-        "width:300px;max-width:calc(100vw - 36px);background:#fff;border-radius:10px;overflow:hidden;" +
-        "box-shadow:0 8px 28px rgba(0,0,0,0.22);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
+        "width:320px;max-width:calc(100vw - 36px);background:#fff;border-radius:12px;overflow:hidden;" +
+        "box-shadow:0 10px 32px rgba(0,0,0,0.2),0 2px 6px rgba(0,0,0,0.08);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
         "opacity:0;transform:translateY(8px);transition:opacity 0.2s ease,transform 0.2s ease;";
 
     const header = document.createElement("div");
     header.style.cssText =
-        "display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(135deg,#853953,#612D53);";
+        "display:flex;align-items:center;justify-content:space-between;padding:8px 8px 8px 12px;" +
+        "background:linear-gradient(135deg,#853953,#612D53);";
     const badge = document.createElement("span");
-    badge.style.cssText = "color:#fff;font-weight:700;font-size:11px;background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:5px;";
+    badge.style.cssText = "color:#fff;font-weight:700;font-size:11px;letter-spacing:0.02em;background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:5px;";
     badge.textContent = "FORRT ORE";
-    const title = document.createElement("span");
-    title.id = "flora-feedback-title";
-    title.style.cssText = "flex:1;color:#fff;font-size:13px;font-weight:600;";
-    title.textContent = "How is ORE working for you?";
     const dismiss = document.createElement("button");
     dismiss.type = "button";
     dismiss.setAttribute("aria-label", "Close");
     dismiss.textContent = "×";
     dismiss.style.cssText =
-        "all:unset;cursor:pointer;color:rgba(255,255,255,0.85);font-size:18px;line-height:1;padding:0 4px;border-radius:4px;";
+        "all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:24px;height:24px;" +
+        "color:rgba(255,255,255,0.85);font-size:18px;line-height:1;border-radius:5px;";
     dismiss.addEventListener("click", close);
-    header.append(badge, title, dismiss);
+    header.append(badge, dismiss);
+
+    const title = document.createElement("div");
+    title.id = "flora-feedback-title";
+    title.style.cssText = "padding:14px 16px 0;color:#202124;font-size:15px;font-weight:700;line-height:1.3;";
+    title.textContent = "How is ORE working for you?";
 
     const body = document.createElement("div");
     body.setAttribute("role", "status");
-    body.style.cssText = "padding:12px;font-size:13px;line-height:1.5;color:#3c4043;";
+    body.style.cssText = "padding:6px 16px 14px;font-size:13px;line-height:1.5;color:#5f6368;";
 
     const actions = document.createElement("div");
-    actions.style.cssText = "display:flex;justify-content:flex-end;gap:8px;padding:0 12px 12px;";
+    actions.style.cssText = "display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:0 16px 16px;";
     const later = document.createElement("button");
     later.type = "button";
     later.textContent = "No thanks";
     later.style.cssText =
-        "all:unset;cursor:pointer;font-size:12px;font-weight:600;color:#5f6368;padding:6px 10px;border-radius:6px;";
+        "all:unset;cursor:pointer;font-size:13px;font-weight:600;color:#5f6368;padding:7px 12px;border-radius:6px;";
     later.addEventListener("click", close);
     const give = document.createElement("a");
     give.href = FEEDBACK_URL;
@@ -67,15 +69,15 @@ function buildPrompt(close: () => void): {host: HTMLElement; announce: () => voi
     give.rel = "noopener noreferrer";
     give.textContent = "Give feedback";
     give.style.cssText =
-        "all:unset;cursor:pointer;font-size:12px;font-weight:600;color:#fff;padding:6px 12px;border-radius:6px;" +
-        "background:linear-gradient(135deg,#853953,#612D53);";
+        "all:unset;cursor:pointer;font-size:13px;font-weight:600;color:#fff;padding:7px 14px;border-radius:6px;" +
+        "background:linear-gradient(135deg,#853953,#612D53);box-shadow:0 1px 3px rgba(97,45,83,0.35);";
     give.addEventListener("click", () => {
         debugLog("Feedback: prompt accepted");
         close();
     });
     actions.append(later, give);
 
-    host.append(header, body, actions);
+    host.append(header, title, body, actions);
     return {host, announce: () => { body.textContent = FEEDBACK_MESSAGE; }};
 }
 
