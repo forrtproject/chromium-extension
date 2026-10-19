@@ -137,7 +137,7 @@ describe("applyPlacement", () => {
 // the sites actually serve rather than an idealised version of it.
 describe.each([
   ["science.org", "science-org-article.html", "science.org", ".citation", "inside"],
-  ["journals.sagepub.com", "sagepub-article.html", "sagepub", ".citation", "after"],
+  ["journals.sagepub.com", "sagepub-article.html", "sagepub", ".citation-content", "after"],
 ] as const)("%s reference placement", (hostname, fixture, expectedId, expectedContainer, titleRelation) => {
   const adapter = () => resolveSiteAdapter(hostname) as SiteAdapter;
 
