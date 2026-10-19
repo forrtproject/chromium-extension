@@ -89,6 +89,7 @@ const SAGEPUB: SiteAdapter = {
     id: "sagepub",
     hostnames: ["sagepub.com"],
     referencePill: [
+        { selector: ".citation-content", position: "below" },
         { selector: ".citation", position: "append" },
     ],
     titlePill: [
@@ -96,6 +97,7 @@ const SAGEPUB: SiteAdapter = {
     ],
     referenceScope: "#bibliography",
     titlePillStyle: { top: "-10px" },
+    referencePillStyle: { top: "0px", marginTop: "6px !important" },
 };
 
 const FRONTIERS: SiteAdapter = {
