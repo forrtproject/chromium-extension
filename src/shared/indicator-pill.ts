@@ -1317,8 +1317,59 @@ interface StackSlot {
 
 const rowsHosts = new WeakMap<HTMLElement, HTMLElement>();
 
+const PILL_ID_ATTR = "data-flora-pill-id";
+const PILL_ID_PREFIX = Math.random().toString(36).slice(2, 8);
+let nextPillId = 0;
+const pillRebuilders = new Map<string, () => HTMLElement>();
+const livePills = new WeakSet<Element>();
+let cloneWatcher: MutationObserver | null = null;
+
+// Some publishers (Silverchair's reference modals) copy a reference's markup,
+// pill included; the copy has no listeners or popover shadow root, so it is inert.
+function reviveWhenCopied(wrapper: HTMLElement, rebuild: () => HTMLElement): HTMLElement {
+    const id = `${PILL_ID_PREFIX}-${nextPillId++}`;
+    wrapper.setAttribute(PILL_ID_ATTR, id);
+    pillRebuilders.set(id, rebuild);
+    livePills.add(wrapper);
+    if (!cloneWatcher && typeof MutationObserver !== "undefined") {
+        cloneWatcher = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                for (const node of m.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) reviveCopiedPills(node as Element);
+                }
+            }
+        });
+        cloneWatcher.observe(document.documentElement, {childList: true, subtree: true});
+    }
+    return wrapper;
+}
+
+function reviveCopiedPills(root: Element): void {
+    const copies = [root, ...root.querySelectorAll(`[${PILL_ID_ATTR}]`)].filter((el) =>
+        el.hasAttribute(PILL_ID_ATTR) && !livePills.has(el) && pillRebuilders.has(el.getAttribute(PILL_ID_ATTR)!));
+    for (const copy of copies) {
+        if (!copy.isConnected) continue;
+        const fresh = pillRebuilders.get(copy.getAttribute(PILL_ID_ATTR)!)!();
+        for (const {name, value} of copy.attributes) {
+            if (!fresh.hasAttribute(name)) fresh.setAttribute(name, value);
+        }
+        copy.replaceWith(fresh);
+        repaintBadgesLike(fresh);
+    }
+}
+
+function repaintBadgesLike(fresh: HTMLElement): void {
+    const dois = new Set([fresh, ...fresh.querySelectorAll("[data-flora-doi]")].map((el) => el.getAttribute("data-flora-doi")));
+    for (const doi of dois) {
+        if (!doi) continue;
+        const painted = [...document.querySelectorAll<HTMLElement>(`.${INDICATOR_PILL_CLASS}[data-flora-doi]`)]
+            .find((el) => el.getAttribute("data-flora-doi") === doi && latestBadgeRepaint.has(el));
+        if (painted) latestBadgeRepaint.get(painted)!();
+    }
+}
+
 export function createIndicatorPill(options: IndicatorPillOptions): HTMLElement {
-    return buildIndicatorPill(options);
+    return reviveWhenCopied(buildIndicatorPill(options), () => createIndicatorPill(options));
 }
 
 function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HTMLElement {
@@ -1869,7 +1920,7 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
     wrapper.appendChild(face);
     wirePopover({wrapper, pill: face, popover, color, markerMode: false, ensureRows});
     wrapper.appendChild(popover);
-    return shieldFromPageCss(wrapper);
+    return reviveWhenCopied(shieldFromPageCss(wrapper), () => createStackedIndicatorPill(papers));
 }
 
 /**
