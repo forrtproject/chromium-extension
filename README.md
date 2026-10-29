@@ -17,7 +17,7 @@ When you visit an article page (PubMed, journal websites, preprint servers, etc.
 
 ## Installation
 
-**[Install FORRT ORE from the Chrome Web Store](https://chromewebstore.google.com/detail/kdbmghoddafabpjdnjhocollhjefcnco)** — works in Chrome and Edge.
+**[Install FORRT ORE from the Chrome Web Store](https://chromewebstore.google.com/detail/ffncppfcjjciahcjbpefhokklfcagodc)** — works in Chrome and Edge.
 
 ### Manual install (developer mode)
 
