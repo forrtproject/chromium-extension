@@ -12,9 +12,9 @@ on:
     - cron: "0 1 * * 1"
   workflow_dispatch:
 
-# Cron and manual runs queue instead of racing each other to push to main.
+# Both data updaters push to main, so all their runs queue instead of racing.
 concurrency:
-  group: update-registered-reports
+  group: update-data
   cancel-in-progress: false
 
 jobs:

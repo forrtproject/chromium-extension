@@ -36,12 +36,13 @@ if [ "$(git rev-parse HEAD~1)" != "$(git rev-parse origin/main)" ]; then
   exit 1
 fi
 sha="$(git rev-parse HEAD)"
-scratch_branch="bot/$(basename "$data_file" .json)-update"
-git push --force origin "HEAD:refs/heads/$scratch_branch"
+# Named per run, so it can't overwrite anyone else's branch.
+scratch_branch="bot/$(basename "$data_file" .json)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+git push origin "HEAD:refs/heads/$scratch_branch"
+trap 'git push origin --delete "$scratch_branch" || echo "::warning::Could not delete $scratch_branch."' EXIT
 gh api "repos/$GITHUB_REPOSITORY/statuses/$sha" \
   -f state=success -f context="Visual approval" \
   -f description="Data file only; no visual review needed" \
   -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
   > /dev/null
 git push origin HEAD:main
-git push origin --delete "$scratch_branch" || echo "::warning::Could not delete $scratch_branch; the next run overwrites it."
