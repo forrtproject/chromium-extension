@@ -15,7 +15,7 @@
  */
 
 import { redactDebugText } from "./debug-redact";
-import { isDetailedLogging, isFullLogBuild, recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
+import { isDetailedLogging, isTestingBuild, recentDebugEntries, type DebugLogEntry, type RuntimeErrorInfo } from "./debug";
 import { readDebugLog, withinLogAge } from "./debug-log";
 import { safeSendMessage } from "./messages";
 import { effectiveCacheQuotaMb, getSettings } from "./settings";
@@ -266,7 +266,7 @@ export async function collectDebugReport(
     `Extension: ${extensionIdentity()}`,
     `User agent: ${userAgent()}`,
     `Report generated: ${new Date().toISOString()}`,
-    `Detailed logging: ${isFullLogBuild() ? "on (testing build)" : isDetailedLogging() ? "on" : "off — warnings, errors and the page's recent lines only"}`,
+    `Detailed logging: ${isTestingBuild() ? "on (testing build)" : isDetailedLogging() ? "on" : "off (warnings, errors and the page's recent lines only)"}`,
   ];
   if (host) environment.push(`Page: ${host}`);
 
@@ -413,7 +413,7 @@ function issueBody(
     "",
     "",
     ...(domain ? [`**Domain:** ${domain}`, ""] : []),
-    `**Extension version:** ${extensionVersion()}`,
+    `**Extension version:** ${extensionVersion()}${isTestingBuild() ? " (testing)" : ""}`,
     "",
     "**Debug report**",
     "",

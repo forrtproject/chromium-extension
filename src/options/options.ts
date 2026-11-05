@@ -8,7 +8,7 @@ import {
   isHiddenCommenter,
   saveHiddenCommenters,
 } from "../shared/pubpeer-filter";
-import { debugError, isDebugEnabledAsync, setDebug } from "../shared/debug";
+import { debugError, isDebugEnabledAsync, isTestingBuild, setDebug } from "../shared/debug";
 import { clearDebugLog } from "../shared/debug-log";
 import {
   buildDebugReport,
@@ -17,6 +17,8 @@ import {
   stashIssueReport,
   type DebugReportData,
 } from "../shared/debug-report";
+
+document.getElementById("testing-banner")!.hidden = !isTestingBuild();
 
 // ── Email form ──────────────────────────────────────────────────────
 

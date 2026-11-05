@@ -10,8 +10,8 @@ const sharedOptions: esbuild.BuildOptions = {
   target: "chrome116",
   logLevel: "info",
   loader: { ".css": "text" },
-  // Testing builds store every log line; release builds store only warnings and errors.
-  define: { __ORE_FULL_LOG__: JSON.stringify(!process.argv.includes("--release")) },
+  // Testing builds store every log line and show a testing banner; release builds store only warnings and errors.
+  define: { __ORE_TESTING_BUILD__: JSON.stringify(!process.argv.includes("--release")) },
 };
 
 const configs: esbuild.BuildOptions[] = [

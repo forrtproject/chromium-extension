@@ -212,14 +212,33 @@ never included.
 ### Automated Workflows
 
 * Opened pull request are tested against the [test workflow](.github/workflows/test.yml)
-* Pushing to `main` creates a new draft release from latest sources.
-* Pushing a `v*` tag on a commit that is on `main` creates a new release
+* Pushing to `main` or `testing` creates or updates that channel's draft release from latest sources.
+* Pushing a version tag creates a release for its channel, as set out below.
+
+### Release channels
+
+| | Stable | Testing |
+| --- | --- | --- |
+| Branch | `main` | `testing` |
+| Tag | `v0.1.4.0` | `testing-v0.1.4.0` |
+| GitHub release | Marked latest | Marked pre-release |
+| Zip for the Web Store | `flora-extension.zip` | `flora-extension-testing.zip` |
+| Debug log | Warnings and errors, unless debug mode is on | Every line |
+| Visible label | None | Banner in the popup and settings, "Testing" in the toolbar tooltip and extension name |
+
+To release, set `version` in `manifest.json` on the channel's branch, then tag that commit:
+
+```bash
+git tag testing-v0.1.4.0 origin/testing && git push origin testing-v0.1.4.0
+```
+
+The workflow rejects a tag unless its commit is on the channel's branch and its version matches `manifest.json`. The build adds the testing label and no tracked file contains it, so `testing` merges into `main` without carrying it over.
 
 ### Commands
 
 | Command              | Description                    |
 | -------------------- | ------------------------------ |
-| `npm run build`      | Build the extension (one-time); testing build that keeps a detailed debug log |
+| `npm run build`      | Build the extension (one-time); testing build that shows the testing banner and keeps a detailed debug log |
 | `npm run build:release` | Build for release: only warnings and errors are logged unless the user turns on debug mode |
 | `npm run watch`      | Build and watch for changes    |
 | `npm test`           | Run all unit tests             |

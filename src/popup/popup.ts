@@ -7,7 +7,7 @@ import {
   snoozeDomain,
 } from "../shared/domains";
 import {SNOOZE_CHOICES, formatSnoozeEnd} from "../shared/snooze-durations";
-import { debugError, debugWarn, isDebugEnabledAsync, setDebug, type DebugLogEntry } from "../shared/debug";
+import { debugError, debugWarn, isDebugEnabledAsync, isTestingBuild, setDebug, type DebugLogEntry } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 import { getSettings, saveSettings } from "../shared/settings";
 import { openTourSample } from "../shared/tour-sample";
@@ -69,6 +69,7 @@ const versionEl = document.getElementById("popup-version")!;
 const extensionVersion = chrome.runtime.getManifest().version;
 versionEl.textContent = `v${extensionVersion}`;
 versionEl.title = `Extension version ${extensionVersion}`;
+document.getElementById("testing-banner")!.hidden = !isTestingBuild();
 
 let currentDomain = "";
 let blocked = false;

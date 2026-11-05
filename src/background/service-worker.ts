@@ -17,7 +17,7 @@ import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
 import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
-import {debugError, debugLog, debugWarn, isDebugEnabledAsync, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
+import {debugError, debugLog, debugWarn, isDebugEnabledAsync, isTestingBuild, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 import {isFeedbackPromptRequest, type FeedbackPromptResponse, type FeedbackPromptStep} from "@shared/messages";
 
 // The worker-wide manager budgets all providers together.
@@ -68,7 +68,7 @@ const tabPaints = new Map<number, number>();
 function paintTab(tabId: number, path: Record<number, string>, title: string, badge = "", colour = ""): void {
     tabPaints.set(tabId, (tabPaints.get(tabId) ?? 0) + 1);
     chrome.action.setIcon({ tabId, path }).catch(() => {});
-    chrome.action.setTitle({ tabId, title }).catch(() => {});
+    chrome.action.setTitle({ tabId, title: isTestingBuild() ? `${title} (Testing)` : title }).catch(() => {});
     chrome.action.setBadgeText?.({ tabId, text: badge })?.catch?.(() => {});
     if (!badge || !colour) return;
     chrome.action.setBadgeBackgroundColor?.({ tabId, color: colour })?.catch?.(() => {});

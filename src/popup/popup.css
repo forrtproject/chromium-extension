@@ -78,6 +78,14 @@ body {
   opacity: 0.4;
 }
 
+.testing-banner {
+  padding: 4px 14px;
+  font-size: 12px;
+  text-align: center;
+  color: #78350f;
+  background: #fde68a;
+}
+
 /* ─── Body ─── */
 .popup-body {
   padding: 12px 12px 8px;
