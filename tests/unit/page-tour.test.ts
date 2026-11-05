@@ -18,7 +18,11 @@ beforeEach(() => {
     chrome.storage.local.get = vi.fn(async (key: string) => (key in store ? {[key]: store[key]} : {})) as never;
     chrome.storage.local.set = vi.fn(async (items: Record<string, unknown>) => { Object.assign(store, items); }) as never;
 });
-afterEach(() => vi.useRealTimers());
+afterEach(async () => {
+    (await import("../../src/shared/page-tour")).closePageTour();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+});
 
 async function articlePage({notice = false} = {}): Promise<void> {
     const {createIndicatorPill} = await import("../../src/shared/indicator-pill");
@@ -178,10 +182,56 @@ describe("a tour asked for while the page is still being checked", () => {
     });
 
     it("answers at once when ORE is hidden, without waiting for the pass", async () => {
-        const {beginWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
         const {startPageTourOnceIdle} = await import("../../src/shared/page-tour");
         beginWorkIndicator();
         await expect(startPageTourOnceIdle("article", () => false)).resolves.toBe(false);
+        endWorkIndicator();
+    });
+
+    it("does not start on the page an SPA navigated to during the wait", async () => {
+        await articlePage();
+        vi.stubGlobal("location", new URL("https://example.org/first"));
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {startPageTourOnceIdle, isPageTourOpen} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        const started = startPageTourOnceIdle("article", () => true);
+        vi.stubGlobal("location", new URL("https://example.org/second"));
+        endWorkIndicator();
+        await expect(started).resolves.toBe(false);
+        expect(isPageTourOpen()).toBe(false);
+    });
+
+    it("still starts after a jump to a fragment on the same page", async () => {
+        await articlePage();
+        vi.stubGlobal("location", new URL("https://example.org/first"));
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {startPageTourOnceIdle} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        const started = startPageTourOnceIdle("article", () => true);
+        vi.stubGlobal("location", new URL("https://example.org/first#ref-12"));
+        endWorkIndicator();
+        await expect(started).resolves.toBe(true);
+    });
+
+    it("waits for the page's startup before deciding there is nothing to show", async () => {
+        const {startPageTourOnceIdle} = await import("../../src/shared/page-tour");
+        let finishStartup!: () => void;
+        const started = startPageTourOnceIdle("article", () => true, new Promise<void>((resolve) => { finishStartup = resolve; }));
+        await new Promise((resolve) => setTimeout(resolve));
+        await articlePage();
+        finishStartup();
+        await expect(started).resolves.toBe(true);
+    });
+
+    it("can be cancelled while the page is still starting up", async () => {
+        await articlePage();
+        const {cancelPageTourStart, startPageTourOnceIdle} = await import("../../src/shared/page-tour");
+        let finishStartup!: () => void;
+        const started = startPageTourOnceIdle("article", () => true, new Promise<void>((resolve) => { finishStartup = resolve; }));
+        cancelPageTourStart();
+        finishStartup();
+        await expect(started).resolves.toBe(false);
     });
 
     it("reports failure once the pass ends with nothing to show", async () => {
@@ -237,6 +287,28 @@ describe("the tour requested on the sample article", () => {
         const offer = offerFirstPageTour("article", () => true);
         await vi.advanceTimersByTimeAsync(2000);
         await offer;
+        expect(isPageTourOpen()).toBe(false);
+        expect(store[REQUEST_KEY]).toBeDefined();
+    });
+
+    it("keeps the request when the reader navigates off the sample during the wait", async () => {
+        vi.useFakeTimers();
+        await articlePage();
+        await onSampleArticle();
+        store.flora_page_tour_seen = {article: true};
+        store[REQUEST_KEY] = Date.now() + 60_000;
+        const {offerFirstPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
+        const offer = offerFirstPageTour("article", () => true);
+        await vi.advanceTimersByTimeAsync(0);
+        vi.stubGlobal("location", new URL("https://example.org/elsewhere"));
+        await vi.advanceTimersByTimeAsync(2000);
+        await offer;
+        expect(isPageTourOpen()).toBe(false);
+        expect(store[REQUEST_KEY]).toBeDefined();
+
+        const nextPage = offerFirstPageTour("article", () => true);
+        await vi.advanceTimersByTimeAsync(2000);
+        await nextPage;
         expect(isPageTourOpen()).toBe(false);
         expect(store[REQUEST_KEY]).toBeDefined();
     });

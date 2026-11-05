@@ -7,7 +7,7 @@ import {
   snoozeDomain,
 } from "../shared/domains";
 import {SNOOZE_CHOICES, formatSnoozeEnd} from "../shared/snooze-durations";
-import { debugError, debugWarn, isDebugEnabledAsync, setDebug, type DebugLogEntry } from "../shared/debug";
+import { debugError, debugWarn, isDebugEnabledAsync, isTestingBuild, setDebug, type DebugLogEntry } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 import { getSettings, saveSettings } from "../shared/settings";
 import { openTourSample } from "../shared/tour-sample";
@@ -69,6 +69,7 @@ const versionEl = document.getElementById("popup-version")!;
 const extensionVersion = chrome.runtime.getManifest().version;
 versionEl.textContent = `v${extensionVersion}`;
 versionEl.title = `Extension version ${extensionVersion}`;
+document.getElementById("testing-banner")!.hidden = !isTestingBuild();
 
 let currentDomain = "";
 let blocked = false;
@@ -419,12 +420,12 @@ pageTourBtn.addEventListener("click", async () => {
   }, TOUR_CHECKING_DELAY_MS);
   try {
     const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_START_PAGE_TOUR" }) as { started?: boolean } | undefined;
+    if (pendingTourStart !== request) return;
+    pendingTourStart = null;
     if (response?.started) {
       window.close();
       return;
     }
-    if (pendingTourStart !== request) return;
-    pendingTourStart = null;
     showTourHelp(blocked || snoozedUntil !== null || hidden ? "paused" : "no-pills");
   } catch (err) {
     debugWarn("Popup: page tour message failed —", err);

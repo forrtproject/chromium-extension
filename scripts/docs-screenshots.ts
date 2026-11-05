@@ -1,6 +1,6 @@
 // Regenerates the screenshots used by the documentation site in docs/img/.
 //
-//   npm run build && npm run docs:screenshots
+//   npm run build:release && npm run docs:screenshots
 //   npm run docs:screenshots -- --settings-only
 //
 // Two sources, both rendered in Chrome for Testing (see tests/visual/README.md
@@ -80,7 +80,7 @@ const settle = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function main(): Promise<void> {
   if (!existsSync(path.join(REPO_ROOT, "dist", "walkthrough.html"))) {
-    throw new Error("dist/ not found — run `npm run build` first");
+    throw new Error("dist/ not found. Run `npm run build:release` first.");
   }
   mkdirSync(OUT_DIR, { recursive: true });
 

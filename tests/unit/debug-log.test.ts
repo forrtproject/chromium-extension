@@ -4,7 +4,7 @@ import {
   debugError,
   debugLog,
   debugWarn,
-  isFullLogBuild,
+  isTestingBuild,
   recentDebugEntries,
   flushDebugLog,
   isDebugEnabled,
@@ -89,13 +89,13 @@ describe("debug capture", () => {
   });
 
   it("stores routine lines in a testing build", () => {
-    vi.stubGlobal("__ORE_FULL_LOG__", true);
+    vi.stubGlobal("__ORE_TESTING_BUILD__", true);
     try {
       const sink = vi.fn();
       setDebugSink(sink);
       debugLog("testing build line");
       flushDebugLog();
-      expect(isFullLogBuild()).toBe(true);
+      expect(isTestingBuild()).toBe(true);
       expect((sink.mock.calls[0][0] as DebugLogEntry[]).map((e) => e.msg)).toEqual(["testing build line"]);
     } finally {
       vi.unstubAllGlobals();

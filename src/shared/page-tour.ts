@@ -4,6 +4,7 @@ import {REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {waitForWorkToFinish} from "@shared/progress-toast";
 import {debugWarn} from "@shared/debug";
 import {clearTourRequest, isTourRequestedFor} from "@shared/tour-sample";
+import {currentPageEntry, isSamePage} from "@shared/page-identity";
 
 export type TourSurface = "article" | "search";
 
@@ -302,11 +303,17 @@ export function cancelPageTourStart(): void {
     latestStartRequest++;
 }
 
-export async function startPageTourOnceIdle(surface: TourSurface, canShow: () => boolean): Promise<boolean> {
+export async function startPageTourOnceIdle(
+    surface: TourSurface,
+    canShow: () => boolean,
+    pageStartup: Promise<unknown> = Promise.resolve(),
+): Promise<boolean> {
     if (!canShow()) return false;
     const request = ++latestStartRequest;
+    const page = currentPageEntry();
+    await pageStartup;
     await waitForWorkToFinish();
-    return request === latestStartRequest && canShow() && startPageTour(surface);
+    return request === latestStartRequest && isSamePage(page, currentPageEntry()) && canShow() && startPageTour(surface);
 }
 
 const offered = new Set<TourSurface>();
@@ -327,12 +334,13 @@ async function markTourSeen(surface: TourSurface): Promise<void> {
 export async function offerFirstPageTour(surface: TourSurface, canShow: () => boolean): Promise<void> {
     if (offered.has(surface) || openTour) return;
     offered.add(surface);
+    const page = currentPageEntry();
     try {
         const requested = await isTourRequestedFor(location.href);
         if (!requested && await hasSeenTour(surface)) return;
         await waitForWorkToFinish();
         await new Promise((resolve) => setTimeout(resolve, FIRST_TOUR_DELAY_MS));
-        if (!canShow() || document.hidden || openTour) {
+        if (!canShow() || document.hidden || openTour || !isSamePage(page, currentPageEntry())) {
             offered.delete(surface);
             return;
         }

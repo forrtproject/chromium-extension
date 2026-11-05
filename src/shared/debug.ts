@@ -42,11 +42,11 @@ export type RuntimeErrorListener = (info: RuntimeErrorInfo) => void;
 
 export const DEBUG_FLAG_KEY = "flora_debug";
 
-declare const __ORE_FULL_LOG__: boolean | undefined;
+declare const __ORE_TESTING_BUILD__: boolean | undefined;
 
-/** Testing builds keep every line; the release workflow builds with this off. */
-export function isFullLogBuild(): boolean {
-  return typeof __ORE_FULL_LOG__ !== "undefined" && __ORE_FULL_LOG__ === true;
+/** Testing builds keep every line; the stable release builds with this off. */
+export function isTestingBuild(): boolean {
+  return typeof __ORE_TESTING_BUILD__ !== "undefined" && __ORE_TESTING_BUILD__ === true;
 }
 
 /** Longest single captured message; anything beyond this is truncated. */
@@ -332,7 +332,7 @@ export function isDebugEnabled(): boolean {
 
 /** Whether routine lines are being stored, not just warnings and errors. */
 export function isDetailedLogging(): boolean {
-  return _enabled || isFullLogBuild();
+  return _enabled || isTestingBuild();
 }
 
 /** Ship any buffered entries now (e.g. before a popup closes). */

@@ -17,12 +17,12 @@ const SETTLE_MS = 150;
 /** Run a pass over the document when the current URL is one of the site's
  *  results pages. Record pages belong to content-general (see
  *  @shared/search-sites), so no pass and no progress toast runs there. */
-export function processIfResultsPage(adapter: SearchSiteAdapter, context: string): void {
+export function processIfResultsPage(adapter: SearchSiteAdapter, context: string): Promise<void> {
     if (!adapter.ownsUrl(new URL(location.href))) {
         debugLog(`${adapter.label}: not a results page — left to content-general`);
-        return;
+        return Promise.resolve();
     }
-    void processSearchResults(adapter, document).then(
+    return processSearchResults(adapter, document).then(
         () => { if (!isSearchHidden()) void offerFirstPageTour("search", () => !isSearchHidden()); },
         (err) => debugError(`${adapter.label}: ${context} failed —`, err),
     );
@@ -35,7 +35,7 @@ export function observeSearchResults(adapter: SearchSiteAdapter): void {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
             timer = null;
-            processIfResultsPage(adapter, "pass on changed search results");
+            void processIfResultsPage(adapter, "pass on changed search results");
         }, SETTLE_MS);
     };
     // Same-document navigation may reuse every result node, so no added-row
