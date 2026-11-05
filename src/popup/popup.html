@@ -110,7 +110,7 @@
       <div class="popup-divider"></div>
 
       <nav class="popup-footer" aria-label="More">
-        <button id="page-tour-btn" class="popup-link" type="button">Page tour</button>
+        <button id="page-tour-btn" class="popup-link" type="button">Tour this page</button>
         <span class="popup-footer-sep" aria-hidden="true"></span>
         <button id="tour-btn" class="popup-link" type="button">How it works</button>
         <span class="popup-footer-sep" aria-hidden="true"></span>
@@ -119,6 +119,18 @@
     </div>
 
     <div id="popup-status" class="popup-status" hidden></div>
+
+    <div id="tour-help" class="popup-tour-help" hidden>
+      <div class="popup-tour-help-card" role="alertdialog" aria-modal="true" aria-labelledby="tour-help-title" aria-describedby="tour-help-text">
+        <strong id="tour-help-title"></strong>
+        <p id="tour-help-text"></p>
+        <div class="popup-tour-help-actions">
+          <button id="tour-sample-btn" class="popup-tour-help-primary" type="button">Open a sample article</button>
+          <button id="tour-reload-btn" class="popup-link" type="button" hidden>Reload this page</button>
+          <button id="tour-dismiss-btn" class="popup-link" type="button">Not now</button>
+        </div>
+      </div>
+    </div>
 
     <script src="popup.js"></script>
   </body>

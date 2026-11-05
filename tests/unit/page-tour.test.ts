@@ -125,6 +125,113 @@ describe("the on-page tour of an article", () => {
     });
 });
 
+describe("a tour asked for while the page is still being checked", () => {
+    it("waits for the pass and starts on the pills it painted", async () => {
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {startPageTourOnceIdle, isPageTourOpen} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        const started = startPageTourOnceIdle("article", () => true);
+        await Promise.resolve();
+        expect(isPageTourOpen()).toBe(false);
+
+        await articlePage();
+        endWorkIndicator();
+        await expect(started).resolves.toBe(true);
+        expect(isPageTourOpen()).toBe(true);
+    });
+
+    it("starts straight away when pills are already on the page", async () => {
+        await articlePage();
+        const {beginWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {startPageTourOnceIdle} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        await expect(startPageTourOnceIdle("article", () => true)).resolves.toBe(true);
+    });
+
+    it("reports failure once the pass ends with nothing to show", async () => {
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {startPageTourOnceIdle} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        const started = startPageTourOnceIdle("article", () => true);
+        endWorkIndicator();
+        await expect(started).resolves.toBe(false);
+    });
+
+    it("does not start while ORE is hidden, even with pills on the page", async () => {
+        await articlePage();
+        const {startPageTourOnceIdle, isPageTourOpen} = await import("../../src/shared/page-tour");
+        await expect(startPageTourOnceIdle("article", () => false)).resolves.toBe(false);
+        expect(isPageTourOpen()).toBe(false);
+    });
+});
+
+describe("the tour requested on the sample article", () => {
+    const REQUEST_KEY = "flora_page_tour_request";
+
+    async function onSampleArticle(): Promise<void> {
+        const {TOUR_SAMPLE_URL} = await import("../../src/shared/tour-sample");
+        vi.stubGlobal("location", new URL(TOUR_SAMPLE_URL));
+    }
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    beforeEach(() => {
+        chrome.storage.local.remove = vi.fn(async (key: string) => { delete store[key]; }) as never;
+    });
+
+    it("runs even for a reader who has seen the tour, then clears the request", async () => {
+        vi.useFakeTimers();
+        await articlePage();
+        await onSampleArticle();
+        store.flora_page_tour_seen = {article: true};
+        store[REQUEST_KEY] = Date.now() + 60_000;
+        const {offerFirstPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
+        const offer = offerFirstPageTour("article", () => true);
+        await vi.advanceTimersByTimeAsync(2000);
+        await offer;
+        expect(isPageTourOpen()).toBe(true);
+        expect(store[REQUEST_KEY]).toBeUndefined();
+    });
+
+    it("keeps the request for a later pass when no pill has painted yet", async () => {
+        vi.useFakeTimers();
+        await onSampleArticle();
+        store[REQUEST_KEY] = Date.now() + 60_000;
+        const {offerFirstPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
+        const offer = offerFirstPageTour("article", () => true);
+        await vi.advanceTimersByTimeAsync(2000);
+        await offer;
+        expect(isPageTourOpen()).toBe(false);
+        expect(store[REQUEST_KEY]).toBeDefined();
+    });
+
+    it("ignores an expired request", async () => {
+        vi.useFakeTimers();
+        await articlePage();
+        await onSampleArticle();
+        store.flora_page_tour_seen = {article: true};
+        store[REQUEST_KEY] = Date.now() - 1;
+        const {offerFirstPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
+        const offer = offerFirstPageTour("article", () => true);
+        await vi.advanceTimersByTimeAsync(2000);
+        await offer;
+        expect(isPageTourOpen()).toBe(false);
+    });
+
+    it("ignores the request on any other page", async () => {
+        vi.useFakeTimers();
+        await articlePage();
+        store.flora_page_tour_seen = {article: true};
+        store[REQUEST_KEY] = Date.now() + 60_000;
+        const {offerFirstPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
+        const offer = offerFirstPageTour("article", () => true);
+        await vi.advanceTimersByTimeAsync(2000);
+        await offer;
+        expect(isPageTourOpen()).toBe(false);
+        expect(store[REQUEST_KEY]).toBeDefined();
+    });
+});
+
 describe("the tour on search results", () => {
     it("explains the result panel and a DOI matched by title", async () => {
         const {createIndicatorPanel} = await import("../../src/shared/indicator-pill");
@@ -206,6 +313,13 @@ describe("the first-run tour", () => {
         } finally {
             rect.mockRestore();
         }
+    });
+
+    it("leaves the tour seen after the reader starts it from the popup", async () => {
+        await articlePage();
+        const {startPageTour} = await import("../../src/shared/page-tour");
+        startPageTour("article");
+        await vi.waitFor(() => expect(store.flora_page_tour_seen).toEqual({article: true}));
     });
 
     it("stays away while ORE is hidden on the page", async () => {

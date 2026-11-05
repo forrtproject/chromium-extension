@@ -13,7 +13,7 @@ import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/dom
 import {cancelWork, resumeAutomaticWork} from "@shared/work-cancellation";
 import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-state";
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
-import {closePageTour, startPageTour} from "@shared/page-tour";
+import {closePageTour, startPageTourOnceIdle} from "@shared/page-tour";
 import {searchScriptOwns} from "@shared/search-sites";
 
 const SITE_STYLE_ID = "flora-search-site-style";
@@ -146,7 +146,9 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     } else if (type === "FLORA_GET_RECENT_LOG") {
         if (searchScriptOwns()) sendResponse({ entries: recentDebugEntries() });
     } else if (type === "FLORA_START_PAGE_TOUR") {
-        if (searchScriptOwns()) sendResponse({ started: !isSearchHidden() && startPageTour("search") });
+        if (!searchScriptOwns()) return;
+        void startPageTourOnceIdle("search", () => !isSearchHidden()).then((started) => sendResponse({ started }));
+        return true;
     }
 });
 
