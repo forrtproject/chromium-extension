@@ -455,6 +455,14 @@ body {
   color: var(--text-secondary);
 }
 
+.wt-try-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: #b42318;
+}
+
 .wt-footnote {
   margin-top: 1.5rem;
   font-size: 13px;

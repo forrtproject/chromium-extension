@@ -31,6 +31,7 @@ describe("the popup's page tour button", () => {
             return out;
         }) as never;
         chrome.storage.local.set = vi.fn(async (items: Record<string, unknown>) => { Object.assign(localStore, items); }) as never;
+        chrome.storage.local.remove = vi.fn(async (key: string) => { delete localStore[key]; }) as never;
         chrome.storage.sync.get = vi.fn().mockResolvedValue({}) as never;
         chrome.runtime.getManifest = vi.fn(() => ({version: "0.0.0"})) as never;
         chrome.tabs.sendMessage = vi.fn((_tab: number, message: {type: string}) =>
@@ -81,7 +82,6 @@ describe("the popup's page tour button", () => {
 
     it("disarms the request and says so when the sample tab cannot open", async () => {
         chrome.tabs.create = vi.fn().mockRejectedValue(new Error("Tabs cannot be edited right now")) as never;
-        chrome.storage.local.remove = vi.fn(async (key: string) => { delete localStore[key]; }) as never;
         await openPopup();
         clickTour();
         await vi.waitFor(() => expect(element("tour-help").hidden).toBe(false));

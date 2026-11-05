@@ -50,8 +50,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("skip-btn")?.addEventListener("click", finish);
 
+  const sampleError = document.getElementById("tour-sample-error");
   document.getElementById("tour-sample-btn")?.addEventListener("click", () => {
-    openTourSample().catch((err) => debugError("Walkthrough: could not open the sample article —", err));
+    if (sampleError) sampleError.hidden = true;
+    openTourSample().catch((err) => {
+      debugError("Walkthrough: could not open the sample article —", err);
+      if (sampleError) sampleError.hidden = false;
+    });
   });
 
   mountSiteCategoryPicker(document.getElementById("wt-site-categories")!);
