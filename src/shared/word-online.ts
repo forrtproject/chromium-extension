@@ -100,7 +100,7 @@ export function positionWordAnnotations(): void {
         row.hidden = !rect.height || !!source.closest('[aria-hidden="true"]')
             || !!viewport && (rect.bottom <= viewport.top || rect.top >= viewport.bottom);
         row.style.visibility = row.hidden ? "hidden" : "visible";
-        row.style.left = `${markerColumnLeft(rect.right + 12)}px`;
+        row.style.left = `${markerColumnLeft(rect.right + 12, row.offsetWidth)}px`;
         row.style.top = `${Math.max(rect.top, viewport?.top ?? 0)}px`;
     }
 }

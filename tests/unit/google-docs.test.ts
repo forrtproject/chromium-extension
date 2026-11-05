@@ -1,7 +1,8 @@
 // @vitest-environment-options {"url":"https://docs.google.com/document/d/test-document/edit"}
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { googleDocsContentSnapshot, setGoogleDocsText, docsParagraphs, isGoogleDocs, startGoogleDocs, googleDocsReferenceElements, googleDocsAnnotationTarget, googleDocsAnnotatedReferences } from "../../src/shared/google-docs";
 import { DOCS_TEXT_EVENT } from "../../src/content-docs/canvas";
+import { markerColumnLeft } from "../../src/shared/editor-marker";
 import { beginDomScanPass, findReferenceEntries } from "../../src/shared/doi-extractor";
 import { resolveReferenceDois, renderResolvedReferences } from "../../src/content-general/references";
 vi.mock("../../src/shared/google-docs-source", () => ({fetchGoogleDocsText: vi.fn().mockRejectedValue(new Error("offline")), googleDocsExportUrl: (url: string) => url}));
@@ -121,6 +122,116 @@ describe('Google Docs reference adapter', () => {
         expect(row.style.top).toBe('150px');
         expect(row.style.left).toBe('620px');
         expect(row.style.visibility).toBe('visible');
+    });
+    describe('splitting a page into references', () => {
+        const line = (text: string, y: number, x = 139, height = 19) => ({text, x, y, width: 600, height});
+        const starts = (lines: ReturnType<typeof line>[]) => docsParagraphs(lines).map(p => p.text.slice(0, 12));
+        const doiCount = (text: string) => text.match(/10\.\d{4,}\//g)?.length ?? 0;
+
+        it('keeps indented references apart from the title and body above them', () => {
+            const paragraphs = docsParagraphs([
+                line('Replication in Psychology', 102, 96, 34),
+                line('The replication debate turned on a handful of findings', 157, 96),
+                line('from several well known studies.', 179, 96),
+                line('References', 215, 96, 22),
+                line('Bargh, J. A. (1996). Automaticity of social behavior.', 250),
+                line('https://doi.org/10.1037/0022-3514.71.2.230', 272),
+                line('Bem, D. J. (2011). Feeling the future.', 308),
+                line('https://doi.org/10.1037/a0021524', 330),
+            ]);
+            expect(paragraphs.filter(p => doiCount(p.text) > 0).map(p => [p.text.slice(0, 5), doiCount(p.text)])).toEqual([['Bargh', 1], ['Bem, ', 1]]);
+            expect(paragraphs[0].text).toBe('Replication in Psychology');
+            expect(paragraphs.find(p => p.text.startsWith('Bargh'))!.y).toBe(250);
+        });
+        it('does not read a wrapped author name as a new reference', () => {
+            expect(starts([
+                line('Hagger, M. S., Chatzisarantis, N. L. D., Anggono, C. O.,', 100),
+                line('Batailler, C., et al. (2016). A multilab replication.', 122),
+                line('https://doi.org/10.1177/1745691616652873', 144),
+                line('Ranehill, E., Dreber, A., Sul, S., &', 180),
+                line('Weber, R. A. (2015). Assessing the robustness.', 202),
+                line('https://doi.org/10.1177/0956797614553946', 224),
+            ])).toEqual(['Hagger, M. S', 'Ranehill, E.']);
+        });
+        it('starts a new reference after a finished DOI when the next author is an organization', () => {
+            const paragraphs = docsParagraphs([
+                line('Doyen, S. (2012). Behavioral priming.', 100),
+                line('https://doi.org/10.1371/journal.pone.0029081', 122),
+                line('Open Science Collaboration. (2015). Estimating reproducibility.', 144),
+                line('https://doi.org/10.1126/science.aac4716', 166),
+            ]);
+            expect(paragraphs.map(p => doiCount(p.text))).toEqual([1, 1]);
+        });
+        it('still joins a DOI that wraps onto the next line', () => {
+            const paragraphs = docsParagraphs([
+                line('Bargh, J. A. (1996). Automaticity. https://doi.org/10.1037/0022-', 100),
+                line('3514.71.2.230', 122),
+                line('Bem, D. J. (2011). Feeling the future. https://doi.org/10.1037/a0021524', 144),
+            ]);
+            expect(paragraphs).toHaveLength(2);
+            expect(paragraphs[0].text).toContain('10.1037/0022-3514.71.2.230');
+        });
+        it('keeps the two DOIs of one reference together', () => {
+            const paragraphs = docsParagraphs([
+                line('Smith, J. (2020). Original https://doi.org/10.1234/first and', 100),
+                line('corrected version https://doi.org/10.1234/second', 122),
+            ]);
+            expect(paragraphs).toHaveLength(1);
+            expect(doiCount(paragraphs[0].text)).toBe(2);
+        });
+    });
+    describe('a reference that crosses a page break', () => {
+        const WHOLE = 'Wakefield, A. J., Murch, S. H. (1998). Ileal-lymphoid-nodular hyperplasia in children. The Lancet, 351(9103), 637–641. https://doi.org/10.1016/S0140-6736(97)11096-0';
+        const pageEnd = {text: 'Wakefield, A. J., Murch, S. H. (1998). Ileal-lymphoid-nodular hyperplasia in children. The', x: 139, y: 887, width: 600, height: 19};
+        const pageStart = [
+            {text: 'Lancet, 351(9103), 637–641.', x: 139, y: 99, width: 300, height: 19},
+            {text: 'https://doi.org/10.1016/S0140-6736(97)11096-0', x: 139, y: 121, width: 400, height: 19},
+        ];
+        function twoPages(): [HTMLCanvasElement, HTMLCanvasElement] {
+            const first = document.querySelector('canvas')!;
+            const second = document.createElement('canvas');
+            second.className = 'kix-canvas-tile-content';
+            first.after(second);
+            return [first, second];
+        }
+        const emitOn = (canvas: HTMLCanvasElement, snapshot: unknown) => canvas.dispatchEvent(new CustomEvent(DOCS_TEXT_EVENT, {bubbles: true, detail: JSON.stringify(snapshot)}));
+
+        it('marks the first page with the whole reference and adds nothing on the next', () => {
+            const [first, second] = twoPages();
+            setGoogleDocsText(WHOLE);
+            emitOn(first, {width: 816, height: 1056, runs: [pageEnd]});
+            emitOn(second, {width: 816, height: 1056, runs: pageStart});
+            const onCanvas = googleDocsReferenceElements(document).filter(el => googleDocsAnnotationTarget(el));
+            expect(onCanvas.map(el => el.textContent)).toEqual([WHOLE]);
+            expect(document.querySelectorAll('.flora-docs-annotation')).toHaveLength(1);
+        });
+        it('finds the DOI even while the next page is not rendered', () => {
+            const [first] = twoPages();
+            setGoogleDocsText(WHOLE);
+            emitOn(first, {width: 816, height: 1056, runs: [pageEnd]});
+            expect(googleDocsReferenceElements(document).filter(el => googleDocsAnnotationTarget(el)).map(el => el.textContent)).toEqual([WHOLE]);
+        });
+        it('falls back to the rendered text when the export is unavailable', () => {
+            const [, second] = twoPages();
+            setGoogleDocsText('');
+            emitOn(second, {width: 816, height: 1056, runs: pageStart});
+            expect(googleDocsReferenceElements(document).map(el => el.textContent)).toEqual(['Lancet, 351(9103), 637–641. https://doi.org/10.1016/S0140-6736(97)11096-0']);
+        });
+    });
+    describe('the marker column', () => {
+        afterEach(() => vi.unstubAllGlobals());
+        it('stays clear of the FORRT tab on a narrow window', () => {
+            vi.stubGlobal('innerWidth', 1280);
+            expect(markerColumnLeft(1129)).toBe(1094);
+        });
+        it('stays beside the page on a wide window', () => {
+            vi.stubGlobal('innerWidth', 1920);
+            expect(markerColumnLeft(1129)).toBe(1129);
+        });
+        it('keeps a row with several pills on screen', () => {
+            vi.stubGlobal('innerWidth', 1280);
+            expect(markerColumnLeft(1129, 223) + 223).toBeLessThanOrEqual(1280 - 28);
+        });
     });
     it('rejects malformed bridge snapshots and events from unrelated canvas elements', () => {
         emit({ width: 816, height: 1056, runs: [{ text: 'bad', x: 0, y: 0, width: -1, height: 16 }] });
