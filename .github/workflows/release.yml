@@ -7,9 +7,10 @@ on:
       - main
       - testing
     paths-ignore:
-      # Skip the daily retraction-data commits and docs-only changes, but not
+      # Skip the bot's data commits and docs-only changes, but not
       # manifest.json/package.json: a version bump must rebuild the zip.
       - "src/retractions.json"
+      - "src/registered-reports.json"
       - "docs/**"
     tags: # or a version tag push (any branch)
       - 'v*'

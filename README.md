@@ -17,7 +17,7 @@ When you visit an article page (PubMed, journal websites, preprint servers, etc.
 
 ## Installation
 
-**[Install FORRT ORE from the Chrome Web Store](https://chromewebstore.google.com/detail/kdbmghoddafabpjdnjhocollhjefcnco)** — works in Chrome and Edge.
+**[Install FORRT ORE from the Chrome Web Store](https://chromewebstore.google.com/detail/ffncppfcjjciahcjbpefhokklfcagodc)** — works in Chrome and Edge.
 
 ### Manual install (developer mode)
 
@@ -212,7 +212,7 @@ never included.
 ### Automated Workflows
 
 * Opened pull request are tested against the [test workflow](.github/workflows/test.yml)
-* Pushing to `main` or `testing` creates or updates that channel's draft release from latest sources. Pushes that only change `docs/` or `src/retractions.json` are skipped.
+* Pushing to `main` or `testing` creates or updates that channel's draft release from latest sources. Pushes that only change `docs/`, `src/retractions.json` or `src/registered-reports.json` are skipped.
 * Pushing a version tag creates a release for its channel, as set out below.
 
 ### Release channels

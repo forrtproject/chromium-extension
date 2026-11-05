@@ -139,20 +139,33 @@ export function docsParagraphs(runs: CanvasRun[]): Paragraph[] {
     });
     const paragraphs: Paragraph[] = [];
     const authorStart = /^[A-ZÀ-Ž][\p{L}'’\-]+,\s*(?:[A-Z](?:\.|[a-z]))/u;
+    const heading = /^(References|Bibliography)$/i;
+    const midAuthorList = /(?:[,;:&]|\band)$/;
+    const endsInDoi = /10\.\d{4,}\/\S*$/;
+    const doiTail = /^[a-z0-9][a-z0-9./_\-]+[.;)]?$/i;
+    const orderedLines = lines.sort((a, b) => a.y - b.y);
+    const lineGaps = orderedLines.slice(1).map((line, i) => line.y - (orderedLines[i].y + orderedLines[i].height)).sort((a, b) => a - b);
+    const typicalGap = lineGaps[Math.floor((lineGaps.length - 1) / 2)] ?? 0;
     let lastLine: Paragraph | undefined;
-    for (const line of lines.sort((a, b) => a.y - b.y)) {
+    let firstLineX = 0;
+    for (const line of orderedLines) {
         const prev = paragraphs.at(-1);
         const gap = prev ? line.y - (prev.y + prev.height) : Infinity;
+        const lineText = line.text.trim();
+        const continuesDoi = !!prev && endsInDoi.test(prev.text) && doiTail.test(lineText);
         // APA hanging indents and author-led entries separate references even
         // in double-spaced bibliographies; continuation lines preserve DOIs.
-        if (!prev || gap > line.height * 1.8 || authorStart.test(line.text) && line.x <= prev.x + 2
+        if (!prev || gap > Math.min(line.height * 1.8, typicalGap + line.height * .4)
+            || authorStart.test(line.text) && line.x <= firstLineX + 2 && !midAuthorList.test(lastLine?.text.trim() ?? "")
             || lastLine && line.x < lastLine.x - line.height * .5
-            || /^(References|Bibliography)$/i.test(prev.text.trim())) {
+            || heading.test(lineText) || heading.test(prev.text.trim())
+            || endsInDoi.test(prev.text) && !continuesDoi) {
             paragraphs.push({ ...line });
             lastLine = line;
+            firstLineX = line.x;
             continue;
         }
-        const separator = /10\.\d{4,}\/\S*$/.test(prev.text) && /^[a-z0-9][a-z0-9./_\-]+[.;)]?$/i.test(line.text.trim()) ? "" : " ";
+        const separator = continuesDoi ? "" : " ";
         prev.text += separator + line.text;
         prev.width = Math.max(prev.x + prev.width, line.x + line.width) - Math.min(prev.x, line.x);
         prev.x = Math.min(prev.x, line.x);
@@ -160,6 +173,21 @@ export function docsParagraphs(runs: CanvasRun[]): Paragraph[] {
         lastLine = line;
     }
     return paragraphs;
+}
+const compact = (text: string): string => text.replace(/\s+/g, "");
+const MIN_PAGE_FRAGMENT_LENGTH = 20;
+
+function acrossPageBreak(text: string, opensPage: boolean, closesPage: boolean): string | null {
+    const fragment = compact(text);
+    if ((!opensPage && !closesPage) || fragment.length < MIN_PAGE_FRAGMENT_LENGTH) return text;
+    for (const entry of exportedEntries) {
+        const whole = entry.getAttribute('data-flora-source-text') ?? "";
+        const wholeCompact = compact(whole);
+        if (wholeCompact.length <= fragment.length) continue;
+        if (closesPage && wholeCompact.startsWith(fragment)) return whole;
+        if (opensPage && wholeCompact.endsWith(fragment)) return null;
+    }
+    return text;
 }
 function validSnapshot(raw: unknown): raw is Snapshot {
     if (!raw || typeof raw !== "object")
@@ -226,14 +254,19 @@ export function startGoogleDocs(onChange: () => void): void {
 export function googleDocsReferenceElements(doc: Document): HTMLElement[] {
     if (!isGoogleDocs(doc.URL))
         return [];
-    const all: HTMLElement[] = exportKey === googleDocsExportUrl(doc.URL) ? [...exportedEntries] : [];
+    const exportCurrent = exportKey === googleDocsExportUrl(doc.URL);
+    const all: HTMLElement[] = exportCurrent ? [...exportedEntries] : [];
     for (const [canvas, snapshot] of snapshots) {
         if (!canvas.isConnected)
             continue;
         const previous = entries.get(canvas) ?? [];
         const next: Entry[] = [];
-        for (const box of docsParagraphs(snapshot.runs)) {
-            const text = box.text.trim();
+        const paragraphs = docsParagraphs(snapshot.runs);
+        for (const [index, box] of paragraphs.entries()) {
+            const rendered = box.text.trim();
+            const text = exportCurrent ? acrossPageBreak(rendered, index === 0, index === paragraphs.length - 1) : rendered;
+            if (text === null)
+                continue;
             if (!/10\.\d{4,}\//.test(text) && !(text.length > 60 && /\b(?:18|19|20)\d{2}\b/.test(text) && /^[A-ZÀ-Ž][\p{L}'’\-]+,/u.test(text)))
                 continue;
             let entry = previous.find(e => e.copy.textContent === text && !next.includes(e));
@@ -280,7 +313,7 @@ export function positionGoogleDocsAnnotations(): void {
             const top = rect.top + entry.box.y * sy;
             // Anchor every marker to the page margin, independent of citation length.
             const right = rect.left + rect.width;
-            entry.row.style.left = `${markerColumnLeft(right + 12)}px`;
+            entry.row.style.left = `${markerColumnLeft(right + 12, entry.row.offsetWidth)}px`;
             entry.row.style.top = `${top}px`;
             entry.row.style.visibility = !entry.canvas.isConnected || !rect.height || top < (viewport?.top ?? 0) || top + 23 > (viewport?.bottom ?? window.innerHeight) ? 'hidden' : 'visible';
         }

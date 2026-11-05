@@ -12,13 +12,26 @@ on:
     - cron: "0 1 * * 1"
   workflow_dispatch:
 
+# Both data updaters push to main, so all their runs queue instead of racing.
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
 jobs:
   update:
+    # The job self-approves its commit, so it must only ever extend main. A
+    # manual run on another branch would push that branch's commits along with it.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Holds the data bot's key, which this environment releases only to main.
+    environment: data-updates
     permissions:
-      contents: write
+      contents: read # the push to main uses the data bot's token
+      statuses: write # mark the data-only commit as needing no visual review
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v6
         with:
@@ -26,19 +39,22 @@ jobs:
 
       - run: node registered-reports-updater.ts
 
+      # Created only after the updater script has run, so it never sees this token.
+      - name: Create data bot token
+        id: data-bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.DATA_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.DATA_BOT_PRIVATE_KEY }}
+          permission-contents: write
+
       - name: Commit changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUSH_TOKEN: ${{ steps.data-bot.outputs.token }}
         run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/registered-reports.json
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Data: refresh Registered Reports cache
+          .github/scripts/push-data-commit.sh src/registered-reports.json "Data: refresh Registered Reports cache
 
           Source: Registered Reports Zotero library (group 5937153). Cite:
           Montoya et al. (2026), Database of Published Registered Reports,
           https://doi.org/10.17605/OSF.IO/VUR72"
-            git push
-          fi

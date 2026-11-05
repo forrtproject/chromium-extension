@@ -1,5 +1,2175 @@
 {
  "reports": {
+  "10.1016/j.learninstruc.2020.101398": {
+   "key": "W2CKVF38",
+   "stage": null
+  },
+  "10.1016/j.neuroimage.2020.116890": {
+   "key": "N84CFGSC",
+   "stage": 2
+  },
+  "10.1111/pere.12338": {
+   "key": "PLB5ATVH",
+   "stage": 2,
+   "linked": "https://osf.io/eh57w"
+  },
+  "10.1111/pere.12345": {
+   "key": "4JWPA9AB",
+   "stage": 2,
+   "linked": "https://osf.io/sbw8z"
+  },
+  "10.2196/19585": {
+   "key": "4R85AQF8",
+   "stage": 2
+  },
+  "10.1016/j.jesp.2020.104043": {
+   "key": "L2LHYT8Y",
+   "stage": null
+  },
+  "10.1016/j.jesp.2020.104051": {
+   "key": "J9XQCVIE",
+   "stage": 2
+  },
+  "10.1016/j.learninstruc.2020.101395": {
+   "key": "UG4KTKX3",
+   "stage": 2
+  },
+  "10.1016/j.neuroimage.2020.117599": {
+   "key": "3NMU82Q2",
+   "stage": 2,
+   "linked": "https://osf.io/6g247"
+  },
+  "10.1111/pere.12342": {
+   "key": "DXL8PSPI",
+   "stage": 2,
+   "linked": "https://osf.io/wtdsg"
+  },
+  "10.1080/23743603.2017.1327178": {
+   "key": "N2KIGR7D",
+   "stage": 2
+  },
+  "10.17605/osf.io/px6vb": {
+   "key": "V7T2EWKQ",
+   "stage": 1
+  },
+  "10.1007/s11336-011-9202-z": {
+   "key": "KWXMWXJQ",
+   "stage": null
+  },
+  "10.1080/23743603.2020.1756240": {
+   "key": "2IV4WTXY",
+   "stage": 2
+  },
+  "10.1080/23743603.2020.1767502": {
+   "key": "Y27YN7MT",
+   "stage": 2,
+   "linked": "https://osf.io/ef59b"
+  },
+  "10.1016/j.jesp.2020.103967": {
+   "key": "WEG2VNTB",
+   "stage": null
+  },
+  "10.1016/j.jesp.2020.104006": {
+   "key": "E8HIDHBH",
+   "stage": null
+  },
+  "10.1016/j.ijpsycho.2020.01.005": {
+   "key": "6Z62QKD6",
+   "stage": null
+  },
+  "10.1177/2332858419888892": {
+   "key": "AS7T4WFL",
+   "stage": null
+  },
+  "10.1080/0163853x.2018.1515556": {
+   "key": "V34IW5ZQ",
+   "stage": null
+  },
+  "10.1007/s10869-020-09717-0": {
+   "key": "QER6GY8N",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000468": {
+   "key": "LP793MWT",
+   "stage": null
+  },
+  "10.1098/rsos.250508": {
+   "key": "AC3AE62L",
+   "stage": 2,
+   "linked": "https://osf.io/uyfvq"
+  },
+  "10.1177/2167696818812604": {
+   "key": "V3JLDCIY",
+   "stage": null
+  },
+  "10.1080/08989621.2014.848071": {
+   "key": "MMY2IBT9",
+   "stage": null
+  },
+  "10.1111/ejn.14347": {
+   "key": "NGPKJY74",
+   "stage": 2,
+   "linked": "https://osf.io/bv32d"
+  },
+  "10.1080/23743603.2017.1396185": {
+   "key": "HW3H2SDJ",
+   "stage": 2
+  },
+  "10.3758/s13414-019-01772-x": {
+   "key": "UNTPV5JW",
+   "stage": 2
+  },
+  "10.1080/23743603.2018.1436939": {
+   "key": "CYPXJHXT",
+   "stage": 2
+  },
+  "10.1038/s41562-019-0641-3": {
+   "key": "8P5XTIFQ",
+   "stage": null
+  },
+  "10.1080/23743603.2017.1341183": {
+   "key": "UVC4YNXZ",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1360573": {
+   "key": "5VNB2FUQ",
+   "stage": 2
+  },
+  "10.1038/s41562-020-0888-8": {
+   "key": "LQY5H3GU",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000372": {
+   "key": "QZNCDTKX",
+   "stage": null
+  },
+  "10.1186/s41235-019-0184-1": {
+   "key": "8EVZ7BSD",
+   "stage": null
+  },
+  "10.18637/jss.v067.i01": {
+   "key": "4XHG6GIZ",
+   "stage": null
+  },
+  "10.1016/j.jml.2012.11.001": {
+   "key": "K2TVSZMG",
+   "stage": null
+  },
+  "10.1177/2167696818814642": {
+   "key": "ELMK9EC9",
+   "stage": null
+  },
+  "10.1080/23743603.2016.1248079": {
+   "key": "FK7WUSLC",
+   "stage": 2
+  },
+  "10.1097/01.psy.0000127692.23278.a9": {
+   "key": "2CFA5CR3",
+   "stage": null
+  },
+  "10.1080/23743603.2017.1358477": {
+   "key": "HV2VZJ9H",
+   "stage": null
+  },
+  "10.1016/j.evolhumbehav.2020.03.004": {
+   "key": "S9ZW3LU7",
+   "stage": null
+  },
+  "10.1037/adb0000876": {
+   "key": "F9MAPXC6",
+   "stage": null
+  },
+  "10.1037/adb0000914": {
+   "key": "B2ANKHUH",
+   "stage": null
+  },
+  "10.1037/adb0000860": {
+   "key": "YEFXGYYR",
+   "stage": null
+  },
+  "10.1037/adb0000858": {
+   "key": "4NADS57W",
+   "stage": null
+  },
+  "10.1037/adb0000919": {
+   "key": "QDB83B8B",
+   "stage": null
+  },
+  "10.1037/adb0000984": {
+   "key": "FWUTK38V",
+   "stage": null
+  },
+  "10.1037/adb0000909": {
+   "key": "6RI3BQ6N",
+   "stage": null
+  },
+  "10.1111/papt.12468": {
+   "key": "Q64FDEEP",
+   "stage": null
+  },
+  "10.1027/2698-1866/a000061": {
+   "key": "JKKM845Y",
+   "stage": null
+  },
+  "10.1177/27000710241257107": {
+   "key": "5VDE7JXU",
+   "stage": null
+  },
+  "10.1111/pere.12344": {
+   "key": "8IL77CTE",
+   "stage": 2,
+   "linked": "https://osf.io/d69ru"
+  },
+  "10.1111/pere.12379": {
+   "key": "6Q7EV4S5",
+   "stage": null
+  },
+  "10.1111/pere.12341": {
+   "key": "JWJC87EJ",
+   "stage": null
+  },
+  "10.1177/03010066221139943": {
+   "key": "IKG2WA9B",
+   "stage": null
+  },
+  "10.1093/nc/niab025": {
+   "key": "ENZ7NAEP",
+   "stage": null
+  },
+  "10.1016/j.neuroimage.2021.118304": {
+   "key": "AN8YHC9P",
+   "stage": null
+  },
+  "10.1016/j.neuroimage.2021.118011": {
+   "key": "R55MBZR6",
+   "stage": null
+  },
+  "10.1016/j.neuroimage.2021.118404": {
+   "key": "556E64DV",
+   "stage": null
+  },
+  "10.1016/j.neuroimage.2022.119189": {
+   "key": "BMS38XZD",
+   "stage": null
+  },
+  "10.1016/j.neuroimage.2024.120765": {
+   "key": "CBAZ8VFG",
+   "stage": null
+  },
+  "10.1162/nol_a_00147": {
+   "key": "MB45K8KP",
+   "stage": null
+  },
+  "10.1162/nol_a_00094": {
+   "key": "ZSNQEIQB",
+   "stage": null
+  },
+  "10.1038/s41562-019-0644-0": {
+   "key": "8ICK4FKP",
+   "stage": null
+  },
+  "10.1038/s41562-020-0878-x": {
+   "key": "G8SPM8P5",
+   "stage": null
+  },
+  "10.1038/s41562-020-01007-2": {
+   "key": "NZSQP8DU",
+   "stage": null
+  },
+  "10.1038/s41562-020-01014-3": {
+   "key": "TGJ9E9IQ",
+   "stage": null
+  },
+  "10.1038/s41562-021-01156-y": {
+   "key": "Q3NCBF9S",
+   "stage": null
+  },
+  "10.1038/s41562-020-00979-5": {
+   "key": "RX9YBUZP",
+   "stage": 2,
+   "linked": "https://osf.io/xhym8/overview"
+  },
+  "10.1038/s41562-020-01006-3": {
+   "key": "J4H4HZ2N",
+   "stage": null
+  },
+  "10.1038/s41562-021-01173-x": {
+   "key": "GWJ4D9MH",
+   "stage": null
+  },
+  "10.1038/s41562-022-01319-5": {
+   "key": "BCXTAPAX",
+   "stage": null
+  },
+  "10.1038/s41562-021-01271-w": {
+   "key": "53XWWAUV",
+   "stage": null
+  },
+  "10.1038/s41562-022-01458-9": {
+   "key": "NWNPPBBA",
+   "stage": null
+  },
+  "10.1038/s41562-022-01482-9": {
+   "key": "U9XLHBV4",
+   "stage": null
+  },
+  "10.1038/s41562-023-01538-4": {
+   "key": "SDPS88XA",
+   "stage": null
+  },
+  "10.1038/s41562-023-01731-5": {
+   "key": "9UR3WXUN",
+   "stage": null
+  },
+  "10.1038/s41562-023-01736-0": {
+   "key": "DBN6EYHE",
+   "stage": null
+  },
+  "10.1038/s41562-023-01791-7": {
+   "key": "THG7G6LS",
+   "stage": null
+  },
+  "10.1038/s41562-024-01842-7": {
+   "key": "LQQ38RDP",
+   "stage": null
+  },
+  "10.1080/09658211.2021.1893750": {
+   "key": "38TLEW3H",
+   "stage": null
+  },
+  "10.1080/09658211.2023.2185931": {
+   "key": "2HJF7TNR",
+   "stage": null
+  },
+  "10.1080/09658211.2023.2208791": {
+   "key": "DRJT38RI",
+   "stage": null
+  },
+  "10.1080/09658211.2023.2166078": {
+   "key": "E2I59EGW",
+   "stage": null
+  },
+  "10.1111/lcrp.12249": {
+   "key": "2BKRTIJD",
+   "stage": null
+  },
+  "10.1111/lcrp.12232": {
+   "key": "MJ2ZJH54",
+   "stage": null
+  },
+  "10.1016/j.learninstruc.2020.101355": {
+   "key": "TEHKCCXW",
+   "stage": null
+  },
+  "10.1037/lhb0000491": {
+   "key": "UJJIZF4X",
+   "stage": null
+  },
+  "10.1017/s1930297500006136": {
+   "key": "7RTBPMBG",
+   "stage": null
+  },
+  "10.1017/s1930297500008007": {
+   "key": "TQH8Q68C",
+   "stage": null
+  },
+  "10.1017/s1930297500007415": {
+   "key": "4K9WLTF5",
+   "stage": 2,
+   "linked": "https://osf.io/2vawz"
+  },
+  "10.1017/jdm.2023.40": {
+   "key": "QC2K58KQ",
+   "stage": null
+  },
+  "10.1016/j.jaac.2020.07.905": {
+   "key": "AT9SG4PB",
+   "stage": null
+  },
+  "10.1016/j.jaac.2022.03.008": {
+   "key": "2ZWSJV4H",
+   "stage": null
+  },
+  "10.1016/j.jaac.2023.02.018": {
+   "key": "GJM92EQ9",
+   "stage": null
+  },
+  "10.1016/j.jrp.2018.10.009": {
+   "key": "K7TZAJMT",
+   "stage": null
+  },
+  "10.1016/j.jrp.2017.10.005": {
+   "key": "WZZKWSBK",
+   "stage": null
+  },
+  "10.1016/j.jrp.2019.05.003": {
+   "key": "6DRF5553",
+   "stage": null
+  },
+  "10.1016/j.jrp.2020.104033": {
+   "key": "SNVMUKWF",
+   "stage": null
+  },
+  "10.1016/j.jrp.2020.103964": {
+   "key": "T6ECF4DA",
+   "stage": null
+  },
+  "10.1016/j.jrp.2020.103940": {
+   "key": "CHNM92N4",
+   "stage": null
+  },
+  "10.1016/j.jrp.2021.104100": {
+   "key": "DCX66V8Q",
+   "stage": null
+  },
+  "10.1016/j.jrp.2021.104092": {
+   "key": "9UDGAJ2U",
+   "stage": null
+  },
+  "10.1016/j.jrp.2022.104240": {
+   "key": "JJX5MEL9",
+   "stage": null
+  },
+  "10.1016/j.jrp.2022.104211": {
+   "key": "U9V8BN3S",
+   "stage": null
+  },
+  "10.1016/j.jrp.2021.104158": {
+   "key": "K8LLBPIB",
+   "stage": null
+  },
+  "10.1016/j.jrp.2023.104427": {
+   "key": "TIBQ8C4E",
+   "stage": null
+  },
+  "10.1016/j.jrp.2024.104493": {
+   "key": "4GYJRMKE",
+   "stage": null
+  },
+  "10.1027/1866-5888/a000339": {
+   "key": "9AH9RQ66",
+   "stage": null
+  },
+  "10.1027/1866-5888/a000315": {
+   "key": "MMLCSA4T",
+   "stage": null
+  },
+  "10.1037/pspp0000183": {
+   "key": "V2R64LE2",
+   "stage": 2
+  },
+  "10.1037/pspa0000191": {
+   "key": "7L89GLVK",
+   "stage": null
+  },
+  "10.1037/pspp0000504": {
+   "key": "XJV3JNHS",
+   "stage": null
+  },
+  "10.1111/joop.12504": {
+   "key": "VA3UUBTV",
+   "stage": null
+  },
+  "10.1111/joop.12530": {
+   "key": "6B8UH65Y",
+   "stage": null
+  },
+  "10.5964/jnc.10885": {
+   "key": "V4IVNIYS",
+   "stage": null
+  },
+  "10.5964/jnc.10259": {
+   "key": "Y4SFWT2R",
+   "stage": null
+  },
+  "10.5964/jnc.10057": {
+   "key": "HMVLZIIU",
+   "stage": null
+  },
+  "10.5964/jnc.8421": {
+   "key": "LFBU8YJE",
+   "stage": null
+  },
+  "10.1002/jnr.24906": {
+   "key": "CS72I3WK",
+   "stage": null
+  },
+  "10.1002/jnr.25138": {
+   "key": "7382R7DJ",
+   "stage": null
+  },
+  "10.1002/jnr.25362": {
+   "key": "P9NSPXAB",
+   "stage": null
+  },
+  "10.1002/jnr.25262": {
+   "key": "HF4RULH3",
+   "stage": null
+  },
+  "10.1002/jnr.25397": {
+   "key": "FR6QJY8P",
+   "stage": null
+  },
+  "10.1002/jnr.25304": {
+   "key": "2FXBJNQA",
+   "stage": null
+  },
+  "10.1002/jnr.25311": {
+   "key": "9QJMN7MJ",
+   "stage": null
+  },
+  "10.1111/jnp.12299": {
+   "key": "Q7785U34",
+   "stage": null
+  },
+  "10.1111/jnp.12313": {
+   "key": "3FMCV9B7",
+   "stage": null
+  },
+  "10.1016/j.jml.2022.104335": {
+   "key": "78GRUY9V",
+   "stage": null
+  },
+  "10.1016/j.jml.2022.104336": {
+   "key": "V354GFVY",
+   "stage": null
+  },
+  "10.1016/j.jml.2022.104352": {
+   "key": "9XN3QBME",
+   "stage": null
+  },
+  "10.1016/j.jml.2022.104357": {
+   "key": "XGQ8N6CF",
+   "stage": null
+  },
+  "10.1016/j.jml.2022.104354": {
+   "key": "2Y3KJPVC",
+   "stage": null
+  },
+  "10.1016/j.jml.2022.104376": {
+   "key": "HA9WQMZN",
+   "stage": null
+  },
+  "10.1016/j.jml.2022.104339": {
+   "key": "6C45G7U8",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000213": {
+   "key": "PUZRENMI",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000209": {
+   "key": "U6JRBZ89",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000210": {
+   "key": "27FIN9LX",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000211": {
+   "key": "T8A62Q6W",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000208": {
+   "key": "4BAHFGCK",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000245": {
+   "key": "5GYQ9HN6",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000248": {
+   "key": "I29Q5WJL",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000310": {
+   "key": "CSKD3RHQ",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000371": {
+   "key": "UMCZH6YN",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000372": {
+   "key": "WTZKRWYP",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000362": {
+   "key": "VDNV7WU3",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000346": {
+   "key": "X7D7WXPJ",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000396": {
+   "key": "59QLCMWP",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000379": {
+   "key": "KYNHTYQL",
+   "stage": null
+  },
+  "10.1027/1864-1105/a000381": {
+   "key": "NP5B28KB",
+   "stage": null
+  },
+  "10.1016/j.jesp.2019.103817": {
+   "key": "HGUXKXK4",
+   "stage": null
+  },
+  "10.1016/j.jesp.2019.103851": {
+   "key": "8WKI6VJS",
+   "stage": null
+  },
+  "10.1016/j.jesp.2018.03.003": {
+   "key": "X8QJX9M9",
+   "stage": null
+  },
+  "10.1016/j.jesp.2015.09.003": {
+   "key": "4DNG6A5W",
+   "stage": null
+  },
+  "10.1016/j.jesp.2019.01.010": {
+   "key": "3BUMIZXX",
+   "stage": null
+  },
+  "10.1016/j.jesp.2020.104050": {
+   "key": "HKDGY2XN",
+   "stage": null
+  },
+  "10.1016/j.jesp.2019.103843": {
+   "key": "PEGLLRIR",
+   "stage": null
+  },
+  "10.1016/j.jesp.2019.103844": {
+   "key": "FDPIU5U3",
+   "stage": null
+  },
+  "10.1016/j.jesp.2019.103942": {
+   "key": "A586R7A4",
+   "stage": 2,
+   "linked": "https://osf.io/97gaf"
+  },
+  "10.1016/j.jesp.2020.103997": {
+   "key": "C5Z3IIBY",
+   "stage": null
+  },
+  "10.1016/j.jesp.2021.104137": {
+   "key": "RF34HIM2",
+   "stage": null
+  },
+  "10.1016/j.jesp.2020.104087": {
+   "key": "KSFF6BKQ",
+   "stage": null
+  },
+  "10.1016/j.jesp.2021.104135": {
+   "key": "355F2QNA",
+   "stage": null
+  },
+  "10.1016/j.jesp.2021.104146": {
+   "key": "XS8SQBXU",
+   "stage": null
+  },
+  "10.1016/j.jesp.2021.104133": {
+   "key": "2IUBGU2D",
+   "stage": null
+  },
+  "10.1016/j.jesp.2021.104202": {
+   "key": "TEG4BTR7",
+   "stage": null
+  },
+  "10.1016/j.jesp.2021.104278": {
+   "key": "PSY6V6LP",
+   "stage": null
+  },
+  "10.1016/j.jesp.2021.104280": {
+   "key": "3MQ5K3XX",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104312": {
+   "key": "KALSA2R8",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104309": {
+   "key": "7SLQA9HK",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104330": {
+   "key": "DPR2E7JD",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104333": {
+   "key": "AN8YAKSK",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104299": {
+   "key": "B5UL2GF7",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104352": {
+   "key": "K8SCHJVN",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104353": {
+   "key": "3P26CXIA",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104368": {
+   "key": "SSK5GGI8",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104422": {
+   "key": "TSQTB4NN",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104436": {
+   "key": "ICM38MDX",
+   "stage": null
+  },
+  "10.1016/j.jesp.2022.104439": {
+   "key": "GESXNSB6",
+   "stage": null
+  },
+  "10.1016/j.jesp.2023.104475": {
+   "key": "U6GWSAMZ",
+   "stage": null
+  },
+  "10.1016/j.jesp.2023.104506": {
+   "key": "VN46SWBS",
+   "stage": null
+  },
+  "10.1016/j.jesp.2023.104539": {
+   "key": "KZZ3YPX6",
+   "stage": null
+  },
+  "10.1016/j.jesp.2023.104549": {
+   "key": "WNNVJGUP",
+   "stage": null
+  },
+  "10.1016/j.jesp.2023.104563": {
+   "key": "4VYUCDKG",
+   "stage": null
+  },
+  "10.1016/j.jesp.2023.104557": {
+   "key": "SRSVMQXH",
+   "stage": null
+  },
+  "10.1016/j.jesp.2023.104577": {
+   "key": "UEXK63Y2",
+   "stage": null
+  },
+  "10.1016/j.jesp.2024.104616": {
+   "key": "UC3LIXVQ",
+   "stage": null
+  },
+  "10.1016/j.jesp.2024.104619": {
+   "key": "6H2EDVET",
+   "stage": null
+  },
+  "10.1016/j.jesp.2024.104621": {
+   "key": "N23L67AP",
+   "stage": null
+  },
+  "10.1016/j.jesp.2024.104662": {
+   "key": "793Q83IV",
+   "stage": null
+  },
+  "10.1037/xlm0001424": {
+   "key": "D92T8YX2",
+   "stage": null
+  },
+  "10.1037/xlm0001323": {
+   "key": "GASE44L8",
+   "stage": null
+  },
+  "10.1037/xlm0001193": {
+   "key": "HWUVF5KL",
+   "stage": null
+  },
+  "10.1037/xge0000622": {
+   "key": "DU2AJIMB",
+   "stage": null
+  },
+  "10.1037/xge0001333": {
+   "key": "2LTFQJT4",
+   "stage": null
+  },
+  "10.5334/jeps.450": {
+   "key": "C974XAYQ",
+   "stage": null
+  },
+  "10.1037/edu0000820": {
+   "key": "22VPHI73",
+   "stage": null
+  },
+  "10.1037/edu0000898": {
+   "key": "NZXH7IEI",
+   "stage": null
+  },
+  "10.1016/j.joep.2019.02.001": {
+   "key": "KT4XDAZT",
+   "stage": null
+  },
+  "10.1016/j.joep.2019.04.001": {
+   "key": "8K24QEHB",
+   "stage": null
+  },
+  "10.1080/20445911.2022.2159964": {
+   "key": "5E36NRNL",
+   "stage": null
+  },
+  "10.1080/20445911.2024.2343153": {
+   "key": "VI4VEKDZ",
+   "stage": null
+  },
+  "10.1007/s41465-020-00169-1": {
+   "key": "VW5Q55VL",
+   "stage": null
+  },
+  "10.1007/s41465-022-00250-x": {
+   "key": "CVNM8LBX",
+   "stage": null
+  },
+  "10.5334/joc.93": {
+   "key": "JMPZHHWD",
+   "stage": null
+  },
+  "10.5334/joc.161": {
+   "key": "5JW76IVL",
+   "stage": null
+  },
+  "10.5334/joc.188": {
+   "key": "NKWGE5WT",
+   "stage": null
+  },
+  "10.5334/joc.191": {
+   "key": "QMI2GQRR",
+   "stage": null
+  },
+  "10.5334/joc.222": {
+   "key": "ZGXR45ZN",
+   "stage": null
+  },
+  "10.5334/joc.243": {
+   "key": "KVWCAUUX",
+   "stage": null
+  },
+  "10.5334/joc.246": {
+   "key": "RID6Y45U",
+   "stage": null
+  },
+  "10.5334/joc.255": {
+   "key": "SZ2WJDAM",
+   "stage": null
+  },
+  "10.5334/joc.359": {
+   "key": "NSWF7TCT",
+   "stage": null
+  },
+  "10.5334/joc.382": {
+   "key": "XITHZH93",
+   "stage": null
+  },
+  "10.1007/s10869-024-09977-0": {
+   "key": "8IIMMKCM",
+   "stage": null
+  },
+  "10.1016/j.ijpsycho.2020.07.009": {
+   "key": "F3QUD8UD",
+   "stage": null
+  },
+  "10.1016/j.ijpsycho.2020.06.014": {
+   "key": "VEK2TIKH",
+   "stage": null
+  },
+  "10.1016/j.ijpsycho.2021.05.003": {
+   "key": "TD98PYLV",
+   "stage": null
+  },
+  "10.1016/j.ijpsycho.2021.09.007": {
+   "key": "8SUM523E",
+   "stage": null
+  },
+  "10.1016/j.ijpsycho.2021.09.003": {
+   "key": "4ZITW6SR",
+   "stage": null
+  },
+  "10.1016/j.ijpsycho.2024.112446": {
+   "key": "TYPIU448",
+   "stage": null
+  },
+  "10.1002/icd.2429": {
+   "key": "AUZ3RGB5",
+   "stage": null
+  },
+  "10.1002/icd.2406": {
+   "key": "2ZTC3BDC",
+   "stage": null
+  },
+  "10.1002/icd.2426": {
+   "key": "P2ENVMER",
+   "stage": 2,
+   "linked": "https://osf.io/6h9r3"
+  },
+  "10.1177/20416695221109300": {
+   "key": "SYXJI536",
+   "stage": null
+  },
+  "10.1177/20416695221111409": {
+   "key": "AMTZ7AD8",
+   "stage": null
+  },
+  "10.1002/hbe2.320": {
+   "key": "7HS4E2QC",
+   "stage": null
+  },
+  "10.1155/2024/5015913": {
+   "key": "TUQY8RAX",
+   "stage": null
+  },
+  "10.5334/hpb.33": {
+   "key": "LEBQUCUI",
+   "stage": null
+  },
+  "10.3389/fpsyg.2024.1434373": {
+   "key": "64D5UXTK",
+   "stage": null
+  },
+  "10.3389/fpsyt.2022.840912": {
+   "key": "A4JPZBFI",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000493": {
+   "key": "5MB8ZDUR",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000286": {
+   "key": "VIWN99TY",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000402": {
+   "key": "KZ2ZU8ZH",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000364": {
+   "key": "W3KMUTVH",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000605": {
+   "key": "I83A6F3T",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000466": {
+   "key": "QL7B2WFH",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000461": {
+   "key": "M3QCM9Y2",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000494": {
+   "key": "FMLNTXBI",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000558": {
+   "key": "HNU592FL",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000441": {
+   "key": "9ZDT3JPU",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000549": {
+   "key": "LIYRLWVU",
+   "stage": null
+  },
+  "10.1027/1618-3169/a000569": {
+   "key": "72EREGCR",
+   "stage": null
+  },
+  "10.1177/00144029241247035": {
+   "key": "3THBTVFM",
+   "stage": null
+  },
+  "10.1016/j.evolhumbehav.2022.05.002": {
+   "key": "Q6PH8XNX",
+   "stage": null
+  },
+  "10.1016/j.evolhumbehav.2022.08.007": {
+   "key": "9QGVMIKY",
+   "stage": null
+  },
+  "10.1016/j.evolhumbehav.2022.01.003": {
+   "key": "FILGFV2U",
+   "stage": null
+  },
+  "10.1002/ejsp.2748": {
+   "key": "8ZHKB8BT",
+   "stage": null
+  },
+  "10.1002/ejsp.2746": {
+   "key": "EQP374F4",
+   "stage": null
+  },
+  "10.1080/20008198.2021.1956802": {
+   "key": "D4NDJY9Y",
+   "stage": null
+  },
+  "10.1080/20008066.2022.2143019": {
+   "key": "CKV6IQDZ",
+   "stage": null
+  },
+  "10.1027/1015-5759/a000598": {
+   "key": "98QKI77N",
+   "stage": null
+  },
+  "10.1027/1015-5759/a000645": {
+   "key": "H2GVNX9W",
+   "stage": null
+  },
+  "10.1027/1015-5759/a000742": {
+   "key": "PJBGYV3Z",
+   "stage": null
+  },
+  "10.1027/1015-5759/a000685": {
+   "key": "TGRDDX5J",
+   "stage": null
+  },
+  "10.1027/1015-5759/a000750": {
+   "key": "RTP2WBHQ",
+   "stage": null
+  },
+  "10.1002/per.2241": {
+   "key": "RWQULFDS",
+   "stage": null
+  },
+  "10.1111/ejn.14251": {
+   "key": "DU79PBSQ",
+   "stage": 1,
+   "linked": "https://doi.org/10.1111/ejn.14251"
+  },
+  "10.1111/ejn.14563": {
+   "key": "668IGB89",
+   "stage": 1,
+   "linked": "https://doi.org/10.1111/ejn.14563"
+  },
+  "10.1111/ejn.15368": {
+   "key": "2PUC7NKJ",
+   "stage": null
+  },
+  "10.1111/ejn.16127": {
+   "key": "4KWZ7E79",
+   "stage": null
+  },
+  "10.1523/eneuro.0196-18.2019": {
+   "key": "TYE9HYW9",
+   "stage": null
+  },
+  "10.1523/eneuro.0459-19.2020": {
+   "key": "AATRS2W5",
+   "stage": null
+  },
+  "10.1523/eneuro.0313-19.2020": {
+   "key": "BRJ5HL6V",
+   "stage": null
+  },
+  "10.1523/eneuro.0108-20.2020": {
+   "key": "AX8UZELW",
+   "stage": null
+  },
+  "10.1523/eneuro.0008-19.2021": {
+   "key": "8BFDCT28",
+   "stage": null
+  },
+  "10.1523/eneuro.0265-20.2021": {
+   "key": "FGLH3BV4",
+   "stage": null
+  },
+  "10.1523/eneuro.0356-20.2023": {
+   "key": "GTZ9ELT3",
+   "stage": null
+  },
+  "10.1523/eneuro.0270-20.2024": {
+   "key": "IVQFAJEQ",
+   "stage": null
+  },
+  "10.1177/2167696818810618": {
+   "key": "YZRLWDI8",
+   "stage": null
+  },
+  "10.1177/2167696818810268": {
+   "key": "ETW7RRKV",
+   "stage": null
+  },
+  "10.1177/2167696818811192": {
+   "key": "SVRFX8HT",
+   "stage": null
+  },
+  "10.1177/21676968211053523": {
+   "key": "6JLL2QIJ",
+   "stage": null
+  },
+  "10.1111/desc.13459": {
+   "key": "J2WTRNIE",
+   "stage": null
+  },
+  "10.1111/desc.13557": {
+   "key": "4D5DTFR3",
+   "stage": null
+  },
+  "10.1111/desc.13432": {
+   "key": "RRHCA3GW",
+   "stage": null
+  },
+  "10.1111/desc.13513": {
+   "key": "Y4JITP9W",
+   "stage": null
+  },
+  "10.1111/desc.13532": {
+   "key": "CNFSUIDC",
+   "stage": null
+  },
+  "10.1111/desc.13493": {
+   "key": "4794UEKD",
+   "stage": null
+  },
+  "10.1111/desc.13264": {
+   "key": "PEH6K2EW",
+   "stage": null
+  },
+  "10.1111/desc.13192": {
+   "key": "VHTDGJGZ",
+   "stage": null
+  },
+  "10.1111/desc.13011": {
+   "key": "K6IXW9P7",
+   "stage": 2
+  },
+  "10.1111/desc.13003": {
+   "key": "SAQN67KX",
+   "stage": 2
+  },
+  "10.1111/desc.13008": {
+   "key": "EWRMJW9Z",
+   "stage": 2,
+   "linked": "https://osf.io/7mtka"
+  },
+  "10.1111/desc.13030": {
+   "key": "FDDCKGKK",
+   "stage": 2,
+   "linked": "https://osf.io/ujesx"
+  },
+  "10.1111/desc.13244": {
+   "key": "FTLUK79E",
+   "stage": null
+  },
+  "10.1111/desc.13283": {
+   "key": "HF6UL2NK",
+   "stage": null
+  },
+  "10.1111/desc.13480": {
+   "key": "AKXMEVT4",
+   "stage": null
+  },
+  "10.1111/desc.13478": {
+   "key": "HNHP2TVB",
+   "stage": null
+  },
+  "10.1111/desc.13479": {
+   "key": "55A6DAL3",
+   "stage": null
+  },
+  "10.1016/j.dcn.2021.101027": {
+   "key": "JIZ22DJM",
+   "stage": null
+  },
+  "10.1016/j.dcn.2022.101061": {
+   "key": "2MC6LJQD",
+   "stage": null
+  },
+  "10.1016/j.dcn.2022.101184": {
+   "key": "3CSTH2QE",
+   "stage": null
+  },
+  "10.1016/j.dcn.2023.101223": {
+   "key": "HJRQAMFC",
+   "stage": null
+  },
+  "10.1016/j.dcn.2023.101337": {
+   "key": "VRSIAYRU",
+   "stage": null
+  },
+  "10.1016/j.dcn.2024.101350": {
+   "key": "3YF3APVB",
+   "stage": null
+  },
+  "10.1016/j.dcn.2024.101377": {
+   "key": "LSGIMWKH",
+   "stage": null
+  },
+  "10.1016/j.dcn.2024.101374": {
+   "key": "BPPI98K6",
+   "stage": null
+  },
+  "10.1016/j.dcn.2024.101401": {
+   "key": "26MJ6TZW",
+   "stage": null
+  },
+  "10.1027/0227-5910/a000879": {
+   "key": "MDMDWSNZ",
+   "stage": null
+  },
+  "10.1016/j.cortex.2022.11.001": {
+   "key": "WG5ECDYH",
+   "stage": null
+  },
+  "10.1016/j.cortex.2022.11.012": {
+   "key": "4LFWJSGZ",
+   "stage": null
+  },
+  "10.1016/j.cortex.2022.12.003": {
+   "key": "RB6WBP82",
+   "stage": null
+  },
+  "10.1016/j.cortex.2022.10.013": {
+   "key": "ZU6A7S6D",
+   "stage": null
+  },
+  "10.1016/j.cortex.2022.11.011": {
+   "key": "TPZHRJFT",
+   "stage": null
+  },
+  "10.1016/j.cortex.2022.12.011": {
+   "key": "YEA8U5WF",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.02.002": {
+   "key": "TUJXYMBU",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.03.011": {
+   "key": "MPFD86LY",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.06.001": {
+   "key": "AGU7VLRV",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.06.011": {
+   "key": "J5S4D9AM",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.06.019": {
+   "key": "SQWVRG42",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.05.021": {
+   "key": "79P4RH7U",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.07.006": {
+   "key": "8EHVVMJL",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.08.005": {
+   "key": "MY52ZS5F",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.09.006": {
+   "key": "FEGYQKLD",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.07.009": {
+   "key": "NWJG9653",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.09.009": {
+   "key": "VV3QBMU6",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.10.014": {
+   "key": "Q7VU93TG",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.09.019": {
+   "key": "BPI9FZYW",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.11.016": {
+   "key": "NPB3KFVQ",
+   "stage": null
+  },
+  "10.1016/j.cortex.2023.12.015": {
+   "key": "37ZEXSXW",
+   "stage": null
+  },
+  "10.1016/j.cortex.2024.05.016": {
+   "key": "74ZRU6BU",
+   "stage": null
+  },
+  "10.1016/j.cortex.2024.05.019": {
+   "key": "HDNP3REQ",
+   "stage": null
+  },
+  "10.1016/j.cortex.2024.05.020": {
+   "key": "E6V6F4NX",
+   "stage": null
+  },
+  "10.1016/j.cortex.2024.06.017": {
+   "key": "67N8FH3G",
+   "stage": null
+  },
+  "10.1016/j.cortex.2024.05.023": {
+   "key": "GN9DHVSK",
+   "stage": null
+  },
+  "10.1016/j.concog.2024.103643": {
+   "key": "4XBLXFXF",
+   "stage": null
+  },
+  "10.1016/j.concog.2018.06.006": {
+   "key": "JAM58LEU",
+   "stage": null
+  },
+  "10.1016/j.concog.2020.103024": {
+   "key": "H53DWJJE",
+   "stage": null
+  },
+  "10.1016/j.concog.2022.103315": {
+   "key": "SAH2KRVZ",
+   "stage": null
+  },
+  "10.1016/j.concog.2022.103448": {
+   "key": "JA8LA2YA",
+   "stage": null
+  },
+  "10.1016/j.concog.2023.103476": {
+   "key": "VYBS3P9A",
+   "stage": null
+  },
+  "10.1016/j.concog.2023.103623": {
+   "key": "ATTKGXA3",
+   "stage": null
+  },
+  "10.1080/23743603.2016.1139390": {
+   "key": "B7YGUI3C",
+   "stage": 2
+  },
+  "10.1080/23743603.2016.1273647": {
+   "key": "KHBJWVEV",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1288877": {
+   "key": "6J9PH8LY",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1298355": {
+   "key": "K9RNL5G2",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1298356": {
+   "key": "2DNZ8CIW",
+   "stage": 2
+  },
+  "10.1080/23743603.2016.1248081": {
+   "key": "HLA4XBND",
+   "stage": 2
+  },
+  "10.1080/23743603.2016.1248080": {
+   "key": "LAZCDI93",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1341178": {
+   "key": "UFR3WURM",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1341186": {
+   "key": "KYB5IPRE",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1326760": {
+   "key": "C92GGQ6Q",
+   "stage": 2
+  },
+  "10.1080/23743603.2017.1376580": {
+   "key": "Y8IZYJAG",
+   "stage": 2,
+   "linked": "https://osf.io/2fbxc"
+  },
+  "10.1080/23743603.2017.1404427": {
+   "key": "E7VJQXFV",
+   "stage": 2,
+   "linked": "https://osf.io/bpy9f"
+  },
+  "10.1080/23743603.2019.1684819": {
+   "key": "63IMXISW",
+   "stage": null
+  },
+  "10.1080/23743603.2019.1684820": {
+   "key": "YIFVSFY4",
+   "stage": null
+  },
+  "10.1080/23743603.2019.1684822": {
+   "key": "N9HTEPTC",
+   "stage": null
+  },
+  "10.1080/23743603.2018.1514254": {
+   "key": "ZC7ABJ5D",
+   "stage": 2
+  },
+  "10.1080/23743603.2018.1464881": {
+   "key": "DPNCDSAY",
+   "stage": 2,
+   "linked": "https://osf.io/etwq9"
+  },
+  "10.1080/23743603.2018.1465804": {
+   "key": "7355EW8H",
+   "stage": 2,
+   "linked": "https://osf.io/vpu7c"
+  },
+  "10.1080/23743603.2018.1425089": {
+   "key": "JYMXWMXS",
+   "stage": 2,
+   "linked": "https://osf.io/9s8bz/overview"
+  },
+  "10.1080/23743603.2019.1624156": {
+   "key": "5FXDZTWA",
+   "stage": 2,
+   "linked": "https://osf.io/tf3qs"
+  },
+  "10.1080/23743603.2018.1513309": {
+   "key": "6LIYGE6R",
+   "stage": 2
+  },
+  "10.1080/23743603.2018.1559647": {
+   "key": "J3BLINPQ",
+   "stage": 2
+  },
+  "10.1080/23743603.2019.1684821": {
+   "key": "8IXQRGES",
+   "stage": 2,
+   "linked": "https://osf.io/49xz3/overview"
+  },
+  "10.1080/23743603.2021.1983718": {
+   "key": "ISN3U4G6",
+   "stage": null
+  },
+  "10.1080/23743603.2021.1983719": {
+   "key": "AD8L7RUN",
+   "stage": null
+  },
+  "10.1080/23743603.2021.2001325": {
+   "key": "Z5U64Q9P",
+   "stage": null
+  },
+  "10.1080/23743603.2021.2018932": {
+   "key": "TPTXADKV",
+   "stage": null
+  },
+  "10.1080/23743603.2021.2018931": {
+   "key": "AE6PFLBL",
+   "stage": null
+  },
+  "10.1080/23743603.2020.1828850": {
+   "key": "CT82KJSM",
+   "stage": 2,
+   "linked": "https://osf.io/8faeb"
+  },
+  "10.1080/23743603.2021.1884495": {
+   "key": "KVTCD227",
+   "stage": 2
+  },
+  "10.1080/23743603.2020.1831378": {
+   "key": "LKIZR8LI",
+   "stage": 2,
+   "linked": "https://osf.io/u9pfr"
+  },
+  "10.1080/23743603.2020.1756242": {
+   "key": "ZG79A7UP",
+   "stage": 2,
+   "linked": "https://osf.io/qcgp9"
+  },
+  "10.1080/23743603.2020.1756239": {
+   "key": "ZD2IXFZC",
+   "stage": 2,
+   "linked": "https://osf.io/2gsmk"
+  },
+  "10.1080/23743603.2021.1878340": {
+   "key": "TR2J6A2E",
+   "stage": null
+  },
+  "10.1080/23743603.2020.1831377": {
+   "key": "Z8V9YCDC",
+   "stage": 2,
+   "linked": "https://www.psycharchives.org/en/item/91f64648-e9c0-4bc0-92f8-7884062cbb93"
+  },
+  "10.1080/23743603.2020.1808456": {
+   "key": "A67B658Y",
+   "stage": 2
+  },
+  "10.1080/23743603.2020.1808782": {
+   "key": "AI3Z48HE",
+   "stage": 2
+  },
+  "10.1080/23743603.2020.1860674": {
+   "key": "SHZVZQ33",
+   "stage": null
+  },
+  "10.1080/23743603.2020.1756241": {
+   "key": "NGFIPPTM",
+   "stage": 2
+  },
+  "10.1080/23743603.2021.1983720": {
+   "key": "TWW8WN75",
+   "stage": null
+  },
+  "10.1080/23743603.2022.2026214": {
+   "key": "9PSKV6ID",
+   "stage": null
+  },
+  "10.1080/23743603.2022.2026215": {
+   "key": "392EL4H5",
+   "stage": null
+  },
+  "10.1080/23743603.2022.2090327": {
+   "key": "W9BPCAHZ",
+   "stage": null
+  },
+  "10.1080/23743603.2022.2041984": {
+   "key": "FWLZRMLU",
+   "stage": null
+  },
+  "10.1080/23743603.2022.2102473": {
+   "key": "N9LJA325",
+   "stage": null
+  },
+  "10.1080/23743603.2023.2214964": {
+   "key": "94ZI8DJ2",
+   "stage": null
+  },
+  "10.1080/23743603.2023.2214965": {
+   "key": "7BRFWR46",
+   "stage": null
+  },
+  "10.1080/23743603.2023.2224525": {
+   "key": "QJ3JF6ZE",
+   "stage": null
+  },
+  "10.1080/23743603.2023.2196755": {
+   "key": "9X42GB2N",
+   "stage": null
+  },
+  "10.1080/23743603.2024.2388345": {
+   "key": "E6DXRNN4",
+   "stage": null
+  },
+  "10.1525/collabra.172": {
+   "key": "YWFT5B9Y",
+   "stage": null
+  },
+  "10.1525/collabra.192": {
+   "key": "JHYUE6YL",
+   "stage": null
+  },
+  "10.1525/collabra.18738": {
+   "key": "9NXCI87S",
+   "stage": null
+  },
+  "10.1525/collabra.18733": {
+   "key": "JFDZ73ZY",
+   "stage": null
+  },
+  "10.1525/collabra.22165": {
+   "key": "INQ9LKSQ",
+   "stage": null
+  },
+  "10.1525/collabra.28248": {
+   "key": "6I8RD26I",
+   "stage": null
+  },
+  "10.1525/collabra.28391": {
+   "key": "ZGZALH38",
+   "stage": null
+  },
+  "10.1525/collabra.24431": {
+   "key": "WQ29BNUQ",
+   "stage": null
+  },
+  "10.1525/collabra.18731": {
+   "key": "MDEBESYF",
+   "stage": null
+  },
+  "10.1525/collabra.32607": {
+   "key": "J9B275ER",
+   "stage": null
+  },
+  "10.1525/collabra.33631": {
+   "key": "GG3XY3W8",
+   "stage": null
+  },
+  "10.1525/collabra.33941": {
+   "key": "UIIASL77",
+   "stage": null
+  },
+  "10.1525/collabra.36344": {
+   "key": "6GKP96M2",
+   "stage": null
+  },
+  "10.1525/collabra.36330": {
+   "key": "UAGU5WXX",
+   "stage": null
+  },
+  "10.1525/collabra.38819": {
+   "key": "KB6LLJDC",
+   "stage": null
+  },
+  "10.1525/collabra.57641": {
+   "key": "JM3USVTI",
+   "stage": null
+  },
+  "10.1525/collabra.73641": {
+   "key": "3MRGGF8F",
+   "stage": null
+  },
+  "10.1525/collabra.75350": {
+   "key": "4VPIGPM5",
+   "stage": null
+  },
+  "10.1525/collabra.77343": {
+   "key": "8ZH7ICHB",
+   "stage": null
+  },
+  "10.1525/collabra.77608": {
+   "key": "PJJYJF86",
+   "stage": null
+  },
+  "10.1525/collabra.77610": {
+   "key": "NHCKZ9TH",
+   "stage": null
+  },
+  "10.1525/collabra.84918": {
+   "key": "U7UQQJLF",
+   "stage": null
+  },
+  "10.1525/collabra.89171": {
+   "key": "EF4YW79R",
+   "stage": null
+  },
+  "10.1525/collabra.91094": {
+   "key": "LZNE5SG3",
+   "stage": null
+  },
+  "10.1525/collabra.92377": {
+   "key": "RTP7I5JW",
+   "stage": null
+  },
+  "10.1525/collabra.92328": {
+   "key": "TNLXE6LZ",
+   "stage": null
+  },
+  "10.1525/collabra.92995": {
+   "key": "PF3JSANA",
+   "stage": null
+  },
+  "10.1525/collabra.92949": {
+   "key": "IYUCTHT9",
+   "stage": null
+  },
+  "10.1525/collabra.94291": {
+   "key": "2Y7UBSVZ",
+   "stage": null
+  },
+  "10.1525/collabra.116193": {
+   "key": "MAB7AAKZ",
+   "stage": null
+  },
+  "10.1525/collabra.117677": {
+   "key": "S5JHVZ8U",
+   "stage": null
+  },
+  "10.1525/collabra.120402": {
+   "key": "GGXAJ5BN",
+   "stage": null
+  },
+  "10.1525/collabra.122155": {
+   "key": "BGRP5ZA4",
+   "stage": null
+  },
+  "10.1525/collabra.122515": {
+   "key": "C4A74AAA",
+   "stage": null
+  },
+  "10.1525/collabra.125242": {
+   "key": "4UK5GZG4",
+   "stage": null
+  },
+  "10.1525/collabra.126234": {
+   "key": "GX5IAX9M",
+   "stage": null
+  },
+  "10.1525/collabra.126508": {
+   "key": "XK8EBZGK",
+   "stage": null
+  },
+  "10.1525/collabra.127416": {
+   "key": "SCJF6I9M",
+   "stage": null
+  },
+  "10.1186/s41235-024-00593-3": {
+   "key": "ZMZASVWF",
+   "stage": null
+  },
+  "10.1186/s41235-021-00352-8": {
+   "key": "U5UKL6H5",
+   "stage": null
+  },
+  "10.1186/s41235-022-00442-1": {
+   "key": "H6MHZW4Y",
+   "stage": null
+  },
+  "10.1186/s41235-023-00468-z": {
+   "key": "NK2D2A3L",
+   "stage": null
+  },
+  "10.1186/s41235-023-00471-4": {
+   "key": "B6DXNJ43",
+   "stage": null
+  },
+  "10.1186/s41235-020-00261-2": {
+   "key": "BKBWELSK",
+   "stage": null
+  },
+  "10.1186/s41235-022-00399-1": {
+   "key": "ZTUYB5I9",
+   "stage": null
+  },
+  "10.1186/s41235-019-0201-4": {
+   "key": "FNQZENAL",
+   "stage": null
+  },
+  "10.1186/s41235-022-00443-0": {
+   "key": "PYCRBFHT",
+   "stage": null
+  },
+  "10.1186/s41235-018-0101-z": {
+   "key": "PBSX6QWQ",
+   "stage": null
+  },
+  "10.1186/s41235-023-00522-w": {
+   "key": "7GTVHUNF",
+   "stage": null
+  },
+  "10.1186/s41235-020-00266-x": {
+   "key": "CKMTIIST",
+   "stage": null
+  },
+  "10.1186/s41235-022-00363-z": {
+   "key": "Q2K6JTLZ",
+   "stage": null
+  },
+  "10.1080/02699931.2018.1429389": {
+   "key": "NWDM69DH",
+   "stage": null
+  },
+  "10.1080/02699931.2021.1884533": {
+   "key": "6ZBSJPLM",
+   "stage": null
+  },
+  "10.1080/02699931.2018.1468732": {
+   "key": "JU56NGBE",
+   "stage": null
+  },
+  "10.1080/02699931.2021.1874880": {
+   "key": "WXFA5WYX",
+   "stage": null
+  },
+  "10.1080/02699931.2021.1885349": {
+   "key": "GSPYT5J6",
+   "stage": null
+  },
+  "10.1080/02699931.2023.2176289": {
+   "key": "E8QGXS4F",
+   "stage": null
+  },
+  "10.1080/02699931.2022.2084041": {
+   "key": "FUG3GZNH",
+   "stage": null
+  },
+  "10.1080/02699931.2021.1993148": {
+   "key": "M6RQ4CZT",
+   "stage": null
+  },
+  "10.1080/02699931.2022.2152430": {
+   "key": "XSMPJV3E",
+   "stage": null
+  },
+  "10.1080/02699931.2022.2054781": {
+   "key": "ERPVUS5U",
+   "stage": null
+  },
+  "10.1080/02699931.2021.1973966": {
+   "key": "LAPWG927",
+   "stage": null
+  },
+  "10.1080/02699931.2021.1986375": {
+   "key": "UG2H49UU",
+   "stage": null
+  },
+  "10.1080/02699931.2020.1719982": {
+   "key": "RXSYNYKS",
+   "stage": null
+  },
+  "10.1080/02699931.2024.2370667": {
+   "key": "877ZSUJP",
+   "stage": null
+  },
+  "10.3390/clockssleep5010001": {
+   "key": "U6EXRL72",
+   "stage": null
+  },
+  "10.1111/cdev.13944": {
+   "key": "T2L4EQ7C",
+   "stage": null
+  },
+  "10.1111/cdev.13991": {
+   "key": "M3ZIVZ8G",
+   "stage": null
+  },
+  "10.1111/cdev.13963": {
+   "key": "MZN6MSDI",
+   "stage": null
+  },
+  "10.1111/cdev.13987": {
+   "key": "RNW3T8VH",
+   "stage": null
+  },
+  "10.1111/cdev.14102": {
+   "key": "A7LLH2QI",
+   "stage": null
+  },
+  "10.1111/cdev.13835": {
+   "key": "4EW4AP47",
+   "stage": null
+  },
+  "10.1111/cdev.13861": {
+   "key": "TSIVTZP7",
+   "stage": null
+  },
+  "10.1111/cdev.13913": {
+   "key": "7U93KCET",
+   "stage": null
+  },
+  "10.1111/cdev.14120": {
+   "key": "BN2CZC53",
+   "stage": null
+  },
+  "10.1111/cdev.13957": {
+   "key": "AIDWR5ZL",
+   "stage": null
+  },
+  "10.1177/08295735231226195": {
+   "key": "T6JRP2NK",
+   "stage": null
+  },
+  "10.1111/bjso.12594": {
+   "key": "8VUR9DQT",
+   "stage": null
+  },
+  "10.1111/bjso.12581": {
+   "key": "5QTG34HX",
+   "stage": null
+  },
+  "10.1111/bjso.12551": {
+   "key": "BSDFM294",
+   "stage": null
+  },
+  "10.1111/bjso.12518": {
+   "key": "9JA5PR9N",
+   "stage": null
+  },
+  "10.1111/bjso.12508": {
+   "key": "ZGCJQK7Z",
+   "stage": null
+  },
+  "10.1111/bjso.12778": {
+   "key": "4T5AUSND",
+   "stage": null
+  },
+  "10.1111/bjso.12700": {
+   "key": "PCGRUN3P",
+   "stage": null
+  },
+  "10.1111/bjop.12469": {
+   "key": "Z4DRXC6N",
+   "stage": 2,
+   "linked": "https://osf.io/rpw4k"
+  },
+  "10.1111/bjop.12578": {
+   "key": "4H3DCD48",
+   "stage": null
+  },
+  "10.1111/bjop.12538": {
+   "key": "MM96KHJA",
+   "stage": null
+  },
+  "10.1111/bjop.12700": {
+   "key": "WI9TWZ7S",
+   "stage": null
+  },
+  "10.1111/bjop.12692": {
+   "key": "3BAXK8K2",
+   "stage": null
+  },
+  "10.1111/bjop.12651": {
+   "key": "6PF6U7YH",
+   "stage": null
+  },
+  "10.1111/bjep.12717": {
+   "key": "5ZU7LWER",
+   "stage": null
+  },
+  "10.1111/bjdp.12464": {
+   "key": "VDNVAXSL",
+   "stage": null
+  },
+  "10.1111/bjdp.12481": {
+   "key": "2RDILGYK",
+   "stage": null
+  },
+  "10.1111/bjc.12452": {
+   "key": "BYVBITFY",
+   "stage": null
+  },
+  "10.1093/braincomms/fcae323": {
+   "key": "MJ5PZT7U",
+   "stage": null
+  },
+  "10.1093/braincomms/fcae250": {
+   "key": "WL2P2DBR",
+   "stage": null
+  },
+  "10.1177/2398212820961704": {
+   "key": "C7L43BV9",
+   "stage": 2,
+   "linked": "https://osf.io/bufc4"
+  },
+  "10.1177/23982128231194452": {
+   "key": "5GDWWZW3",
+   "stage": null
+  },
+  "10.1177/23982128241287279": {
+   "key": "T6QUYUDP",
+   "stage": null
+  },
+  "10.1016/j.bandc.2020.105552": {
+   "key": "YJIYV94Z",
+   "stage": null
+  },
+  "10.1002/brb3.3573": {
+   "key": "RMFVH6RD",
+   "stage": null
+  },
+  "10.1016/j.bpsgos.2022.07.006": {
+   "key": "SPJKLZ23",
+   "stage": null
+  },
+  "10.1017/s1366728923000536": {
+   "key": "LQB9843T",
+   "stage": null
+  },
+  "10.1037/bne0000345": {
+   "key": "836JBQHM",
+   "stage": 2
+  },
+  "10.1037/bne0000439": {
+   "key": "BTS42TFS",
+   "stage": null
+  },
+  "10.1080/25742442.2022.2087451": {
+   "key": "U8FQNL4C",
+   "stage": null
+  },
+  "10.3758/s13414-020-02059-2": {
+   "key": "ABBYNP79",
+   "stage": null
+  },
+  "10.3758/s13414-024-02949-9": {
+   "key": "DMGVA4IT",
+   "stage": null
+  },
+  "10.3758/s13414-024-02879-6": {
+   "key": "S3YE7M6J",
+   "stage": null
+  },
+  "10.3758/s13414-024-02942-2": {
+   "key": "BZ5SIPIF",
+   "stage": null
+  },
+  "10.3758/s13414-018-1534-7": {
+   "key": "CH59Z9P5",
+   "stage": null
+  },
+  "10.3758/s13414-024-02855-0": {
+   "key": "FNAD5K8N",
+   "stage": null
+  },
+  "10.3758/s13414-021-02423-w": {
+   "key": "UGHFJRYS",
+   "stage": null
+  },
+  "10.3758/s13414-020-02021-2": {
+   "key": "5K474U6T",
+   "stage": null
+  },
+  "10.3758/s13414-018-1629-1": {
+   "key": "9HC9J2EG",
+   "stage": null
+  },
+  "10.3758/s13414-022-02601-4": {
+   "key": "GN8MMBCT",
+   "stage": null
+  },
+  "10.3758/s13414-021-02372-4": {
+   "key": "R2AMYX6X",
+   "stage": null
+  },
+  "10.3758/s13414-024-02977-5": {
+   "key": "9GGC4263",
+   "stage": null
+  },
+  "10.3758/s13414-021-02317-x": {
+   "key": "7DFK4EXZ",
+   "stage": null
+  },
+  "10.3758/s13414-023-02655-y": {
+   "key": "49P29GIP",
+   "stage": null
+  },
+  "10.3758/s13414-020-02209-6": {
+   "key": "63Z8AS76",
+   "stage": null
+  },
+  "10.3758/s13414-021-02352-8": {
+   "key": "BDMZZKZZ",
+   "stage": null
+  },
+  "10.3758/s13414-020-02008-z": {
+   "key": "F4F2967M",
+   "stage": null
+  },
+  "10.3758/s13414-018-1494-y": {
+   "key": "8VVT7LDB",
+   "stage": null
+  },
+  "10.3758/s13414-017-1304-y": {
+   "key": "X5GMWLU2",
+   "stage": null
+  },
+  "10.1002/acp.4100": {
+   "key": "QSXIHA8C",
+   "stage": null
+  },
+  "10.1002/acp.3939": {
+   "key": "FGA5IRUD",
+   "stage": null
+  },
+  "10.1002/acp.3986": {
+   "key": "5GCGDXUJ",
+   "stage": null
+  },
+  "10.1002/acp.4115": {
+   "key": "EKATN8B7",
+   "stage": null
+  },
+  "10.26451/abc.07.04.02.2020": {
+   "key": "YAMDKUZJ",
+   "stage": null
+  },
+  "10.26451/abc.05.02.06.2018": {
+   "key": "FN4XUEAZ",
+   "stage": null
+  },
+  "10.26451/abc.10.03.03.2023": {
+   "key": "8AWYMNY3",
+   "stage": null
+  },
+  "10.1177/2332858419839707": {
+   "key": "VUIDLBUS",
+   "stage": null
+  },
+  "10.1177/2332858419848446": {
+   "key": "55CHXU9B",
+   "stage": null
+  },
+  "10.1177/2332858419867692": {
+   "key": "EXDW25NC",
+   "stage": null
+  },
+  "10.1177/2332858419868158": {
+   "key": "ZTH5M7F5",
+   "stage": null
+  },
+  "10.1177/2332858420908536": {
+   "key": "7FUB5ID9",
+   "stage": null
+  },
+  "10.1177/2332858419890326": {
+   "key": "I3FH7VLN",
+   "stage": null
+  },
+  "10.1177/25152459211018187": {
+   "key": "5VFNTCL6",
+   "stage": null
+  },
+  "10.1177/25152459211018199": {
+   "key": "FGYXT5TA",
+   "stage": null
+  },
+  "10.1177/25152459241270604": {
+   "key": "NRAILB7F",
+   "stage": null
+  },
+  "10.1177/25152459231213375": {
+   "key": "U4L4G5TF",
+   "stage": null
+  },
+  "10.1177/25152459241267902": {
+   "key": "BRN38FVB",
+   "stage": null
+  },
+  "10.1177/25152459231202724": {
+   "key": "5QK9CVHZ",
+   "stage": null
+  },
+  "10.1177/25152459231162567": {
+   "key": "QXF7ZCJ5",
+   "stage": null
+  },
+  "10.1177/2515245920974622": {
+   "key": "UYT3P59N",
+   "stage": null
+  },
+  "10.1177/2515245919870737": {
+   "key": "JENMICSI",
+   "stage": null
+  },
+  "10.1177/2515245918785165": {
+   "key": "MC3K8LFZ",
+   "stage": null
+  },
+  "10.1177/2515245920953350": {
+   "key": "KWUHG4UA",
+   "stage": null
+  },
+  "10.1177/2515245920916513": {
+   "key": "VPGQHPLA",
+   "stage": null
+  },
+  "10.1177/2515245920958687": {
+   "key": "IEI6GPYI",
+   "stage": null
+  },
   "10.31234/osf.io/2kvab_v1": {
    "key": "JHB7ZK8P",
    "stage": null
@@ -96,11 +2266,6 @@
    "key": "A26PBDWU",
    "stage": 2,
    "linked": "https://osf.io/cnakg"
-  },
-  "10.1098/rsos.250508": {
-   "key": "AC3AE62L",
-   "stage": 2,
-   "linked": "https://osf.io/uyfvq"
   },
   "10.1098/rsos.240687": {
    "key": "HJFN6EGY",
@@ -299,15 +2464,6 @@
    "key": "6V2DWVR8",
    "stage": 2
   },
-  "10.1038/s41562-020-00979-5": {
-   "key": "RX9YBUZP",
-   "stage": 2,
-   "linked": "https://osf.io/xhym8/overview"
-  },
-  "10.1016/j.jesp.2020.104051": {
-   "key": "J9XQCVIE",
-   "stage": 2
-  },
   "10.1016/j.cortex.2014.12.019": {
    "key": "TCWFV3CC",
    "stage": 2
@@ -327,10 +2483,6 @@
    "stage": 2,
    "linked": "https://osf.io/h9uv2/overview"
   },
-  "10.1016/j.learninstruc.2020.101395": {
-   "key": "UG4KTKX3",
-   "stage": 2
-  },
   "10.1016/j.cortex.2021.04.004": {
    "key": "X47WIADN",
    "stage": 2,
@@ -341,11 +2493,6 @@
    "stage": 2,
    "linked": "https://osf.io/jv9tm"
   },
-  "10.1016/j.neuroimage.2020.116890": {
-   "key": "N84CFGSC",
-   "stage": 2,
-   "linked": "https://osf.io/a5pxz/overview"
-  },
   "10.1016/j.cortex.2021.02.032": {
    "key": "SV8LBTM5",
    "stage": 2,
@@ -355,11 +2502,6 @@
    "key": "INZ5HSNW",
    "stage": 1,
    "linked": "https://doi.org/10.2196/10773"
-  },
-  "10.1016/j.neuroimage.2020.117599": {
-   "key": "3NMU82Q2",
-   "stage": 2,
-   "linked": "https://osf.io/6g247"
   },
   "10.1016/j.brs.2024.12.965": {
    "key": "BUYKJ877",
@@ -372,11 +2514,6 @@
   "10.1037/rev0000522": {
    "key": "RHCT4REY",
    "stage": null
-  },
-  "10.1080/23743603.2018.1425089": {
-   "key": "JYMXWMXS",
-   "stage": 2,
-   "linked": "https://osf.io/9s8bz/overview"
   },
   "10.1017/pls.2021.4": {
    "key": "HA9EUZP2",
@@ -498,16 +2635,6 @@
    "stage": 1,
    "linked": "https://doi.org/10.1111/jocn.15572"
   },
-  "10.1111/ejn.14251": {
-   "key": "DU79PBSQ",
-   "stage": 1,
-   "linked": "https://doi.org/10.1111/ejn.14251"
-  },
-  "10.1111/ejn.14563": {
-   "key": "668IGB89",
-   "stage": 1,
-   "linked": "https://doi.org/10.1111/ejn.14563"
-  },
   "10.1161/jaha.123.031234": {
    "key": "JNQX4MYK",
    "stage": 1,
@@ -555,11 +2682,6 @@
    "stage": 2,
    "linked": "https://osf.io/4hvdf"
   },
-  "10.1111/pere.12342": {
-   "key": "DXL8PSPI",
-   "stage": 2,
-   "linked": "https://osf.io/wtdsg"
-  },
   "10.1111/lang.12451": {
    "key": "AJJCZUXQ",
    "stage": 2,
@@ -586,26 +2708,6 @@
    "key": "97ZK24QL",
    "stage": 2
   },
-  "10.1111/pere.12338": {
-   "key": "PLB5ATVH",
-   "stage": 2,
-   "linked": "https://osf.io/eh57w"
-  },
-  "10.1111/pere.12345": {
-   "key": "4JWPA9AB",
-   "stage": 2,
-   "linked": "https://osf.io/sbw8z"
-  },
-  "10.1111/bjop.12469": {
-   "key": "Z4DRXC6N",
-   "stage": 2,
-   "linked": "https://osf.io/rpw4k"
-  },
-  "10.1111/desc.13030": {
-   "key": "FDDCKGKK",
-   "stage": 2,
-   "linked": "https://osf.io/ujesx"
-  },
   "10.1002/hbe2.193": {
    "key": "GPANRPM7",
    "stage": 2
@@ -614,11 +2716,6 @@
    "key": "6H4QD68R",
    "stage": 2,
    "linked": "https://osf.io/chv9b"
-  },
-  "10.1002/icd.2426": {
-   "key": "P2ENVMER",
-   "stage": 2,
-   "linked": "https://osf.io/6h9r3"
   },
   "10.1111/1475-679x.12200": {
    "key": "2FE9NRF7",
@@ -632,11 +2729,6 @@
    "key": "GXZWQVHE",
    "stage": 2
   },
-  "10.1111/ejn.14347": {
-   "key": "NGPKJY74",
-   "stage": 2,
-   "linked": "https://osf.io/bv32d"
-  },
   "10.1111/1475-679x.12197": {
    "key": "JIJA7NJP",
    "stage": 2
@@ -648,15 +2740,6 @@
   "10.1111/cobi.13508": {
    "key": "8YKJWXH4",
    "stage": 2
-  },
-  "10.1111/desc.13003": {
-   "key": "SAQN67KX",
-   "stage": 2
-  },
-  "10.1111/desc.13008": {
-   "key": "EWRMJW9Z",
-   "stage": 2,
-   "linked": "https://osf.io/7mtka"
   },
   "10.1111/jcal.12426": {
    "key": "SM3WHR4Y",
@@ -676,11 +2759,6 @@
    "key": "SL2M2LSK",
    "stage": 2
   },
-  "10.1111/pere.12344": {
-   "key": "8IL77CTE",
-   "stage": 2,
-   "linked": "https://osf.io/d69ru"
-  },
   "10.1111/jcal.12445": {
    "key": "3CY6SKFB",
    "stage": 2,
@@ -699,18 +2777,10 @@
    "key": "F4F48SJF",
    "stage": 2
   },
-  "10.1111/desc.13011": {
-   "key": "K6IXW9P7",
-   "stage": 2
-  },
   "10.2196/59705": {
    "key": "88JJNJ7V",
    "stage": 1,
    "linked": "https://doi.org/10.2196/75687"
-  },
-  "10.1037/bne0000345": {
-   "key": "836JBQHM",
-   "stage": 2
   },
   "10.2196/78806": {
    "key": "6Y38UW7H",
@@ -1075,11 +3145,6 @@
    "stage": 2,
    "linked": "https://doi.org/10.1016/j.pacfin.2023.102205"
   },
-  "10.1016/j.jesp.2019.103942": {
-   "key": "A586R7A4",
-   "stage": 2,
-   "linked": "https://osf.io/97gaf"
-  },
   "10.1016/j.jclinepi.2025.111738": {
    "key": "QCBDHD2S",
    "stage": 1
@@ -1098,175 +3163,15 @@
    "stage": 2,
    "linked": "https://osf.io/w54da"
   },
-  "10.1080/23743603.2019.1684821": {
-   "key": "8IXQRGES",
-   "stage": 2,
-   "linked": "https://osf.io/49xz3/overview"
-  },
-  "10.1080/23743603.2018.1513309": {
-   "key": "6LIYGE6R",
-   "stage": 2
-  },
   "10.1080/23743603.2025.2507435": {
    "key": "ILW4C5CN",
    "stage": 2,
    "linked": "https://osf.io/wfm78"
   },
-  "10.1080/23743603.2017.1358477": {
-   "key": "HV2VZJ9H",
-   "stage": null
-  },
   "10.1080/23743603.2025.2507434": {
    "key": "BV5RE42V",
    "stage": 2,
    "linked": "https://osf.io/9b5mq"
-  },
-  "10.1080/23743603.2021.1884495": {
-   "key": "KVTCD227",
-   "stage": 2
-  },
-  "10.1080/23743603.2020.1756240": {
-   "key": "2IV4WTXY",
-   "stage": 2
-  },
-  "10.1080/23743603.2020.1756242": {
-   "key": "ZG79A7UP",
-   "stage": 2,
-   "linked": "https://osf.io/qcgp9"
-  },
-  "10.1080/23743603.2020.1831377": {
-   "key": "Z8V9YCDC",
-   "stage": 2,
-   "linked": "https://www.psycharchives.org/en/item/91f64648-e9c0-4bc0-92f8-7884062cbb93"
-  },
-  "10.1080/23743603.2020.1831378": {
-   "key": "LKIZR8LI",
-   "stage": 2,
-   "linked": "https://osf.io/u9pfr"
-  },
-  "10.1080/23743603.2018.1465804": {
-   "key": "7355EW8H",
-   "stage": 2,
-   "linked": "https://osf.io/vpu7c"
-  },
-  "10.1080/23743603.2017.1326760": {
-   "key": "C92GGQ6Q",
-   "stage": 2
-  },
-  "10.1080/23743603.2019.1624156": {
-   "key": "5FXDZTWA",
-   "stage": 2,
-   "linked": "https://osf.io/tf3qs"
-  },
-  "10.1080/23743603.2018.1514254": {
-   "key": "ZC7ABJ5D",
-   "stage": 2
-  },
-  "10.1080/23743603.2020.1756241": {
-   "key": "NGFIPPTM",
-   "stage": 2
-  },
-  "10.1080/23743603.2020.1828850": {
-   "key": "CT82KJSM",
-   "stage": 2,
-   "linked": "https://osf.io/8faeb"
-  },
-  "10.1080/23743603.2016.1248080": {
-   "key": "LAZCDI93",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1376580": {
-   "key": "Y8IZYJAG",
-   "stage": 2,
-   "linked": "https://osf.io/2fbxc"
-  },
-  "10.1080/23743603.2017.1341178": {
-   "key": "UFR3WURM",
-   "stage": 2
-  },
-  "10.1080/23743603.2016.1248081": {
-   "key": "HLA4XBND",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1360573": {
-   "key": "5VNB2FUQ",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1404427": {
-   "key": "E7VJQXFV",
-   "stage": 2,
-   "linked": "https://osf.io/bpy9f"
-  },
-  "10.1080/23743603.2017.1341186": {
-   "key": "KYB5IPRE",
-   "stage": 2
-  },
-  "10.1080/23743603.2016.1139390": {
-   "key": "B7YGUI3C",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1327178": {
-   "key": "N2KIGR7D",
-   "stage": 2
-  },
-  "10.1080/23743603.2018.1436939": {
-   "key": "CYPXJHXT",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1396185": {
-   "key": "HW3H2SDJ",
-   "stage": 2
-  },
-  "10.1080/23743603.2016.1248079": {
-   "key": "FK7WUSLC",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1298355": {
-   "key": "K9RNL5G2",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1341183": {
-   "key": "UVC4YNXZ",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1298356": {
-   "key": "2DNZ8CIW",
-   "stage": 2
-  },
-  "10.1080/23743603.2017.1288877": {
-   "key": "6J9PH8LY",
-   "stage": 2
-  },
-  "10.1080/23743603.2018.1559647": {
-   "key": "J3BLINPQ",
-   "stage": 2
-  },
-  "10.1080/23743603.2018.1464881": {
-   "key": "DPNCDSAY",
-   "stage": 2,
-   "linked": "https://osf.io/etwq9"
-  },
-  "10.1080/23743603.2020.1808782": {
-   "key": "AI3Z48HE",
-   "stage": 2
-  },
-  "10.1080/23743603.2020.1808456": {
-   "key": "A67B658Y",
-   "stage": 2
-  },
-  "10.1080/23743603.2016.1273647": {
-   "key": "KHBJWVEV",
-   "stage": 2
-  },
-  "10.1080/23743603.2020.1756239": {
-   "key": "ZD2IXFZC",
-   "stage": 2,
-   "linked": "https://osf.io/2gsmk"
-  },
-  "10.1080/23743603.2020.1767502": {
-   "key": "Y27YN7MT",
-   "stage": 2,
-   "linked": "https://osf.io/ef59b"
   },
   "10.21942/uva.31073650.v2": {
    "key": "JHJNZ8ZL",
@@ -1280,11 +3185,6 @@
   "10.1017/s1463423625000192": {
    "key": "DKQGR6R3",
    "stage": 1
-  },
-  "10.1017/s1930297500007415": {
-   "key": "4K9WLTF5",
-   "stage": 2,
-   "linked": "https://osf.io/2vawz"
   },
   "10.1017/pls.2020.16": {
    "key": "AQMDHP7D",
@@ -1308,11 +3208,6 @@
   "10.1017/ehs.2020.54": {
    "key": "A85JJKRW",
    "stage": null
-  },
-  "10.1177/2398212820961704": {
-   "key": "C7L43BV9",
-   "stage": 2,
-   "linked": "https://osf.io/bufc4"
   },
   "10.2196/73508": {
    "key": "2MWL4DGX",
@@ -1488,10 +3383,6 @@
    "key": "3BAUHD59",
    "stage": 1
   },
-  "10.1027/1618-3169/a000493": {
-   "key": "WF6T8IGE",
-   "stage": null
-  },
   "10.1027/1864-9335/a000189": {
    "key": "SCIFHIFD",
    "stage": null
@@ -1500,16 +3391,8 @@
    "key": "X6SBHYHK",
    "stage": null
   },
-  "10.1027/1618-3169/a000466": {
-   "key": "TB73B2VA",
-   "stage": null
-  },
   "10.1027/1864-9335/a000190": {
    "key": "SUXJSWDG",
-   "stage": null
-  },
-  "10.1027/1864-1105/a000209": {
-   "key": "UD9RRTTR",
    "stage": null
   },
   "10.1027/1864-9335/a000193": {
@@ -1692,10 +3575,6 @@
   },
   "10.2196/26509": {
    "key": "8SD37S39",
-   "stage": 2
-  },
-  "10.1037/pspp0000183": {
-   "key": "V2R64LE2",
    "stage": 2
   },
   "10.2196/15539": {
@@ -1986,10 +3865,6 @@
    "key": "JILG73LA",
    "stage": 2,
    "linked": "https://doi.org/10.2196/59705"
-  },
-  "10.3758/s13414-019-01772-x": {
-   "key": "UNTPV5JW",
-   "stage": 2
   },
   "10.2196/75215": {
    "key": "SFMKV56Z",
@@ -2802,11 +4677,6 @@
    "stage": 2,
    "linked": "https://doi.org/10.2196/16406"
   },
-  "10.2196/19585": {
-   "key": "4R85AQF8",
-   "stage": 2,
-   "linked": "https://doi.org/10.2196/19585"
-  },
   "10.6084/m9.figshare.28715198.v1": {
    "key": "HND5LUXY",
    "stage": 1,
@@ -3046,10 +4916,6 @@
    "key": "DWFWD6XD",
    "stage": null
   },
-  "10.1080/08989621.2014.848071": {
-   "key": "MMY2IBT9",
-   "stage": null
-  },
   "10.1007/s11948-017-9886-2": {
    "key": "8S33N5DB",
    "stage": null
@@ -3262,10 +5128,6 @@
    "key": "2A6F276P",
    "stage": null
   },
-  "10.18637/jss.v067.i01": {
-   "key": "88SQJ2L9",
-   "stage": null
-  },
   "10.18637/jss.v042.i07": {
    "key": "KYSV2W57",
    "stage": null
@@ -3340,10 +5202,6 @@
   },
   "10.1177/0146621616659738": {
    "key": "GB9TH6CX",
-   "stage": null
-  },
-  "10.1007/s10869-020-09717-0": {
-   "key": "S5BWP4BU",
    "stage": null
   },
   "10.1177/1094428107300343": {
@@ -3454,10 +5312,6 @@
    "key": "4TPZ3R2J",
    "stage": null
   },
-  "10.1007/s11336-011-9202-z": {
-   "key": "P3R7I6LJ",
-   "stage": null
-  },
   "10.1027/1614-2241.3.3.115": {
    "key": "2BR6Y7LY",
    "stage": null
@@ -3480,10 +5334,6 @@
   },
   "10.1016/j.schres.2012.03.020": {
    "key": "QZY9YHKT",
-   "stage": null
-  },
-  "10.1016/j.jml.2012.11.001": {
-   "key": "5P2PAVXS",
    "stage": null
   },
   "10.1016/j.jml.2017.01.001": {
@@ -3516,10 +5366,6 @@
   },
   "10.1080/10705510903203573": {
    "key": "YAWBJ8A3",
-   "stage": null
-  },
-  "10.1097/01.psy.0000127692.23278.a9": {
-   "key": "6VMSRGMH",
    "stage": null
   },
   "10.1080/03610918.2017.1371750": {
@@ -3556,10 +5402,6 @@
   },
   "10.1016/j.jhtm.2021.07.013": {
    "key": "57HPCGUP",
-   "stage": null
-  },
-  "10.1525/collabra.33267": {
-   "key": "5E3NWKWP",
    "stage": null
   },
   "10.1371/journal.pone.0105825": {
@@ -7636,10 +9478,6 @@
    "stage": 1,
    "linked": "https://doi.org/10.2196/18597"
   },
-  "10.1186/s41235-020-00266-x": {
-   "key": "LVWDJR83",
-   "stage": null
-  },
   "10.2196/13011": {
    "key": "KKHP69DY",
    "stage": 1,
@@ -9315,10 +11153,6 @@
    "key": "ITWPP5E7",
    "stage": null
   },
-  "10.1177/2332858419868158": {
-   "key": "BHVR24MW",
-   "stage": null
-  },
   "10.1177/09622802221102619": {
    "key": "KJIBAPBK",
    "stage": null
@@ -9355,28 +11189,12 @@
    "key": "7EKB532E",
    "stage": null
   },
-  "10.3758/s13414-018-1629-1": {
-   "key": "HLC5M7QG",
-   "stage": null
-  },
-  "10.26451/abc.07.04.02.2020": {
-   "key": "EKIWUMC6",
-   "stage": null
-  },
-  "10.26451/abc.05.02.06.2018": {
-   "key": "6UQLFC5E",
-   "stage": null
-  },
   "10.1177/0956797617719730": {
    "key": "LP26WHNC",
    "stage": null
   },
   "10.1177/2515245920917334": {
    "key": "HMRXTNRK",
-   "stage": null
-  },
-  "10.1027/1864-1105/a000211": {
-   "key": "V9VM6KLE",
    "stage": null
   },
   "10.3758/s13423-019-01594-w": {
@@ -9387,20 +11205,12 @@
    "key": "KJISUM8G",
    "stage": null
   },
-  "10.1177/2332858419848446": {
-   "key": "ZB248ECG",
-   "stage": null
-  },
   "10.1177/0956797620922477": {
    "key": "PI5JNYPV",
    "stage": null
   },
   "10.7554/elife.51019": {
    "key": "VTB5NWWM",
-   "stage": null
-  },
-  "10.1177/2332858419867692": {
-   "key": "TRAY6SD3",
    "stage": null
   },
   "10.3389/fpsyg.2014.00875": {
@@ -9417,10 +11227,6 @@
   },
   "10.3389/fpsyg.2015.00314": {
    "key": "CFY6AGKJ",
-   "stage": null
-  },
-  "10.1177/2332858420908536": {
-   "key": "B3Z3TAQY",
    "stage": null
   },
   "10.1162/imag.a.107": {
@@ -9451,14 +11257,6 @@
    "key": "GAJRJ22E",
    "stage": null
   },
-  "10.1027/1864-1105/a000210": {
-   "key": "DW2AFIVS",
-   "stage": null
-  },
-  "10.1177/2167696818814642": {
-   "key": "ELMK9EC9",
-   "stage": null
-  },
   "10.17605/osf.io/y8rgq": {
    "key": "53SS5BBW",
    "stage": 1
@@ -9475,10 +11273,6 @@
    "key": "JPMWMP3Q",
    "stage": 1
   },
-  "10.1027/1864-1105/a000213": {
-   "key": "4F7SKG3F",
-   "stage": null
-  },
   "10.1525/collabra.132410": {
    "key": "WMVNDG5Y",
    "stage": null
@@ -9490,10 +11284,6 @@
   "10.1177/17470218251357942": {
    "key": "AFJJA5DI",
    "stage": null
-  },
-  "10.17605/osf.io/px6vb": {
-   "key": "V7T2EWKQ",
-   "stage": 1
   },
   "10.1523/eneuro.0356-23.2025": {
    "key": "322LBD96",
@@ -9554,10 +11344,6 @@
   "10.1371/journal.pone.0330617": {
    "key": "GZEZQPK5",
    "stage": 1
-  },
-  "10.1525/collabra.24431": {
-   "key": "GQYYY8V7",
-   "stage": null
   },
   "10.1016/j.jesp.2025.104779": {
    "key": "AUUEWDDH",
@@ -9795,52 +11581,12 @@
    "key": "FMBDZFQ4",
    "stage": null
   },
-  "10.1038/s41562-020-01007-2": {
-   "key": "EWSAMWAJ",
-   "stage": null
-  },
   "10.1016/j.evolhumbehav.2024.106647": {
    "key": "RSTZJXRZ",
    "stage": null
   },
-  "10.1016/j.learninstruc.2020.101398": {
-   "key": "W2CKVF38",
-   "stage": null
-  },
-  "10.1016/j.learninstruc.2020.101355": {
-   "key": "APDZK2AP",
-   "stage": null
-  },
-  "10.1016/j.ijpsycho.2021.09.003": {
-   "key": "7WEVKU58",
-   "stage": null
-  },
-  "10.1080/02699931.2021.1884533": {
-   "key": "KNVSLQ5J",
-   "stage": null
-  },
-  "10.3758/s13414-021-02317-x": {
-   "key": "WXD96NIE",
-   "stage": null
-  },
-  "10.1525/collabra.18733": {
-   "key": "YYHY99ZS",
-   "stage": null
-  },
   "10.7717/peerj.10398": {
    "key": "6ANT4KG9",
-   "stage": null
-  },
-  "10.1016/j.jesp.2021.104133": {
-   "key": "MSS5UZXC",
-   "stage": null
-  },
-  "10.1016/j.jesp.2021.104146": {
-   "key": "K5KYYKND",
-   "stage": null
-  },
-  "10.1038/s41562-021-01173-x": {
-   "key": "CCZYZ8BM",
    "stage": null
   },
   "10.7717/peerj.10318": {
@@ -9851,14 +11597,6 @@
    "key": "SRC638GE",
    "stage": null
   },
-  "10.1038/s41562-020-0878-x": {
-   "key": "ELERSQ6I",
-   "stage": null
-  },
-  "10.1038/s41562-020-01006-3": {
-   "key": "L249I939",
-   "stage": null
-  },
   "10.1016/j.drugalcdep.2021.108564": {
    "key": "YCC2J3KX",
    "stage": null
@@ -9867,24 +11605,8 @@
    "key": "7ISVP9HD",
    "stage": null
   },
-  "10.1016/j.jesp.2020.104043": {
-   "key": "L2LHYT8Y",
-   "stage": null
-  },
-  "10.1016/j.concog.2020.103024": {
-   "key": "KDRGWRVP",
-   "stage": null
-  },
-  "10.3758/s13414-020-02209-6": {
-   "key": "FT5EEUAA",
-   "stage": null
-  },
   "10.1007/s40750-020-00154-0": {
    "key": "8T4QL2TC",
-   "stage": null
-  },
-  "10.1016/j.jesp.2019.103844": {
-   "key": "AAGFQ5YI",
    "stage": null
   },
   "10.1016/j.leaqua.2018.10.002": {
@@ -9897,10 +11619,6 @@
   },
   "10.1371/journal.pone.0237097": {
    "key": "64SUQNVM",
-   "stage": null
-  },
-  "10.1016/j.jrp.2020.103940": {
-   "key": "RFSP4U29",
    "stage": null
   },
   "10.1016/j.jrp.2018.10.005": {
@@ -9931,64 +11649,8 @@
    "key": "WBQG8RUH",
    "stage": null
   },
-  "10.1016/j.jesp.2020.104006": {
-   "key": "E8HIDHBH",
-   "stage": null
-  },
-  "10.1016/j.jesp.2020.103967": {
-   "key": "WEG2VNTB",
-   "stage": null
-  },
-  "10.1016/j.jesp.2019.103843": {
-   "key": "H3AMVSFW",
-   "stage": null
-  },
-  "10.5334/joc.93": {
-   "key": "QZEA6G6Y",
-   "stage": null
-  },
-  "10.1016/j.ijpsycho.2020.06.014": {
-   "key": "9LLNJU8R",
-   "stage": null
-  },
   "10.12688/f1000research.25573.2": {
    "key": "FX22MYL4",
-   "stage": null
-  },
-  "10.1027/1618-3169/a000461": {
-   "key": "6CERKBE5",
-   "stage": null
-  },
-  "10.1016/j.evolhumbehav.2020.03.004": {
-   "key": "S9ZW3LU7",
-   "stage": null
-  },
-  "10.1002/per.2241": {
-   "key": "47CKN755",
-   "stage": null
-  },
-  "10.1523/eneuro.0313-19.2020": {
-   "key": "BUBICHSF",
-   "stage": null
-  },
-  "10.1177/2167696818810618": {
-   "key": "JSRQRVNF",
-   "stage": null
-  },
-  "10.1177/2167696818811192": {
-   "key": "BLYWI7XX",
-   "stage": null
-  },
-  "10.1016/j.concog.2018.06.006": {
-   "key": "6VI92VA3",
-   "stage": null
-  },
-  "10.1186/s41235-019-0201-4": {
-   "key": "8CAU3KEV",
-   "stage": null
-  },
-  "10.1186/s41235-019-0184-1": {
-   "key": "8EVZ7BSD",
    "stage": null
   },
   "10.3389/fpsyg.2015.00672": {
@@ -10003,20 +11665,8 @@
    "key": "L5F47U39",
    "stage": null
   },
-  "10.1016/j.jrp.2017.10.005": {
-   "key": "2CYRAJXS",
-   "stage": null
-  },
   "10.1016/j.pacfin.2019.03.002": {
    "key": "NMIRYUTD",
-   "stage": null
-  },
-  "10.1027/1618-3169/a000372": {
-   "key": "QZNCDTKX",
-   "stage": null
-  },
-  "10.1027/1618-3169/a000364": {
-   "key": "9UWXTRAU",
    "stage": null
   },
   "10.1093/rfs/hhz015": {
@@ -10025,10 +11675,6 @@
   },
   "10.1027/1864-9335/a000185": {
    "key": "XE9RUYGM",
-   "stage": null
-  },
-  "10.1038/s41562-019-0644-0": {
-   "key": "5QX5UZCH",
    "stage": null
   },
   "10.7554/elife.30274": {
@@ -10047,32 +11693,12 @@
    "key": "44TJL3YL",
    "stage": null
   },
-  "10.1038/s41562-020-01014-3": {
-   "key": "NS7RRJ46",
-   "stage": null
-  },
-  "10.1016/j.jesp.2020.104087": {
-   "key": "MKLXAG9W",
-   "stage": null
-  },
   "10.1016/j.jesp.2020.104060": {
    "key": "EUK5FMNB",
    "stage": null
   },
-  "10.1016/j.jesp.2020.104050": {
-   "key": "FR67TXST",
-   "stage": null
-  },
   "10.1016/j.drugalcdep.2020.108304": {
    "key": "3BLPSYA5",
-   "stage": null
-  },
-  "10.1525/collabra.172": {
-   "key": "ZBA7GPXT",
-   "stage": null
-  },
-  "10.1186/s41235-020-00261-2": {
-   "key": "KL8IWUU8",
    "stage": null
   },
   "10.1016/j.actpsy.2020.103209": {
@@ -10103,20 +11729,8 @@
    "key": "LXCY3J5D",
    "stage": null
   },
-  "10.1038/s41562-020-0888-8": {
-   "key": "LQY5H3GU",
-   "stage": null
-  },
-  "10.1016/j.jrp.2020.103964": {
-   "key": "HRP6SPL8",
-   "stage": null
-  },
   "10.1016/j.jrp.2019.103902": {
    "key": "2JEA9FQ3",
-   "stage": null
-  },
-  "10.1016/j.jrp.2019.05.003": {
-   "key": "TXY9GZSM",
    "stage": null
   },
   "10.1016/j.jrp.2017.07.006": {
@@ -10139,10 +11753,6 @@
    "key": "UTWEE2RW",
    "stage": null
   },
-  "10.1016/j.jesp.2020.103997": {
-   "key": "ZBEBXGMQ",
-   "stage": null
-  },
   "10.7554/elife.39944": {
    "key": "YUNDSLBJ",
    "stage": null
@@ -10163,72 +11773,8 @@
    "key": "UZ86NMHS",
    "stage": null
   },
-  "10.1016/j.ijpsycho.2020.07.009": {
-   "key": "GXFCI25T",
-   "stage": null
-  },
-  "10.1016/j.ijpsycho.2020.01.005": {
-   "key": "6Z62QKD6",
-   "stage": null
-  },
   "10.3389/fpsyg.2015.01365": {
    "key": "6DLUM9R5",
-   "stage": null
-  },
-  "10.1027/1618-3169/a000468": {
-   "key": "LP793MWT",
-   "stage": null
-  },
-  "10.1027/1015-5759/a000598": {
-   "key": "K47TWUGE",
-   "stage": null
-  },
-  "10.1523/eneuro.0459-19.2020": {
-   "key": "77CLGAAN",
-   "stage": null
-  },
-  "10.1523/eneuro.0196-18.2019": {
-   "key": "XAFETMXS",
-   "stage": null
-  },
-  "10.1177/2167696818810268": {
-   "key": "XMW9CLCT",
-   "stage": null
-  },
-  "10.1177/2167696818812604": {
-   "key": "V3JLDCIY",
-   "stage": null
-  },
-  "10.1080/0163853x.2018.1515556": {
-   "key": "V34IW5ZQ",
-   "stage": null
-  },
-  "10.1525/collabra.192": {
-   "key": "R2CLAVLD",
-   "stage": null
-  },
-  "10.1186/s41235-018-0101-z": {
-   "key": "8W3SIJQY",
-   "stage": null
-  },
-  "10.1080/02699931.2020.1719982": {
-   "key": "Y4FT8PAV",
-   "stage": null
-  },
-  "10.3758/s13414-020-02021-2": {
-   "key": "D9JUV7FC",
-   "stage": null
-  },
-  "10.1177/2332858419890326": {
-   "key": "EK2KIYLY",
-   "stage": null
-  },
-  "10.1177/2332858419888892": {
-   "key": "AS7T4WFL",
-   "stage": null
-  },
-  "10.1177/2332858419839707": {
-   "key": "PUCTEBW6",
    "stage": null
   },
   "10.3389/fpsyg.2015.00494": {
@@ -10299,10 +11845,6 @@
    "key": "SU8B8SEE",
    "stage": null
   },
-  "10.5334/jeps.450": {
-   "key": "SE52FPSR",
-   "stage": null
-  },
   "10.1177/1745691616674458": {
    "key": "KNKXXA43",
    "stage": null
@@ -10343,14 +11885,6 @@
    "key": "EI5B7MR3",
    "stage": null
   },
-  "10.1038/s41562-019-0641-3": {
-   "key": "8P5XTIFQ",
-   "stage": null
-  },
-  "10.1027/1864-1105/a000208": {
-   "key": "N9N2TMJ5",
-   "stage": null
-  },
   "10.1027/1864-9335/a000191": {
    "key": "DTH4YT8J",
    "stage": null
@@ -10375,10 +11909,6 @@
    "key": "B9N4HWNQ",
    "stage": null
   },
-  "10.3758/s13414-017-1304-y": {
-   "key": "RRB4PYNA",
-   "stage": null
-  },
   "10.1177/1745691616652873": {
    "key": "XBH7VIZR",
    "stage": null
@@ -10393,10 +11923,6 @@
   },
   "10.3389/fpsyg.2014.01343": {
    "key": "3B5WRB65",
-   "stage": null
-  },
-  "10.1080/02699931.2018.1429389": {
-   "key": "W72ECZMH",
    "stage": null
   },
   "10.1080/02699931.2017.1292217": {
@@ -10423,16 +11949,8 @@
    "key": "FSJ5BZWZ",
    "stage": null
   },
-  "10.1027/1618-3169/a000286": {
-   "key": "KTD6AQTJ",
-   "stage": null
-  },
   "10.1080/02699931.2017.1279591": {
    "key": "3WL66U6U",
-   "stage": null
-  },
-  "10.1016/j.jesp.2019.103817": {
-   "key": "7LPKX8NS",
    "stage": null
   },
   "10.3389/fpsyg.2014.01035": {
@@ -10447,20 +11965,8 @@
    "key": "RY82UYQL",
    "stage": null
   },
-  "10.3758/s13414-018-1494-y": {
-   "key": "5P6UKWXD",
-   "stage": null
-  },
-  "10.1016/j.joep.2019.02.001": {
-   "key": "HFFZAXV4",
-   "stage": null
-  },
   "10.1136/bmjos-2018-000017": {
    "key": "ED63NJVV",
-   "stage": null
-  },
-  "10.1080/02699931.2018.1468732": {
-   "key": "3988E8HG",
    "stage": null
   },
   "10.1016/j.jrp.2017.04.001": {
