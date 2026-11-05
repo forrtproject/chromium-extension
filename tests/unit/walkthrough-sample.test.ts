@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import {readFileSync} from "node:fs";
 import {join} from "node:path";
 
@@ -11,24 +11,24 @@ const sampleError = () => document.getElementById("tour-sample-error")!;
 const clickSample = () => document.getElementById("tour-sample-btn")!.click();
 
 describe("the walkthrough's sample article button", () => {
-    beforeEach(async () => {
+    beforeAll(async () => {
         document.body.innerHTML = new DOMParser().parseFromString(WALKTHROUGH_HTML, "text/html").body.innerHTML;
-        chrome.storage.local.set = vi.fn().mockResolvedValue(undefined) as never;
-        chrome.storage.local.remove = vi.fn().mockResolvedValue(undefined) as never;
         await import("../../src/walkthrough/walkthrough");
         document.dispatchEvent(new Event("DOMContentLoaded"));
     });
 
-    afterEach(() => {
-        vi.resetModules();
-        document.body.innerHTML = "";
+    beforeEach(() => {
+        sampleError().hidden = true;
+        chrome.storage.local.set = vi.fn().mockResolvedValue(undefined) as never;
+        chrome.storage.local.remove = vi.fn().mockResolvedValue(undefined) as never;
     });
 
-    it("shows nothing when the tab opens", async () => {
+    it("opens one tab per click and shows no message when it opens", async () => {
         chrome.tabs.create = vi.fn().mockResolvedValue({}) as never;
         clickSample();
         await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
         await new Promise((resolve) => setTimeout(resolve));
+        expect(chrome.tabs.create).toHaveBeenCalledTimes(1);
         expect(sampleError().hidden).toBe(true);
     });
 
@@ -42,6 +42,7 @@ describe("the walkthrough's sample article button", () => {
         expect(sampleError().hidden).toBe(true);
         await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
         await new Promise((resolve) => setTimeout(resolve));
+        expect(chrome.tabs.create).toHaveBeenCalledTimes(1);
         expect(sampleError().hidden).toBe(true);
     });
 });
