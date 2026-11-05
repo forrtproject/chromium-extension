@@ -124,6 +124,10 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.topbar-link[hidden] {
+  display: none;
+}
+
 /* ══════════ PROGRESS ══════════ */
 
 .wt-progress {
@@ -431,11 +435,6 @@ body {
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--text-muted);
-}
-
-.wt-places-closing {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 1.5rem;
 }
 
 .wt-closing {
@@ -917,10 +916,113 @@ body {
     gap: 1.5rem;
   }
 
-  .wt-places,
-  .wt-places-closing {
+  .wt-places {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.wt-setup-step .wt-desc-lead {
+  margin-left: 0;
+}
+
+.wt-setup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+}
+
+.wt-setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: #fafafa;
+}
+
+.wt-setup-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--neutral);
+}
+
+.wt-setup-help {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.wt-setup-input {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.wt-setup-input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.wt-setup-input[aria-invalid="true"] {
+  border-color: var(--warning);
+}
+
+.wt-setup-status {
+  min-height: 1.5em;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.wt-setup-status.is-error {
+  color: var(--warning);
+}
+
+@media (max-width: 760px) {
+  .wt-setup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.wt-nav[hidden] {
+  display: none;
+}
+
+#wt-done.is-active,
+#wt-done .wt-step-inner {
+  height: 100%;
+}
+
+#wt-done .wt-step-inner {
+  align-content: safe center;
+}
+
+.wt-done {
+  text-align: center;
+}
+
+.wt-done-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  color: var(--primary);
+  background: var(--primary-faint);
+}
+
+.wt-done .wt-nav-btn {
+  margin-top: 1.25rem;
 }
 
 /* ─── Where ORE runs ─── */

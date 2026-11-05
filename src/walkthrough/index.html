@@ -21,7 +21,7 @@
         </a>
       </div>
       <div class="topbar-right">
-        <button class="topbar-link" id="skip-btn">Skip to Settings</button>
+        <button class="topbar-link" id="skip-btn" type="button">Skip to setup</button>
       </div>
     </nav>
 
@@ -38,7 +38,7 @@
           <div class="wt-step is-active" id="step-0">
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome">
-                <span class="wt-step-num">1 of 10</span>
+                <span class="wt-step-num">1 of 11</span>
                 <h1 class="wt-title wt-title-lead">
                   See what is known about a paper while you read
                 </h1>
@@ -133,7 +133,7 @@
                     </svg>
                     Search results
                   </span>
-                  <span class="wt-step-num">2 of 10</span>
+                  <span class="wt-step-num">2 of 11</span>
                 </div>
                 <h2 class="wt-title">Judge a result before you open it</h2>
                 <p class="wt-desc">
@@ -232,7 +232,7 @@
                     </svg>
                     Search results
                   </span>
-                  <span class="wt-step-num">3 of 10</span>
+                  <span class="wt-step-num">3 of 11</span>
                 </div>
                 <h2 class="wt-title">When ORE has to guess the DOI</h2>
                 <p class="wt-desc">
@@ -322,7 +322,7 @@
                     </svg>
                     Articles &amp; other pages
                   </span>
-                  <span class="wt-step-num">4 of 10</span>
+                  <span class="wt-step-num">4 of 11</span>
                 </div>
                 <h2 class="wt-title">On an article page, two things appear</h2>
                 <p class="wt-desc">
@@ -429,7 +429,7 @@
                     </svg>
                     Reading the pill
                   </span>
-                  <span class="wt-step-num">5 of 10</span>
+                  <span class="wt-step-num">5 of 11</span>
                 </div>
                 <h2 class="wt-title">Reading the pill</h2>
                 <p class="wt-desc">
@@ -533,7 +533,7 @@
                     </svg>
                     Withdrawn &amp; questioned work
                   </span>
-                  <span class="wt-step-num">6 of 10</span>
+                  <span class="wt-step-num">6 of 11</span>
                 </div>
                 <h2 class="wt-title">Retracted, or under question</h2>
                 <p class="wt-desc">
@@ -611,7 +611,7 @@
                     </svg>
                     Articles &amp; other pages
                   </span>
-                  <span class="wt-step-num">7 of 10</span>
+                  <span class="wt-step-num">7 of 11</span>
                 </div>
                 <h2 class="wt-title">The Meta Report: everything in one place</h2>
                 <p class="wt-desc">
@@ -723,7 +723,7 @@
                     </svg>
                     Spreadsheets &amp; documents
                   </span>
-                  <span class="wt-step-num">8 of 10</span>
+                  <span class="wt-step-num">8 of 11</span>
                 </div>
                 <h2 class="wt-title">Check a whole list of papers at once</h2>
                 <p class="wt-desc">
@@ -822,7 +822,7 @@
           <div class="wt-step" id="step-8">
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome wt-sites">
-                <span class="wt-step-num">9 of 10</span>
+                <span class="wt-step-num">9 of 11</span>
                 <h1 class="wt-title wt-title-lead">Where should ORE run?</h1>
                 <p class="wt-desc wt-desc-lead">
                   ORE is on for journals, publishers, preprint servers and
@@ -836,13 +836,58 @@
             </div>
           </div>
 
-          <!-- ─────────────────────────────────────────────
-               STEP 9 — You're set
-               ───────────────────────────────────────────── -->
           <div class="wt-step" id="step-9">
             <div class="wt-step-inner is-welcome">
+              <div class="wt-welcome wt-sites wt-setup-step">
+                <span class="wt-step-num">10 of 11</span>
+                <h1 class="wt-title wt-title-lead">Two quick choices</h1>
+                <p class="wt-desc wt-desc-lead">
+                  Both are saved as soon as you make them, and you can change
+                  them any time in Settings.
+                </p>
+                <div class="wt-setup">
+                  <form class="wt-setup-field" id="wt-email-form" novalidate>
+                    <label class="wt-setup-label" for="wt-email-input">Your email (optional)</label>
+                    <p class="wt-setup-help">
+                      Needed to find free copies: Unpaywall asks for a contact
+                      address. ORE also gives it to Crossref, OpenAlex and NCBI
+                      when it looks papers up. Remove it any time.
+                    </p>
+                    <input
+                      id="wt-email-input"
+                      class="wt-setup-input"
+                      type="email"
+                      placeholder="you@university.edu"
+                      autocomplete="email"
+                      aria-describedby="wt-email-status"
+                    />
+                    <p class="wt-setup-status" id="wt-email-status" role="status"></p>
+                  </form>
+                  <div class="wt-setup-field">
+                    <label class="wt-setup-label" for="wt-citation-select">Your citation style</label>
+                    <p class="wt-setup-help">
+                      The format the copy button uses: APA, Vancouver, BibTeX
+                      and eight more.
+                    </p>
+                    <select
+                      id="wt-citation-select"
+                      class="wt-setup-input"
+                      aria-describedby="wt-citation-status"
+                    ></select>
+                    <p class="wt-setup-status" id="wt-citation-status" role="status"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────
+               STEP 10 — You're set
+               ───────────────────────────────────────────── -->
+          <div class="wt-step" id="step-10">
+            <div class="wt-step-inner is-welcome">
               <div class="wt-welcome">
-                <span class="wt-step-num">10 of 10</span>
+                <span class="wt-step-num">11 of 11</span>
                 <h1 class="wt-title wt-title-lead">You're ready</h1>
                 <p class="wt-desc wt-desc-lead">
                   ORE works by itself as you browse. While it checks a page, a
@@ -856,54 +901,6 @@
 
                 <div class="wt-closing" data-demo="scan-indicator"></div>
 
-                <div class="wt-places wt-places-closing">
-                  <div class="wt-place">
-                    <div class="wt-place-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
-                    </div>
-                    <div class="wt-place-body">
-                      <h3>Set your citation style</h3>
-                      <p>
-                        Choose the format the copy button uses: APA, Vancouver,
-                        BibTeX and eight more.
-                      </p>
-                    </div>
-                  </div>
-                  <div class="wt-place">
-                    <div class="wt-place-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                        <line x1="4" y1="22" x2="4" y2="15" />
-                      </svg>
-                    </div>
-                    <div class="wt-place-body">
-                      <h3>Add your email</h3>
-                      <p>
-                        Needed to find free copies: Unpaywall asks for a contact
-                        address. ORE also gives it to Crossref, OpenAlex and NCBI
-                        when it looks papers up. Remove it any time.
-                      </p>
-                    </div>
-                  </div>
-                  <div class="wt-place">
-                    <div class="wt-place-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                      </svg>
-                    </div>
-                    <div class="wt-place-body">
-                      <h3>Block a site</h3>
-                      <p>
-                        List any site where you never want ORE to run.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 <div class="wt-try">
                   <p>See ORE on a real paper, with a short guided tour.</p>
                   <button class="wt-nav-btn primary" id="tour-sample-btn" type="button">
@@ -916,9 +913,28 @@
 
                 <p class="wt-footnote">
                   Later, click the ORE toolbar button and choose “Tour this
-                  page” for a tour of the page you are on, or “How it works” to
-                  see this again.
+                  page” for a tour of the page you are on, “How it works” to
+                  see this again, or “Settings” to block a site.
                 </p>
+              </div>
+            </div>
+          </div>
+          <div class="wt-step" id="wt-done">
+            <div class="wt-step-inner is-welcome">
+              <div class="wt-welcome wt-done" role="status">
+                <div class="wt-done-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <h1 class="wt-title wt-title-lead">You're all set</h1>
+                <p class="wt-desc wt-desc-lead">
+                  Setup is complete. Start using the plugin: ORE will check
+                  papers by itself as you browse.
+                </p>
+                <button class="wt-nav-btn primary" id="done-close-btn" type="button">
+                  Close this tab
+                </button>
               </div>
             </div>
           </div>
@@ -938,7 +954,8 @@
             <button class="wt-dot" data-step="6" aria-label="The Meta Report"></button>
             <button class="wt-dot" data-step="7" aria-label="Spreadsheets and documents"></button>
             <button class="wt-dot" data-step="8" aria-label="Where ORE runs"></button>
-            <button class="wt-dot" data-step="9" aria-label="You're ready"></button>
+            <button class="wt-dot" data-step="9" aria-label="Email and citation style"></button>
+            <button class="wt-dot" data-step="10" aria-label="You're ready"></button>
           </div>
           <button class="wt-nav-btn primary" id="next-btn">Next &rarr;</button>
         </div>
