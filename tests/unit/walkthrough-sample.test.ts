@@ -32,6 +32,19 @@ describe("the walkthrough's sample article button", () => {
         expect(sampleError().hidden).toBe(true);
     });
 
+    it("opens one tab for a double click and keeps the tour request", async () => {
+        let finish!: (tab: unknown) => void;
+        chrome.tabs.create = vi.fn(() => new Promise((resolve) => { finish = resolve; })) as never;
+        clickSample();
+        clickSample();
+        await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalled());
+        clickSample();
+        finish({});
+        await new Promise((resolve) => setTimeout(resolve));
+        expect(chrome.tabs.create).toHaveBeenCalledTimes(1);
+        expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    });
+
     it("says so when the tab cannot open, and clears the message on a successful retry", async () => {
         chrome.tabs.create = vi.fn().mockRejectedValue(new Error("Tabs cannot be edited right now")) as never;
         clickSample();

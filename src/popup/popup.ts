@@ -420,12 +420,12 @@ pageTourBtn.addEventListener("click", async () => {
   }, TOUR_CHECKING_DELAY_MS);
   try {
     const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_START_PAGE_TOUR" }) as { started?: boolean } | undefined;
+    if (pendingTourStart !== request) return;
+    pendingTourStart = null;
     if (response?.started) {
       window.close();
       return;
     }
-    if (pendingTourStart !== request) return;
-    pendingTourStart = null;
     showTourHelp(blocked || snoozedUntil !== null || hidden ? "paused" : "no-pills");
   } catch (err) {
     debugWarn("Popup: page tour message failed —", err);

@@ -8,7 +8,7 @@ interface StampableManifest {
   action: { default_title: string };
 }
 
-export function stampTestingManifest<T extends StampableManifest>(manifest: T): T {
+export function stampTestingManifest<T extends StampableManifest>(manifest: T): T & { version_name: string } {
   return {
     ...manifest,
     name: `${manifest.short_name} Testing`,

@@ -867,6 +867,12 @@ body {
   cursor: default;
 }
 
+.wt-nav-btn:focus-visible,
+.wt-dot:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .wt-nav-btn.primary {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   border-color: transparent;

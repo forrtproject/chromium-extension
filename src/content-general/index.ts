@@ -188,7 +188,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     } else if (type === "FLORA_START_PAGE_TOUR") {
         // Every frame, and content-search on its own pages, hears this; only the page's owner should answer.
         if (window === window.top && !searchScriptOwns()) {
-            void startPageTourOnceIdle("article", pageTourAllowed).then((started) => sendResponse({started}));
+            void startPageTourOnceIdle("article", pageTourAllowed, pageStartup).then((started) => sendResponse({started}));
             return true;
         }
         if (pageTourAllowed() && startPageTour("article")) sendResponse({started: true});
@@ -1429,7 +1429,7 @@ function startWhenResumed(atLoad: DomainPause): void {
     }, atLoad);
 }
 
-(async () => {
+const pageStartup = (async () => {
   let editorAllowed = false;
   try {
     if (window !== window.top && !isWordOnline() && !isExcel) return;

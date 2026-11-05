@@ -172,6 +172,18 @@ describe("the popup's page tour button", () => {
         expect(window.close).not.toHaveBeenCalled();
     });
 
+    it("stays open when the tour starts after the reader dismissed the wait", async () => {
+        let finish!: (reply: unknown) => void;
+        tourReply = () => new Promise((resolve) => { finish = resolve; });
+        await openPopup();
+        clickTour();
+        await vi.waitFor(() => expect(helpTitle()).toBe("Still checking this page"));
+        element("tour-dismiss-btn").click();
+        finish({started: true});
+        await new Promise((resolve) => setTimeout(resolve));
+        expect(window.close).not.toHaveBeenCalled();
+    });
+
     it("waits for the popup to finish loading before judging the page", async () => {
         let resolveTabs!: (tabs: unknown[]) => void;
         chrome.tabs.query = vi.fn(() => new Promise((resolve) => { resolveTabs = resolve; })) as never;

@@ -42,7 +42,7 @@ async function startSearch(adapter: SearchAdapter): Promise<void> {
     injectSiteStyle(adapter.css);
 
     // Process any results already on the page
-    processIfResultsPage(adapter, "initial pass");
+    const initialPass = processIfResultsPage(adapter, "initial pass");
 
     // Start observing for dynamically loaded results
     observeSearchResults(adapter);
@@ -54,6 +54,7 @@ async function startSearch(adapter: SearchAdapter): Promise<void> {
         void retryUnansweredSearchResults(adapter, document).catch(err =>
             debugError(`${adapter.label}: DOI matching after settings change failed —`, err));
     });
+    await initialPass;
 }
 
 function startWhenResumed(adapter: SearchAdapter, atLoad: DomainPause): void {
@@ -68,7 +69,7 @@ function startWhenResumed(adapter: SearchAdapter, atLoad: DomainPause): void {
     }, atLoad);
 }
 
-(async () => {
+const pageStartup = (async () => {
     try {
         if (window !== window.top) return;
         installErrorReporting();
@@ -147,7 +148,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         if (searchScriptOwns()) sendResponse({ entries: recentDebugEntries() });
     } else if (type === "FLORA_START_PAGE_TOUR") {
         if (!searchScriptOwns()) return;
-        void startPageTourOnceIdle("search", () => !isSearchHidden()).then((started) => sendResponse({ started }));
+        void startPageTourOnceIdle("search", () => !isSearchHidden(), pageStartup).then((started) => sendResponse({ started }));
         return true;
     } else if (type === "FLORA_CANCEL_PAGE_TOUR_START") {
         cancelPageTourStart();

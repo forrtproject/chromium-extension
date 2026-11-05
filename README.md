@@ -212,7 +212,7 @@ never included.
 ### Automated Workflows
 
 * Opened pull request are tested against the [test workflow](.github/workflows/test.yml)
-* Pushing to `main` or `testing` creates or updates that channel's draft release from latest sources.
+* Pushing to `main` or `testing` creates or updates that channel's draft release from latest sources. Pushes that only change `docs/` or `src/retractions.json` are skipped.
 * Pushing a version tag creates a release for its channel, as set out below.
 
 ### Release channels
@@ -232,7 +232,7 @@ To release, set `version` in `manifest.json` on the channel's branch, then tag t
 git tag testing-v0.1.4.0 origin/testing && git push origin testing-v0.1.4.0
 ```
 
-The workflow rejects a tag unless its commit is on the channel's branch and its version matches `manifest.json`. The build adds the testing label and no tracked file contains it, so `testing` merges into `main` without carrying it over.
+The workflow rejects a tag unless its commit is on the channel's branch and its version matches `manifest.json`. The build type decides whether the testing label shows, and the workflow stamps only the zip's copy of `manifest.json`, so `testing` merges into `main` without carrying the label over.
 
 ### Commands
 

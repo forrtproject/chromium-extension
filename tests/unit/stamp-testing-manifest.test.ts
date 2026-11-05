@@ -6,7 +6,7 @@ import {stampTestingManifest} from "../../scripts/stamp-testing-manifest";
 const manifest = JSON.parse(readFileSync(path.resolve(__dirname, "..", "..", "manifest.json"), "utf-8"));
 
 describe("stampTestingManifest", () => {
-  const stamped = stampTestingManifest(manifest) as typeof manifest;
+  const stamped = stampTestingManifest(manifest);
 
   it("labels every name Chrome and the Web Store show", () => {
     expect(stamped.name).toContain("Testing");
@@ -21,10 +21,13 @@ describe("stampTestingManifest", () => {
   });
 
   it("changes nothing else", () => {
-    expect(stamped.version).toBe(manifest.version);
-    expect(stamped.content_scripts).toEqual(manifest.content_scripts);
-    expect(stamped.host_permissions).toEqual(manifest.host_permissions);
-    expect(stamped.action.default_popup).toBe(manifest.action.default_popup);
+    expect(stamped).toEqual({
+      ...manifest,
+      name: `${manifest.short_name} Testing`,
+      short_name: "ORE Testing",
+      version_name: `${manifest.version} testing`,
+      action: {...manifest.action, default_title: `${manifest.action.default_title} Testing`},
+    });
   });
 
   it("leaves the source manifest unmarked so testing can merge into main", () => {

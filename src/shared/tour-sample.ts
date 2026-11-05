@@ -3,7 +3,13 @@ export const TOUR_SAMPLE_URL = "https://pmc.ncbi.nlm.nih.gov/articles/PMC3076932
 const TOUR_REQUEST_KEY = "flora_page_tour_request";
 const TOUR_REQUEST_TTL_MS = 5 * 60 * 1000;
 
-export async function openTourSample(): Promise<void> {
+let opening: Promise<void> | null = null;
+
+export function openTourSample(): Promise<void> {
+    return opening ??= openSampleTab().finally(() => { opening = null; });
+}
+
+async function openSampleTab(): Promise<void> {
     await chrome.storage.local.set({[TOUR_REQUEST_KEY]: Date.now() + TOUR_REQUEST_TTL_MS});
     try {
         await chrome.tabs.create({url: TOUR_SAMPLE_URL});
