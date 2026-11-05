@@ -296,10 +296,17 @@ export function startPageTour(surface: TourSurface): boolean {
     return true;
 }
 
+let latestStartRequest = 0;
+
+export function cancelPageTourStart(): void {
+    latestStartRequest++;
+}
+
 export async function startPageTourOnceIdle(surface: TourSurface, canShow: () => boolean): Promise<boolean> {
-    if (canShow() && startPageTour(surface)) return true;
+    if (!canShow()) return false;
+    const request = ++latestStartRequest;
     await waitForWorkToFinish();
-    return canShow() && startPageTour(surface);
+    return request === latestStartRequest && canShow() && startPageTour(surface);
 }
 
 const offered = new Set<TourSurface>();

@@ -1,6 +1,7 @@
 import {installOfflineFixtures, mountDemos} from "./demos";
 import {mountSiteCategoryPicker} from "../shared/site-category-picker";
 import {openTourSample} from "../shared/tour-sample";
+import {debugError} from "../shared/debug";
 
 const TOTAL = 10;
 let current = 0;
@@ -49,7 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("skip-btn")?.addEventListener("click", finish);
 
-  document.getElementById("tour-sample-btn")?.addEventListener("click", () => void openTourSample());
+  document.getElementById("tour-sample-btn")?.addEventListener("click", () => {
+    openTourSample().catch((err) => debugError("Walkthrough: could not open the sample article —", err));
+  });
 
   mountSiteCategoryPicker(document.getElementById("wt-site-categories")!);
 

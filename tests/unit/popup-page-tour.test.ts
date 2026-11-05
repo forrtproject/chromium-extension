@@ -65,13 +65,31 @@ describe("the popup's page tour button", () => {
     });
 
     it("opens the sample in a new tab and records the request first", async () => {
+        let requestWhenTabOpened: unknown;
+        chrome.tabs.create = vi.fn(async () => {
+            requestWhenTabOpened = localStore.flora_page_tour_request;
+            return {};
+        }) as never;
         await openPopup();
         clickTour();
         await vi.waitFor(() => expect(element("tour-help").hidden).toBe(false));
         element("tour-sample-btn").click();
         await vi.waitFor(() => expect(window.close).toHaveBeenCalled());
         expect(chrome.tabs.create).toHaveBeenCalledWith({url: TOUR_SAMPLE_URL});
-        expect(localStore.flora_page_tour_request).toEqual(expect.any(Number));
+        expect(requestWhenTabOpened).toEqual(expect.any(Number));
+    });
+
+    it("disarms the request and says so when the sample tab cannot open", async () => {
+        chrome.tabs.create = vi.fn().mockRejectedValue(new Error("Tabs cannot be edited right now")) as never;
+        chrome.storage.local.remove = vi.fn(async (key: string) => { delete localStore[key]; }) as never;
+        await openPopup();
+        clickTour();
+        await vi.waitFor(() => expect(element("tour-help").hidden).toBe(false));
+        element("tour-sample-btn").click();
+        await vi.waitFor(() => expect(element("popup-status").textContent).toBe("Couldn't open the sample article"));
+        expect(localStore.flora_page_tour_request).toBeUndefined();
+        expect(element("tour-help").hidden).toBe(true);
+        expect(window.close).not.toHaveBeenCalled();
     });
 
     it("hides the offer again on Not now", async () => {
@@ -114,7 +132,8 @@ describe("the popup's page tour button", () => {
     it("says the browser's own pages are out of reach without messaging them", async () => {
         await openPopup("chrome://extensions/");
         clickTour();
-        expect(helpTitle()).toBe("ORE can't run on this page");
+        await vi.waitFor(() => expect(helpTitle()).toBe("ORE can't run on this page"));
+        expect(chrome.tabs.sendMessage).not.toHaveBeenCalledWith(1, {type: "FLORA_START_PAGE_TOUR"});
         expect(element("tour-sample-btn").hidden).toBe(false);
         expect(element("tour-reload-btn").hidden).toBe(true);
     });
@@ -136,5 +155,32 @@ describe("the popup's page tour button", () => {
         expect(element("tour-dismiss-btn").hidden).toBe(false);
         finish({started: true});
         await vi.waitFor(() => expect(window.close).toHaveBeenCalled());
+    });
+
+    it("cancels the pending start on Not now and ignores the late reply", async () => {
+        let finish!: (reply: unknown) => void;
+        tourReply = () => new Promise((resolve) => { finish = resolve; });
+        await openPopup();
+        clickTour();
+        await vi.waitFor(() => expect(helpTitle()).toBe("Still checking this page"));
+        element("tour-dismiss-btn").click();
+        expect(element("tour-help").hidden).toBe(true);
+        expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(1, {type: "FLORA_CANCEL_PAGE_TOUR_START"});
+        finish({started: false});
+        await new Promise((resolve) => setTimeout(resolve));
+        expect(element("tour-help").hidden).toBe(true);
+        expect(window.close).not.toHaveBeenCalled();
+    });
+
+    it("waits for the popup to finish loading before judging the page", async () => {
+        let resolveTabs!: (tabs: unknown[]) => void;
+        chrome.tabs.query = vi.fn(() => new Promise((resolve) => { resolveTabs = resolve; })) as never;
+        document.body.innerHTML = new DOMParser().parseFromString(POPUP_HTML, "text/html").body.innerHTML;
+        await import("../../src/popup/popup");
+        clickTour();
+        await vi.waitFor(() => expect(chrome.tabs.query).toHaveBeenCalled());
+        expect(element("tour-help").hidden).toBe(true);
+        resolveTabs([{id: 1, url: "https://example.org/article"}]);
+        await vi.waitFor(() => expect(helpTitle()).toBe("Nothing to show on this page"));
     });
 });

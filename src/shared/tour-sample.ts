@@ -5,7 +5,12 @@ const TOUR_REQUEST_TTL_MS = 5 * 60 * 1000;
 
 export async function openTourSample(): Promise<void> {
     await chrome.storage.local.set({[TOUR_REQUEST_KEY]: Date.now() + TOUR_REQUEST_TTL_MS});
-    await chrome.tabs.create({url: TOUR_SAMPLE_URL});
+    try {
+        await chrome.tabs.create({url: TOUR_SAMPLE_URL});
+    } catch (err) {
+        await clearTourRequest().catch(() => {});
+        throw err;
+    }
 }
 
 export async function isTourRequestedFor(href: string): Promise<boolean> {

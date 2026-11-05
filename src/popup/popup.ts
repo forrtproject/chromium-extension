@@ -77,6 +77,7 @@ let hidden = false;
 let debugOn = false;
 let activeTabId: number | undefined;
 let activeWindowId: number | undefined;
+let pendingTourStart: object | null = null;
 
 reportBtn.style.display = "none";
 
@@ -399,23 +400,36 @@ function closeTourHelp(): void {
   tourHelp.hidden = true;
   popupBody.inert = false;
   pageTourBtn.focus();
+  if (pendingTourStart && activeTabId != null) {
+    pendingTourStart = null;
+    chrome.tabs.sendMessage(activeTabId, { type: "FLORA_CANCEL_PAGE_TOUR_START" }).catch(() => {});
+  }
 }
 
 pageTourBtn.addEventListener("click", async () => {
+  await ready;
   if (activeTabId == null || !currentDomain) {
     showTourHelp("unavailable");
     return;
   }
-  const checking = setTimeout(() => showTourHelp("checking"), TOUR_CHECKING_DELAY_MS);
+  const request = {};
+  pendingTourStart = request;
+  const checking = setTimeout(() => {
+    if (pendingTourStart === request) showTourHelp("checking");
+  }, TOUR_CHECKING_DELAY_MS);
   try {
     const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_START_PAGE_TOUR" }) as { started?: boolean } | undefined;
     if (response?.started) {
       window.close();
       return;
     }
+    if (pendingTourStart !== request) return;
+    pendingTourStart = null;
     showTourHelp(blocked || snoozedUntil !== null || hidden ? "paused" : "no-pills");
   } catch (err) {
     debugWarn("Popup: page tour message failed —", err);
+    if (pendingTourStart !== request) return;
+    pendingTourStart = null;
     showTourHelp("not-running");
   } finally {
     clearTimeout(checking);
@@ -423,8 +437,14 @@ pageTourBtn.addEventListener("click", async () => {
 });
 
 tourSampleBtn.addEventListener("click", async () => {
-  await openTourSample();
-  window.close();
+  try {
+    await openTourSample();
+    window.close();
+  } catch (err) {
+    debugError("Popup: could not open the sample article —", err);
+    closeTourHelp();
+    showStatus("Couldn't open the sample article", "error");
+  }
 });
 
 tourReloadBtn.addEventListener("click", async () => {
@@ -454,7 +474,7 @@ optionsBtn.addEventListener("click", () => {
   window.close();
 });
 
-init().catch((err) => {
+const ready = init().catch((err) => {
   debugError("Popup: init failed —", err);
   domainEl.textContent = "Couldn't read this tab";
   showStatus("ORE couldn't start — see Settings to report it", "error");

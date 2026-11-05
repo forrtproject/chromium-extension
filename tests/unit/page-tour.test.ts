@@ -140,12 +140,48 @@ describe("a tour asked for while the page is still being checked", () => {
         expect(isPageTourOpen()).toBe(true);
     });
 
-    it("starts straight away when pills are already on the page", async () => {
+    it("starts straight away on a page with no work running", async () => {
         await articlePage();
+        const {startPageTourOnceIdle} = await import("../../src/shared/page-tour");
+        await expect(startPageTourOnceIdle("article", () => true)).resolves.toBe(true);
+    });
+
+    it("waits past an early title pill so the tour includes what the pass paints later", async () => {
+        await articlePage();
+        const reference = document.querySelector(`[${REFERENCE_ENTRY_ATTR}]`)!;
+        reference.remove();
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {startPageTourOnceIdle, isPageTourOpen} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        const started = startPageTourOnceIdle("article", () => true);
+        await Promise.resolve();
+        expect(isPageTourOpen()).toBe(false);
+
+        document.body.append(reference);
+        endWorkIndicator();
+        await expect(started).resolves.toBe(true);
+        press(".next");
+        press(".next");
+        expect(cardTitle()).toBe("Every paper in the reference list gets one");
+    });
+
+    it("does not start once the reader has cancelled", async () => {
+        await articlePage();
+        const {beginWorkIndicator, endWorkIndicator} = await import("../../src/shared/progress-toast");
+        const {cancelPageTourStart, startPageTourOnceIdle, isPageTourOpen} = await import("../../src/shared/page-tour");
+        beginWorkIndicator();
+        const started = startPageTourOnceIdle("article", () => true);
+        cancelPageTourStart();
+        endWorkIndicator();
+        await expect(started).resolves.toBe(false);
+        expect(isPageTourOpen()).toBe(false);
+    });
+
+    it("answers at once when ORE is hidden, without waiting for the pass", async () => {
         const {beginWorkIndicator} = await import("../../src/shared/progress-toast");
         const {startPageTourOnceIdle} = await import("../../src/shared/page-tour");
         beginWorkIndicator();
-        await expect(startPageTourOnceIdle("article", () => true)).resolves.toBe(true);
+        await expect(startPageTourOnceIdle("article", () => false)).resolves.toBe(false);
     });
 
     it("reports failure once the pass ends with nothing to show", async () => {
