@@ -3,7 +3,7 @@ import {isWordOnline} from "@shared/word-online";
 import {editorContentSnapshot, isDocumentEditor, editorAnnotatedReferences, editorTitle} from "@shared/document-editor";
 import {isGoogleDocs, startGoogleDocs} from "@shared/google-docs";
 import {reportNothingFound, waitForWorkToFinish} from "@shared/progress-toast";
-import {closePageTour, offerFirstPageTour, startPageTour} from "@shared/page-tour";
+import {cancelPageTourStart, closePageTour, offerFirstPageTour, startPageTour, startPageTourOnceIdle} from "@shared/page-tour";
 import {withdrawNothingFound} from "@shared/progress-tab";
 import {
     beginDomScanPass,
@@ -186,9 +186,14 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         setTimeout(() => sendResponse({entries: recentDebugEntries()}), DOCUMENT_FRAME_LOG_GRACE_MS);
         return true;
     } else if (type === "FLORA_START_PAGE_TOUR") {
-        const started = pageTourAllowed() && startPageTour("article");
         // Every frame, and content-search on its own pages, hears this; only the page's owner should answer.
-        if (started || (window === window.top && !searchScriptOwns())) sendResponse({started});
+        if (window === window.top && !searchScriptOwns()) {
+            void startPageTourOnceIdle("article", pageTourAllowed).then((started) => sendResponse({started}));
+            return true;
+        }
+        if (pageTourAllowed() && startPageTour("article")) sendResponse({started: true});
+    } else if (type === "FLORA_CANCEL_PAGE_TOUR_START") {
+        cancelPageTourStart();
     }
 });
 

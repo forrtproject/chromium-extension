@@ -318,6 +318,58 @@ a:focus-visible {
   color: var(--primary);
 }
 
+.popup-tour-help {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(17, 24, 39, 0.45);
+}
+
+.popup-tour-help-card {
+  width: 100%;
+  padding: 14px;
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.popup-tour-help strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.popup-tour-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.popup-tour-help-primary {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--primary);
+  transition: background var(--transition-fast);
+}
+
+.popup-tour-help-primary:hover {
+  background: var(--primary-dark);
+}
+
 /* ─── Status toast ─── */
 .popup-status {
   padding: 8px 14px;

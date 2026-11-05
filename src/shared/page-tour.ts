@@ -3,6 +3,7 @@ import {FLORA_NOTICE_PILL_CLASS} from "@shared/doi-label";
 import {REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {waitForWorkToFinish} from "@shared/progress-toast";
 import {debugWarn} from "@shared/debug";
+import {clearTourRequest, isTourRequestedFor} from "@shared/tour-sample";
 
 export type TourSurface = "article" | "search";
 
@@ -290,7 +291,22 @@ export function runPageTour(stops: TourStop[]): boolean {
 const stopsFor = (surface: TourSurface): TourStop[] => surface === "article" ? articleTourStops() : searchTourStops();
 
 export function startPageTour(surface: TourSurface): boolean {
-    return runPageTour(stopsFor(surface));
+    if (!runPageTour(stopsFor(surface))) return false;
+    markTourSeen(surface).catch((err) => debugWarn("Page tour: could not record the tour as seen —", err));
+    return true;
+}
+
+let latestStartRequest = 0;
+
+export function cancelPageTourStart(): void {
+    latestStartRequest++;
+}
+
+export async function startPageTourOnceIdle(surface: TourSurface, canShow: () => boolean): Promise<boolean> {
+    if (!canShow()) return false;
+    const request = ++latestStartRequest;
+    await waitForWorkToFinish();
+    return request === latestStartRequest && canShow() && startPageTour(surface);
 }
 
 const offered = new Set<TourSurface>();
@@ -312,7 +328,8 @@ export async function offerFirstPageTour(surface: TourSurface, canShow: () => bo
     if (offered.has(surface) || openTour) return;
     offered.add(surface);
     try {
-        if (await hasSeenTour(surface)) return;
+        const requested = await isTourRequestedFor(location.href);
+        if (!requested && await hasSeenTour(surface)) return;
         await waitForWorkToFinish();
         await new Promise((resolve) => setTimeout(resolve, FIRST_TOUR_DELAY_MS));
         if (!canShow() || document.hidden || openTour) {
@@ -321,7 +338,7 @@ export async function offerFirstPageTour(surface: TourSurface, canShow: () => bo
         }
         // Starting off screen would scroll the reader away from what they are reading.
         const stops = stopsFor(surface);
-        if (!stops[0] || !inViewport(stops[0].target)) {
+        if (!stops[0] || (!requested && !inViewport(stops[0].target))) {
             offered.delete(surface);
             return;
         }
@@ -329,6 +346,7 @@ export async function offerFirstPageTour(surface: TourSurface, canShow: () => bo
             offered.delete(surface);
             return;
         }
+        if (requested) await clearTourRequest();
         await markTourSeen(surface);
     } catch (err) {
         offered.delete(surface);

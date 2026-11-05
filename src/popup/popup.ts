@@ -10,6 +10,32 @@ import {SNOOZE_CHOICES, formatSnoozeEnd} from "../shared/snooze-durations";
 import { debugError, debugWarn, isDebugEnabledAsync, setDebug, type DebugLogEntry } from "../shared/debug";
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 import { getSettings, saveSettings } from "../shared/settings";
+import { openTourSample } from "../shared/tour-sample";
+
+const TOUR_CHECKING_DELAY_MS = 300;
+
+const TOUR_HELP = {
+  checking: {
+    title: "Still checking this page",
+    text: "The tour starts as soon as ORE has finished.",
+  },
+  "no-pills": {
+    title: "Nothing to show on this page",
+    text: "The tour points out ORE's pills, and there aren't any here. Try it on a sample article instead? It opens in a new tab.",
+  },
+  "not-running": {
+    title: "ORE isn't running on this tab",
+    text: "This usually means the tab was open before ORE was installed or updated. Reload the page to start ORE, or try the tour on a sample article.",
+  },
+  unavailable: {
+    title: "ORE can't run on this page",
+    text: "Browsers keep extensions off their own pages. Try the tour on a sample article instead? It opens in a new tab.",
+  },
+  paused: {
+    title: "ORE is off on this page",
+    text: "It's hidden, snoozed or disabled here, so there are no pills to point out. Turn it back on above, or try the tour on a sample article.",
+  },
+} as const;
 
 const domainEl = document.getElementById("current-domain")!;
 const blockBtn = document.getElementById("block-btn")!;
@@ -30,6 +56,13 @@ const logCopyRow = document.getElementById("log-copy-row")!;
 const logCopyToggle = document.getElementById("log-copy-toggle") as HTMLInputElement;
 const screenshotRow = document.getElementById("screenshot-row")!;
 const screenshotToggle = document.getElementById("screenshot-toggle") as HTMLInputElement;
+const tourHelp = document.getElementById("tour-help")!;
+const tourHelpTitle = document.getElementById("tour-help-title")!;
+const tourHelpText = document.getElementById("tour-help-text")!;
+const popupBody = document.querySelector<HTMLElement>(".popup-body")!;
+const tourSampleBtn = document.getElementById("tour-sample-btn")!;
+const tourReloadBtn = document.getElementById("tour-reload-btn")!;
+const tourDismissBtn = document.getElementById("tour-dismiss-btn")!;
 const statusEl = document.getElementById("popup-status")!;
 const versionEl = document.getElementById("popup-version")!;
 
@@ -44,6 +77,7 @@ let hidden = false;
 let debugOn = false;
 let activeTabId: number | undefined;
 let activeWindowId: number | undefined;
+let pendingTourStart: object | null = null;
 
 reportBtn.style.display = "none";
 
@@ -352,18 +386,80 @@ reportBtn.addEventListener("click", async () => {
   window.close();
 });
 
+function showTourHelp(kind: keyof typeof TOUR_HELP): void {
+  tourHelpTitle.textContent = TOUR_HELP[kind].title;
+  tourHelpText.textContent = TOUR_HELP[kind].text;
+  tourSampleBtn.hidden = kind === "checking";
+  tourReloadBtn.hidden = kind !== "not-running";
+  tourHelp.hidden = false;
+  popupBody.inert = true;
+  (tourSampleBtn.hidden ? tourDismissBtn : tourSampleBtn).focus();
+}
+
+function closeTourHelp(): void {
+  tourHelp.hidden = true;
+  popupBody.inert = false;
+  pageTourBtn.focus();
+  if (pendingTourStart && activeTabId != null) {
+    pendingTourStart = null;
+    chrome.tabs.sendMessage(activeTabId, { type: "FLORA_CANCEL_PAGE_TOUR_START" }).catch(() => {});
+  }
+}
+
 pageTourBtn.addEventListener("click", async () => {
-  if (activeTabId == null) return;
+  await ready;
+  if (activeTabId == null || !currentDomain) {
+    showTourHelp("unavailable");
+    return;
+  }
+  const request = {};
+  pendingTourStart = request;
+  const checking = setTimeout(() => {
+    if (pendingTourStart === request) showTourHelp("checking");
+  }, TOUR_CHECKING_DELAY_MS);
   try {
     const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_START_PAGE_TOUR" }) as { started?: boolean } | undefined;
     if (response?.started) {
       window.close();
       return;
     }
+    if (pendingTourStart !== request) return;
+    pendingTourStart = null;
+    showTourHelp(blocked || snoozedUntil !== null || hidden ? "paused" : "no-pills");
   } catch (err) {
     debugWarn("Popup: page tour message failed —", err);
+    if (pendingTourStart !== request) return;
+    pendingTourStart = null;
+    showTourHelp("not-running");
+  } finally {
+    clearTimeout(checking);
   }
-  showStatus("Nothing from ORE on this page to show yet", "error");
+});
+
+tourSampleBtn.addEventListener("click", async () => {
+  try {
+    await openTourSample();
+    window.close();
+  } catch (err) {
+    debugError("Popup: could not open the sample article —", err);
+    closeTourHelp();
+    showStatus("Couldn't open the sample article", "error");
+  }
+});
+
+tourReloadBtn.addEventListener("click", async () => {
+  if (activeTabId != null) await chrome.tabs.reload(activeTabId);
+  window.close();
+});
+
+tourDismissBtn.addEventListener("click", closeTourHelp);
+
+tourHelp.addEventListener("click", (event) => {
+  if (event.target === tourHelp) closeTourHelp();
+});
+
+tourHelp.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeTourHelp();
 });
 
 // Open walkthrough
@@ -378,7 +474,7 @@ optionsBtn.addEventListener("click", () => {
   window.close();
 });
 
-init().catch((err) => {
+const ready = init().catch((err) => {
   debugError("Popup: init failed —", err);
   domainEl.textContent = "Couldn't read this tab";
   showStatus("ORE couldn't start — see Settings to report it", "error");
