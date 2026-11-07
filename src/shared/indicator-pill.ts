@@ -368,7 +368,7 @@ function buildOaSegment(state: OaState, color = "#853953"): HTMLElement {
         attr: "data-flora-oa-segment",
         iconHtml: OA_UNLOCK_SVG.replace('width="12" height="12"', 'width="11" height="11"'),
         label: "OA",
-        title: state === "pending" ? "Checking for a free copy…" : `Open Access — ${oaSubtitle(state, available)}`,
+        title: state === "pending" ? "Checking for an open-access version…" : `Open Access — ${oaSubtitle(state, available)}`,
         exists: available,
         pending: state === "pending",
     }, color);
@@ -615,7 +615,7 @@ function oaLocations(oa: OpenAccessStatus | null): OpenAccessLocation[] {
     if (!oa?.isOa) return [];
     if (oa.locations?.length) return oa.locations.filter((loc) => webUrl(loc.url));
     const url = webUrl(oa.url);
-    return url ? [{url, label: "Free copy", version: null, isPdf: false}] : [];
+    return url ? [{url, label: "Open-access version", version: null, isPdf: false}] : [];
 }
 
 /** One free copy, as a line in the chooser under the Open Access row. */
@@ -692,7 +692,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
         accent: "#853953",
         available: true,
         title: "Open Access",
-        subtitle: `${locations.length} free copies`,
+        subtitle: `${locations.length} open-access versions`,
         subtitleShort: `${locations.length} free`,
         href: locations[0].url,
         actionLabel: "View PDF",
@@ -711,7 +711,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
     toggle.setAttribute("data-flora-oa-choices", "");
     toggle.setAttribute("role", "button");
     toggle.tabIndex = 0;
-    toggle.title = `Choose from ${locations.length} free copies`;
+    toggle.title = `Choose from ${locations.length} open-access versions`;
     toggle.style.cssText =
         rowActionStyle("#853953", compact)
         + `cursor:pointer;user-select:none;border-radius:5px;padding:${compact ? "1px 4px" : "3px 5px"};`;
