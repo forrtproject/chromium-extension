@@ -310,6 +310,8 @@ function escapeHtml(s: string): string {
 // ──────────────────────────────────────────────
 
 const SHEETS_MODAL_ID = "flora-sheets-modal";
+/** How long the sheets card's Snooze keeps it away. */
+export const SHEETS_SNOOZE_MINUTES = 10;
 
 export interface SheetsModalCallbacks {
   onDismiss: () => void;
@@ -437,7 +439,7 @@ export function renderSheetsModal(
         <a data-flora-details-link target="_blank" rel="noopener" style="
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">View details</a>` : "";
+        ">Open in FLoRA Atlas</a>` : "";
 
   const host = document.createElement("div");
   host.id = SHEETS_MODAL_ID;
@@ -471,16 +473,16 @@ export function renderSheetsModal(
         ${statCards}
       </div>
 
-      <div style="padding:10px 16px 14px;display:flex;align-items:center;gap:8px;">
-        <button class="flora-modal-snooze" title="Snooze for 10 minutes" style="
-          all:unset;cursor:pointer;padding:7px 8px;font-size:0;line-height:0;
-          color:#5f6368;border-radius:6px;transition:color 0.15s;
-          display:flex;align-items:center;justify-content:center;margin-right:auto;
-        "><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+      <div style="padding:10px 16px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;">
+        <button class="flora-modal-snooze" title="Hide this card for ${SHEETS_SNOOZE_MINUTES} minutes" style="
+          all:unset;cursor:pointer;padding:7px 8px;font-size:13px;font-weight:500;line-height:1;
+          color:#5f6368;border-radius:6px;transition:color 0.15s;white-space:nowrap;
+          display:flex;align-items:center;justify-content:center;gap:6px;margin-right:auto;
+        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Snooze ${SHEETS_SNOOZE_MINUTES} min</button>
         <button class="flora-modal-dismiss" style="
-          all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
-          color:#5f6368;border-radius:6px;transition:background 0.15s;
-        ">Dismiss</button>
+          all:unset;cursor:pointer;padding:7px 12px;font-size:13px;font-weight:500;
+          color:#5f6368;border-radius:6px;transition:background 0.15s;white-space:nowrap;
+        ">Hide for this sheet</button>
         ${detailsLink}
       </div>
     </div>

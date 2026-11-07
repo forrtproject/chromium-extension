@@ -37,6 +37,7 @@ import {
     renderSetupPrompt,
     renderSheetsModal,
     type SheetsModalCallbacks,
+    SHEETS_SNOOZE_MINUTES,
     showAllFloraUI
 } from "./injector";
 import {resetWorkSummary} from "@shared/progress-toast";
@@ -1367,7 +1368,7 @@ const sheetsModalCallbacks: SheetsModalCallbacks = {
         debugLog("Sheets modal dismissed for tab:", currentSheetKey());
     },
     onSnooze() {
-        snoozeUntil = Date.now() + 10 * 60 * 1000; // 10 minutes
+        snoozeUntil = Date.now() + SHEETS_SNOOZE_MINUTES * 60 * 1000;
         debugLog("Sheets modal snoozed until", new Date(snoozeUntil).toLocaleTimeString());
     },
 };
