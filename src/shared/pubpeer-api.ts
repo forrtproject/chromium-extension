@@ -336,21 +336,38 @@ export function lookupPubPeerForDoi(doi: string): Promise<PubPeerFeedback | null
 }
 
 /**
- * The article's PubPeer state for the side panel. It comes from the same
- * per-DOI cached lookup as the article's pill, so the panel and the pill
- * agree; only a failed lookup of this DOI makes it unavailable.
+ * The article's PubPeer state for the side panel. The per-DOI cached lookup
+ * the article's pill uses comes first, so the panel and the pill agree; only
+ * a failed lookup of this DOI makes it unavailable. When that finds no
+ * thread, a thread PubPeer matches by the page URL is still shown.
  */
 export async function lookupArticlePubPeer(
   doi: string,
-  signal: AbortSignal | null | undefined = activeWorkSignal()
-): Promise<{ feedback: PubPeerFeedback | null; unavailable: boolean }> {
-  const unavailable = new Set<string>();
-  try {
-    const found = await lookupPubPeerForDois([doi], unavailable, signal);
-    return { feedback: found.get(doi) ?? null, unavailable: unavailable.has(doi) };
-  } catch {
-    return { feedback: null, unavailable: true };
+  pageUrl: string | null = null,
+  signal: AbortSignal | null | undefined = activeWorkSignal(),
+  known?: PubPeerFeedback | null
+): Promise<{ feedbacks: PubPeerFeedback[]; feedback: PubPeerFeedback | null; unavailable: boolean }> {
+  let feedback: PubPeerFeedback | null;
+  if (known !== undefined) {
+    feedback = known;
+  } else {
+    const unavailable = new Set<string>();
+    try {
+      feedback = (await lookupPubPeerForDois([doi], unavailable, signal)).get(doi) ?? null;
+    } catch {
+      return { feedbacks: [], feedback: null, unavailable: true };
+    }
+    if (unavailable.has(doi)) return { feedbacks: [], feedback: null, unavailable: true };
   }
+  if (feedback && feedback.total_comments > 0) return { feedbacks: [feedback], feedback, unavailable: false };
+  if (!pageUrl) return { feedbacks: feedback ? [feedback] : [], feedback, unavailable: false };
+  try {
+    const byUrl = await lookupPubPeer([doi], [pageUrl], signal);
+    if (byUrl.some((f) => f.total_comments > 0)) return { feedbacks: byUrl, feedback, unavailable: false };
+  } catch {
+    // The DOI answer stands; a failed URL fallback does not make it unavailable.
+  }
+  return { feedbacks: feedback ? [feedback] : [], feedback, unavailable: false };
 }
 
 export function _recordPubPeerVerdictsForTesting(entries: Array<[string, PubPeerVerdict]>): void {

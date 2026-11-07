@@ -1144,8 +1144,6 @@ function extractPageAugmentationMetadata(doc: Document): Omit<DoiAugmentRequest,
     };
 }
 
-const feedbackList = (feedback: PubPeerFeedback | null): PubPeerFeedback[] => feedback ? [feedback] : [];
-
 async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void> {
     const signal = activeWorkSignal() ?? null;
     if (isSheets || floraHidden || isWorkCancelled()) return;
@@ -1188,22 +1186,21 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         if (articleFeedbacksFetched && refKey === lastReferenceDoiKey && lastRenderedPageStateVersion === pageStateVersion) return;
 
         if (floraHidden || isWorkCancelled() || navigated()) return;
-        // Article: the same per-DOI result its pill shows, once per page.
-        // References: one batched, cached lookup.
+        // Article: the same per-DOI result its pill shows, with a page-URL
+        // match as fallback, once per page. References: one batched, cached lookup.
         const articlePromise = !primaryDoi
             ? Promise.resolve({feedbacks: [] as PubPeerFeedback[], unavailable: false})
             : articleFeedbacksFetched
             ? Promise.resolve({feedbacks: lastArticleFeedbacks, unavailable: articlePubPeerUnavailable})
-            : knownPubPeer.has(primaryDoi)
-            ? Promise.resolve({feedbacks: feedbackList(knownPubPeer.get(primaryDoi) ?? null), unavailable: false})
-            : lookupArticlePubPeer(primaryDoi, signal).then(({feedback, unavailable}) => {
-                if (unavailable) {
-                    if (!signal?.aborted) debugWarn("Article PubPeer data unavailable");
-                } else {
-                    knownPubPeer.set(primaryDoi, feedback);
-                }
-                return {feedbacks: feedbackList(feedback), unavailable};
-            });
+            : lookupArticlePubPeer(primaryDoi, passUrl, signal, knownPubPeer.get(primaryDoi))
+                .then(({feedbacks, feedback, unavailable}) => {
+                    if (unavailable) {
+                        if (!signal?.aborted) debugWarn("Article PubPeer data unavailable");
+                    } else {
+                        knownPubPeer.set(primaryDoi, feedback);
+                    }
+                    return {feedbacks, unavailable};
+                });
         const unavailableReferences = new Set<string>();
         reportWorkStage("lookup", `Checking PubPeer for ${count(referenceDois.length + (primaryDoi ? 1 : 0), "paper")}…`);
         const [article, refFeedbackByDoi, articleTitle] = await Promise.all([

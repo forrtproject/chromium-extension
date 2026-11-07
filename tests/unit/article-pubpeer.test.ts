@@ -40,7 +40,7 @@ describe("article PubPeer state for the side panel", () => {
         await expect(lookupPubPeerForDoi(ARTICLE)).resolves.toBeNull();
         // The panel's later lookup fails at the network but reuses the pill's answer.
         vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
-        await expect(lookupArticlePubPeer(ARTICLE, null)).resolves.toEqual({feedback: null, unavailable: false});
+        await expect(lookupArticlePubPeer(ARTICLE, null, null)).resolves.toEqual({feedbacks: [], feedback: null, unavailable: false});
         expect(pubPeerVerdict(ARTICLE)).toBe("clear");
     });
 
@@ -51,10 +51,10 @@ describe("article PubPeer state for the side panel", () => {
         expect(refUnavailable.has(REFERENCE)).toBe(true);
 
         vi.stubGlobal("fetch", vi.fn(async () => ok()));
-        await expect(lookupArticlePubPeer(ARTICLE, null)).resolves.toEqual({feedback: null, unavailable: false});
+        await expect(lookupArticlePubPeer(ARTICLE, null, null)).resolves.toEqual({feedbacks: [], feedback: null, unavailable: false});
 
         vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
-        await expect(lookupArticlePubPeer("10.1000/other", null)).resolves.toEqual({feedback: null, unavailable: true});
+        await expect(lookupArticlePubPeer("10.1000/other", null, null)).resolves.toEqual({feedbacks: [], feedback: null, unavailable: true});
     });
 
     it("returns the article's thread when PubPeer has one", async () => {
@@ -63,8 +63,48 @@ describe("article PubPeer state for the side panel", () => {
             last_commented_at: "", users: "", url: "https://pubpeer.com/publications/a",
         };
         vi.stubGlobal("fetch", vi.fn(async () => ok([thread])));
-        const result = await lookupArticlePubPeer(ARTICLE, null);
+        const result = await lookupArticlePubPeer(ARTICLE, null, null);
         expect(result.unavailable).toBe(false);
         expect(result.feedback?.total_comments).toBe(2);
     });
+
+    const urlThread = {
+        id: "10.1000/preprint-of-article", title: "Matched by URL", total_comments: 5, total_peeriodical_comments: 0,
+        last_commented_at: "", users: "", url: "https://pubpeer.com/publications/url",
+    };
+    const PAGE = "https://journal.example.org/article/1";
+    const bodyOf = (call: unknown[]) => JSON.parse((call[1] as {body: string}).body) as {dois: string[]; urls: string[]};
+
+    it("falls back to a thread PubPeer matches only by the page URL", async () => {
+        const fetchMock = vi.fn(async (_url: string, init: {body: string}) =>
+            ok(JSON.parse(init.body).urls.length > 0 ? [urlThread] : []));
+        vi.stubGlobal("fetch", fetchMock);
+        const result = await lookupArticlePubPeer(ARTICLE, PAGE, null);
+        expect(result).toMatchObject({feedback: null, unavailable: false});
+        expect(result.feedbacks.map((f) => f.title)).toEqual(["Matched by URL"]);
+        expect(fetchMock.mock.calls.map((c) => bodyOf(c).urls)).toEqual([[], [PAGE]]);
+    });
+
+    it("uses the DOI thread without a URL lookup, and a pill's known answer without any lookup", async () => {
+        const thread = {...urlThread, id: ARTICLE, title: "By DOI", total_comments: 2};
+        const fetchMock = vi.fn(async () => ok([thread]));
+        vi.stubGlobal("fetch", fetchMock);
+        expect((await lookupArticlePubPeer(ARTICLE, PAGE, null)).feedbacks.map((f) => f.title)).toEqual(["By DOI"]);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        fetchMock.mockClear();
+        expect((await lookupArticlePubPeer(ARTICLE, PAGE, null, thread)).feedbacks).toEqual([thread]);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("keeps the DOI answer when only the URL fallback fails", async () => {
+        let calls = 0;
+        vi.stubGlobal("fetch", vi.fn(async () => { if (calls++ === 0) return ok(); throw new Error("offline"); }));
+        await expect(lookupArticlePubPeer(ARTICLE, PAGE, null)).resolves.toEqual({feedbacks: [], feedback: null, unavailable: false});
+    });
+
+    it("is unavailable, so the panel offers Retry, when the article's own DOI lookup fails", async () => {
+        vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
+        await expect(lookupArticlePubPeer(ARTICLE, PAGE, null)).resolves.toMatchObject({unavailable: true});
+    });
 });
+
