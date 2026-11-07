@@ -51,7 +51,7 @@ describe("the on-page tour of an article", () => {
         await articlePage();
         const {articleTourStops} = await import("../../src/shared/page-tour");
         expect(articleTourStops().map((s) => s.title)).toEqual([
-            "This pill is about the article you are reading",
+            "Findings for this article",
             "Point at a pill to see the details",
             "Every paper in the reference list gets one",
             "So does a DOI mentioned in the text",
@@ -76,7 +76,7 @@ describe("the on-page tour of an article", () => {
         const {articleTourStops} = await import("../../src/shared/page-tour");
         const stops = articleTourStops();
         expect(stops[0].title).toBe("Every paper in the reference list gets a pill");
-        expect(stops[0].text).toContain("gets two pills");
+        expect(stops[0].text).toBe("Click this pill to see each check and its source. No pill means ORE could not identify that reference.");
         expect(stops.map((s) => s.title)).not.toContain("Every paper in the reference list gets one");
     });
 
@@ -84,7 +84,7 @@ describe("the on-page tour of an article", () => {
         await articlePage();
         const {startPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
         expect(startPageTour("article")).toBe(true);
-        expect(cardTitle()).toBe("This pill is about the article you are reading");
+        expect(cardTitle()).toBe("Findings for this article");
         const titleButton = document.querySelector<HTMLElement>("[data-flora-title-pill] > [role=button]")!;
 
         press(".next");
@@ -92,7 +92,7 @@ describe("the on-page tour of an article", () => {
         expect(titleButton.getAttribute("aria-expanded")).toBe("true");
 
         press(".back");
-        expect(cardTitle()).toBe("This pill is about the article you are reading");
+        expect(cardTitle()).toBe("Findings for this article");
         await vi.waitFor(() => expect(titleButton.getAttribute("aria-expanded")).toBe("false"));
 
         for (let i = 0; i < 4; i++) press(".next");

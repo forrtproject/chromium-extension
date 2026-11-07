@@ -24,8 +24,9 @@ const CARD_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 
 const PILL = `.${INDICATOR_PILL_CLASS}`;
-const PILL_FACE_TEXT = "Each part answers one question: its DOI, an open-access version (OA), discussion on PubPeer, and replications or reproductions (Reps). A coloured part means yes; a faded one means nothing was found.";
-const REFERENCE_PILL_TEXT = "A reference that cites two papers gets two pills. No pill means ORE could not identify that reference.";
+const PILL_FACE_TEXT = "Click this pill to see each check and its source.";
+const NO_PILL_TEXT = "No pill means ORE could not identify that reference.";
+const REFERENCE_PILL_TEXT = `A reference that cites two papers gets two pills. ${NO_PILL_TEXT}`;
 
 function shown(el: Element | null): el is HTMLElement {
     if (!(el instanceof HTMLElement) || !el.isConnected) return false;
@@ -78,9 +79,9 @@ export function articleTourStops(): TourStop[] {
     const loosePill = firstShown(`${PILL}[data-flora-loose-pill]`);
     const sample = titlePill ?? referencePill ?? loosePill;
     if (sample === titlePill && titlePill) {
-        stops.push({target: titlePill, title: "This pill is about the article you are reading", text: PILL_FACE_TEXT});
+        stops.push({target: titlePill, title: "Findings for this article", text: PILL_FACE_TEXT});
     } else if (sample === referencePill && referencePill) {
-        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${PILL_FACE_TEXT} ${REFERENCE_PILL_TEXT}`});
+        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${PILL_FACE_TEXT} ${NO_PILL_TEXT}`});
     } else if (sample) {
         stops.push({target: sample, title: "A pill marks a paper ORE recognised", text: PILL_FACE_TEXT});
     }
@@ -103,7 +104,7 @@ export function articleTourStops(): TourStop[] {
         stops.push({
             target: tab,
             title: "Everything in one place",
-            text: "This tab opens the Meta Report: the article's replications, any retraction, its discussion, and which references have something to report.",
+            text: "This tab opens the full report on the article and its references.",
         });
     }
     return stops;
@@ -125,7 +126,7 @@ export function searchTourStops(): TourStop[] {
         stops.push({
             target: matched,
             title: "A dotted DOI was matched by title",
-            text: "This result showed no DOI, so ORE looked its title up. Open the DOI once to check it is the right paper.",
+            text: "This result had no DOI, so ORE matched it by title; check that it is the right paper.",
         });
     }
     const notice = noticeStop();
