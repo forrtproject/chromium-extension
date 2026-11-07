@@ -6,6 +6,10 @@ import type {RegisteredReport, RegisteredReportMap} from './src/shared/registere
 const API_URL = 'https://api.zotero.org/groups/5937153/items/top';
 const PAGE_SIZE = 100;
 const FS_OUTPUT_PATH = './src/registered-reports.json';
+// "QRCshared" is a shared reading list kept in the same group library. Its
+// items (e.g. Ioannidis 2005, OSC 2015) are background literature, not
+// Registered Reports, so an item filed only there is skipped.
+export const NON_RR_COLLECTIONS = new Set(['BB5B9YHG']);
 
 export interface ZoteroItem {
     key: string;
@@ -13,6 +17,7 @@ export interface ZoteroItem {
         key: string;
         DOI?: string;
         url?: string;
+        collections?: string[];
         tags?: {tag: string}[];
         relations?: Record<string, string | string[]>;
     };
@@ -51,6 +56,8 @@ export function buildRegisteredReportMap(items: ZoteroItem[]): RegisteredReportM
     for (const item of items) {
         const tags = (item.data.tags ?? []).map(t => t.tag);
         if (tags.some(t => t.toLowerCase() === 'not an rr')) continue;
+        const collections = item.data.collections ?? [];
+        if (collections.length > 0 && collections.every(c => NON_RR_COLLECTIONS.has(c))) continue;
         const doi = itemDoi(item.data);
         if (!doi) continue;
         const stage = stageOf(tags);

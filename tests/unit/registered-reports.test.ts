@@ -39,6 +39,17 @@ describe("registered reports updater", () => {
     expect(map.reports["10.5555/protocol"]).toEqual({ key: "P1", stage: 1, linked: "https://doi.org/10.5555/report" });
     expect(map.reports["10.5555/not"]).toBeUndefined();
   });
+
+  it("skips items filed only in the shared reading list", () => {
+    const map = buildRegisteredReportMap([
+      item("READ", { DOI: "10.1371/journal.pmed.0020124", collections: ["BB5B9YHG"] }),
+      item("BOTH", { DOI: "10.5555/both", collections: ["BB5B9YHG", "C3RGTYXM"] }),
+      item("RR", { DOI: "10.5555/rr", collections: ["C3RGTYXM"] }),
+      item("LOOSE", { DOI: "10.5555/loose" }),
+    ]);
+    expect(map.reports["10.1371/journal.pmed.0020124"]).toBeUndefined();
+    expect(Object.keys(map.reports).sort()).toEqual(["10.5555/both", "10.5555/loose", "10.5555/rr"]);
+  });
 });
 
 describe("downloaded Registered Reports map", () => {
