@@ -183,13 +183,42 @@ describe("service-worker", () => {
         for (const fn of storageChangeHandlers) fn({[RET_MAP_KEY]: {newValue: map}}, "local");
     }
 
-    it("rejects HTML export responses while accepting HTML-looking CSV cells", async () => {
+    const getSheet = () => new Promise<SheetFetchResponse>(resolve => {
+        messageHandler({type: "FLORA_SHEET_FETCH", spreadsheetId: "book", gid: "42"}, {}, resolve as (r: unknown) => void);
+    });
+    const EXPORT_URL = "https://docs.google.com/spreadsheets/d/book/export?format=csv&gid=42";
+    const GVIZ_URL = "https://docs.google.com/spreadsheets/d/book/gviz/tq?tqx=out:csv&gid=42";
+    const csv = (body: string) => new Response(body, {headers: {"content-type": "text/csv"}});
+    const html = () => new Response("<html><body>Sign in</body></html>", {headers: {"content-type": "text/html; charset=utf-8"}});
+    const urlsOf = (mock: {mock: {calls: unknown[][]}}) => mock.mock.calls.map((c) => String(c[0]));
+
+    it("reads the sheet through the CSV export, without gviz, when export works", async () => {
+        const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(csv("Title,Score\nA,10.1234/paper"));
+        try {
+            expect(await getSheet()).toMatchObject({csv: "Title,Score\nA,10.1234/paper", error: null});
+            expect(urlsOf(fetchMock)).toEqual([EXPORT_URL]);
+        } finally { fetchMock.mockRestore(); }
+    });
+
+    it.each([
+        ["a non-OK status", () => Promise.resolve(new Response("Forbidden", {status: 403}))],
+        ["a sign-in page", () => Promise.resolve(html())],
+        ["a network error", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ])("falls back to gviz when the export returns %s", async (_label, exportResponse) => {
         const fetchMock = vi.spyOn(globalThis, "fetch")
-            .mockResolvedValueOnce(new Response("<html><body>Sign in</body></html>", {headers: {"content-type": "text/html; charset=utf-8"}}))
-            .mockResolvedValueOnce(new Response("<html>\n10.1234/paper", {headers: {"content-type": "text/csv"}}));
-        const getSheet = () => new Promise<SheetFetchResponse>(resolve => {
-            messageHandler({type: "FLORA_SHEET_FETCH", spreadsheetId: "book", gid: "42"}, {}, resolve as (r: unknown) => void);
-        });
+            .mockImplementationOnce(exportResponse as () => Promise<Response>)
+            .mockResolvedValueOnce(csv("10.1234/paper"));
+        try {
+            expect(await getSheet()).toMatchObject({csv: "10.1234/paper", error: null});
+            expect(urlsOf(fetchMock)).toEqual([EXPORT_URL, GVIZ_URL]);
+        } finally { fetchMock.mockRestore(); }
+    });
+
+    it("rejects HTML responses from both URLs while accepting HTML-looking CSV cells", async () => {
+        const fetchMock = vi.spyOn(globalThis, "fetch")
+            .mockResolvedValueOnce(html())
+            .mockResolvedValueOnce(html())
+            .mockResolvedValueOnce(csv("<html>\n10.1234/paper"));
         try {
             expect(await getSheet()).toMatchObject({csv: null, error: "Sheet export returned a sign-in or error page"});
             expect(await getSheet()).toMatchObject({csv: "<html>\n10.1234/paper", error: null});
