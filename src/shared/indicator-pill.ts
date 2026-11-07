@@ -949,7 +949,18 @@ function buildDoiRow(
 
     contentRow.appendChild(doiText);
     contentRow.appendChild(actions);
-    return contentRow;
+    // The opened popover spells out what the dotted underline means; the
+    // compact search panel keeps the underline alone.
+    if (!isAugmented || compact) return contentRow;
+    const wrap = document.createElement("div");
+    wrap.setAttribute("data-flora-doi-provenance", "");
+    const matched = document.createElement("div");
+    matched.textContent = "Matched by title \u2014 check it is the right paper";
+    matched.title = provenanceLabel ?? SEARCH_PROVENANCE;
+    matched.style.cssText = `${rowSubStyle()}margin:-4px 0 3px 28px;`;
+    wrap.appendChild(contentRow);
+    wrap.appendChild(matched);
+    return wrap;
 }
 
 /**
