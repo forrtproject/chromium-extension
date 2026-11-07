@@ -863,6 +863,7 @@ export function renderSidePanel(
   onRetryPubPeer?: () => Promise<void>,
   options: {documentMode?: boolean} = {},
 ): void {
+  ensureFocusStyle();
   const references = rawReferences.map((ref) => ({ ...ref, title: plainTitle(ref.title) }));
   const existingHost = document.getElementById(PUBPEER_PANEL_ID);
   // Track open state via a stateful marker on the host — comparing inline

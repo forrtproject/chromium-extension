@@ -25,9 +25,13 @@ export function ensureFocusStyle(): void {
     const suppressed = FLORA_OWNED_PARTS.map(
         (part) => `${part} :where(button, a):not(:focus-visible)`
     );
+    // A host's `* { hyphens: auto }` would split words inside ORE ("open-ac-
+    // cess"); shadow roots inherit the reset from their host.
+    const owned = FLORA_OWNED_PARTS.flatMap((part) => [part, `${part} *`]);
     style.textContent =
         `${focused.join(", ")} { outline: 2px solid #853953; outline-offset: 2px; }`
         + `${suppressed.join(", ")} { outline: none !important; }`
+        + `${owned.join(", ")} { hyphens: manual !important; -webkit-hyphens: manual !important; }`
         + "@keyframes flora-segment-pending { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }"
         + "@media (prefers-reduced-motion: reduce) { [data-flora-pending] * { animation: none !important; } }";
     (document.head ?? document.documentElement).appendChild(style);
