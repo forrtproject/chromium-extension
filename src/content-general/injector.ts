@@ -754,9 +754,10 @@ function panelSignature(
 }
 
 const HEADER_ACTION_STYLE =
-  "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);line-height:0;" +
-  "width:28px;height:28px;display:flex;align-items:center;justify-content:center;" +
-  "border-radius:50%;transition:color 0.15s,background 0.15s;";
+  "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);line-height:1;" +
+  "height:28px;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:5px;" +
+  "font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;" +
+  "border-radius:14px;transition:color 0.15s,background 0.15s;";
 
 const DOWNLOAD_ICON =
   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
@@ -768,12 +769,15 @@ const SHARE_ICON =
   `stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>` +
   `<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 
-function headerAction(icon: string, label: string, onClick: () => void): HTMLButtonElement {
+/** A header button with an icon and a visible label; `description` is the tooltip. */
+function headerAction(icon: string, text: string, description: string, onClick: () => void): HTMLButtonElement {
   const btn = document.createElement("button");
-  btn.setAttribute("aria-label", label);
-  btn.title = label;
+  btn.title = description;
   btn.style.cssText = HEADER_ACTION_STYLE;
   btn.innerHTML = icon;
+  const label = document.createElement("span");
+  label.textContent = text;
+  btn.append(label);
   btn.addEventListener("mouseenter", () => {
     btn.style.color = "#fff";
     btn.style.background = "rgba(255,255,255,0.15)";
@@ -850,7 +854,7 @@ function toReportEntry(entry: {
  * that most publisher print stylesheets hide outright.
  */
 function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(DOWNLOAD_ICON, "Save this report (print to PDF)", () => {
+  return headerAction(DOWNLOAD_ICON, "Print", "Print this report, or save it as a PDF", () => {
     const win = window.open("", "_blank", "width=900,height=1000");
     if (!win) {
       showToast("Allow pop-ups for this site to save the report", { tone: "error" });
@@ -863,7 +867,7 @@ function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
 }
 
 function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(SHARE_ICON, "Copy a link to this report", () => {
+  return headerAction(SHARE_ICON, "Copy link", "Copy a link to this report", () => {
     void reportUrl(payload())
       .then((url) => writeClipboard(url))
       .then((copied) => {
@@ -1072,7 +1076,7 @@ export function renderSidePanel(
     "display:flex;align-items:center;gap:10px;flex-shrink:0;";
   header.innerHTML = `
     <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
-    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;">Meta Report</span>`;
+    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;">Meta Report</span>`;
 
   const buildPayload = (): ReportPayload => ({
     v: 1,

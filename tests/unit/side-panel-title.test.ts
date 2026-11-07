@@ -26,6 +26,17 @@ describe("side panel article title", () => {
         document.title = "";
     });
 
+    it("labels the header's print and share actions in words", () => {
+        render("Test article");
+        const buttons = [...document.querySelectorAll<HTMLButtonElement>("#flora-pubpeer-panel button")];
+        const print = buttons.find((b) => b.textContent === "Print");
+        const share = buttons.find((b) => b.textContent === "Copy link");
+        expect(print?.querySelector("svg")).not.toBeNull();
+        expect(print?.title).toBe("Print this report, or save it as a PDF");
+        expect(share?.querySelector("svg")).not.toBeNull();
+        expect(share?.title).toBe("Copy a link to this report");
+    });
+
     it("keeps other findings visible when PubPeer is unavailable and retries without claiming no discussion", async () => {
         const state = new Map<DoiString, LookupState>([[ARTICLE, {status: "matched", result: mockResult(), source: "extracted"}]]);
         const context = new Map<DoiString, DoiContext>([[ARTICLE, "article"]]);
