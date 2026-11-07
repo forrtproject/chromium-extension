@@ -14,6 +14,7 @@ import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
 import { hasCustomTabTop, positionTabOnRightEdge, saveCustomTabTop } from "@shared/tab-position";
 import { adoptPanelTab, canOpenPanel, releasePanelTab, setTabLabel } from "@shared/progress-tab";
 import { plainTitle } from "@shared/plain-title";
+import { isPageTourOpen, onPageTourOpenChange } from "@shared/page-tour";
 import { lookupRegisteredReports, registeredReportDetail, RR_ACCENT, type RegisteredReport } from "@shared/registered-reports";
 
 // The work/progress toast lives in shared so the Scholar content script can
@@ -160,6 +161,15 @@ export async function renderSetupPrompt(): Promise<void> {
     </style>`;
 
   document.body.appendChild(host);
+
+  // The page tour dims everything under it; hold the prompt back until the
+  // tour is finished or skipped.
+  const followTour = (open: boolean): void => { host.style.display = open ? "none" : ""; };
+  followTour(isPageTourOpen());
+  const stopFollowingTour = onPageTourOpenChange((open) => {
+    if (!host.isConnected) stopFollowingTour();
+    else followTour(open);
+  });
 
   const closeEl = host.querySelector(".flora-setup-close");
   if (closeEl) {

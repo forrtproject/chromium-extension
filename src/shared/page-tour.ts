@@ -167,9 +167,20 @@ interface OpenTour {
 }
 
 let openTour: OpenTour | null = null;
+const openChangeListeners = new Set<(open: boolean) => void>();
 
 export function isPageTourOpen(): boolean {
     return openTour !== null;
+}
+
+/** Follow the tour opening and closing; returns a function that stops following. */
+export function onPageTourOpenChange(listener: (open: boolean) => void): () => void {
+    openChangeListeners.add(listener);
+    return () => { openChangeListeners.delete(listener); };
+}
+
+function notifyOpenChange(open: boolean): void {
+    for (const listener of [...openChangeListeners]) listener(open);
 }
 
 export function closePageTour(): void {
@@ -275,9 +286,11 @@ export function runPageTour(stops: TourStop[]): boolean {
         document.removeEventListener("keydown", onKey, true);
         host.remove();
         if (returnFocus?.isConnected) returnFocus.focus({preventScroll: true});
+        notifyOpenChange(false);
     };
     const tour: OpenTour = {close};
     openTour = tour;
+    notifyOpenChange(true);
 
     root.querySelector(".skip")!.addEventListener("click", close);
     back.addEventListener("click", () => { if (index > 0) show(index - 1); });
