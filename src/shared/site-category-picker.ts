@@ -12,13 +12,13 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
   addForm.className = "site-add";
   const addInput = document.createElement("input");
   addInput.type = "text";
-  addInput.placeholder = "Add a site, e.g. journals.example.org";
+  addInput.placeholder = "Site to turn on, e.g. journals.example.org";
   addInput.autocomplete = "off";
   addInput.spellcheck = false;
-  addInput.setAttribute("aria-label", "Site to add");
+  addInput.setAttribute("aria-label", "Site to turn ORE on for");
   const addButton = document.createElement("button");
   addButton.type = "submit";
-  addButton.textContent = "Add site";
+  addButton.textContent = "Turn on for site";
   const addError = document.createElement("p");
   addError.className = "site-add-error";
   addError.setAttribute("role", "alert");
