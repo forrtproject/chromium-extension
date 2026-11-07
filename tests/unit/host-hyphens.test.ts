@@ -18,3 +18,12 @@ describe("host hyphenation", () => {
         expect(rule.cssText).toMatch(/hyphens: manual !important/);
     });
 });
+
+describe("search-result panels", () => {
+    it("install the hyphenation reset even on a page without pills", async () => {
+        document.head.innerHTML = "";
+        const {createIndicatorPanel} = await import("../../src/shared/indicator-pill");
+        createIndicatorPanel({doi: "10.1234/panel" as never});
+        expect(document.getElementById("flora-focus-style")?.textContent).toContain("hyphens: manual");
+    });
+});

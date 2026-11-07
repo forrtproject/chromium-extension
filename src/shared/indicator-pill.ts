@@ -1958,6 +1958,7 @@ function ensurePanelStyle(): void {
  * pill, so updateIndicatorPillBadges refreshes it identically.
  */
 export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement {
+    ensureFocusStyle();
     const {
         doi, color = "#853953", isAugmented = false, provenanceLabel,
         retraction = null, replicationsCount = null, reproductionsCount = null,
