@@ -335,6 +335,24 @@ export function lookupPubPeerForDoi(doi: string): Promise<PubPeerFeedback | null
   });
 }
 
+/**
+ * The article's PubPeer state for the side panel. It comes from the same
+ * per-DOI cached lookup as the article's pill, so the panel and the pill
+ * agree; only a failed lookup of this DOI makes it unavailable.
+ */
+export async function lookupArticlePubPeer(
+  doi: string,
+  signal: AbortSignal | null | undefined = activeWorkSignal()
+): Promise<{ feedback: PubPeerFeedback | null; unavailable: boolean }> {
+  const unavailable = new Set<string>();
+  try {
+    const found = await lookupPubPeerForDois([doi], unavailable, signal);
+    return { feedback: found.get(doi) ?? null, unavailable: unavailable.has(doi) };
+  } catch {
+    return { feedback: null, unavailable: true };
+  }
+}
+
 export function _recordPubPeerVerdictsForTesting(entries: Array<[string, PubPeerVerdict]>): void {
   recordVerdicts(entries);
 }

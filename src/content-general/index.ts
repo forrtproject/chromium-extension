@@ -40,7 +40,7 @@ import {
     showAllFloraUI
 } from "./injector";
 import {resetWorkSummary} from "@shared/progress-toast";
-import {lookupPubPeer, lookupPubPeerForDois, pubPeerVerdict, type PubPeerFeedback} from "@shared/pubpeer-api";
+import {lookupArticlePubPeer, lookupPubPeerForDois, pubPeerVerdict, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {setScanSummarySource, type ScanSummary} from "@shared/toolbar-scan";
 import {debugError, debugLog, debugWarn, recentDebugEntries} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
@@ -1144,6 +1144,8 @@ function extractPageAugmentationMetadata(doc: Document): Omit<DoiAugmentRequest,
     };
 }
 
+const feedbackList = (feedback: PubPeerFeedback | null): PubPeerFeedback[] => feedback ? [feedback] : [];
+
 async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void> {
     const signal = activeWorkSignal() ?? null;
     if (isSheets || floraHidden || isWorkCancelled()) return;
@@ -1186,18 +1188,22 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         if (articleFeedbacksFetched && refKey === lastReferenceDoiKey && lastRenderedPageStateVersion === pageStateVersion) return;
 
         if (floraHidden || isWorkCancelled() || navigated()) return;
-        // Article: URL lookup once/page. References: one batched, cached lookup.
+        // Article: the same per-DOI result its pill shows, once per page.
+        // References: one batched, cached lookup.
         const articlePromise = !primaryDoi
             ? Promise.resolve({feedbacks: [] as PubPeerFeedback[], unavailable: false})
             : articleFeedbacksFetched
             ? Promise.resolve({feedbacks: lastArticleFeedbacks, unavailable: articlePubPeerUnavailable})
-            : lookupPubPeer([primaryDoi], [passUrl], signal).then(
-                feedbacks => ({feedbacks, unavailable: false}),
-                err => {
-                    if (!signal?.aborted) debugWarn("Article PubPeer data unavailable —", err);
-                    return {feedbacks: [] as PubPeerFeedback[], unavailable: true};
-                },
-            );
+            : knownPubPeer.has(primaryDoi)
+            ? Promise.resolve({feedbacks: feedbackList(knownPubPeer.get(primaryDoi) ?? null), unavailable: false})
+            : lookupArticlePubPeer(primaryDoi, signal).then(({feedback, unavailable}) => {
+                if (unavailable) {
+                    if (!signal?.aborted) debugWarn("Article PubPeer data unavailable");
+                } else {
+                    knownPubPeer.set(primaryDoi, feedback);
+                }
+                return {feedbacks: feedbackList(feedback), unavailable};
+            });
         const unavailableReferences = new Set<string>();
         reportWorkStage("lookup", `Checking PubPeer for ${count(referenceDois.length + (primaryDoi ? 1 : 0), "paper")}…`);
         const [article, refFeedbackByDoi, articleTitle] = await Promise.all([
@@ -1207,7 +1213,8 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
-        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
+        // A failed reference lookup shows on that reference, not as the article's state.
+        articlePubPeerUnavailable = article.unavailable;
         if (article.feedbacks.some((f) => f.total_comments > 0)
             || [...refFeedbackByDoi.values()].some((f) => f.total_comments > 0)) withdrawNothingFound();
         lastArticleFeedbacks = article.feedbacks;
