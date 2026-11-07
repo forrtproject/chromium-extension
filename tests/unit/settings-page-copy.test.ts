@@ -14,3 +14,13 @@ describe("settings page copy", () => {
         expect(options).not.toContain("active on all sites");
     });
 });
+
+describe("links to the FLoRA Atlas", () => {
+    it("labels and points the settings header and footer links at the Atlas", async () => {
+        const {ATLAS_BASE} = await import("../../src/shared/flora-atlas");
+        const html = read("src/options/index.html");
+        expect(html).not.toMatch(/FReD Explorer|fred_explorer/);
+        const atlasLinks = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>\s*FLoRA Atlas<\/a/g)].map((m) => m[1]);
+        expect(atlasLinks).toEqual([ATLAS_BASE, ATLAS_BASE]);
+    });
+});
