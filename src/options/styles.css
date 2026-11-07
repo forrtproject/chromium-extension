@@ -924,3 +924,42 @@ label {
 .site-remove:hover {
   color: #b42318;
 }
+
+/* ─── Collapsible technical sections ─── */
+.tech-card > summary {
+  list-style: none;
+  cursor: pointer;
+  position: relative;
+  padding-right: 3.25rem;
+  border-bottom: none;
+}
+.tech-card > summary::-webkit-details-marker { display: none; }
+.tech-card > summary::after {
+  content: "";
+  position: absolute;
+  right: 1.75rem;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform var(--transition-fast);
+}
+.tech-card[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
+.tech-card > summary:hover .dh-title { color: var(--primary); }
+.tech-card .dh-title { margin-bottom: 0.15rem; }
+.tech-hint { font-size: 13px; color: var(--text-muted); }
+.tech-card[open] .tech-hint { display: none; }
+.tech-card[open] > summary { border-bottom: none; padding-bottom: 0.25rem; }
+.tech-body { padding-top: 0; }
+.tech-inline { border-top: 1px solid var(--border-light); }
+.tech-inline > summary {
+  cursor: pointer;
+  padding: 0.85rem 1.75rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.tech-inline > summary:hover { background: var(--primary-faint); }
+.tech-inline .tech-callout { margin: 0 1.75rem 0.5rem; }
