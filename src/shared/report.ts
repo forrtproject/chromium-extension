@@ -197,6 +197,15 @@ function esc(value: string): string {
     ));
 }
 
+/**
+ * Display text for a FLoRA outcome: the raw value "success" reads as
+ * "successful"; every other value is shown as recorded. Colours still key off
+ * the raw value.
+ */
+export function outcomeLabel(outcome: string): string {
+    return outcome.trim().toLowerCase() === "success" ? "successful" : outcome;
+}
+
 function outcomeTone(outcome: string): string {
     const lower = outcome.toLowerCase();
     if (lower.includes("success") || lower.includes("replicated") || lower === "yes") {
@@ -215,7 +224,7 @@ function entryHtml(entry: ReportEntry): string {
         .filter((part): part is string => !!part)
         .join(" · ");
     const badge = entry.outcome
-        ? `<span class="badge" style="${outcomeTone(entry.outcome)}">${esc(entry.outcome)}</span>`
+        ? `<span class="badge" style="${outcomeTone(entry.outcome)}">${esc(outcomeLabel(entry.outcome))}</span>`
         : "";
     return `<li><div class="entry-head">${heading}${badge}</div>${
         meta ? `<div class="meta">${esc(meta)}</div>` : ""

@@ -26,6 +26,22 @@ describe("side panel article title", () => {
         document.title = "";
     });
 
+    it("shows FLoRA's \"success\" outcome as \"successful\" and other outcomes as recorded", () => {
+        const entry = (title: string, outcome: string) => ({
+            doi: `10.1/${title}`, type: "replication", title, authors: [], journal: "J", year: 2020, outcome,
+        });
+        const result = mockResult();
+        result.record.replications = [entry("a", "success"), entry("b", "failed"), entry("c", "mixed")] as never;
+        result.record.stats.n_originals_total = 0;
+        const pageState = new Map<DoiString, LookupState>([[ARTICLE, {status: "matched", result, source: "extracted"}]]);
+        renderSidePanel([], [], pageState, new Map<DoiString, DoiContext>([[ARTICLE, "article"]]), new Map(), [], "Article");
+        const text = document.getElementById("flora-pubpeer-panel")!.textContent!;
+        expect(text).toContain("successful");
+        expect(text).not.toMatch(/success(?!ful)/);
+        expect(text).toContain("failed");
+        expect(text).toContain("mixed");
+    });
+
     it("labels the header's print and share actions in words", () => {
         render("Test article");
         const buttons = [...document.querySelectorAll<HTMLButtonElement>("#flora-pubpeer-panel button")];

@@ -5,7 +5,7 @@ import type { PubPeerFeedback } from "../shared/pubpeer-api";
 import { debugLog, debugWarn } from "../shared/debug";
 import { safeSendMessage } from "../shared/messages";
 import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
-import { renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
+import { outcomeLabel, renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
 import { writeClipboard } from "@shared/clipboard";
 import { showToast } from "@shared/toast";
 import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
@@ -1297,7 +1297,7 @@ export function renderSidePanel(
             : isFailure
               ? "background:#fee2e2;color:#991b1b;"
               : "background:#fef8e8;color:#b8860b;");
-        badge.textContent = entry.outcome;
+        badge.textContent = outcomeLabel(entry.outcome);
         titleRow.appendChild(badge);
       }
       item.appendChild(titleRow);
