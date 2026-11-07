@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { hasReplication, lookUpMissingReferenceStates, ResolvedReferences } from "../../src/content-general/reference-states";
+import { countFindings, hasReplication, lookUpMissingReferenceStates, ResolvedReferences } from "../../src/content-general/reference-states";
 import type { ResolvedReference } from "../../src/content-general/references";
 import type { LookupResponse } from "../../src/shared/messages";
 import type { DoiString, LookupState, ReplicationResult } from "../../src/shared/types";
@@ -133,5 +133,53 @@ describe("lookUpMissingReferenceStates", () => {
         const send = vi.fn();
         expect(await lookUpMissingReferenceStates(pageState, [ON_PAGE], { send, onLoading: send, abandoned: () => false })).toEqual([]);
         expect(send).not.toHaveBeenCalled();
+    });
+});
+
+describe("countFindings", () => {
+    const withReplications: LookupState = {
+        status: "matched",
+        source: "augmented",
+        result: { record: { stats: { n_replications_total: 2, n_reproductions_total: 0, n_originals_total: 0 } } } as unknown as ReplicationResult,
+    };
+    const A = "10.1000/a" as DoiString;
+    const B = "10.1000/b" as DoiString;
+    const C = "10.1000/c" as DoiString;
+    const D = "10.1000/d" as DoiString;
+
+    it("counts each paper once, however its DOI is cased", () => {
+        const counts = countFindings([A, A.toUpperCase() as DoiString], {
+            pageState: new Map([[A, withReplications]]), notices: [], hasComments: () => false,
+        });
+        expect(counts).toMatchObject({ papers: 1, checked: 1, replications: 1 });
+    });
+
+    it("counts a retracted paper as retracted only, even with a concern notice too", () => {
+        const counts = countFindings([A, B], {
+            pageState: new Map(),
+            notices: [{ originDoi: A, kind: "concern" }, { originDoi: A, kind: "retraction" }, { originDoi: B, kind: "concern" }],
+            hasComments: () => false,
+        });
+        expect(counts).toMatchObject({ papers: 2, checked: 2, retracted: 1, concern: 1 });
+    });
+
+    it("counts PubPeer-only papers from the per-DOI verdict", () => {
+        const counts = countFindings([A, B], {
+            pageState: new Map([[A, { status: "no-match" }], [B, { status: "no-match" }]]),
+            notices: [],
+            hasComments: (doi) => doi === B,
+        });
+        expect(counts).toMatchObject({ papers: 2, checked: 2, pubpeer: 1, replications: 0 });
+    });
+
+    it("leaves papers still loading out of the checked count", () => {
+        const counts = countFindings([A, B, C, D], {
+            pageState: new Map<DoiString, LookupState>([
+                [A, { status: "loading" }], [B, { status: "error", message: "x" }], [C, withReplications],
+            ]),
+            notices: [],
+            hasComments: () => false,
+        });
+        expect(counts).toMatchObject({ papers: 4, checked: 2, replications: 1 });
     });
 });

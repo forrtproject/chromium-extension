@@ -1,4 +1,4 @@
-import type {LookupResponse} from "@shared/messages";
+import type {FindingCounts, LookupResponse} from "@shared/messages";
 import type {DoiString, LookupState} from "@shared/types";
 import type {ResolvedReference} from "./references";
 
@@ -44,6 +44,41 @@ export function hasReplication(state: LookupState | undefined): boolean {
     if (state?.status !== "matched") return false;
     const {n_replications_total, n_reproductions_total, n_originals_total} = state.result.record.stats;
     return n_replications_total > 0 || n_reproductions_total > 0 || n_originals_total > 0;
+}
+
+export interface FindingSources {
+    pageState: ReadonlyMap<DoiString, LookupState>;
+    /** Retraction and expression-of-concern notices, keyed by the DOI they concern. */
+    notices: readonly {originDoi: DoiString; kind: "retraction" | "concern"}[];
+    /** True when PubPeer has (unmuted) comments on the DOI. */
+    hasComments: (doi: DoiString) => boolean;
+}
+
+/**
+ * Distinct-paper counts for the popup's summary. DOIs are de-duplicated
+ * case-insensitively; a retracted paper is not also counted as a concern;
+ * a notice settles a paper even when it has no FLoRA lookup state.
+ */
+export function countFindings(dois: Iterable<DoiString>, sources: FindingSources): FindingCounts {
+    const noticeKind = new Map<string, "retraction" | "concern">();
+    for (const n of sources.notices) {
+        const key = n.originDoi.toLowerCase();
+        if (noticeKind.get(key) !== "retraction") noticeKind.set(key, n.kind);
+    }
+    const distinct = new Map<string, DoiString>();
+    for (const doi of dois) if (!distinct.has(doi.toLowerCase())) distinct.set(doi.toLowerCase(), doi);
+    const counts: FindingCounts = {papers: 0, checked: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0};
+    for (const [key, doi] of distinct) {
+        const state = sources.pageState.get(doi);
+        const kind = noticeKind.get(key);
+        counts.papers++;
+        if (kind || (state && state.status !== "loading" && state.status !== "idle")) counts.checked++;
+        if (kind === "retraction") counts.retracted++;
+        else if (kind === "concern") counts.concern++;
+        if (hasReplication(state)) counts.replications++;
+        if (sources.hasComments(doi)) counts.pubpeer++;
+    }
+    return counts;
 }
 
 export interface ReferenceLookupHooks {

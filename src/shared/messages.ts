@@ -91,6 +91,51 @@ export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
     return type === "FLORA_TAKE_REPORT" || type === "FLORA_PEEK_REPORT";
 }
 
+/** Distinct-paper counts for one group of DOIs: an article's references, or every paper on a page. */
+export interface FindingCounts {
+    papers: number;
+    /** Papers whose FLoRA lookup has settled. */
+    checked: number;
+    retracted: number;
+    concern: number;
+    replications: number;
+    pubpeer: number;
+}
+
+/** The paper the page is about. */
+export interface ArticleFindings {
+    retracted: boolean;
+    concern: boolean;
+    replications: number;
+    pubpeerComments: number;
+}
+
+/** What ORE found on an ordinary page, for the popup's summary. */
+export interface PageFindings {
+    /** A pass is still running, or the page has not started one yet. */
+    checking: boolean;
+    /** Present when the page is an article ORE recognised. */
+    article?: ArticleFindings;
+    /** The article's references when `article` is set, otherwise every paper on the page. */
+    others: FindingCounts;
+    /** The page has a side panel that "Open report" can open. */
+    panel: boolean;
+}
+
+/** content-search's summary of a results page. */
+export interface ResultFindings {
+    papers: number;
+    flagged: number;
+    incomplete: boolean;
+}
+
+/** A content script's answer to `FLORA_GET_STATE`. */
+export interface PageStateResponse {
+    hidden: boolean;
+    findings?: PageFindings;
+    results?: ResultFindings;
+}
+
 export type ScanState =
     | {phase: "scanning"; papers: number}
     | {phase: "done"; papers: number; flagged: number; incomplete: boolean}
