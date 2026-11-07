@@ -413,6 +413,21 @@ export function extractPrimaryDOI(doc: Document): DoiString | null {
   return result;
 }
 
+// Figure, table and supplement DOIs: the article DOI plus a component tail
+// (PLOS ".g001"/".t002"/".s001"/".sd001", "/fig-1", "/figures/3", "/table-2",
+// "/supp-1"). They name parts of the article, not separate papers.
+const COMPONENT_TAIL = /^[./](?:(?:g|t|s|sd)\d{3}|(?:fig(?:ure)?s?|tables?|supp[a-z]*)(?:[-_./]?\w+)?)$/i;
+const PLOS_COMPONENT = /^10\.1371\/journal\.[a-z]+\.\d{7}\.(?:g|t|s|sd)\d{3}$/i;
+
+/** True for a DOI naming a figure/table/supplement of `primary` (or a PLOS component DOI). */
+export function isComponentDoi(doi: string, primary?: string | null): boolean {
+  if (PLOS_COMPONENT.test(doi)) return true;
+  if (!primary) return false;
+  const d = doi.toLowerCase();
+  const p = primary.toLowerCase();
+  return d.length > p.length && d.startsWith(p) && COMPONENT_TAIL.test(d.slice(p.length));
+}
+
 export function extractDOIsFromText(text: string): DoiString[] {
   const found = new Set<DoiString>();
   const cleaned = decodeEncodedDois(text.replace(WORD_BREAK_CHARS, ""));
