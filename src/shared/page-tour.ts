@@ -24,7 +24,7 @@ const CARD_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 
 const PILL = `.${INDICATOR_PILL_CLASS}`;
-const PILL_FACE_TEXT = "Click this pill to see each check and its source.";
+const PILL_FACE_TEXT = "Point at this pill to see each check and its source.";
 const NO_PILL_TEXT = "No pill means ORE could not identify that reference.";
 const REFERENCE_PILL_TEXT = `A reference that cites two papers gets two pills. ${NO_PILL_TEXT}`;
 

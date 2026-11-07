@@ -76,7 +76,7 @@ describe("the on-page tour of an article", () => {
         const {articleTourStops} = await import("../../src/shared/page-tour");
         const stops = articleTourStops();
         expect(stops[0].title).toBe("Every paper in the reference list gets a pill");
-        expect(stops[0].text).toBe("Click this pill to see each check and its source. No pill means ORE could not identify that reference.");
+        expect(stops[0].text).toBe("Point at this pill to see each check and its source. No pill means ORE could not identify that reference.");
         expect(stops.map((s) => s.title)).not.toContain("Every paper in the reference list gets one");
     });
 
