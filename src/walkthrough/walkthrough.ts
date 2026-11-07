@@ -4,8 +4,8 @@ import {openTourSample} from "../shared/tour-sample";
 import {debugError} from "../shared/debug";
 import {mountSetupChoices} from "./setup-choices";
 
-const TOTAL = 10;
-const SETUP_STEP = 8;
+const TOTAL = 9;
+const SETUP_STEP = 7;
 let current = 0;
 let finished = false;
 let emailIsValid: () => boolean = () => true;
