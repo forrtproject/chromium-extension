@@ -1519,16 +1519,25 @@ export function renderSidePanel(
     list.style.cssText = "margin:0;list-style:none;padding:0;";
 
     const COLLAPSED_COUNT = 5;
+    // Retracted and expression-of-concern references lead the list and are
+    // never folded behind "Show more".
+    const noticeRank = (doi: DoiString): number => {
+      const kind = retractionByDoi.get(doi)?.kind;
+      return kind === "retraction" ? 0 : kind ? 1 : 2;
+    };
+    const ordered = [...refs].sort((a, b) => noticeRank(a.doi) - noticeRank(b.doi));
+    const noticeCount = ordered.filter((ref) => noticeRank(ref.doi) < 2).length;
+    const visibleCount = Math.max(COLLAPSED_COUNT, noticeCount);
     const items: HTMLLIElement[] = [];
-    for (const ref of refs) {
+    for (const ref of ordered) {
       const li = buildRefRow(ref);
       items.push(li);
       list.appendChild(li);
     }
     section.appendChild(list);
 
-    if (items.length > COLLAPSED_COUNT) {
-      const hidden = items.slice(COLLAPSED_COUNT);
+    if (items.length > visibleCount) {
+      const hidden = items.slice(visibleCount);
       for (const li of hidden) li.style.display = "none";
 
       const toggleWrap = document.createElement("div");
