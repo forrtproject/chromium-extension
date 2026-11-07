@@ -2077,7 +2077,8 @@ export function updateIndicatorPillBadges(
             };
             replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,
-                title: "FORRT", subtitle: pending ? "Checking…" : "Unavailable",
+                // Keep the row's usual label; the subtitle says the lookup failed.
+                title: signal.rowTitle, subtitle: signal.rowSubtitle,
                 actionLabel: "Retry", onAction: pending ? undefined : () => { void retry(); },
                 attr: "data-flora-badge-row", compact,
             })));
