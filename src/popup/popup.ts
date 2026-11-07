@@ -40,12 +40,14 @@ const TOUR_HELP = {
 const domainEl = document.getElementById("current-domain")!;
 const blockBtn = document.getElementById("block-btn")!;
 const blockLabel = document.getElementById("block-btn-label")!;
+const blockSub = document.getElementById("block-btn-sub")!;
 const snoozeNote = document.getElementById("snooze-note")!;
 const resumeBtn = document.getElementById("resume-btn")!;
 const snoozeBtn = document.getElementById("snooze-btn")!;
 const snoozeOptions = document.getElementById("snooze-options")!;
 const hideBtn = document.getElementById("hide-btn")!;
 const hideLabel = document.getElementById("hide-btn-label")!;
+const hideSub = document.getElementById("hide-btn-sub")!;
 const pageTourBtn = document.getElementById("page-tour-btn")!;
 const tourBtn = document.getElementById("tour-btn")!;
 const optionsBtn = document.getElementById("options-btn")!;
@@ -92,13 +94,9 @@ function showStatus(msg: string, type: "success" | "error"): void {
 }
 
 function updateBlockUI(): void {
-  if (blocked) {
-    blockLabel.textContent = "Enable on this domain";
-    blockBtn.classList.add("is-blocked");
-  } else {
-    blockLabel.textContent = "Disable on this domain";
-    blockBtn.classList.remove("is-blocked");
-  }
+  blockLabel.textContent = blocked ? "Turn on for this site" : "Turn off on this site";
+  blockSub.hidden = blocked;
+  blockBtn.classList.toggle("is-blocked", blocked);
 }
 
 function updateSnoozeUI(): void {
@@ -149,20 +147,16 @@ function buildSnoozeOptions(): void {
 }
 
 function updateHideUI(): void {
-  if (hidden) {
-    hideLabel.textContent = "Show on this page";
-    hideBtn.classList.add("is-hidden");
-  } else {
-    hideLabel.textContent = "Hide on this page";
-    hideBtn.classList.remove("is-hidden");
-  }
+  hideLabel.textContent = hidden ? "Show on this page" : "Hide on this page";
+  hideSub.hidden = hidden;
+  hideBtn.classList.toggle("is-hidden", hidden);
 }
 
 function updateDebugUI(): void {
   debugToggle.checked = debugOn;
   debugHint.textContent = debugOn
     ? "On. Reload the page to see ORE's progress and record a detailed log."
-    : "Turn on to see ORE's progress on each page and send a detailed log with issue reports.";
+    : "Shows ORE's progress on each page and adds a detailed log to issue reports.";
   logCopyRow.hidden = !debugOn;
 }
 

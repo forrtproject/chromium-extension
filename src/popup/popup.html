@@ -47,7 +47,10 @@
           <circle cx="12" cy="12" r="10" />
           <path d="M4.93 4.93l14.14 14.14" />
         </svg>
-        <span id="block-btn-label">Disable on this domain</span>
+        <span class="popup-btn-text">
+          <span id="block-btn-label">Turn off on this site</span>
+          <span class="popup-btn-sub" id="block-btn-sub">Until you turn it back on</span>
+        </span>
       </button>
 
       <button id="hide-btn" class="popup-btn popup-btn--hide" type="button">
@@ -56,7 +59,10 @@
           <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
           <line x1="1" y1="1" x2="23" y2="23" />
         </svg>
-        <span id="hide-btn-label">Hide on this page</span>
+        <span class="popup-btn-text">
+          <span id="hide-btn-label">Hide on this page</span>
+          <span class="popup-btn-sub" id="hide-btn-sub">Until you reload it</span>
+        </span>
       </button>
 
       <div class="popup-divider"></div>
@@ -67,7 +73,7 @@
           <line x1="12" y1="9" x2="12" y2="13" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
-        <span id="report-btn-label">Report an issue on this domain</span>
+        <span id="report-btn-label">Report an issue</span>
       </button>
 
       <div id="screenshot-row" hidden>
@@ -78,9 +84,6 @@
             <span class="toggle-track"></span>
           </span>
         </label>
-        <p class="popup-hint popup-hint--sub">
-          It shows us exactly what you saw, so the problem is much easier to find and fix.
-        </p>
       </div>
 
       <div class="popup-divider"></div>
@@ -100,7 +103,7 @@
       </label>
 
       <p id="debug-hint" class="popup-hint">
-        Turn on to see ORE's progress on each page and send a detailed log with issue reports.
+        Shows ORE's progress on each page and adds a detailed log to issue reports.
       </p>
 
       <label class="popup-toggle popup-toggle--sub" for="log-copy-toggle" id="log-copy-row" hidden>
