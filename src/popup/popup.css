@@ -474,3 +474,45 @@ a:focus-visible {
   font-weight: 500;
   font-size: 12px;
 }
+
+.popup-hint--sub {
+  margin-top: 0;
+}
+
+/* ─── Troubleshooting disclosure ─── */
+.popup-troubleshoot-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.popup-troubleshoot-summary::-webkit-details-marker { display: none; }
+.popup-troubleshoot-summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg) translateY(-2px);
+}
+.popup-troubleshoot[open] > .popup-troubleshoot-summary::after {
+  transform: rotate(-135deg) translateY(-2px);
+}
+.popup-troubleshoot-summary:hover { background: var(--surface); }
+.popup-debug-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-faint, #f9f0f4);
+  border-radius: 100px;
+  padding: 1px 7px;
+}
+/* The summary already carries the debug icon. */
+.popup-troubleshoot .popup-toggle > svg { visibility: hidden; }

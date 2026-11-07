@@ -58,6 +58,7 @@ const reportBtn = document.getElementById("report-btn")!;
 const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
 const debugHint = document.getElementById("debug-hint")!;
 const logCopyRow = document.getElementById("log-copy-row")!;
+const debugStateChip = document.getElementById("debug-state-chip")!;
 const logCopyToggle = document.getElementById("log-copy-toggle") as HTMLInputElement;
 const screenshotRow = document.getElementById("screenshot-row")!;
 const screenshotToggle = document.getElementById("screenshot-toggle") as HTMLInputElement;
@@ -270,6 +271,7 @@ function updateDebugUI(): void {
     ? "On. Reload the page to see ORE's progress and record a detailed log."
     : "Shows ORE's progress on each page and adds a detailed log to issue reports.";
   logCopyRow.hidden = !debugOn;
+  debugStateChip.hidden = !debugOn;
 }
 
 async function init(): Promise<void> {

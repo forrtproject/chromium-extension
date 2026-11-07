@@ -93,31 +93,43 @@
 
       <div class="popup-divider"></div>
 
-      <label class="popup-toggle" for="debug-toggle">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M8 2h8" />
-          <path d="M9 6V4h6v2" />
-          <rect x="7" y="6" width="10" height="14" rx="5" />
-          <path d="M3 11h4M17 11h4M3 16h4M17 16h4" />
-        </svg>
-        <span class="popup-toggle-label">Debug mode</span>
-        <span class="toggle-switch">
-          <input type="checkbox" id="debug-toggle" />
-          <span class="toggle-track"></span>
-        </span>
-      </label>
+      <details class="popup-troubleshoot" id="troubleshoot">
+        <summary class="popup-troubleshoot-summary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 2h8" />
+            <path d="M9 6V4h6v2" />
+            <rect x="7" y="6" width="10" height="14" rx="5" />
+            <path d="M3 11h4M17 11h4M3 16h4M17 16h4" />
+          </svg>
+          <span class="popup-toggle-label">Troubleshooting</span>
+          <span id="debug-state-chip" class="popup-debug-chip" hidden>Debug on</span>
+        </summary>
+        <label class="popup-toggle" for="debug-toggle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 2h8" />
+            <path d="M9 6V4h6v2" />
+            <rect x="7" y="6" width="10" height="14" rx="5" />
+            <path d="M3 11h4M17 11h4M3 16h4M17 16h4" />
+          </svg>
+          <span class="popup-toggle-label">Debug mode</span>
+          <span class="toggle-switch">
+            <input type="checkbox" id="debug-toggle" />
+            <span class="toggle-track"></span>
+          </span>
+        </label>
 
-      <p id="debug-hint" class="popup-hint">
-        Shows ORE's progress on each page and adds a detailed log to issue reports.
-      </p>
+        <p id="debug-hint" class="popup-hint">
+          Shows ORE's progress on each page and adds a detailed log to issue reports.
+        </p>
 
-      <label class="popup-toggle popup-toggle--sub" for="log-copy-toggle" id="log-copy-row" hidden>
-        <span class="popup-toggle-label">Offer "Copy log" after each pass</span>
-        <span class="toggle-switch">
-          <input type="checkbox" id="log-copy-toggle" />
-          <span class="toggle-track"></span>
-        </span>
-      </label>
+        <label class="popup-toggle popup-toggle--sub" for="log-copy-toggle" id="log-copy-row" hidden>
+          <span class="popup-toggle-label">Offer "Copy log" after each pass</span>
+          <span class="toggle-switch">
+            <input type="checkbox" id="log-copy-toggle" />
+            <span class="toggle-track"></span>
+          </span>
+        </label>
+      </details>
 
       <div class="popup-divider"></div>
 
