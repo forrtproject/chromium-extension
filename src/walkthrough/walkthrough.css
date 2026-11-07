@@ -1192,3 +1192,10 @@ body {
 .site-remove:hover {
   color: #b42318;
 }
+
+.wt-setup-heading {
+  margin-top: 1.75rem;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--neutral);
+}
