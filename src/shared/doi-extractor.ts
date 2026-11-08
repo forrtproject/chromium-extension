@@ -429,6 +429,13 @@ export function isComponentDoi(doi: string, primary?: string | null): boolean {
 }
 
 export function extractDOIsFromText(text: string): DoiString[] {
+  const found = findDOIsInText(text);
+  debugLog(`extractDOIsFromText: ${found.length} DOI(s) from ${text.length} chars`);
+  return found;
+}
+
+/** extractDOIsFromText without the debug line, for callers that scan many small chunks. */
+export function findDOIsInText(text: string): DoiString[] {
   const found = new Set<DoiString>();
   const cleaned = decodeEncodedDois(text.replace(WORD_BREAK_CHARS, ""));
   for (const match of cleaned.matchAll(DOI_REGEX)) {
@@ -437,7 +444,6 @@ export function extractDOIsFromText(text: string): DoiString[] {
     const doi = normaliseDOI(raw);
     if (doi) found.add(doi);
   }
-  debugLog(`extractDOIsFromText: ${found.size} DOI(s) from ${text.length} chars`);
   return [...found];
 }
 

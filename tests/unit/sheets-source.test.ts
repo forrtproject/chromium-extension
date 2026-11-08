@@ -1,8 +1,13 @@
 import {describe, expect, it, vi} from "vitest";
 import {fetchSheetCsv, parseSheetsUrl, sheetRowsByDoi, sheetTabKey} from "../../src/content-general/sheets";
 import {safeSendMessage} from "../../src/shared/messages";
+import {debugLog} from "../../src/shared/debug";
 
 vi.mock("../../src/shared/messages", () => ({safeSendMessage: vi.fn()}));
+vi.mock("../../src/shared/debug", async (importOriginal) => ({
+    ...await importOriginal<typeof import("../../src/shared/debug")>(),
+    debugLog: vi.fn(),
+}));
 
 describe("active Sheets source", () => {
     it("exports the linked query tab and follows a newer fragment selection", () => {
@@ -40,5 +45,11 @@ describe("sheetRowsByDoi", () => {
         const rows = sheetRowsByDoi(csv);
         expect(rows.get("10.1000/first")).toBe(2);
         expect(rows.get("10.1000/second")).toBe(4);
+    });
+
+    it("does not write a debug line per row", () => {
+        vi.mocked(debugLog).mockClear();
+        sheetRowsByDoi(Array.from({length: 200}, (_, i) => `Row ${i},10.1000/r${i}`).join("\n"));
+        expect(debugLog).not.toHaveBeenCalled();
     });
 });

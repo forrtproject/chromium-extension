@@ -1,5 +1,5 @@
 import {safeSendMessage, type SheetFetchResponse} from "@shared/messages";
-import {extractDOIsFromText} from "@shared/doi-extractor";
+import {findDOIsInText} from "@shared/doi-extractor";
 
 export interface SheetTab { spreadsheetId: string; gid: string }
 
@@ -63,7 +63,9 @@ function parseCsvRows(csv: string): string[][] {
 export function sheetRowsByDoi(csv: string): Map<string, number> {
     const byDoi = new Map<string, number>();
     parseCsvRows(csv).forEach((cells, index) => {
-        for (const doi of extractDOIsFromText(cells.join(" "))) {
+        // Per row, so the non-logging variant: one debug line per row would
+        // flush the recent-log buffer on a large tab.
+        for (const doi of findDOIsInText(cells.join(" "))) {
             const key = doi.toLowerCase();
             if (!byDoi.has(key)) byDoi.set(key, index + 1);
         }
