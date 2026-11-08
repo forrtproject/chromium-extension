@@ -151,7 +151,7 @@ it("keeps rows usable when notices fail and retries the failed check without rep
     retraction.mockRejectedValueOnce(new Error("Retraction data unavailable")).mockResolvedValueOnce([notice]);
     const {processSearchResults} = await import("../../src/content-search/pipeline");
     await processSearchResults(adapter, document);
-    await vi.waitFor(() => expect(document.getElementById("flora-alert-toast")?.textContent).toContain("etraction checks are unavailable"));
+    await vi.waitFor(() => expect(document.getElementById("flora-alert-toast")?.textContent).toContain("Retraction checks are unavailable"));
     expect(document.querySelector("[data-flora-panel]")).not.toBeNull();
     const retry = document.querySelector<HTMLButtonElement>("#flora-alert-toast button")!;
     expect(retry.textContent).toBe("Retry");
@@ -315,7 +315,7 @@ it("keeps cancellation stopped but restores recovery after cancelling a queued R
     document.querySelector<HTMLButtonElement>("[data-flora-work-cancel]")!.click();
     expect(isWorkCancelled()).toBe(true);
     endWorkIndicator();
-    await vi.waitFor(() => expect(document.getElementById("flora-alert-toast")?.textContent).toContain("etraction checks are unavailable"));
+    await vi.waitFor(() => expect(document.getElementById("flora-alert-toast")?.textContent).toContain("Retraction checks are unavailable"));
     expect(retraction).toHaveBeenCalledTimes(1);
     const {canStartAutomaticWork} = await import("../../src/shared/work-cancellation");
     expect(canStartAutomaticWork()).toBe(false);

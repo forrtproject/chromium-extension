@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
-import {clearOutages, noteOutage, onOutagesChanged, outageSources, retryOutages} from "../../src/shared/outages";
+import {clearOutages, noteOutage, onOutagesChanged, outageEpoch, outageSources, retryOutages} from "../../src/shared/outages";
 
 describe("page outages", () => {
     afterEach(() => clearOutages());
@@ -37,6 +37,13 @@ describe("page outages", () => {
         expect(retryOa).toHaveBeenCalledOnce();
         expect(retryPubPeer).toHaveBeenCalledOnce();
         clearOutages();
+        expect(outageSources().size).toBe(0);
+    });
+
+    it("ignores a failure from a lookup started before the page changed", () => {
+        const started = outageEpoch();
+        clearOutages();
+        noteOutage({}, "oa", () => {}, started);
         expect(outageSources().size).toBe(0);
     });
 });

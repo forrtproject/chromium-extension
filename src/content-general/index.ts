@@ -111,7 +111,7 @@ function showUnavailable(): void {
         return;
     }
     const list = listOf(what);
-    const message = `${list[0].toUpperCase()}${list.slice(1)} ${what.length > 1 ? "are" : "is"} unavailable.`;
+    const message = `${list[0].toUpperCase()}${list.slice(1)} ${what.length > 1 || what[0] === "retraction checks" ? "are" : "is"} unavailable.`;
     if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === UNAVAILABLE_TITLE
         && unavailableToast.getAttribute("data-flora-toast-message") === message) return;
     unavailableToast = showToast(message, {
@@ -200,8 +200,9 @@ let pausedBySettings = false;
 // scan pass, so it carries this page's identity and reports back when it lands.
 const badgeRetryHooks = {
     generation: () => pageGeneration,
-    onResolved: (): void => {
+    onResolved: (doi: DoiString, ok: boolean): void => {
         pageStateVersion++;
+        if (noteLookupOutcome(doi, !ok)) showUnavailable();
         if (isSheets) return;
         // The indicator mints a fresh work signal, so the panel refresh runs
         // even when the previous pass was cancelled.
@@ -370,6 +371,8 @@ async function primaryDoiFastPath(): Promise<void> {
             debugLog(`General: primary DOI ${primary} rejected by doi.org — dropping it`);
             rollback();
             disownDoi(primary);
+            // Scans skip a rejected DOI, so a retry could never clear it.
+            if (noteLookupOutcome(primary, false)) showUnavailable();
             return;
         }
 
