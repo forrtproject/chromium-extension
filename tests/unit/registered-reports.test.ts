@@ -59,6 +59,14 @@ describe("registered reports updater", () => {
     expect(map.reports["10.5555/stage2"]).toEqual({ key: "S2", stage: 2 });
     expect(map.reports["10.5555/stage1"]).toBeUndefined();
   });
+
+  it("still links a companion filed in the reading list and the RR collection", () => {
+    const map = buildRegisteredReportMap([
+      item("S2", { DOI: "10.5555/stage2", tags: ["Stage 2 Manuscript"], collections: ["C3RGTYXM"], relations: relation("S1") }),
+      item("S1", { DOI: "10.5555/stage1", tags: ["Stage 1 Manuscript"], collections: ["BB5B9YHG", "C3RGTYXM"] }),
+    ]);
+    expect(map.reports["10.5555/stage2"]).toEqual({ key: "S2", stage: 2, linked: "https://doi.org/10.5555/stage1" });
+  });
 });
 
 describe("downloaded Registered Reports map", () => {
