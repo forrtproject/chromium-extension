@@ -19,8 +19,11 @@ describe("open-access wording", () => {
             let text = readFileSync(file, "utf-8").replace(/<!--[\s\S]*?-->/g, "");
             // Code comments are not shown to readers.
             if (file.endsWith(".ts")) text = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-            for (const line of text.split("\n")) {
-                if (/free\s+cop(y|ies)/i.test(line)) offenders.push(`${path.relative(SRC, file)}: ${line.trim()}`);
+            // Collapse whitespace so a phrase wrapped across source lines still matches,
+            // and allow one word between ("a free, legal copy").
+            text = text.replace(/\s+/g, " ");
+            for (const match of text.matchAll(/free(,?\s+\w+)?,?\s+cop(y|ies)/gi)) {
+                offenders.push(`${path.relative(SRC, file)}: ${match[0]}`);
             }
         }
         expect(offenders).toEqual([]);

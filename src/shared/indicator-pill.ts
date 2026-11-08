@@ -693,7 +693,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
         available: true,
         title: "Open Access",
         subtitle: `${locations.length} open-access versions`,
-        subtitleShort: `${locations.length} free`,
+        subtitleShort: `${locations.length} versions`,
         href: locations[0].url,
         actionLabel: "View PDF",
         attr: "data-flora-oa-primary",
