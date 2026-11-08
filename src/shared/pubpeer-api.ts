@@ -360,12 +360,14 @@ export async function lookupArticlePubPeer(
     if (unavailable.has(doi)) return { feedbacks: [], feedback: null, unavailable: true };
   }
   if (feedback && feedback.total_comments > 0) return { feedbacks: [feedback], feedback, unavailable: false };
-  if (!pageUrl) return { feedbacks: feedback ? [feedback] : [], feedback, unavailable: false };
+  // The URL fallback respects the same 429 back-off as the DOI lookups.
+  if (!pageUrl || Date.now() < rateLimitedUntil) return { feedbacks: feedback ? [feedback] : [], feedback, unavailable: false };
   try {
     const byUrl = await lookupPubPeer([doi], [pageUrl], signal);
     if (byUrl.some((f) => f.total_comments > 0)) return { feedbacks: byUrl, feedback, unavailable: false };
-  } catch {
+  } catch (err) {
     // The DOI answer stands; a failed URL fallback does not make it unavailable.
+    if (err instanceof PubPeerRateLimitError) rateLimitedUntil = Date.now() + err.retryAfterMs;
   }
   return { feedbacks: feedback ? [feedback] : [], feedback, unavailable: false };
 }

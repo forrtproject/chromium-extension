@@ -102,6 +102,24 @@ describe("article PubPeer state for the side panel", () => {
         await expect(lookupArticlePubPeer(ARTICLE, PAGE, null)).resolves.toEqual({feedbacks: [], feedback: null, unavailable: false});
     });
 
+    it("starts the 429 back-off from the URL fallback and skips the fallback while it runs", async () => {
+        const limited = {ok: false, status: 429, headers: {get: () => "120"}, json: async () => ({})};
+        const fetchMock = vi.fn(async (_url: string, init: {body: string}) =>
+            JSON.parse(init.body).urls.length > 0 ? limited : ok());
+        vi.stubGlobal("fetch", fetchMock);
+        await expect(lookupArticlePubPeer(ARTICLE, PAGE, null)).resolves.toMatchObject({unavailable: false});
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        fetchMock.mockClear();
+        // DOI answer is cached; the URL fallback is skipped during the back-off.
+        await expect(lookupArticlePubPeer(ARTICLE, PAGE, null)).resolves.toMatchObject({unavailable: false});
+        expect(fetchMock).not.toHaveBeenCalled();
+        // Other DOI lookups honour the same back-off.
+        const unavailable = new Set<string>();
+        await lookupPubPeerForDois([REFERENCE], unavailable, null);
+        expect(unavailable.has(REFERENCE)).toBe(true);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it("is unavailable, so the panel offers Retry, when the article's own DOI lookup fails", async () => {
         vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
         await expect(lookupArticlePubPeer(ARTICLE, PAGE, null)).resolves.toMatchObject({unavailable: true});
