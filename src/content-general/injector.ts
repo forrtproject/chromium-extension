@@ -20,34 +20,6 @@ import { lookupRegisteredReports, registeredReportDetail, RR_ACCENT, type Regist
 // drive it without importing this module's article-page rendering.
 export { beginWorkIndicator, count, endWorkIndicator, isWorkCancelled, reportWorkStage } from "@shared/progress-toast";
 
-const BANNER_HOST_ID = "flora-banner-host";
-
-// ──────────────────────────────────────────────
-// Banner – inline styles (no shadow DOM)
-// ──────────────────────────────────────────────
-
-const isSheets = location.href.includes("docs.google.com/spreadsheets");
-
-const BANNER_BASE_STYLE =
-  "position:fixed;top:0;left:0;width:100%;margin:0;opacity:1;" +
-  "z-index:2147483647;display:flex;align-items:center;gap:12px;" +
-  "padding:5px 8px;font-size:13px;line-height:1.4;box-sizing:border-box;" +
-  "color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;";
-
-const LOGO_STYLE =
-  "font-weight:700;font-size:15px;color:#fff;" +
-  "background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;flex-shrink:0;";
-
-const TEXT_STYLE = "flex:1;";
-
-const CLOSE_STYLE =
-  "all:unset;cursor:pointer;font-size:13px;line-height:1;" +
-  "padding-right:10px;user-select:none;align-self:center;color:rgba(255,255,255,0.8);";
-
-const BG = {
-  error: "background:#dc2626;",
-} as const;
-
 const REMIND_PILL_STYLE =
   "all:unset;cursor:pointer;font-size:11px;font-family:inherit;font-weight:500;" +
   "color:#5f6368;background:#f0f0f0;padding:3px 10px;border-radius:12px;" +
@@ -180,104 +152,6 @@ export async function renderSetupPrompt(): Promise<void> {
       await snoozeSetup(ms);
       host.remove();
     });
-  }
-}
-
-export function renderErrorBanner(message: string): void {
-  const host = ensureBannerHost();
-  host.innerHTML = `
-    <div style="${BANNER_BASE_STYLE}${BG.error}">
-      <span style="${LOGO_STYLE}">FORRT ORE</span>
-      <span style="${TEXT_STYLE}">Error: ${escapeHtml(message)}</span>
-      <button style="${CLOSE_STYLE}" aria-label="Close">\u00d7</button>
-    </div>`;
-  host.querySelector("button")?.addEventListener("click", () => removeBanner());
-  requestAnimationFrame(() => adjustPageForBanner());
-}
-
-function ensureBannerHost(): HTMLElement {
-  let host = document.getElementById(BANNER_HOST_ID);
-  if (!host) {
-    host = document.createElement("div");
-    host.id = BANNER_HOST_ID;
-    document.body.prepend(host);
-  }
-  return host;
-}
-
-// Track elements we've modified so we can restore them on removal
-interface InlineValue {
-  value: string;
-  priority: string;
-}
-
-const modifiedElements = new Map<HTMLElement, Map<string, InlineValue>>();
-
-function setTracked(el: HTMLElement, prop: string, value: string, priority = "important"): void {
-  let record = modifiedElements.get(el);
-  if (!record) {
-    record = new Map<string, InlineValue>();
-    modifiedElements.set(el, record);
-  }
-  if (!record.has(prop)) {
-    record.set(prop, {
-      value: el.style.getPropertyValue(prop),
-      priority: el.style.getPropertyPriority(prop),
-    });
-  }
-  el.style.setProperty(prop, value, priority);
-}
-
-function restoreTracked(el: HTMLElement, prop: string): void {
-  const original = modifiedElements.get(el)?.get(prop);
-  if (!original) return;
-  if (original.value === "") el.style.removeProperty(prop);
-  else el.style.setProperty(prop, original.value, original.priority);
-}
-
-export function removeBanner(): void {
-  const host = document.getElementById(BANNER_HOST_ID);
-  if (host) {
-    host.remove();
-    for (const [el, record] of modifiedElements) {
-      for (const prop of record.keys()) restoreTracked(el, prop);
-    }
-    modifiedElements.clear();
-  }
-}
-
-function adjustPageForBanner(): void {
-  const banner = document.getElementById(BANNER_HOST_ID);
-  if (!banner) return;
-  const inner = banner.firstElementChild as HTMLElement | null;
-  const bannerHeight = inner?.offsetHeight || 35;
-
-  // Make space for the banner at the top of the body
-  setTracked(document.body, "padding-top", `${bannerHeight}px`);
-
-  const setupPrompt = document.getElementById(SETUP_HOST_ID);
-  for (const el of document.querySelectorAll<HTMLElement>("*")) {
-    if (el === banner || el === inner || setupPrompt?.contains(el)) continue;
-    const cs = window.getComputedStyle(el);
-    if (cs.position === "fixed") {
-      if (isSheets) {
-        // Only shift top-anchored elements; skip bottom-anchored ones (sheet tabs bar)
-        const hasBottom = cs.bottom !== "auto" && parseInt(cs.bottom) >= 0;
-        if (hasBottom && parseInt(cs.bottom) < 50) continue;
-        const currentTop = parseInt(cs.top) || 0;
-        setTracked(el, "top", `${currentTop + bannerHeight}px`);
-      } else {
-        setTracked(el, "padding-top", `${bannerHeight}px`);
-      }
-    } else if (cs.position === "sticky") {
-      const position = el.getBoundingClientRect().top;
-      const threshold = parseInt(cs.top);
-      if (position < bannerHeight || position <= threshold) {
-        setTracked(el, "padding-top", `${bannerHeight}px`);
-      } else {
-        restoreTracked(el, "padding-top");
-      }
-    }
   }
 }
 
@@ -505,9 +379,6 @@ export function hideAllFloraUI(): void {
     (document.head ?? document.documentElement).appendChild(style);
   }
 
-  const banner = document.getElementById(BANNER_HOST_ID);
-  if (banner) banner.style.display = "none";
-
   const modal = document.getElementById(SHEETS_MODAL_ID);
   if (modal) modal.style.display = "none";
 
@@ -521,9 +392,6 @@ export function hideAllFloraUI(): void {
 export function showAllFloraUI(): void {
   showWorkIndicator();
   document.getElementById(HIDE_STYLE_ID)?.remove();
-
-  const banner = document.getElementById(BANNER_HOST_ID);
-  if (banner) banner.style.display = "";
 
   const modal = document.getElementById(SHEETS_MODAL_ID);
   if (modal) modal.style.display = "";
