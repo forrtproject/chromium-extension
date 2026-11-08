@@ -23,20 +23,20 @@ const TOUR_HELP = {
     text: "The tour starts as soon as ORE has finished.",
   },
   "no-pills": {
-    title: "Nothing to show on this page",
-    text: "The tour points out ORE's pills, and there aren't any here. Try it on a sample article instead? It opens in a new tab.",
+    title: "No pills on this page",
+    text: "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
   },
   "not-running": {
     title: "ORE isn't running on this tab",
-    text: "This usually means the tab was open before ORE was installed or updated. Reload the page to start ORE, or try the tour on a sample article.",
+    text: "The tab was probably open before ORE was installed or updated. Reload it, or try a sample article.",
   },
   unavailable: {
-    title: "ORE can't run on this page",
-    text: "Browsers keep extensions off their own pages. Try the tour on a sample article instead? It opens in a new tab.",
+    title: "ORE can't run on browser pages",
+    text: "Try the tour on a sample article (opens in a new tab).",
   },
   paused: {
     title: "ORE is off on this page",
-    text: "It's hidden, snoozed or disabled here, so there are no pills to point out. Turn it back on above, or try the tour on a sample article.",
+    text: "It's hidden, snoozed or turned off here. Turn it back on above, or try a sample article.",
   },
 } as const;
 
@@ -65,7 +65,6 @@ const screenshotToggle = document.getElementById("screenshot-toggle") as HTMLInp
 const tourHelp = document.getElementById("tour-help")!;
 const tourHelpTitle = document.getElementById("tour-help-title")!;
 const tourHelpText = document.getElementById("tour-help-text")!;
-const popupBody = document.querySelector<HTMLElement>(".popup-body")!;
 const tourSampleBtn = document.getElementById("tour-sample-btn")!;
 const tourReloadBtn = document.getElementById("tour-reload-btn")!;
 const tourDismissBtn = document.getElementById("tour-dismiss-btn")!;
@@ -496,13 +495,11 @@ function showTourHelp(kind: keyof typeof TOUR_HELP): void {
   tourSampleBtn.hidden = kind === "checking";
   tourReloadBtn.hidden = kind !== "not-running";
   tourHelp.hidden = false;
-  popupBody.inert = true;
   (tourSampleBtn.hidden ? tourDismissBtn : tourSampleBtn).focus();
 }
 
 function closeTourHelp(): void {
   tourHelp.hidden = true;
-  popupBody.inert = false;
   pageTourBtn.focus();
   if (pendingTourStart && activeTabId != null) {
     pendingTourStart = null;
@@ -557,10 +554,6 @@ tourReloadBtn.addEventListener("click", async () => {
 });
 
 tourDismissBtn.addEventListener("click", closeTourHelp);
-
-tourHelp.addEventListener("click", (event) => {
-  if (event.target === tourHelp) closeTourHelp();
-});
 
 tourHelp.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeTourHelp();

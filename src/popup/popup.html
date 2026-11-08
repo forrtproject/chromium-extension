@@ -140,12 +140,7 @@
         <span class="popup-footer-sep" aria-hidden="true"></span>
         <button id="options-btn" class="popup-link" type="button">Settings</button>
       </nav>
-    </div>
-
-    <div id="popup-status" class="popup-status" hidden></div>
-
-    <div id="tour-help" class="popup-tour-help" hidden>
-      <div class="popup-tour-help-card" role="alertdialog" aria-modal="true" aria-labelledby="tour-help-title" aria-describedby="tour-help-text">
+      <div id="tour-help" class="popup-tour-help" role="region" aria-labelledby="tour-help-title" hidden>
         <strong id="tour-help-title"></strong>
         <p id="tour-help-text"></p>
         <div class="popup-tour-help-actions">
@@ -155,6 +150,8 @@
         </div>
       </div>
     </div>
+
+    <div id="popup-status" class="popup-status" hidden></div>
 
     <script src="popup.js"></script>
   </body>
