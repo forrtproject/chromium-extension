@@ -51,7 +51,17 @@
     <div class="main-layout">
       <div class="right-panel">
         <div class="detail-wrap">
-          <div class="detail-card">
+          <nav class="section-nav" aria-label="Settings sections">
+            <a href="#sec-email">Email</a>
+            <a href="#sec-citation">Citations</a>
+            <a href="#sec-sites">Sites</a>
+            <a href="#sec-blocklist">Blocklist</a>
+            <a href="#sec-commenters">Commenters</a>
+            <a href="#sec-cache">Cache</a>
+            <a href="#sec-data">Reference data</a>
+            <a href="#sec-debug">Troubleshooting</a>
+          </nav>
+          <div id="sec-email" class="detail-card">
             <!-- Header -->
             <div class="dh">
               <div class="dh-label">Extension Setup</div>
@@ -142,7 +152,7 @@
           </div>
 
           <!-- ═══ CITATION STYLE ═══ -->
-          <div class="detail-card" style="margin-top: 1.25rem">
+          <div id="sec-citation" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
               <div class="dh-label">Copy Citation</div>
               <h2 class="dh-title">Citation Style</h2>
@@ -173,7 +183,7 @@
           </div>
 
           <!-- ═══ SITE CATEGORIES ═══ -->
-          <div class="detail-card" style="margin-top: 1.25rem">
+          <div id="sec-sites" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
               <div class="dh-label">Where ORE Runs</div>
               <h2 class="dh-title">Sites by Category</h2>
@@ -192,7 +202,7 @@
           </div>
 
           <!-- ═══ BLOCKED DOMAINS ═══ -->
-          <div class="detail-card" style="margin-top: 1.25rem">
+          <div id="sec-blocklist" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
               <div class="dh-label">Blocked Domains</div>
               <h2 class="dh-title">Site Blocklist</h2>
@@ -240,7 +250,7 @@
           </div>
 
           <!-- ═══ PUBPEER COMMENTERS ═══ -->
-          <div class="detail-card" style="margin-top: 1.25rem">
+          <div id="sec-commenters" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
               <div class="dh-label">PubPeer Comments</div>
               <h2 class="dh-title">Muted Commenters</h2>
@@ -290,7 +300,7 @@
           </div>
 
           <!-- ═══ CACHE STORAGE ═══ -->
-          <details class="detail-card tech-card" style="margin-top: 1.25rem">
+          <details id="sec-cache" class="detail-card tech-card" style="margin-top: 1.25rem">
             <summary class="dh tech-summary">
               <div class="dh-label">Performance</div>
               <h2 class="dh-title">Cache Storage Limit</h2>
@@ -333,7 +343,7 @@
           </details>
 
           <!-- ═══ REFERENCE DATA ═══ -->
-          <details class="detail-card tech-card" style="margin-top: 1.25rem">
+          <details id="sec-data" class="detail-card tech-card" style="margin-top: 1.25rem">
             <summary class="dh tech-summary">
               <div class="dh-label">Update Reference Data</div>
               <h2 class="dh-title">Retractions &amp; Registered Reports</h2>
@@ -382,7 +392,7 @@
           </details>
 
           <!-- ═══ DEBUG MODE ═══ -->
-          <div class="detail-card" style="margin-top: 1.25rem">
+          <div id="sec-debug" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
               <div class="dh-label">Troubleshooting</div>
               <h2 class="dh-title">Debug Mode &amp; Issue Reports</h2>

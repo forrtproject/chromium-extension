@@ -963,3 +963,29 @@ label {
 }
 .tech-inline > summary:hover { background: var(--primary-faint); }
 .tech-inline .tech-callout { margin: 0 1.75rem 0.5rem; }
+
+/* ─── Section jump links ─── */
+.section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0;
+  margin: 0 0 0.75rem 0.25rem;
+  font-size: 12.5px;
+}
+.section-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.section-nav a + a::before {
+  content: "·";
+  display: inline-block;
+  margin: 0 0.5rem;
+  color: var(--border-light);
+}
+.section-nav a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.detail-card[id] {
+  scroll-margin-top: 1rem;
+}

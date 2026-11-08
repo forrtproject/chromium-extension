@@ -531,3 +531,11 @@ debugClearBtn.addEventListener("click", async () => {
   await refreshDebugReport();
   showDebugStatus("Debug log cleared.", "success");
 });
+
+// A jump link to a collapsed card opens it.
+for (const link of document.querySelectorAll<HTMLAnchorElement>(".section-nav a")) {
+  link.addEventListener("click", () => {
+    const target = document.querySelector(link.hash);
+    if (target instanceof HTMLDetailsElement) target.open = true;
+  });
+}
