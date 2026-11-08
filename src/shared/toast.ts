@@ -8,6 +8,7 @@
 // One toast element is reused: a second action replaces the first rather than
 // stacking, so rapid clicks down a reference list never pile up.
 
+import {ensureFocusStyle} from "./flora-ui";
 import {WORK_TOAST_ID, floatingBottom} from "./progress-toast";
 
 const TOAST_ID = "flora-action-toast";
@@ -101,6 +102,7 @@ function ensureToast(id: string): HTMLElement {
     const existing = document.getElementById(id);
     if (existing) return existing;
 
+    ensureFocusStyle();
     const host = document.createElement("div");
     host.id = id;
     // Marks the toast as FLoRA's own so the DOI extractor doesn't rescan its

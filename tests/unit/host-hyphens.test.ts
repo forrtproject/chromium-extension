@@ -13,9 +13,27 @@ describe("host hyphenation", () => {
         expect(rule).toBeDefined();
         const selectors = rule.selectorText.split(",").map((s) => s.trim());
         expect(selectors).toEqual(expect.arrayContaining([
-            "[data-flora-ui]", "[data-flora-ui] *", '[id^="flora-"]', '[id^="flora-"] *',
+            "[data-flora-ui]", "[data-flora-ui] *", "#flora-pubpeer-panel", "#flora-pubpeer-panel *",
         ]));
         expect(rule.cssText).toMatch(/hyphens: manual !important/);
+    });
+
+    it("leaves a host element that merely uses the flora- id prefix alone", () => {
+        document.head.innerHTML = "";
+        document.body.innerHTML = '<div id="flora-content"><p>text</p></div>';
+        ensureFocusStyle();
+        const sheet = (document.getElementById("flora-focus-style") as HTMLStyleElement).sheet!;
+        const rule = [...sheet.cssRules].find((r) => r.cssText.includes("hyphens")) as CSSStyleRule;
+        expect(document.querySelector("#flora-content p")!.matches(rule.selectorText)).toBe(false);
+    });
+});
+
+describe("toasts", () => {
+    it("install the hyphenation reset even on a page without pills", async () => {
+        document.head.innerHTML = "";
+        const {showToast} = await import("../../src/shared/toast");
+        showToast("Copied");
+        expect(document.getElementById("flora-focus-style")?.textContent).toContain("hyphens: manual");
     });
 });
 
