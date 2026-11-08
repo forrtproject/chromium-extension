@@ -1,5 +1,6 @@
 import {safeSendMessage, type LookupResponse} from "@shared/messages";
 import {fetchOpenAccess} from "@shared/openaccess";
+import {noteOutage} from "@shared/outages";
 import {isAbortError} from "@shared/work-cancellation";
 import {webUrl} from "@shared/web-url";
 // Merged FLoRA indicator pill — combines the DOI badge, Open Access padlock,
@@ -1098,10 +1099,12 @@ function startIndicatorLookups(
             changed();
             void lookupPubPeerForDoi(doi).then((feedback) => {
                 lookups.pubpeer = feedback;
+                noteOutage(lookups, "pubpeer", null);
                 changed();
             }).catch((error) => {
                 lookups.pubpeer = isAbortError(error) ? "cancelled" : "unavailable";
                 lookups.pubpeerRetryAfterMs = typeof error?.retryAfterMs === "number" ? error.retryAfterMs : null;
+                noteOutage(lookups, "pubpeer", lookups.pubpeer === "unavailable" ? lookups.retryPubPeer : null);
                 changed();
             });
         },
@@ -1112,6 +1115,8 @@ function startIndicatorLookups(
             .catch((err): OaState => isAbortError(err) ? "cancelled" : null)
             .then((state) => {
                 lookups.oa = state;
+                // null after the email check is a failed lookup, not "no open-access version".
+                noteOutage(lookups, "oa", state === null ? lookups.retryOa : null);
                 changed();
             });
     };
@@ -2077,7 +2082,7 @@ export function updateIndicatorPillBadges(
             };
             replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,
-                title: "FORRT", subtitle: pending ? "Checking…" : "Unavailable",
+                title: "Replication / Reproduction data", subtitle: pending ? "Checking…" : "Unavailable",
                 actionLabel: "Retry", onAction: pending ? undefined : () => { void retry(); },
                 attr: "data-flora-badge-row", compact,
             })));

@@ -544,11 +544,11 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
         return;
     }
     searchRetryMessage = titleFailed && noticesFailed
-        ? "ORE: DOI matching and retraction checks unavailable. Other results are still shown."
-        : titleFailed ? "ORE: DOI matching unavailable for some results."
-        : "ORE: Retraction checks unavailable. Other results are still shown.";
+        ? "DOI matching and retraction checks are unavailable."
+        : titleFailed ? "DOI matching is unavailable for some results."
+        : "Retraction checks are unavailable.";
     searchRetryToast = showToast(searchRetryMessage, {
-        tone: "info", duration: 0, dismissOnAction: false,
+        title: "Some ORE checks didn't load", tone: "info", duration: 0, dismissOnAction: false,
         action: {label: "Retry", onClick: () => {
             if (pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration) {
                 if (generation === searchNavigationGeneration) dismissSearchRetry();

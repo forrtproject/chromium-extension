@@ -57,6 +57,7 @@ import {searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
+import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {fetchSheetCsv, parseSheetsUrl, sheetTabKey} from "./sheets";
 import {canStartAutomaticWork, cancelWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
@@ -87,24 +88,49 @@ const unavailableLookupDois = new Set<DoiString>();
 let retryRetractions: (() => Promise<void>) | null = null;
 let unavailableToast: HTMLElement | null = null;
 let retractionRetryQueued: {page: string; generation: number; sheetGeneration: number} | null = null;
-const UNAVAILABLE_TAIL = "unavailable. Other results are still shown.";
+const UNAVAILABLE_TITLE = "Some ORE checks didn't load";
 
-/** One toast, with one Retry, for whichever checks could not run on this page. */
+/** "a", "a and b", "a, b and c" */
+function listOf(items: string[]): string {
+    return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
+/** One notice, with one Retry, for whichever checks could not run on this page. */
 function showUnavailable(): void {
-    const lookups = unavailableLookupDois.size > 0;
-    const notices = unavailableRetractionDois.size > 0;
-    if (!lookups && !notices) {
+    const outages = outageSources();
+    const what: string[] = [];
+    // Popover order: open access, PubPeer, replications; then retractions.
+    if (outages.has("oa")) what.push("open access");
+    if (outages.has("pubpeer")) what.push("PubPeer");
+    if (unavailableLookupDois.size > 0) what.push("replication data");
+    if (unavailableRetractionDois.size > 0) what.push("retraction checks");
+    if (what.length === 0 || floraHidden) {
         // Other provider alerts reuse this host; do not dismiss their newer message.
-        if (unavailableToast?.textContent?.includes(UNAVAILABLE_TAIL)) unavailableToast.remove();
+        if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === UNAVAILABLE_TITLE) unavailableToast.remove();
         unavailableToast = null;
         return;
     }
-    const what = lookups && notices ? "Replication data and retraction checks" : lookups ? "Replication data" : "Retraction checks";
-    unavailableToast = showToast(`ORE: ${what} ${UNAVAILABLE_TAIL}`, {
-        tone: "info", duration: 0, dismissOnAction: false,
+    const list = listOf(what);
+    const message = `${list[0].toUpperCase()}${list.slice(1)} ${what.length > 1 ? "are" : "is"} unavailable.`;
+    if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === UNAVAILABLE_TITLE
+        && unavailableToast.getAttribute("data-flora-toast-message") === message) return;
+    unavailableToast = showToast(message, {
+        title: UNAVAILABLE_TITLE, tone: "info", duration: 0, dismissOnAction: false,
         action: {label: "Retry", onClick: retryUnavailable},
     });
 }
+
+// Many pills settle at once; rebuild the notice once per burst.
+let unavailableQueued = false;
+function queueShowUnavailable(): void {
+    if (unavailableQueued) return;
+    unavailableQueued = true;
+    setTimeout(() => {
+        unavailableQueued = false;
+        showUnavailable();
+    }, 50);
+}
+onOutagesChanged(queueShowUnavailable);
 
 /** Record whether a page DOI's lookup failed; true when the toast needs updating. */
 function noteLookupOutcome(doi: DoiString, failed: boolean): boolean {
@@ -128,6 +154,7 @@ async function retryUnavailable(): Promise<void> {
         resumeAutomaticWork();
         void runScanPasses();
     }
+    retryOutages();
     await retryRetractions?.();
 }
 function refreshRedacts(): void {
@@ -211,6 +238,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         resumeAutomaticWork();
         repaintBadges();
         showAllFloraUI();
+        showUnavailable();
         void scanWholePage().catch((err) => debugError("General: resumed pass failed —", err));
         reportActiveState(true);
         sendResponse({ok: true});
@@ -545,6 +573,7 @@ function syncPageNavigation(): void {
     resolvedReferences.clear();
     unavailableRetractionDois.clear();
     unavailableLookupDois.clear();
+    clearOutages();
     retryRetractions = null;
     retractionRetryQueued = null;
     showUnavailable();
@@ -1321,7 +1350,7 @@ const sheetsModalCallbacks: SheetsModalCallbacks = {
     },
 };
 
-const SHEET_UNAVAILABLE = "Full sheet unavailable — only visible cells could be checked.";
+const SHEET_UNAVAILABLE = "The full sheet couldn't be loaded.";
 const EXCEL_VISIBLE_ONLY =
     "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.";
 
@@ -1364,7 +1393,7 @@ async function fetchSheetDois(): Promise<void> {
     if (!isCurrent() || isWorkCancelled()) return;
     if (unavailable) {
         showToast(SHEET_UNAVAILABLE, {
-            tone: "error",
+            title: "ORE checked only the visible cells", tone: "info", duration: 0,
             action: {label: "Retry", onClick: () => { resumeAutomaticWork(); return fetchSheetDois(); }},
         });
     } else if (sheetCsvDois.length === 0 && extractDOIs(document).length === 0) {
