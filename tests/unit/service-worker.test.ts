@@ -195,7 +195,7 @@ describe("service-worker", () => {
     it("reads the sheet through the CSV export, without gviz, when export works", async () => {
         const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(csv("Title,Score\nA,10.1234/paper"));
         try {
-            expect(await getSheet()).toMatchObject({csv: "Title,Score\nA,10.1234/paper", error: null});
+            expect(await getSheet()).toMatchObject({csv: "Title,Score\nA,10.1234/paper", error: null, fullTab: true});
             expect(urlsOf(fetchMock)).toEqual([EXPORT_URL]);
         } finally { fetchMock.mockRestore(); }
     });
@@ -209,7 +209,9 @@ describe("service-worker", () => {
             .mockImplementationOnce(exportResponse as () => Promise<Response>)
             .mockResolvedValueOnce(csv("10.1234/paper"));
         try {
-            expect(await getSheet()).toMatchObject({csv: "10.1234/paper", error: null});
+            const response = await getSheet();
+            expect(response).toMatchObject({csv: "10.1234/paper", error: null});
+            expect(response.fullTab).toBeUndefined();
             expect(urlsOf(fetchMock)).toEqual([EXPORT_URL, GVIZ_URL]);
         } finally { fetchMock.mockRestore(); }
     });

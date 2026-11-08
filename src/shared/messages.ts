@@ -216,6 +216,8 @@ export interface SheetFetchResponse {
     type: "FLORA_SHEET_FETCH_RESULT";
     csv: string | null;
     error: string | null;
+    /** True when the CSV came from `/export`, whose row N is sheet row N (gviz drops blank rows). */
+    fullTab?: boolean;
 }
 
 /** Content script → service worker: resolve DOIs from article titles */

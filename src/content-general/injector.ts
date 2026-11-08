@@ -326,28 +326,41 @@ function sheetsHeadline(retracted: number, concerned: number): string {
   return "Replication data found";
 }
 
-function noticeSection(notices: RetractionResponse[]): string {
+/** Row lookup for the Sheets card: where each DOI sits in the current tab. */
+export interface SheetsRowLookup {
+  gid: string;
+  byDoi: Map<string, number>;
+}
+
+function noticeSection(notices: RetractionResponse[], rows?: SheetsRowLookup): string {
   if (notices.length === 0) return "";
 
-  const rows = notices.map((notice) => {
+  const rowsHtml = notices.map((notice) => {
     const { label, pillBackground, pillStroke, pillText } = noticePresentation(notice.kind);
+    const row = rows?.byDoi.get(notice.originDoi.toLowerCase());
+    const goTo = row && rows ? `
+          <a data-flora-sheet-row="gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" href="#gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" style="
+            all:unset;cursor:pointer;flex-shrink:0;font-size:11px;font-weight:600;color:#1a73e8;
+          ">Go to row ${row}</a>` : "";
     return `
-      <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
-        all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;
+      <div data-flora-notice-row style="
         padding:6px 8px;border-radius:6px;background:${pillBackground};
         border:1px solid ${pillStroke}55;margin-bottom:6px;box-sizing:border-box;
+        display:flex;align-items:center;gap:8px;
       ">
-        <span style="
-          flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.2px;
-          color:${pillText};border:1px solid ${pillStroke};background:#fff;
-          padding:1px 6px;border-radius:4px;
-        ">${label}</span>
-        <span style="
-          flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-          font-size:11px;color:#3c4043;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-        ">${escapeHtml(notice.originDoi)}</span>
-        <span style="flex-shrink:0;font-size:11px;color:${pillText};">Notice ↗</span>
-      </a>`;
+          <span style="
+            flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.2px;
+            color:${pillText};border:1px solid ${pillStroke};background:#fff;
+            padding:1px 6px;border-radius:4px;
+          ">${label}</span>
+          <span style="
+            flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+            font-size:11px;color:#3c4043;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+          ">${escapeHtml(notice.originDoi)}</span>
+          <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
+            all:unset;cursor:pointer;flex-shrink:0;font-size:11px;color:${pillText};
+          ">Notice ↗</a>${goTo}
+      </div>`;
   }).join("");
 
   return `
@@ -355,7 +368,7 @@ function noticeSection(notices: RetractionResponse[]): string {
         <div style="font-size:11px;font-weight:600;color:#5f6368;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;">
           Withdrawn or questioned
         </div>
-        ${rows}
+        ${rowsHtml}
       </div>`;
 }
 
@@ -367,7 +380,8 @@ function noticeSection(notices: RetractionResponse[]): string {
 export function renderSheetsModal(
   matched: { doi: string; result: ReplicationResult }[],
   notices: RetractionResponse[] = [],
-  callbacks?: SheetsModalCallbacks
+  callbacks?: SheetsModalCallbacks,
+  rows?: SheetsRowLookup
 ): void {
   const totalRepl = matched.reduce(
     (sum, m) => sum + m.result.record.stats.n_replications_total, 0
@@ -389,7 +403,7 @@ export function renderSheetsModal(
 
   const signature = [
     doiCount, totalRepl, totalRepro,
-    ...notices.map((n) => `${n.originDoi}:${n.kind}`).sort(),
+    ...notices.map((n) => `${n.originDoi}:${n.kind}:${rows?.byDoi.get(n.originDoi.toLowerCase()) ?? ""}`).sort(),
   ].join("|");
 
   const existing = document.getElementById(SHEETS_MODAL_ID);
@@ -452,7 +466,7 @@ export function renderSheetsModal(
 
       <div style="padding:16px;">
         <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">${summary}</div>
-        ${noticeSection(notices)}
+        ${noticeSection(notices, rows)}
         ${statCards}
       </div>
 
@@ -480,6 +494,15 @@ export function renderSheetsModal(
   document.body.appendChild(host);
 
   bindAtlasLink(host.querySelector<HTMLAnchorElement>("[data-flora-details-link]"), matchedDois);
+
+  // Sheets selects the cell named in its own URL fragment. Set the fragment
+  // directly so a <base> element on the page can never turn it into a navigation.
+  for (const link of host.querySelectorAll<HTMLAnchorElement>("[data-flora-sheet-row]")) {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      location.hash = link.dataset.floraSheetRow ?? "";
+    });
+  }
 
   // Wire up close / dismiss
   for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {

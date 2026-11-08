@@ -684,7 +684,8 @@ async function handleSheetFetch(
 ): Promise<SheetFetchResponse> {
     const [exportUrl, gvizUrl] = sheetCsvUrls(spreadsheetId, gid);
     const exported = await fetchSheetCsv(exportUrl, signal);
-    if (exported.csv !== null || signal?.aborted) return exported;
+    if (exported.csv !== null) return {...exported, fullTab: true};
+    if (signal?.aborted) return exported;
     debugLog(`Sheets: export failed (${exported.error}) — falling back to gviz`);
     return fetchSheetCsv(gvizUrl, signal);
 }

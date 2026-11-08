@@ -59,7 +59,8 @@ import {searchScriptOwns} from "@shared/search-sites";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
-import {fetchSheetCsv, parseSheetsUrl, sheetTabKey} from "./sheets";
+import {fetchSheetCsv, parseSheetsUrl, sheetRowsByDoi, sheetTabKey} from "./sheets";
+import type {SheetsRowLookup} from "./injector";
 import {canStartAutomaticWork, cancelWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {SeenDois} from "./seen-dois";
@@ -117,6 +118,8 @@ let lastRenderedPageStateVersion = -1;
 let sheetFetchGen = 0;
 // DOIs extracted from the full sheet CSV (populated asynchronously on Sheets)
 let sheetCsvDois: DoiString[] = [];
+/** Sheet row per DOI from the full-tab export, for the card's "Go to row" links. */
+let sheetRows: SheetsRowLookup | undefined;
 // Sheet tabs where the user explicitly dismissed the modal (session only).
 const dismissedSheets = new Set<string>();
 // Timestamp until which all Sheets modals are snoozed.
@@ -458,7 +461,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                         if (isSheets) {
                             const matched = [...pageState.entries()].flatMap(([doi, state]) =>
                                 state.status === "matched" ? [{doi, result: state.result}] : []);
-                            if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks);
+                            if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks, sheetRows);
                         } else {
                             repaintBadges();
                             beginDomScanPass();
@@ -772,7 +775,7 @@ async function runScanPass(): Promise<void> {
             debugLog("Matched DOIs with replication data:", matched.length, matched.map(m => m.doi));
             if (isSheets) {
                 if (isSheetsModalSuppressed()) removeSheetsModal();
-                else renderSheetsModal(matched, redacts, sheetsModalCallbacks);
+                else renderSheetsModal(matched, redacts, sheetsModalCallbacks, sheetRows);
             } else {
                 void checkPubPeer(refsDone);
             }
@@ -1298,13 +1301,15 @@ async function fetchSheetDois(): Promise<void> {
     try {
         try {
             reportWorkStage("scan", "Exporting this sheet tab…");
-            const csv = await fetchSheetCsv(parsed);
+            const {csv, fullTab} = await fetchSheetCsv(parsed);
             if (!isCurrent()) return;
             sheetCsvDois = extractDOIsFromText(csv);
+            sheetRows = fullTab ? {gid: parsed.gid, byDoi: sheetRowsByDoi(csv)} : undefined;
             debugLog(`Sheets: CSV export found ${sheetCsvDois.length} DOIs`);
         } catch (err) {
             if (!isCurrent() || isAbortError(err)) return;
             sheetCsvDois = [];
+            sheetRows = undefined;
             unavailable = true;
             debugWarn("Sheets: full-tab export unavailable — checking visible cells only", err);
         }
@@ -1362,6 +1367,7 @@ async function startOnPage(): Promise<void> {
                     debugLog("Sheets: tab change detected:", nowSheet, "— re-fetching…");
                     sheetFetchGen++;
                     sheetCsvDois = [];
+                    sheetRows = undefined;
                     processedDois.clear();
                     seenDois.clear();
                     pageState.clear();
