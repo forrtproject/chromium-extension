@@ -1213,8 +1213,10 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
-        // A failed reference lookup shows on that reference, not as the article's state.
-        articlePubPeerUnavailable = article.unavailable;
+        // On an article page a failed reference lookup shows on that reference's
+        // pill, not as the article's state. Documents have no pills, so there
+        // the panel keeps the unavailable state and Retry, as before.
+        articlePubPeerUnavailable = article.unavailable || (editorDocument && unavailableReferences.size > 0);
         if (article.feedbacks.some((f) => f.total_comments > 0)
             || [...refFeedbackByDoi.values()].some((f) => f.total_comments > 0)) withdrawNothingFound();
         lastArticleFeedbacks = article.feedbacks;
