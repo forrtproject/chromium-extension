@@ -50,14 +50,19 @@ function itemLink(data: ZoteroItem['data']): string | undefined {
     return doi ? `https://doi.org/${doi}` : data.url || undefined;
 }
 
-export function buildRegisteredReportMap(items: ZoteroItem[]): RegisteredReportMap {
+function onlyInNonRrCollections(data: ZoteroItem['data']): boolean {
+    const collections = data.collections ?? [];
+    return collections.length > 0 && collections.every(c => NON_RR_COLLECTIONS.has(c));
+}
+
+export function buildRegisteredReportMap(allItems: ZoteroItem[]): RegisteredReportMap {
+    // Drop reading-list items before indexing so they cannot surface as a companion either.
+    const items = allItems.filter(item => !onlyInNonRrCollections(item.data));
     const byKey = new Map(items.map(item => [item.data.key, item.data] as const));
     const reports: Record<string, RegisteredReport> = {};
     for (const item of items) {
         const tags = (item.data.tags ?? []).map(t => t.tag);
         if (tags.some(t => t.toLowerCase() === 'not an rr')) continue;
-        const collections = item.data.collections ?? [];
-        if (collections.length > 0 && collections.every(c => NON_RR_COLLECTIONS.has(c))) continue;
         const doi = itemDoi(item.data);
         if (!doi) continue;
         const stage = stageOf(tags);
