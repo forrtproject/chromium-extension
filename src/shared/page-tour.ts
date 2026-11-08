@@ -24,9 +24,7 @@ const CARD_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 
 const PILL = `.${INDICATOR_PILL_CLASS}`;
-const PILL_FACE_TEXT = "Point at this pill to see each check and its source.";
-const NO_PILL_TEXT = "No pill means ORE could not identify that reference.";
-const REFERENCE_PILL_TEXT = `A reference that cites two papers gets two pills. ${NO_PILL_TEXT}`;
+const NO_PILL_TEXT = "A reference without a pill is one ORE could not identify.";
 
 function shown(el: Element | null): el is HTMLElement {
     if (!(el instanceof HTMLElement) || !el.isConnected) return false;
@@ -66,7 +64,7 @@ function popoverStop(wrapper: HTMLElement): TourStop | null {
     return {
         target: popover,
         title: "Point at a pill to see the details",
-        text: "Each row is a link: copy the reference, open an open-access version, read the discussion, or see the replications. Click a pill to keep it open.",
+        text: "Each row is a link: copy the reference, find an open-access version, read the PubPeer discussion, or see replications. Click a pill to keep this open.",
         enter: () => pinIndicatorPopover(wrapper, true),
         leave: () => pinIndicatorPopover(wrapper, false),
     };
@@ -78,25 +76,23 @@ export function articleTourStops(): TourStop[] {
     const referencePill = firstShown(`[${REFERENCE_ENTRY_ATTR}] ${PILL}`);
     const loosePill = firstShown(`${PILL}[data-flora-loose-pill]`);
     const sample = titlePill ?? referencePill ?? loosePill;
+    // Three stops (a pill, its details, the report tab), plus a retraction
+    // warning when the page has one. The first stop names the other pills
+    // instead of visiting each of them.
+    const others = [
+        referencePill && referencePill !== sample ? "each paper in the reference list" : null,
+        loosePill && loosePill !== sample ? "each DOI mentioned in the text" : null,
+    ].filter(Boolean);
+    const alsoText = others.length ? `ORE adds the same pill to ${others.join(" and ")}.` : "";
     if (sample === titlePill && titlePill) {
-        stops.push({target: titlePill, title: "Findings for this article", text: PILL_FACE_TEXT});
+        stops.push({target: titlePill, title: "Findings for this article", text: alsoText || "Point at it to see what ORE found."});
     } else if (sample === referencePill && referencePill) {
-        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${PILL_FACE_TEXT} ${NO_PILL_TEXT}`});
+        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${NO_PILL_TEXT} ${alsoText}`.trim()});
     } else if (sample) {
-        stops.push({target: sample, title: "A pill marks a paper ORE recognised", text: PILL_FACE_TEXT});
+        stops.push({target: sample, title: "A pill marks a paper ORE recognised", text: alsoText || "Point at it to see what ORE found."});
     }
     const popover = sample ? popoverStop(sample) : null;
     if (popover) stops.push(popover);
-    if (referencePill && referencePill !== sample) {
-        stops.push({target: referencePill, title: "Every paper in the reference list gets one", text: REFERENCE_PILL_TEXT});
-    }
-    if (loosePill && loosePill !== sample) {
-        stops.push({
-            target: loosePill,
-            title: "So does a DOI mentioned in the text",
-            text: "Papers named outside the reference list are checked the same way.",
-        });
-    }
     const notice = noticeStop();
     if (notice) stops.push(notice);
     const tab = firstShown("[data-flora-panel-tab]");
@@ -228,6 +224,7 @@ export function runPageTour(stops: TourStop[]): boolean {
     const foot = root.querySelector<HTMLElement>(".foot")!;
     const back = root.querySelector<HTMLButtonElement>(".back")!;
     const next = root.querySelector<HTMLButtonElement>(".next")!;
+    const skip = root.querySelector<HTMLButtonElement>(".skip")!;
     document.documentElement.appendChild(host);
 
     let index = -1;
@@ -266,6 +263,8 @@ export function runPageTour(stops: TourStop[]): boolean {
         text.textContent = stop.text;
         const last = index === stops.length - 1;
         foot.hidden = !last;
+        // "Done" ends the tour on the last stop; "Skip tour" beside it says the same.
+        skip.style.visibility = last ? "hidden" : "";
         back.disabled = index === 0;
         next.textContent = last ? "Done" : "Next";
         stop.target.scrollIntoView({block: "center", inline: "nearest", behavior: reduceMotion ? "auto" : "smooth"});
