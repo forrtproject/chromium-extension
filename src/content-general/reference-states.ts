@@ -52,6 +52,8 @@ export interface FindingSources {
     notices: readonly {originDoi: DoiString; kind: "retraction" | "concern"}[];
     /** True when PubPeer has (unmuted) comments on the DOI. */
     hasComments: (doi: DoiString) => boolean;
+    /** True when the retraction or PubPeer check for the DOI failed. */
+    checkFailed?: (doi: DoiString) => boolean;
 }
 
 /**
@@ -67,12 +69,13 @@ export function countFindings(dois: Iterable<DoiString>, sources: FindingSources
     }
     const distinct = new Map<string, DoiString>();
     for (const doi of dois) if (!distinct.has(doi.toLowerCase())) distinct.set(doi.toLowerCase(), doi);
-    const counts: FindingCounts = {papers: 0, checked: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0};
+    const counts: FindingCounts = {papers: 0, checked: 0, unavailable: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0};
     for (const [key, doi] of distinct) {
         const state = sources.pageState.get(doi);
         const kind = noticeKind.get(key);
         counts.papers++;
         if (kind || (state && state.status !== "loading" && state.status !== "idle")) counts.checked++;
+        if (state?.status === "error" || sources.checkFailed?.(doi)) counts.unavailable++;
         if (kind === "retraction") counts.retracted++;
         else if (kind === "concern") counts.concern++;
         if (hasReplication(state)) counts.replications++;

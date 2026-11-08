@@ -20,8 +20,8 @@ async function openPopup(url = "https://journal.example/article"): Promise<void>
 
 const findings = (over: Partial<PageFindings> = {}): PageFindings => ({
   checking: false,
-  article: {retracted: false, concern: false, replications: 3, pubpeerComments: 2},
-  others: {papers: 28, checked: 28, retracted: 1, concern: 0, replications: 4, pubpeer: 0},
+  article: {retracted: false, concern: false, replications: 3, reproductions: 0, originals: 0, pubpeerComments: 2, incomplete: false},
+  others: {papers: 28, checked: 28, unavailable: 0, retracted: 1, concern: 0, replications: 4, pubpeer: 0},
   panel: true,
   ...over,
 });
@@ -66,7 +66,7 @@ describe("the popup's findings summary", () => {
 
   it("counts every paper on a page without an article", async () => {
     answer({hidden: false, findings: findings({article: undefined, panel: false,
-      others: {papers: 5, checked: 5, retracted: 0, concern: 0, replications: 0, pubpeer: 2}})});
+      others: {papers: 5, checked: 5, unavailable: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 2}})});
     await openPopup();
     await vi.waitFor(() => expect(summary().hidden).toBe(false));
     expect(summary().textContent).toContain("On this page");
@@ -83,7 +83,7 @@ describe("the popup's findings summary", () => {
 
   it("stays hidden on a page with no papers, on a hidden page, and where ORE isn't running", async () => {
     answer({hidden: false, findings: findings({article: undefined,
-      others: {papers: 0, checked: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0}})});
+      others: {papers: 0, checked: 0, unavailable: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0}})});
     await openPopup();
     await new Promise((r) => setTimeout(r, 20));
     expect(summary().hidden).toBe(true);
@@ -105,6 +105,53 @@ describe("the popup's findings summary", () => {
     answer({hidden: false, findings: findings()});
     await openPopup("chrome://extensions");
     expect(document.getElementById("current-domain")!.textContent).toBe("Internal page");
+    await new Promise((r) => setTimeout(r, 20));
     expect(summary().hidden).toBe(true);
+  });
+
+  it("says when checks failed instead of claiming there are no findings", async () => {
+    answer({hidden: false, findings: findings({
+      article: {retracted: false, concern: false, replications: 0, reproductions: 0, originals: 0, pubpeerComments: 0, incomplete: true},
+      others: {papers: 5, checked: 5, unavailable: 2, retracted: 0, concern: 0, replications: 0, pubpeer: 0},
+    })});
+    await openPopup();
+    await vi.waitFor(() => expect(summary().hidden).toBe(false));
+    expect(summary().textContent).toContain("some checks unavailable");
+    expect(summary().textContent).not.toContain("No replications");
+    expect(summary().textContent).toContain("5 checked · 2 not fully checked");
+    expect(summary().textContent).not.toContain("no findings");
+  });
+
+  it("names reproductions and replicated originals for the article", async () => {
+    answer({hidden: false, findings: findings({
+      article: {retracted: false, concern: false, replications: 0, reproductions: 1, originals: 2, pubpeerComments: 0, incomplete: false},
+    })});
+    await openPopup();
+    await vi.waitFor(() => expect(summary().hidden).toBe(false));
+    expect(summary().textContent).toContain("1 reproduction · Replicates 2 original studies");
+  });
+
+  it("keeps asking a search page that is still checking, and only then says no findings", async () => {
+    vi.useFakeTimers({shouldAdvanceTime: true});
+    try {
+      answer({hidden: false, results: {papers: 4, flagged: 0, incomplete: false, checking: true}});
+      await openPopup("https://scholar.google.com/scholar?q=x");
+      await vi.waitFor(() => expect(summary().textContent).toContain("Checking 4…"));
+      expect(summary().textContent).not.toContain("no findings");
+      answer({hidden: false, results: {papers: 4, flagged: 0, incomplete: false, checking: false}});
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.waitFor(() => expect(summary().textContent).toContain("4 checked · no findings"));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("asks the page again after showing ORE", async () => {
+    answer({hidden: true, findings: findings({panel: false})});
+    await openPopup();
+    await vi.waitFor(() => expect(document.getElementById("hide-btn-label")!.textContent).toBe("Show on this page"));
+    answer({hidden: false, findings: findings()});
+    document.getElementById("hide-btn")!.click();
+    await vi.waitFor(() => expect(document.getElementById("open-report-btn")!.hidden).toBe(false));
   });
 });

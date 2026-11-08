@@ -147,6 +147,14 @@ describe("countFindings", () => {
     const C = "10.1000/c" as DoiString;
     const D = "10.1000/d" as DoiString;
 
+    it("counts failed checks as unavailable, not as clear", () => {
+        const counts = countFindings([A, B, C], {
+            pageState: new Map<DoiString, LookupState>([[A, { status: "error" } as LookupState], [B, withReplications], [C, withReplications]]),
+            notices: [], hasComments: () => false, checkFailed: (doi) => doi === B,
+        });
+        expect(counts).toMatchObject({ papers: 3, checked: 3, unavailable: 2 });
+    });
+
     it("counts each paper once, however its DOI is cased", () => {
         const counts = countFindings([A, A.toUpperCase() as DoiString], {
             pageState: new Map([[A, withReplications]]), notices: [], hasComments: () => false,

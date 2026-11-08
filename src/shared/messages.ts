@@ -94,10 +94,13 @@ export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
 /** Distinct-paper counts for one group of DOIs: an article's references, or every paper on a page. */
 export interface FindingCounts {
     papers: number;
-    /** Papers whose FLoRA lookup has settled. */
+    /** Papers settled by a FLoRA lookup or a retraction/concern notice. */
     checked: number;
+    /** Papers with a check that failed: FLoRA, retraction or PubPeer. */
+    unavailable: number;
     retracted: number;
     concern: number;
+    /** Papers with replication, reproduction or original-study records (not a study count). */
     replications: number;
     pubpeer: number;
 }
@@ -106,8 +109,14 @@ export interface FindingCounts {
 export interface ArticleFindings {
     retracted: boolean;
     concern: boolean;
+    /** Study totals from FLoRA, as in the report. */
     replications: number;
+    reproductions: number;
+    /** Original studies this paper replicates. */
+    originals: number;
     pubpeerComments: number;
+    /** A FLoRA, retraction or PubPeer check for the article failed. */
+    incomplete: boolean;
 }
 
 /** What ORE found on an ordinary page, for the popup's summary. */
@@ -127,6 +136,8 @@ export interface ResultFindings {
     papers: number;
     flagged: number;
     incomplete: boolean;
+    /** Lookups are still running. */
+    checking?: boolean;
 }
 
 /** A content script's answer to `FLORA_GET_STATE`. */

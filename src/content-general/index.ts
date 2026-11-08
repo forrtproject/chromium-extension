@@ -223,12 +223,15 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 const OFFICE_HOST_GRACE_MS = 800;
 const HOST_STILL_CHECKING: PageFindings = {
     checking: true,
-    others: {papers: 0, checked: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0},
+    others: {papers: 0, checked: 0, unavailable: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0},
     panel: false,
 };
 
+/** The Word and Excel editor frames ORE runs in (see manifest.json), not any Office viewer embed. */
+const OFFICE_EDITOR_FRAMES = 'iframe[src*=".officeapps.live.com/we/wordeditorframe.aspx"], iframe[src*=".officeapps.live.com/x/_layouts/"]';
+
 function embedsOfficeDocument(): boolean {
-    return window === window.top && !!document.querySelector('iframe[src*=".officeapps.live.com"]');
+    return window === window.top && !!document.querySelector(OFFICE_EDITOR_FRAMES);
 }
 
 let startupSettled = false;
@@ -256,10 +259,17 @@ async function pageFindings(): Promise<PageFindings> {
     const ownKeys = new Set([...own].map((doi) => doi.toLowerCase()));
     let article: PageFindings["article"];
     if (own.size > 0) {
-        article = {retracted: false, concern: false, replications: 0, pubpeerComments: 0};
+        article = {retracted: false, concern: false, replications: 0, reproductions: 0, originals: 0,
+            pubpeerComments: 0, incomplete: articlePubPeerUnavailable};
         for (const doi of own) {
             const state = pageState.get(doi);
-            if (state?.status === "matched") article.replications += state.result.record.stats.n_replications_total;
+            if (state?.status === "matched") {
+                const stats = state.result.record.stats;
+                article.replications += stats.n_replications_total;
+                article.reproductions += stats.n_reproductions_total;
+                article.originals += stats.n_originals_total;
+            }
+            if (state?.status === "error" || unavailableRetractionDois.has(doi)) article.incomplete = true;
         }
         for (const notice of redacts) {
             if (!ownKeys.has(notice.originDoi.toLowerCase())) continue;
@@ -276,6 +286,7 @@ async function pageFindings(): Promise<PageFindings> {
             .filter((doi) => pageState.get(doi)?.status !== "idle");
     const others = countFindings(group.filter((doi) => !invalidDois.has(doi)), {
         pageState, notices: redacts, hasComments: (doi) => pubPeerVerdict(doi) === "comments",
+        checkFailed: (doi) => unavailableRetractionDois.has(doi) || pubPeerVerdict(doi) === "unavailable",
     });
     const loading = [...pageState.values()].some((state) => state.status === "loading");
     return {

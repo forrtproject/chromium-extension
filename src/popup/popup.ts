@@ -132,10 +132,12 @@ function articleParts(f: PageFindings): Part[] {
   if (a.retracted) parts.push({ text: "Retracted", tone: "retracted" });
   if (a.concern) parts.push({ text: "Expression of concern", tone: "concern" });
   if (a.replications) parts.push({ text: plural(a.replications, "replication study", "replication studies") });
+  if (a.reproductions) parts.push({ text: plural(a.reproductions, "reproduction", "reproductions") });
+  if (a.originals) parts.push({ text: `Replicates ${plural(a.originals, "original study", "original studies")}` });
   if (a.pubpeerComments) parts.push({ text: plural(a.pubpeerComments, "PubPeer comment", "PubPeer comments") });
-  if (parts.length === 0) {
-    parts.push({ text: f.checking ? "Checking…" : "No replications, retractions or PubPeer comments found" });
-  }
+  if (f.checking && parts.length === 0) return [{ text: "Checking…" }];
+  if (a.incomplete) parts.push({ text: "some checks unavailable" });
+  else if (parts.length === 0) parts.push({ text: "No replications, retractions or PubPeer comments found" });
   return parts;
 }
 
@@ -148,7 +150,8 @@ function otherParts(f: PageFindings): Part[] {
   if (o.concern) parts.push({ text: `${o.concern} with an expression of concern`, tone: "concern" });
   if (o.replications) parts.push({ text: `${o.replications} with replication studies` });
   if (o.pubpeer) parts.push({ text: `${o.pubpeer} discussed on PubPeer` });
-  if (parts.length === 1 && o.checked >= o.papers && !f.checking) parts.push({ text: "no findings" });
+  if (o.unavailable) parts.push({ text: `${o.unavailable} not fully checked` });
+  else if (parts.length === 1 && o.checked >= o.papers && !f.checking) parts.push({ text: "no findings" });
   return parts;
 }
 
@@ -179,10 +182,11 @@ function renderFindings(): void {
   if (!currentDomain || blocked || snoozedUntil !== null || hidden) return;
   if (results) {
     if (results.papers === 0) return;
-    appendScope("Search results", [
-      { text: `${results.papers} checked` },
-      { text: results.flagged ? `${results.flagged} with findings` : "no findings" },
-    ]);
+    const parts: Part[] = [{ text: results.checking ? `Checking ${results.papers}…` : `${results.papers} checked` }];
+    if (results.flagged) parts.push({ text: `${results.flagged} with findings` });
+    if (results.incomplete) parts.push({ text: "some checks unavailable" });
+    else if (!results.flagged && !results.checking) parts.push({ text: "no findings" });
+    appendScope("Search results", parts);
   } else if (findings) {
     if (findings.article) appendScope("This article", articleParts(findings));
     if (findings.others.papers > 0) {
@@ -217,7 +221,7 @@ async function refreshPageState(): Promise<void> {
     renderFindings();
     return;
   }
-  if (findings?.checking && findingsPolls++ < FINDINGS_POLL_LIMIT) {
+  if ((findings?.checking || results?.checking) && findingsPolls++ < FINDINGS_POLL_LIMIT) {
     setTimeout(() => void refreshPageState(), FINDINGS_POLL_MS);
   }
 }
@@ -404,6 +408,8 @@ hideBtn.addEventListener("click", async () => {
     hidden = !hidden;
     updateHideUI();
     showStatus(hidden ? "Hidden until page refresh" : "ORE restored", "success");
+    // Showing ORE again brings back its panel and findings; ask for them afresh.
+    if (!hidden) void refreshPageState();
   } catch (err) {
     debugWarn("Popup: hide/show message failed —", err);
     showStatus("Nothing from ORE on this page", "error");
