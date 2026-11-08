@@ -47,7 +47,9 @@ describe("the popup's action labels", () => {
 
   it("say how long hiding and turning off last", async () => {
     await openPopup();
-    await vi.waitFor(() => expect(text("block-btn-label")).toBe("Turn off on this site"));
+    // The label is the HTML default, so wait for init's last step (asking the page) before reading it.
+    await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(1, {type: "FLORA_GET_STATE"}));
+    expect(text("block-btn-label")).toBe("Turn off on this site");
     expect(shown("block-btn-sub")).toBe(true);
     expect(text("block-btn-sub")).toBe("Until you turn it back on");
     expect(text("hide-btn-label")).toBe("Hide on this page");
