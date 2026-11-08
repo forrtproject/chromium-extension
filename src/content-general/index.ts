@@ -106,15 +106,25 @@ function showUnavailable(): void {
     });
 }
 
+/** Record whether a page DOI's lookup failed; true when the toast needs updating. */
+function noteLookupOutcome(doi: DoiString, failed: boolean): boolean {
+    if (failed === unavailableLookupDois.has(doi)) return false;
+    if (failed) unavailableLookupDois.add(doi);
+    else unavailableLookupDois.delete(doi);
+    return true;
+}
+
 async function retryUnavailable(): Promise<void> {
-    if (unavailableLookupDois.size > 0) {
-        for (const doi of unavailableLookupDois) {
+    // The failed DOIs stay listed (and the toast up) until a lookup succeeds,
+    // so a retry that fails or is cancelled still leaves a Retry to press.
+    // DOIs already being looked up again are left alone.
+    const again = [...unavailableLookupDois].filter((doi) => pageState.get(doi)?.status !== "loading");
+    if (again.length > 0) {
+        for (const doi of again) {
             processedDois.delete(doi);
             pageState.delete(doi);
         }
-        unavailableLookupDois.clear();
         pageStateVersion++;
-        showUnavailable();
         resumeAutomaticWork();
         void runScanPasses();
     }
@@ -312,6 +322,7 @@ async function primaryDoiFastPath(): Promise<void> {
             rollback();
             return;
         }
+        if (noteLookupOutcome(primary, Boolean(response.errors[primary])) && !floraHidden) showUnavailable();
         if (response.errors[primary]) {
             pageState.set(primary, {status: "error", message: response.errors[primary]});
         } else if (response.results[primary]) {
@@ -742,7 +753,7 @@ async function runScanPass(): Promise<void> {
             debugError("Replication lookup failed:", err);
             for (const doi of newDois) {
                 pageState.set(doi, {status: "error", message: "FORRT unavailable"});
-                unavailableLookupDois.add(doi);
+                noteLookupOutcome(doi, true);
             }
             pageStateVersion++;
             if (floraHidden) return;
@@ -759,7 +770,11 @@ async function runScanPass(): Promise<void> {
         }
         debugLog("Lookup response:", Object.keys(response.results).length, "results,", Object.keys(response.errors).length, "errors");
 
+        // Per-DOI errors are provider failures (HTTP error, network, time
+        // budget, malformed record); a DOI with no record is a no-match.
+        let unavailableChanged = false;
         for (const doi of newDois) {
+            if (noteLookupOutcome(doi, Boolean(response.errors[doi]))) unavailableChanged = true;
             if (response.errors[doi]) {
                 pageState.set(doi, {
                     status: "error",
@@ -776,6 +791,7 @@ async function runScanPass(): Promise<void> {
             }
         }
         pageStateVersion++; // signal that replication data is now available
+        if (unavailableChanged && !floraHidden) showUnavailable();
 
         // Paused, hidden or cancelled while the lookup ran — the results stay
         // in pageState for a later pass, but nothing goes on the page.
