@@ -115,7 +115,10 @@ export interface ArticleFindings {
     /** Original studies this paper replicates. */
     originals: number;
     pubpeerComments: number;
-    /** A FLoRA, retraction or PubPeer check for the article failed. */
+    /**
+     * A FLoRA, retraction or PubPeer check for the article failed. In Word and
+     * Google Docs a failed PubPeer lookup for a reference also sets it.
+     */
     incomplete: boolean;
 }
 
@@ -136,7 +139,7 @@ export interface ResultFindings {
     papers: number;
     flagged: number;
     incomplete: boolean;
-    /** Lookups are still running. */
+    /** The search script is still starting up or its lookups are still running. */
     checking?: boolean;
 }
 
