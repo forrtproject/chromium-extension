@@ -285,8 +285,8 @@ function sheetsPopup(frame: HTMLElement): void {
         [notice(RETRACTED, "retraction"), notice(CONCERNED, "concern")],
         undefined,
         {gid: "0", byDoi: new Map([
-            [RETRACTED.toLowerCase(), 14],
-            [CONCERNED.toLowerCase(), 27],
+            [RETRACTED.toLowerCase(), 3],
+            [CONCERNED.toLowerCase(), 4],
         ])}
     );
     const popup = document.getElementById("flora-sheets-modal");
