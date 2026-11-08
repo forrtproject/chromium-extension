@@ -170,17 +170,18 @@ export async function renderSetupPrompt(): Promise<void> {
     if (!host.isConnected) stopFollowingTour();
     else followTour(open);
   });
+  const removePrompt = (): void => { stopFollowingTour(); host.remove(); };
 
   const closeEl = host.querySelector(".flora-setup-close");
   if (closeEl) {
     onActivate(closeEl, () => {
-      void dismissSetupForSession().then(() => host.remove());
+      void dismissSetupForSession().then(removePrompt);
     });
   }
 
   host.querySelector(".flora-setup-open")?.addEventListener("click", () => {
     void safeSendMessage({ type: "FLORA_OPEN_OPTIONS" });
-    host.remove();
+    removePrompt();
   });
 
   for (const btn of host.querySelectorAll<HTMLButtonElement>(".flora-remind-options button")) {
@@ -188,7 +189,7 @@ export async function renderSetupPrompt(): Promise<void> {
       const ms = Number(btn.dataset.ms);
       if (!ms) return;
       await snoozeSetup(ms);
-      host.remove();
+      removePrompt();
     });
   }
 }
