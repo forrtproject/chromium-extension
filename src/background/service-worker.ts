@@ -19,6 +19,10 @@ import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
 import {debugError, debugLog, debugWarn, isDebugEnabledAsync, isTestingBuild, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 import {isFeedbackPromptRequest, type FeedbackPromptResponse, type FeedbackPromptStep} from "@shared/messages";
+import {extractPubPeerComments, isPubPeerCommentsRequest, pubPeerThreadUrl, type PubPeerCommentsResponse} from "@shared/pubpeer-comments";
+import {isReportPdfRequest, type ReportPdfResponse} from "@shared/messages";
+import {readPayload} from "@shared/report";
+import {buildReportPdf, reportPdfFilename} from "@shared/report-pdf";
 
 // The worker-wide manager budgets all providers together.
 const cache = new LocalCache<ReplicationResult>("flora", 0);
@@ -436,6 +440,16 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (isPubPeerCommentsRequest(message)) {
+            void fetchPubPeerComments(pubPeerThreadUrl(message.url)!).then(sendResponse);
+            return true;
+        }
+
+        if (isReportPdfRequest(message)) {
+            sendResponse(handleReportPdf(message.payload));
+            return false;
+        }
+
         if (isAugmentRequest(message)) {
             run(signal => handleAugment(message.requests, signal))
                 .then(sendResponse)
@@ -651,7 +665,7 @@ function sheetCsvUrls(spreadsheetId: string, gid: string): string[] {
     return [`${base}/export?format=csv&gid=${gid}`, `${base}/gviz/tq?tqx=out:csv&gid=${gid}`];
 }
 
-async function fetchSheetCsv(url: string, signal?: AbortSignal): Promise<SheetFetchResponse> {
+async function fetchSheetCsv(url: string, signal?: AbortSignal): Promise<SheetFetchResponse & {timedOut?: boolean}> {
     try {
         const resp = await fetchWithDeadline(url, {credentials: "include", signal});
         if (!resp.ok) {
@@ -673,6 +687,46 @@ async function fetchSheetCsv(url: string, signal?: AbortSignal): Promise<SheetFe
         return {
             type: "FLORA_SHEET_FETCH_RESULT",
             csv: null,
+            error: err instanceof Error || err instanceof DOMException ? err.message : "Fetch failed",
+            timedOut: (err as {name?: unknown} | null)?.name === "TimeoutError",
+        };
+    }
+}
+
+function toBase64(bytes: Uint8Array): string {
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+}
+
+function handleReportPdf(raw: unknown): ReportPdfResponse {
+    const payload = readPayload(raw);
+    if (!payload) return {type: "FLORA_REPORT_PDF_RESULT", pdf: null, filename: null, error: "Invalid report"};
+    try {
+        return {
+            type: "FLORA_REPORT_PDF_RESULT",
+            pdf: toBase64(new Uint8Array(buildReportPdf(payload))),
+            filename: reportPdfFilename(payload),
+            error: null,
+        };
+    } catch (err) {
+        debugError("Report: PDF build failed —", err);
+        return {type: "FLORA_REPORT_PDF_RESULT", pdf: null, filename: null, error: err instanceof Error ? err.message : "PDF build failed"};
+    }
+}
+
+async function fetchPubPeerComments(url: string): Promise<PubPeerCommentsResponse> {
+    try {
+        const resp = await fetchWithDeadline(url, {credentials: "omit", signal: null});
+        if (!resp.ok) return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: null, error: `HTTP ${resp.status}`};
+        const comments = extractPubPeerComments(await resp.text());
+        if (!comments) return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: null, error: "No comment data on the PubPeer page"};
+        return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments, error: null};
+    } catch (err) {
+        debugError("PubPeer: comment fetch failed —", err);
+        return {
+            type: "FLORA_PUBPEER_COMMENTS_RESULT",
+            comments: null,
             error: err instanceof Error ? err.message : "Fetch failed",
         };
     }
@@ -683,11 +737,13 @@ async function handleSheetFetch(
     gid: string, signal?: AbortSignal
 ): Promise<SheetFetchResponse> {
     const [exportUrl, gvizUrl] = sheetCsvUrls(spreadsheetId, gid);
-    const exported = await fetchSheetCsv(exportUrl, signal);
+    const {timedOut, ...exported} = await fetchSheetCsv(exportUrl, signal);
     if (exported.csv !== null) return {...exported, fullTab: true};
-    if (signal?.aborted) return exported;
+    if (signal?.aborted || timedOut) return exported;
     debugLog(`Sheets: export failed (${exported.error}) — falling back to gviz`);
-    return fetchSheetCsv(gvizUrl, signal);
+    const gviz = await fetchSheetCsv(gvizUrl, signal);
+    delete gviz.timedOut;
+    return gviz;
 }
 
 // ── Retraction lookups ──────────────────────────────────────────────────────

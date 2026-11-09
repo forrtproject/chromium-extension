@@ -46,4 +46,39 @@ describe("page outages", () => {
         noteOutage({}, "oa", () => {}, started);
         expect(outageSources().size).toBe(0);
     });
+
+    it("forgets a failed pill once it has been shown and then removed", () => {
+        const pill = document.createElement("span");
+        document.body.appendChild(pill);
+        const retry = vi.fn();
+        noteOutage({}, "pubpeer", retry, outageEpoch(), pill);
+        expect([...outageSources()]).toEqual(["pubpeer"]);
+
+        pill.remove();
+
+        expect(outageSources().size).toBe(0);
+        retryOutages();
+        expect(retry).not.toHaveBeenCalled();
+    });
+
+    it("tells listeners when a removed pill's failure is dropped", () => {
+        const pill = document.createElement("span");
+        document.body.appendChild(pill);
+        noteOutage({}, "oa", () => {}, outageEpoch(), pill);
+        const listener = vi.fn();
+        const stop = onOutagesChanged(listener);
+
+        pill.remove();
+        outageSources();
+
+        expect(listener).toHaveBeenCalledOnce();
+        stop();
+    });
+
+    it("keeps a failure whose pill has not been inserted yet", () => {
+        const pill = document.createElement("span");
+        noteOutage({}, "oa", () => {}, outageEpoch(), pill);
+
+        expect([...outageSources()]).toEqual(["oa"]);
+    });
 });

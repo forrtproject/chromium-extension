@@ -17,7 +17,7 @@ import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator
 import {applyPlacement} from "@shared/site-adapters";
 import {showToast} from "@shared/toast";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
-import {pubPeerVerdict} from "@shared/pubpeer-api";
+import {pubPeerLookupsPending, pubPeerVerdict} from "@shared/pubpeer-api";
 import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
 import {reportCodeError} from "@shared/error-report";
 import {hasReplication} from "../content-general/reference-states";
@@ -29,6 +29,7 @@ import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {
     beginWorkIndicator,
     waitForWorkToFinish,
+    isWorkIndicatorIdle,
     count,
     endWorkIndicator,
     isWorkCancelled,
@@ -137,8 +138,11 @@ export function searchScanSummary(): ScanSummary | null {
     return {papers: papers.size, flagged: flagged.size, incomplete};
 }
 
-/** True while any result's FLoRA lookup is in flight. */
-export function searchLookupsPending(): boolean {
+let passesInFlight = 0;
+
+/** True while a pass is queued or running, a retry is pending, or any result's FLoRA or PubPeer lookup is in flight. */
+export function searchWorkPending(): boolean {
+    if (passesInFlight > 0 || retryingSearchChecks || !isWorkIndicatorIdle() || pubPeerLookupsPending()) return true;
     for (const state of lookupState.values()) if (state.status === "loading") return true;
     return false;
 }
@@ -174,12 +178,14 @@ export function processSearchResults(adapter: SearchSiteAdapter, root: ParentNod
     if (!pending) pendingPasses.set(adapter, pending = new Map());
     const existing = pending.get(root);
     if (existing) return existing;
+    passesInFlight++;
     const next = passQueue.then(async () => {
         try {
             if (!canStartAutomaticWork() || !await waitUntilVisible(activeWorkSignal())) return;
             pending!.delete(root);
             await runQueuedPass(adapter, root);
         } finally {
+            passesInFlight--;
             if (pending!.get(root) === next) pending!.delete(root);
             if (pending!.size === 0 && pendingPasses.get(adapter) === pending) pendingPasses.delete(adapter);
         }
@@ -196,6 +202,7 @@ async function runQueuedPass(adapter: SearchSiteAdapter, root: ParentNode): Prom
         debugLog(`${adapter.label}: paused on this site — skipping the pass`);
         return;
     }
+    lastSearchRetryContext = {adapter, root: document};
     // A replaced result container may discard the failed rows without changing the URL.
     if (searchRetryMessage) await updateSearchRetry(adapter, document);
     const rows = root.querySelectorAll<HTMLElement>(`${adapter.resultRow}:not([${PROCESSED_ATTR}])`);

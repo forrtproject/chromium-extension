@@ -35,6 +35,14 @@ function answer(response: PageStateResponse | Error): void {
 
 const summary = () => document.getElementById("page-findings")!;
 
+async function stateAnswered(): Promise<void> {
+  const send = vi.mocked(chrome.tabs.sendMessage);
+  await vi.waitFor(() => expect(send).toHaveBeenCalledWith(7, {type: "FLORA_GET_STATE"}));
+  const call = send.mock.calls.findIndex(([, msg]) => (msg as {type: string}).type === "FLORA_GET_STATE");
+  await Promise.resolve(send.mock.results[call].value).catch(() => {});
+  await new Promise((r) => setTimeout(r, 0));
+}
+
 describe("the popup's findings summary", () => {
   beforeEach(() => {
     backStorage("local");
@@ -85,7 +93,7 @@ describe("the popup's findings summary", () => {
     answer({hidden: false, findings: findings({article: undefined,
       others: {papers: 0, checked: 0, unavailable: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0}})});
     await openPopup();
-    await new Promise((r) => setTimeout(r, 20));
+    await stateAnswered();
     expect(summary().hidden).toBe(true);
 
     vi.resetModules();
@@ -97,7 +105,7 @@ describe("the popup's findings summary", () => {
     vi.resetModules();
     answer(new Error("no content script"));
     await openPopup();
-    await new Promise((r) => setTimeout(r, 20));
+    await stateAnswered();
     expect(summary().hidden).toBe(true);
   });
 
@@ -153,5 +161,34 @@ describe("the popup's findings summary", () => {
     answer({hidden: false, findings: findings()});
     document.getElementById("hide-btn")!.click();
     await vi.waitFor(() => expect(document.getElementById("open-report-btn")!.hidden).toBe(false));
+  });
+});
+
+describe("the popup's findings polling", () => {
+  beforeEach(() => {
+    backStorage("local");
+    backStorage("sync");
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps one polling loop when ORE is shown again mid-check", async () => {
+    answer({hidden: true, findings: findings({checking: true})});
+    await openPopup();
+    await stateAnswered();
+    answer({hidden: false, findings: findings({checking: true})});
+    vi.useFakeTimers();
+    document.getElementById("hide-btn")!.click();
+    await vi.advanceTimersByTimeAsync(0);
+    const send = vi.mocked(chrome.tabs.sendMessage);
+    const polls = () => send.mock.calls.filter(([, msg]) => (msg as {type: string}).type === "FLORA_GET_STATE").length;
+    const before = polls();
+
+    await vi.advanceTimersByTimeAsync(3_000);
+
+    expect(polls() - before).toBe(3);
   });
 });

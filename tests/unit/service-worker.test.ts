@@ -105,6 +105,8 @@ describe("service-worker", () => {
         (changes: Record<string, {newValue?: unknown}>, area: string) => void
     >;
     let pendingMapReads: Array<(result: unknown) => void>;
+    let resetDebugLog: () => void;
+    let resetDebug: () => void;
 
     beforeEach(async () => {
         cacheStore.clear();
@@ -132,9 +134,18 @@ describe("service-worker", () => {
 
         vi.resetModules();
         await import("../../src/background/service-worker");
+        ({_resetDebugLogForTesting: resetDebugLog} = await import("../../src/shared/debug-log"));
+        ({_resetDebugForTesting: resetDebug} = await import("../../src/shared/debug"));
 
         messageHandler = addListenerMock.mock.calls[0][0];
         alarmHandler = alarmListenerMock.mock.calls[0][0];
+    });
+
+    // A logged error is batched (debug.ts) and then written to storage (debug-log.ts), each on a timer; both
+    // must be cancelled or the write lands after the file's environment is gone.
+    afterEach(() => {
+        resetDebug();
+        resetDebugLog();
     });
 
     function sendMessage(request: LookupRequest): Promise<LookupResponse> {
@@ -213,6 +224,17 @@ describe("service-worker", () => {
             expect(response).toMatchObject({csv: "10.1234/paper", error: null});
             expect(response.fullTab).toBeUndefined();
             expect(urlsOf(fetchMock)).toEqual([EXPORT_URL, GVIZ_URL]);
+        } finally { fetchMock.mockRestore(); }
+    });
+
+    it("does not wait out a second deadline on gviz when the export timed out", async () => {
+        const fetchMock = vi.spyOn(globalThis, "fetch")
+            .mockRejectedValueOnce(new DOMException("Request timed out", "TimeoutError"));
+        try {
+            const response = await getSheet();
+            expect(response).toMatchObject({csv: null, error: "Request timed out"});
+            expect(response).not.toHaveProperty("timedOut");
+            expect(urlsOf(fetchMock)).toEqual([EXPORT_URL]);
         } finally { fetchMock.mockRestore(); }
     });
 
@@ -876,6 +898,75 @@ describe("service-worker", () => {
 
             const response = await sendPmcResolve(["PMC12638941"]);
             expect(response.results).toEqual({});
+        });
+    });
+
+    describe("PubPeer comments", () => {
+        const THREAD = "https://pubpeer.com/publications/ABC123";
+        const page = (comments: unknown) => new Response(
+            `<html><body><script data-page="app" type="application/json">${JSON.stringify({props: {comments}})}</script></body></html>`,
+            {headers: {"content-type": "text/html; charset=utf-8"}},
+        );
+        const getComments = () => new Promise<{comments: unknown; error: string | null}>((resolve) => {
+            messageHandler({type: "FLORA_PUBPEER_COMMENTS", url: THREAD}, {}, resolve as (r: unknown) => void);
+        });
+
+        afterEach(() => { vi.unstubAllGlobals(); });
+
+        it("fetches the thread page without cookies and returns its comments", async () => {
+            const fetchMock = vi.fn(async () => page([{id: 1, number: 1, user: "Peer 1", createdAt: "2020-01-01", contentMarkdown: "Hi", status: "published"}]));
+            vi.stubGlobal("fetch", fetchMock);
+
+            const response = await getComments();
+
+            expect(response).toMatchObject({error: null, comments: [{id: 1, user: "Peer 1", markdown: "Hi"}]});
+            expect(fetchMock).toHaveBeenCalledWith(THREAD, expect.objectContaining({credentials: "omit"}));
+        });
+
+        it("reports a non-OK status as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => new Response("busy", {status: 503})));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "HTTP 503"});
+        });
+
+        it("reports a page without comment data as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => new Response("<html><body>Just a moment...</body></html>")));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "No comment data on the PubPeer page"});
+        });
+
+        it("reports a network failure as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "Failed to fetch"});
+        });
+
+        it("ignores requests for pages other than PubPeer threads", () => {
+            const fetchMock = vi.fn();
+            vi.stubGlobal("fetch", fetchMock);
+            const sendResponse = vi.fn();
+
+            messageHandler({type: "FLORA_PUBPEER_COMMENTS", url: "https://example.com/publications/ABC"}, {}, sendResponse);
+
+            expect(fetchMock).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("report PDF", () => {
+        const ask = (payload: unknown) => new Promise<{pdf: string | null; filename: string | null; error: string | null}>((resolve) => {
+            messageHandler({type: "FLORA_REPORT_PDF", payload}, {}, resolve as (r: unknown) => void);
+        });
+
+        it("builds the PDF and names the file after the article", async () => {
+            const response = await ask({v: 1, title: "Power Posing", generated: Date.UTC(2026, 0, 1), replications: [], reproductions: [], originals: [], references: []});
+
+            expect(response.error).toBeNull();
+            expect(atob(response.pdf!).startsWith("%PDF-")).toBe(true);
+            expect(response.filename).toBe("ORE report – Power Posing.pdf");
+        });
+
+        it("refuses a payload that isn't a report", async () => {
+            expect(await ask({title: "no version"})).toMatchObject({pdf: null, error: "Invalid report"});
         });
     });
 });

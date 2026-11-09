@@ -109,10 +109,10 @@ export interface FindingCounts {
 export interface ArticleFindings {
     retracted: boolean;
     concern: boolean;
-    /** Study totals from FLoRA, as in the report. */
+    /** Study totals from FLoRA, as in the report: replications, reproductions and originals. */
     replications: number;
     reproductions: number;
-    /** Original studies this paper replicates. */
+    /** Original studies this paper replicates (a study total). */
     originals: number;
     pubpeerComments: number;
     /**
@@ -277,6 +277,19 @@ export interface SheetFetchResponse {
     error: string | null;
     /** True when the CSV came from `/export`, whose row N is sheet row N (gviz drops blank rows). */
     fullTab?: boolean;
+}
+
+export interface ReportPdfRequest {
+    type: "FLORA_REPORT_PDF";
+    payload: unknown;
+}
+
+export interface ReportPdfResponse {
+    type: "FLORA_REPORT_PDF_RESULT";
+    /** Base64: message passing can't carry an ArrayBuffer. */
+    pdf: string | null;
+    filename: string | null;
+    error: string | null;
 }
 
 /** Content script → service worker: resolve DOIs from article titles */
@@ -580,6 +593,10 @@ export function isSheetFetchRequest(msg: unknown): msg is SheetFetchRequest {
         typeof (msg as Record<string, unknown>).gid === "string" &&
         /^\d+$/.test((msg as Record<string, unknown>).gid as string)
     );
+}
+
+export function isReportPdfRequest(msg: unknown): msg is ReportPdfRequest {
+    return typeof msg === "object" && msg !== null && (msg as Record<string, unknown>).type === "FLORA_REPORT_PDF";
 }
 
 export type FeedbackPromptStep = "visit" | "claim" | "release";

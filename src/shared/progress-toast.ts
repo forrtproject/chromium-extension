@@ -951,6 +951,10 @@ export function waitForWorkToFinish(): Promise<void> {
     return refCount === 0 ? Promise.resolve() : new Promise(resolve => idleWaiters.add(resolve));
 }
 
+export function isWorkIndicatorIdle(): boolean {
+    return refCount === 0;
+}
+
 /** Hide the toast once all outstanding work has finished. */
 export function endWorkIndicator(): void {
     if (refCount === 0) return; // unmatched end — nothing to close

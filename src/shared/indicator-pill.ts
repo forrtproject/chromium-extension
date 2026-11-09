@@ -1091,7 +1091,8 @@ interface IndicatorLookups {
 function startIndicatorLookups(
     doi: DoiString,
     oaStatus: Promise<OpenAccessStatus | null> | undefined,
-    knownPubPeer?: PubPeerFeedback | null,
+    knownPubPeer: PubPeerFeedback | null | undefined,
+    anchor: Element,
 ): IndicatorLookups {
     const listeners: Array<() => void> = [];
     const changed = () => { for (const listener of listeners) listener(); };
@@ -1114,12 +1115,12 @@ function startIndicatorLookups(
             changed();
             void lookupPubPeerForDoi(doi).then((feedback) => {
                 lookups.pubpeer = feedback;
-                noteOutage(lookups, "pubpeer", null, epoch);
+                noteOutage(lookups, "pubpeer", null, epoch, anchor);
                 changed();
             }).catch((error) => {
                 lookups.pubpeer = isAbortError(error) ? "cancelled" : "unavailable";
                 lookups.pubpeerRetryAfterMs = typeof error?.retryAfterMs === "number" ? error.retryAfterMs : null;
-                noteOutage(lookups, "pubpeer", lookups.pubpeer === "unavailable" ? retryPubPeerOnce : null, epoch);
+                if (lookups.pubpeer === "unavailable") noteOutage(lookups, "pubpeer", retryPubPeerOnce, epoch, anchor);
                 changed();
             });
         },
@@ -1131,7 +1132,7 @@ function startIndicatorLookups(
             .then((state) => {
                 lookups.oa = state;
                 // null after the email check is a failed lookup, not "no open-access version".
-                noteOutage(lookups, "oa", state === null ? retryOaOnce : null, epoch);
+                if (state !== "cancelled") noteOutage(lookups, "oa", state === null ? retryOaOnce : null, epoch, anchor);
                 changed();
             });
     };
@@ -1456,7 +1457,7 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
 
     // Segment 3 — PubPeer marker. Callers that already hold the answer pass it
     // in; otherwise per-pill lookups are coalesced into one cached batch request.
-    const lookups = startIndicatorLookups(doi, oaStatus, options.pubpeer);
+    const lookups = startIndicatorLookups(doi, oaStatus, options.pubpeer, wrapper);
     const initialFeedback = typeof lookups.pubpeer === "string" ? null : lookups.pubpeer;
     let pubpeerSegment = buildPubPeerSegment(initialFeedback, pubPeerAnswered(lookups.pubpeer), color);
     pill.appendChild(pubpeerSegment);
@@ -2007,7 +2008,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
 
     ensurePanelStyle();
     wrapper.appendChild(buildIndicatorRows({
-        doi, color, isAugmented, provenanceLabel, lookups: startIndicatorLookups(doi, oaStatus, options.pubpeer),
+        doi, color, isAugmented, provenanceLabel, lookups: startIndicatorLookups(doi, oaStatus, options.pubpeer, wrapper),
         retraction, replicationsCount, reproductionsCount, compact: true,
     }));
     if (typeof options.oaStatus === "function") whenNearViewport(wrapper, startOa);

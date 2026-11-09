@@ -145,7 +145,12 @@ function readReference(raw: Untrusted): ReportReference | null {
     };
 }
 
-function readPayload(raw: unknown): ReportPayload | null {
+export function validDoiUrl(doi: unknown): string | null {
+    const valid = doiText(doi);
+    return valid ? doiUrl(valid) : null;
+}
+
+export function readPayload(raw: unknown): ReportPayload | null {
     if (!isRecord(raw) || raw.v !== 1) return null;
     const title = text(raw.title);
     const generated = timestamp(raw.generated);
@@ -157,7 +162,7 @@ function readPayload(raw: unknown): ReportPayload | null {
     return {
         v: 1,
         title,
-        doi: text(raw.doi),
+        doi: doiText(raw.doi),
         authors: text(raw.authors),
         year: count(raw.year),
         sourceUrl: text(raw.sourceUrl),
@@ -216,7 +221,8 @@ function outcomeTone(outcome: string): string {
 }
 
 function entryHtml(entry: ReportEntry): string {
-    const href = webUrl(entry.url) ?? (entry.doi ? doiUrl(entry.doi) : null);
+    const validDoi = doiText(entry.doi);
+    const href = webUrl(entry.url) ?? (validDoi ? doiUrl(validDoi) : null);
     const heading = href
         ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(plainTitle(entry.title))}</a>`
         : esc(plainTitle(entry.title));
@@ -226,8 +232,8 @@ function entryHtml(entry: ReportEntry): string {
     const badge = entry.outcome
         ? `<span class="badge" style="${outcomeTone(entry.outcome)}">${esc(outcomeLabel(entry.outcome))}</span>`
         : "";
-    const doi = entry.doi
-        ? `<a class="meta-doi" href="${esc(doiUrl(entry.doi))}" target="_blank" rel="noopener">doi:${esc(entry.doi)}</a>`
+    const doi = validDoi
+        ? `<a class="meta-doi" href="${esc(doiUrl(validDoi))}" target="_blank" rel="noopener">doi:${esc(validDoi)}</a>`
         : "";
     const metaLine = [meta ? esc(meta) : "", doi].filter(Boolean).join(" · ");
     return `<li><div class="entry-head">${heading}${badge}</div>${
@@ -394,13 +400,4 @@ export function renderReportBody(payload: ReportPayload): string {
       Replication evidence is a starting point for judgement, not a verdict.
     </div>
   </div>`;
-}
-
-/** A standalone document, for printing to PDF without a network round trip. */
-export function renderReportDocument(payload: ReportPayload): string {
-    return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<title>${esc(plainTitle(payload.title))} — FORRT ORE Meta Report</title>
-<style>${REPORT_STYLES}</style>
-</head><body>${renderReportBody(payload)}</body></html>`;
 }

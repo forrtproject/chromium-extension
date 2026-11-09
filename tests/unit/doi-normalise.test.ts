@@ -118,4 +118,15 @@ describe("normaliseDOI", () => {
   it("returns null when the DOI is only a query string", () => {
     expect(normaliseDOI("https://doi.org/?af=R")).toBeNull();
   });
+
+  it("rejects a coordinate pair whose second number is signed", () => {
+    expect(normaliseDOI("10.4806/-66.9036")).toBeNull();
+    expect(normaliseDOI("10.4806/+66.9036")).toBeNull();
+    expect(normaliseDOI("10.4806/−66.9036")).toBeNull();
+  });
+
+  it("keeps real DOIs whose suffix is a plain decimal", () => {
+    expect(normaliseDOI("10.1063/5.0290984")).toBe("10.1063/5.0290984");
+    expect(normaliseDOI("10.1117/12.818025")).toBe("10.1117/12.818025");
+  });
 });

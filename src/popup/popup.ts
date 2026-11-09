@@ -15,7 +15,8 @@ import type { PageFindings, PageStateResponse, ResultFindings } from "../shared/
 
 const TOUR_CHECKING_DELAY_MS = 300;
 const FINDINGS_POLL_MS = 1000;
-const FINDINGS_POLL_LIMIT = 30;
+const FINDINGS_SLOW_POLL_MS = 5000;
+const FINDINGS_FAST_POLLS = 30;
 
 const TOUR_HELP = {
   checking: {
@@ -90,6 +91,7 @@ let pendingTourStart: object | null = null;
 let findings: PageFindings | null = null;
 let results: ResultFindings | null = null;
 let findingsPolls = 0;
+let findingsPollTimer: ReturnType<typeof setTimeout> | undefined;
 
 reportBtn.style.display = "none";
 
@@ -202,6 +204,8 @@ function renderFindings(): void {
 /** Ask the content script for hidden state and findings; keep asking while it is still checking. */
 async function refreshPageState(): Promise<void> {
   if (activeTabId == null) return;
+  clearTimeout(findingsPollTimer);
+  findingsPollTimer = undefined;
   try {
     const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_GET_STATE" }) as PageStateResponse | undefined;
     findings = response?.findings ?? null;
@@ -220,8 +224,11 @@ async function refreshPageState(): Promise<void> {
     renderFindings();
     return;
   }
-  if ((findings?.checking || results?.checking) && findingsPolls++ < FINDINGS_POLL_LIMIT) {
-    setTimeout(() => void refreshPageState(), FINDINGS_POLL_MS);
+  if (findings?.checking || results?.checking) {
+    clearTimeout(findingsPollTimer);
+    findingsPollTimer = setTimeout(() => void refreshPageState(), findingsPolls++ < FINDINGS_FAST_POLLS ? FINDINGS_POLL_MS : FINDINGS_SLOW_POLL_MS);
+  } else {
+    findingsPolls = 0;
   }
 }
 

@@ -37,11 +37,6 @@ const configs: esbuild.BuildOptions[] = [
   },
   {
     ...sharedOptions,
-    entryPoints: ["src/content-pubpeer/index.ts"],
-    outfile: "dist/content-pubpeer.js",
-  },
-  {
-    ...sharedOptions,
     entryPoints: ["src/content-forrt/index.ts"],
     outfile: "dist/content-forrt.js",
   },
@@ -54,6 +49,8 @@ const configs: esbuild.BuildOptions[] = [
     ...sharedOptions,
     entryPoints: ["src/background/service-worker.ts"],
     outfile: "dist/background.js",
+    // jsPDF loads these only for .html() and SVG drawing, which the report PDF never calls.
+    external: ["html2canvas", "canvg", "dompurify", "core-js", "core-js/*"],
   },
   {
     ...sharedOptions,

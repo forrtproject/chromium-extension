@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   lookupPubPeerForDoi,
   lookupPubPeerForDois,
+  pubPeerLookupsPending,
   _resetPubPeerCacheForTesting,
 } from "../../src/shared/pubpeer-api";
 import {createIndicatorPill} from "../../src/shared/indicator-pill";
@@ -63,6 +64,52 @@ describe("lookupPubPeerForDoi batching", () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     _resetPubPeerCacheForTesting();
+  });
+
+  it("reports a per-DOI lookup as pending until it settles", async () => {
+    vi.useFakeTimers();
+    const pending = lookupPubPeerForDoi("10.1234/a");
+    expect(pubPeerLookupsPending()).toBe(true);
+    await vi.advanceTimersByTimeAsync(50);
+    await pending;
+    expect(pubPeerLookupsPending()).toBe(false);
+  });
+
+  it("stops reporting a per-DOI lookup as pending when it fails", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    const pending = lookupPubPeerForDoi("10.1234/a");
+    const outcome = expect(pending).rejects.toThrow();
+    expect(pubPeerLookupsPending()).toBe(true);
+    await vi.advanceTimersByTimeAsync(50);
+    await outcome;
+    expect(pubPeerLookupsPending()).toBe(false);
+  });
+
+  it("clears the pending count when the cache is reset for a test", () => {
+    vi.useFakeTimers();
+    void lookupPubPeerForDoi("10.1234/a").catch(() => {});
+    _resetPubPeerCacheForTesting();
+    expect(pubPeerLookupsPending()).toBe(false);
+  });
+
+  it("does not let a lookup from before a reset clear a newer lookup's pending state", async () => {
+    vi.useFakeTimers();
+    const respond = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve(respond()); }));
+    const stale = lookupPubPeerForDoi("10.1234/a");
+    await vi.advanceTimersByTimeAsync(50);
+    _resetPubPeerCacheForTesting();
+    const fresh = lookupPubPeerForDoi("10.1234/b");
+
+    release();
+    await stale.catch(() => {});
+    expect(pubPeerLookupsPending()).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(50);
+    await fresh;
+    expect(pubPeerLookupsPending()).toBe(false);
   });
 
   it("drops cancelled queued batches after the scan indicator ends", async () => {

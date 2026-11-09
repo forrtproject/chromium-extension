@@ -67,19 +67,25 @@ export function countFindings(dois: Iterable<DoiString>, sources: FindingSources
         const key = n.originDoi.toLowerCase();
         if (noticeKind.get(key) !== "retraction") noticeKind.set(key, n.kind);
     }
-    const distinct = new Map<string, DoiString>();
-    for (const doi of dois) if (!distinct.has(doi.toLowerCase())) distinct.set(doi.toLowerCase(), doi);
+    const spellings = new Map<string, DoiString[]>();
+    for (const doi of dois) {
+        const key = doi.toLowerCase();
+        const seen = spellings.get(key);
+        if (!seen) spellings.set(key, [doi]);
+        else if (!seen.includes(doi)) seen.push(doi);
+    }
     const counts: FindingCounts = {papers: 0, checked: 0, unavailable: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0};
-    for (const [key, doi] of distinct) {
-        const state = sources.pageState.get(doi);
+    for (const [key, variants] of spellings) {
+        const states = variants.map((doi) => sources.pageState.get(doi)).filter((s): s is LookupState => s !== undefined);
+        const state = states.find((s) => s.status !== "loading" && s.status !== "idle") ?? states[0];
         const kind = noticeKind.get(key);
         counts.papers++;
         if (kind || (state && state.status !== "loading" && state.status !== "idle")) counts.checked++;
-        if (state?.status === "error" || sources.checkFailed?.(doi)) counts.unavailable++;
+        if (states.some((s) => s.status === "error") || variants.some((doi) => sources.checkFailed?.(doi))) counts.unavailable++;
         if (kind === "retraction") counts.retracted++;
         else if (kind === "concern") counts.concern++;
-        if (hasReplication(state)) counts.replications++;
-        if (sources.hasComments(doi)) counts.pubpeer++;
+        if (states.some(hasReplication)) counts.replications++;
+        if (variants.some((doi) => sources.hasComments(doi))) counts.pubpeer++;
     }
     return counts;
 }

@@ -22,7 +22,7 @@ describe("open-access wording", () => {
             // Collapse whitespace so a phrase wrapped across source lines still matches,
             // and allow one word between ("a free, legal copy").
             text = text.replace(/\s+/g, " ");
-            for (const match of text.matchAll(/free(,?\s+\w+)?,?\s+cop(y|ies)/gi)) {
+            for (const match of text.matchAll(/\bfree(,?\s+\w+)?,?\s+cop(y|ies)\b/gi)) {
                 offenders.push(`${path.relative(SRC, file)}: ${match[0]}`);
             }
         }

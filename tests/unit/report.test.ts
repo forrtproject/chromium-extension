@@ -4,7 +4,6 @@ import {
     encodeReport,
     outcomeLabel,
     renderReportBody,
-    renderReportDocument,
     reportUrl,
     type ReportPayload,
 } from "../../src/shared/report";
@@ -65,6 +64,13 @@ describe("report link encoding", () => {
         expect(await decodeReport("")).toBeNull();
         const encoded = await encodeReport(payload());
         expect(await decodeReport(encoded.slice(0, encoded.length - 12))).toBeNull();
+    });
+
+    it("drops a top-level DOI that isn't a valid DOI, as it does for entries", async () => {
+        const decoded = await decodeReport(await encodeReport(payload({doi: "10.1/\uD800bad"})));
+        expect(decoded?.doi).toBeUndefined();
+        const kept = await decodeReport(await encodeReport(payload()));
+        expect(kept?.doi).toBe("10.1126/science.1185714");
     });
 
     it("rejects a payload from a version it cannot read", async () => {
@@ -192,13 +198,6 @@ describe("report rendering", () => {
     it("says what the evidence is and is not", () => {
         expect(renderReportBody(payload())).toContain("not a verdict");
     });
-
-    it("prints as a standalone document with its own styles", () => {
-        const doc = renderReportDocument(payload());
-        expect(doc.startsWith("<!doctype html>")).toBe(true);
-        expect(doc).toContain("@media print");
-        expect(doc).toContain("Power Posing");
-    });
 });
 
 describe("the printable report", () => {
@@ -206,6 +205,14 @@ describe("the printable report", () => {
         const html = renderReportBody(payload({notice: {kind: "retraction", doi: "xx10.1007/978-3-030-00524-5_9"}}));
         expect(html).toContain("This article has been retracted.");
         expect(html).not.toContain("doi.org/xx10");
+    });
+
+    it("prints an entry whose DOI holds a lone surrogate, keeping its own link and dropping the DOI", () => {
+        const html = renderReportBody(payload({
+            replications: [{title: "Odd record", doi: "10.1/\uD800bad", url: "https://example.org/rep", year: 2015, outcome: "failed"}],
+        }));
+        expect(html).toContain('href="https://example.org/rep"');
+        expect(html).not.toContain("doi:10.1/");
     });
 
     it("links a notice with a usable DOI", () => {

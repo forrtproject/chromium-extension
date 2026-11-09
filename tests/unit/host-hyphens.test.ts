@@ -12,9 +12,8 @@ describe("host hyphenation", () => {
         const rule = [...sheet.cssRules].find((r) => r.cssText.includes("hyphens")) as CSSStyleRule;
         expect(rule).toBeDefined();
         const selectors = rule.selectorText.split(",").map((s) => s.trim());
-        expect(selectors).toEqual(expect.arrayContaining([
-            "[data-flora-ui]", "[data-flora-ui] *", "#flora-pubpeer-panel", "#flora-pubpeer-panel *",
-        ]));
+        const roots = ["[data-flora-ui]", "#flora-banner-host", "#flora-setup-prompt", "#flora-sheets-modal", "#flora-pubpeer-panel"];
+        expect(selectors).toEqual(expect.arrayContaining(roots.flatMap((root) => [root, `${root} *`])));
         expect(rule.cssText).toMatch(/hyphens: manual !important/);
     });
 
@@ -24,6 +23,7 @@ describe("host hyphenation", () => {
         ensureFocusStyle();
         const sheet = (document.getElementById("flora-focus-style") as HTMLStyleElement).sheet!;
         const rule = [...sheet.cssRules].find((r) => r.cssText.includes("hyphens")) as CSSStyleRule;
+        expect(document.querySelector("#flora-content")!.matches(rule.selectorText)).toBe(false);
         expect(document.querySelector("#flora-content p")!.matches(rule.selectorText)).toBe(false);
     });
 });

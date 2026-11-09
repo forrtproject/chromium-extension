@@ -318,8 +318,24 @@ function flushPendingDois(): void {
   }
 }
 
+let doiLookupsInFlight = 0;
+let doiLookupGeneration = 0;
+
+export function pubPeerLookupsPending(): boolean {
+  return doiLookupsInFlight > 0;
+}
+
 /** A confirmed miss resolves to null; unavailable responses reject so the UI can offer retry. */
 export function lookupPubPeerForDoi(doi: string): Promise<PubPeerFeedback | null> {
+  doiLookupsInFlight++;
+  const generation = doiLookupGeneration;
+  const settled = () => { if (generation === doiLookupGeneration) doiLookupsInFlight--; };
+  const lookup = queueDoiLookup(doi);
+  lookup.then(settled, settled);
+  return lookup;
+}
+
+function queueDoiLookup(doi: string): Promise<PubPeerFeedback | null> {
   const signal = activeWorkSignal() ?? null;
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(signal.reason); return; }
@@ -384,5 +400,7 @@ export function _resetPubPeerCacheForTesting(): void {
   flushHandle = null;
   pendingDois.clear();
   inFlight.clear();
+  doiLookupsInFlight = 0;
+  doiLookupGeneration++;
   rateLimitedUntil = 0;
 }

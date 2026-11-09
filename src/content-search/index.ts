@@ -4,7 +4,7 @@
 
 import {resolveSearchSite} from "./sites";
 import {observeSearchResults, processIfResultsPage} from "./observer";
-import {isSearchHidden, retryUnansweredSearchResults, searchLookupsPending, searchScanSummary, setSearchHidden} from "./pipeline";
+import {isSearchHidden, retryUnansweredSearchResults, searchWorkPending, searchScanSummary, setSearchHidden} from "./pipeline";
 import {setScanSummarySource} from "@shared/toolbar-scan";
 import type {PageStateResponse} from "@shared/messages";
 import {debugError, debugLog, recentDebugEntries} from "@shared/debug";
@@ -150,7 +150,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         // content-general answers for the pages this script does not own (article pages on these hosts).
         if (!searchScriptOwns()) return;
         const summary = searchScanSummary();
-        const results = summary ? {...summary, checking: !startupSettled || searchLookupsPending()} : undefined;
+        const results = summary ? {...summary, checking: !startupSettled || searchWorkPending()} : undefined;
         sendResponse({ hidden: isSearchHidden(), ...(results ? { results } : {}) } satisfies PageStateResponse);
     } else if (type === "FLORA_GET_RECENT_LOG") {
         if (searchScriptOwns()) sendResponse({ entries: recentDebugEntries() });
