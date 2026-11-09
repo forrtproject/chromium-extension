@@ -1,5 +1,6 @@
 import {safeSendMessage, type LookupResponse} from "@shared/messages";
 import {fetchOpenAccess} from "@shared/openaccess";
+import {noteOutage, outageEpoch} from "@shared/outages";
 import {isAbortError} from "@shared/work-cancellation";
 import {webUrl} from "@shared/web-url";
 // Merged FLoRA indicator pill — combines the DOI badge, Open Access padlock,
@@ -1094,6 +1095,10 @@ function startIndicatorLookups(
 ): IndicatorLookups {
     const listeners: Array<() => void> = [];
     const changed = () => { for (const listener of listeners) listener(); };
+    const epoch = outageEpoch();
+    // The page notice's Retry may be pressed again while these are still running.
+    const retryOaOnce = () => { if (lookups.oa !== "pending") lookups.retryOa(); };
+    const retryPubPeerOnce = () => { if (lookups.pubpeer !== "pending") lookups.retryPubPeer(); };
     const lookups: IndicatorLookups = {
         oa: oaStatus ? "pending" : null,
         pubpeer: "pending",
@@ -1109,10 +1114,12 @@ function startIndicatorLookups(
             changed();
             void lookupPubPeerForDoi(doi).then((feedback) => {
                 lookups.pubpeer = feedback;
+                noteOutage(lookups, "pubpeer", null, epoch);
                 changed();
             }).catch((error) => {
                 lookups.pubpeer = isAbortError(error) ? "cancelled" : "unavailable";
                 lookups.pubpeerRetryAfterMs = typeof error?.retryAfterMs === "number" ? error.retryAfterMs : null;
+                noteOutage(lookups, "pubpeer", lookups.pubpeer === "unavailable" ? retryPubPeerOnce : null, epoch);
                 changed();
             });
         },
@@ -1123,6 +1130,8 @@ function startIndicatorLookups(
             .catch((err): OaState => isAbortError(err) ? "cancelled" : null)
             .then((state) => {
                 lookups.oa = state;
+                // null after the email check is a failed lookup, not "no open-access version".
+                noteOutage(lookups, "oa", state === null ? retryOaOnce : null, epoch);
                 changed();
             });
     };
@@ -2009,7 +2018,8 @@ export interface BadgeRetryHooks {
     /** Owning page's identity, read when a retry starts and again when it lands. */
     generation: () => unknown;
     /** Runs after a retry writes its result, so the owner can rerender dependent UI. */
-    onResolved?: () => void;
+    /** `ok` is false when the retried lookup failed again. */
+    onResolved?: (doi: DoiString, ok: boolean) => void;
 }
 
 /** `getRedacts` is read on every repaint, so a notice found after a row failed still lands on it. */
@@ -2085,7 +2095,7 @@ export function updateIndicatorPillBadges(
                 if (hooks.generation() !== startedOn) return;
                 next.set(doi, resolved);
                 updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
-                hooks.onResolved?.();
+                hooks.onResolved?.(doi, resolved.status !== "error");
             };
             replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,

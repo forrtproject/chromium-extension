@@ -20,8 +20,10 @@ const TONE_BACKGROUND: Record<ToastTone, string> = {
     success: "linear-gradient(135deg,#853953,#612D53)",
     error: "linear-gradient(135deg,#b3261e,#8c1d18)",
     pending: "linear-gradient(135deg,#853953,#612D53)",
-    info: "#f1f5f9",
+    info: "#fff",
 };
+
+const ORE_ACCENT = "#853953";
 
 const CHECK_SVG =
     `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" style="display:block;flex-shrink:0;">` +
@@ -133,6 +135,7 @@ function iconFor(tone: ToastTone): HTMLElement {
     }
     icon.style.cssText = "display:flex;align-items:center;line-height:0;flex-shrink:0;";
     icon.innerHTML = tone === "success" ? CHECK_SVG : tone === "info" ? INFO_SVG : ALERT_SVG;
+    if (tone === "info") icon.style.color = ORE_ACCENT;
     return icon;
 }
 
@@ -148,6 +151,8 @@ export interface ToastOptions {
     action?: ToastAction;
     /** Keep asynchronous recovery available until its owner dismisses the alert. */
     dismissOnAction?: boolean;
+    /** A bold first line; the message then reads as its detail. */
+    title?: string;
 }
 
 /**
@@ -171,27 +176,49 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
         if (child.tagName !== "STYLE") child.remove();
     }
 
+    const info = tone === "info";
     host.style.cssText =
         `position:fixed;bottom:${bottomOffset()};right:18px;z-index:2147483647;` +
-        `display:flex;align-items:center;gap:8px;pointer-events:${dismissible ? "auto" : "none"};` +
-        `background:${TONE_BACKGROUND[tone]};color:${tone === "info" ? "#334155" : "#fff"};` +
-        (tone === "info" ? "border:1px solid #cbd5e1;" : "") +
+        `display:flex;align-items:${options.title ? "flex-start" : "center"};gap:${info ? 10 : 8}px;` +
+        `pointer-events:${dismissible ? "auto" : "none"};` +
+        `background:${TONE_BACKGROUND[tone]};color:${info ? "#1e293b" : "#fff"};` +
+        (info ? "border:1px solid #e2e8f0;" : "") +
         "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
-        "font-size:12px;font-weight:500;line-height:1.4;padding:8px 12px;border-radius:8px;" +
-        `max-width:280px;box-shadow:${tone === "info" ? "0 2px 8px rgba(15,23,42,0.10)" : "0 4px 16px rgba(0,0,0,0.18)"};` +
+        `font-size:12px;font-weight:${info ? 400 : 500};line-height:1.4;` +
+        `padding:${info ? "10px 10px 10px 12px" : "8px 12px"};border-radius:${info ? 10 : 8}px;` +
+        `max-width:${info ? 360 : 280}px;box-shadow:${info ? "0 6px 20px rgba(15,23,42,0.12)" : "0 4px 16px rgba(0,0,0,0.18)"};` +
         "opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;";
+    if (options.title) host.setAttribute("data-flora-toast-title", options.title);
+    else host.removeAttribute("data-flora-toast-title");
+    host.setAttribute("data-flora-toast-message", message);
 
-    host.appendChild(iconFor(tone));
+    const icon = iconFor(tone);
+    if (options.title) icon.style.marginTop = "1px";
+    host.appendChild(icon);
 
     const label = document.createElement("span");
-    label.textContent = message;
+    if (options.title) {
+        label.style.cssText = "display:flex;flex-direction:column;gap:2px;min-width:0;";
+        const heading = document.createElement("strong");
+        heading.textContent = options.title;
+        heading.style.cssText = "font-weight:600;font-size:13px;color:inherit;";
+        const detail = document.createElement("span");
+        detail.textContent = message;
+        detail.style.cssText = `color:${info ? "#475569" : "inherit"};`;
+        label.append(heading, detail);
+    } else {
+        label.textContent = message;
+    }
     host.appendChild(label);
 
     if (action) {
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = action.label;
-        button.style.cssText = ACTION_STYLE + (tone === "info" ? "color:#334155;background:#fff;border-color:#94a3b8;" : "");
+        // On the light notice, Retry matches the popover's own text actions.
+        button.style.cssText = ACTION_STYLE + (info
+            ? `border:none;padding:2px 4px;font-size:12px;color:${ORE_ACCENT};${options.title ? "margin-top:1px;" : ""}`
+            : "");
         button.addEventListener("click", () => {
             void action.onClick();
             if (options.dismissOnAction !== false) dismissAlertToast();
@@ -206,7 +233,7 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
         close.title = "Dismiss";
         close.setAttribute("aria-label", "Dismiss");
         close.setAttribute("data-flora-toast-close", "");
-        close.style.cssText = CLOSE_STYLE + (tone === "info" ? "color:#64748b;" : "");
+        close.style.cssText = CLOSE_STYLE + (info ? "color:#64748b;" : "");
         close.addEventListener("click", () => {
             clearTimers(id);
             host.remove();

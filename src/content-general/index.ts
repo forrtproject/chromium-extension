@@ -32,7 +32,6 @@ import {
     hideAllFloraUI,
     removeSidePanel,
     removeSheetsModal,
-    renderErrorBanner,
     renderSidePanel,
     renderSetupPrompt,
     renderSheetsModal,
@@ -59,6 +58,7 @@ import {searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
+import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {fetchSheetCsv, parseSheetsUrl, sheetRowsByDoi, sheetTabKey} from "./sheets";
 import type {SheetsRowLookup} from "./injector";
@@ -86,12 +86,79 @@ let redacts: RetractionResponse[] = [];
 let pageNotices: RetractionResponse[] = [];
 const refNotices = new Map<DoiString, RetractionResponse>();
 const unavailableRetractionDois = new Set<DoiString>();
-let retractionRetryToast: HTMLElement | null = null;
+// Page DOIs whose FLoRA lookup failed; Retry looks them up again.
+const unavailableLookupDois = new Set<DoiString>();
+let retryRetractions: (() => Promise<void>) | null = null;
+let unavailableToast: HTMLElement | null = null;
 let retractionRetryQueued: {page: string; generation: number; sheetGeneration: number} | null = null;
-function dismissRetractionRetry(): void {
-    // Other provider alerts reuse this host; do not dismiss their newer message.
-    if (retractionRetryToast?.textContent?.includes("Retraction checks unavailable.")) retractionRetryToast.remove();
-    retractionRetryToast = null;
+const UNAVAILABLE_TITLE = "Some ORE checks didn't load";
+
+/** "a", "a and b", "a, b and c" */
+function listOf(items: string[]): string {
+    return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
+/** One notice, with one Retry, for whichever checks could not run on this page. */
+function showUnavailable(): void {
+    const outages = outageSources();
+    const what: string[] = [];
+    // Popover order: open access, PubPeer, replications; then retractions.
+    if (outages.has("oa")) what.push("open access");
+    if (outages.has("pubpeer")) what.push("PubPeer");
+    if (unavailableLookupDois.size > 0) what.push("replication data");
+    if (unavailableRetractionDois.size > 0) what.push("retraction checks");
+    if (what.length === 0 || floraHidden) {
+        // Other provider alerts reuse this host; do not dismiss their newer message.
+        if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === UNAVAILABLE_TITLE) unavailableToast.remove();
+        unavailableToast = null;
+        return;
+    }
+    const list = listOf(what);
+    const message = `${list[0].toUpperCase()}${list.slice(1)} ${what.length > 1 || what[0] === "retraction checks" ? "are" : "is"} unavailable.`;
+    if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === UNAVAILABLE_TITLE
+        && unavailableToast.getAttribute("data-flora-toast-message") === message) return;
+    unavailableToast = showToast(message, {
+        title: UNAVAILABLE_TITLE, tone: "info", duration: 0, dismissOnAction: false,
+        action: {label: "Retry", onClick: retryUnavailable},
+    });
+}
+
+// Many pills settle at once; rebuild the notice once per burst.
+let unavailableQueued = false;
+function queueShowUnavailable(): void {
+    if (unavailableQueued) return;
+    unavailableQueued = true;
+    setTimeout(() => {
+        unavailableQueued = false;
+        showUnavailable();
+    }, 50);
+}
+onOutagesChanged(queueShowUnavailable);
+
+/** Record whether a page DOI's lookup failed; true when the toast needs updating. */
+function noteLookupOutcome(doi: DoiString, failed: boolean): boolean {
+    if (failed === unavailableLookupDois.has(doi)) return false;
+    if (failed) unavailableLookupDois.add(doi);
+    else unavailableLookupDois.delete(doi);
+    return true;
+}
+
+async function retryUnavailable(): Promise<void> {
+    // The failed DOIs stay listed (and the toast up) until a lookup succeeds,
+    // so a retry that fails or is cancelled still leaves a Retry to press.
+    // DOIs already being looked up again are left alone.
+    const again = [...unavailableLookupDois].filter((doi) => pageState.get(doi)?.status !== "loading");
+    if (again.length > 0) {
+        for (const doi of again) {
+            processedDois.delete(doi);
+            pageState.delete(doi);
+        }
+        pageStateVersion++;
+        resumeAutomaticWork();
+        void runScanPasses();
+    }
+    retryOutages();
+    await retryRetractions?.();
 }
 function refreshRedacts(): void {
     const onPage = new Set(pageNotices.map((n) => n.originDoi));
@@ -138,8 +205,9 @@ let pausedBySettings = false;
 // scan pass, so it carries this page's identity and reports back when it lands.
 const badgeRetryHooks = {
     generation: () => pageGeneration,
-    onResolved: (): void => {
+    onResolved: (doi: DoiString, ok: boolean): void => {
         pageStateVersion++;
+        if (noteLookupOutcome(doi, !ok)) showUnavailable();
         if (isSheets) return;
         // The indicator mints a fresh work signal, so the panel refresh runs
         // even when the previous pass was cancelled.
@@ -176,6 +244,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         resumeAutomaticWork();
         repaintBadges();
         showAllFloraUI();
+        showUnavailable();
         void scanWholePage().catch((err) => debugError("General: resumed pass failed —", err));
         reportActiveState(true);
         sendResponse({ok: true});
@@ -391,6 +460,7 @@ async function primaryDoiFastPath(): Promise<void> {
             rollback();
             return;
         }
+        if (noteLookupOutcome(primary, Boolean(response.errors[primary])) && !floraHidden) showUnavailable();
         if (response.errors[primary]) {
             pageState.set(primary, {status: "error", message: response.errors[primary]});
         } else if (response.results[primary]) {
@@ -410,6 +480,8 @@ async function primaryDoiFastPath(): Promise<void> {
             debugLog(`General: primary DOI ${primary} rejected by doi.org — dropping it`);
             rollback();
             disownDoi(primary);
+            // Scans skip a rejected DOI, so a retry could never clear it.
+            if (noteLookupOutcome(primary, false)) showUnavailable();
             return;
         }
 
@@ -532,7 +604,10 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
         const notices = await retractionCheck(dois);
         if (stale()) return null;
         for (const doi of dois) unavailableRetractionDois.delete(doi);
-        if (unavailableRetractionDois.size === 0) dismissRetractionRetry();
+        if (unavailableRetractionDois.size === 0) {
+            retryRetractions = null;
+            showUnavailable();
+        }
         return notices;
     } catch (error) {
         if (stale()) return null;
@@ -544,41 +619,39 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
             return [];
         }
         debugWarn("Retraction checks unavailable —", error);
-        retractionRetryToast = showToast("ORE: Retraction checks unavailable. Other results are still shown.", {
-            tone: "info", duration: 0, dismissOnAction: false,
-            action: {label: "Retry", onClick: async () => {
-                if (floraHidden || navigated()) { dismissRetractionRetry(); return; }
-                if (retractionRetryQueued?.page === passUrl && retractionRetryQueued.generation === checkedPageGeneration && retractionRetryQueued.sheetGeneration === generation) return;
-                const queuedSignal = activeWorkSignal();
-                const wasCancelled = queuedSignal?.aborted;
-                const queued = {page: passUrl, generation: checkedPageGeneration, sheetGeneration: generation};
-                retractionRetryQueued = queued;
+        retryRetractions = async () => {
+            if (floraHidden || navigated()) return;
+            if (retractionRetryQueued?.page === passUrl && retractionRetryQueued.generation === checkedPageGeneration && retractionRetryQueued.sheetGeneration === generation) return;
+            const queuedSignal = activeWorkSignal();
+            const wasCancelled = queuedSignal?.aborted;
+            const queued = {page: passUrl, generation: checkedPageGeneration, sheetGeneration: generation};
+            retractionRetryQueued = queued;
+            try {
+                await waitForWorkToFinish();
+                if (floraHidden || navigated()) return;
+                if (!wasCancelled && queuedSignal?.aborted) return;
+                resumeAutomaticWork();
+                beginWorkIndicator({stages: ["notices"]});
                 try {
-                    await waitForWorkToFinish();
-                    if (floraHidden || navigated()) return;
-                    if (!wasCancelled && queuedSignal?.aborted) return;
-                    resumeAutomaticWork();
-                    beginWorkIndicator({stages: ["notices"]});
-                    try {
-                        const recovered = await checkPageRetractions([...unavailableRetractionDois]);
-                        if (!recovered || floraHidden || isWorkCancelled() || navigated()) return;
-                        for (const notice of recovered) refNotices.set(notice.originDoi, notice);
-                        refreshRedacts();
-                        if (isSheets) {
-                            const matched = [...pageState.entries()].flatMap(([doi, state]) =>
-                                state.status === "matched" ? [{doi, result: state.result}] : []);
-                            if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks, sheetRows);
-                        } else {
-                            repaintBadges();
-                            beginDomScanPass();
-                            injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
-                            lastRenderedPageStateVersion = -1;
-                            await checkPubPeer(null);
-                        }
-                    } finally { endWorkIndicator(); }
-                } finally { if (retractionRetryQueued === queued) retractionRetryQueued = null; }
-            }},
-        });
+                    const recovered = await checkPageRetractions([...unavailableRetractionDois]);
+                    if (!recovered || floraHidden || isWorkCancelled() || navigated()) return;
+                    for (const notice of recovered) refNotices.set(notice.originDoi, notice);
+                    refreshRedacts();
+                    if (isSheets) {
+                        const matched = [...pageState.entries()].flatMap(([doi, state]) =>
+                            state.status === "matched" ? [{doi, result: state.result}] : []);
+                        if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks, sheetRows);
+                    } else {
+                        repaintBadges();
+                        beginDomScanPass();
+                        injectInlineRetractionPills(extractDoiOccurrences(document), new Map(redacts.map(n => [n.originDoi, n])));
+                        lastRenderedPageStateVersion = -1;
+                        await checkPubPeer(null);
+                    }
+                } finally { endWorkIndicator(); }
+            } finally { if (retractionRetryQueued === queued) retractionRetryQueued = null; }
+        };
+        showUnavailable();
         return [];
     }
 }
@@ -611,8 +684,11 @@ function syncPageNavigation(): void {
     refNotices.clear();
     resolvedReferences.clear();
     unavailableRetractionDois.clear();
+    unavailableLookupDois.clear();
+    clearOutages();
+    retryRetractions = null;
     retractionRetryQueued = null;
-    dismissRetractionRetry();
+    showUnavailable();
     pendingNothingToFlag = null;
     nothingToFlagReportedFor = null;
     augmentAttempted = false;
@@ -816,12 +892,15 @@ async function runScanPass(): Promise<void> {
                 return;
             }
             debugError("Replication lookup failed:", err);
-            for (const doi of newDois) pageState.set(doi, {status: "error", message: "FORRT unavailable"});
+            for (const doi of newDois) {
+                pageState.set(doi, {status: "error", message: "FORRT unavailable"});
+                noteLookupOutcome(doi, true);
+            }
             pageStateVersion++;
             if (floraHidden) return;
             if (!isSheets) placeTitleIndicatorPill();
             repaintBadges();
-            renderErrorBanner("Couldn't load replication data for this page");
+            showUnavailable();
             return;
         }
         if (pageChanged()) return;
@@ -832,7 +911,11 @@ async function runScanPass(): Promise<void> {
         }
         debugLog("Lookup response:", Object.keys(response.results).length, "results,", Object.keys(response.errors).length, "errors");
 
+        // Per-DOI errors are provider failures (HTTP error, network, time
+        // budget, malformed record); a DOI with no record is a no-match.
+        let unavailableChanged = false;
         for (const doi of newDois) {
+            if (noteLookupOutcome(doi, Boolean(response.errors[doi]))) unavailableChanged = true;
             if (response.errors[doi]) {
                 pageState.set(doi, {
                     status: "error",
@@ -849,6 +932,7 @@ async function runScanPass(): Promise<void> {
             }
         }
         pageStateVersion++; // signal that replication data is now available
+        if (unavailableChanged && !floraHidden) showUnavailable();
 
         // Paused, hidden or cancelled while the lookup ran — the results stay
         // in pageState for a later pass, but nothing goes on the page.
@@ -1384,7 +1468,7 @@ const sheetsModalCallbacks: SheetsModalCallbacks = {
     },
 };
 
-const SHEET_UNAVAILABLE = "Full sheet unavailable — only visible cells could be checked.";
+const SHEET_UNAVAILABLE = "The full sheet couldn't be loaded.";
 const EXCEL_VISIBLE_ONLY =
     "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.";
 
@@ -1429,7 +1513,7 @@ async function fetchSheetDois(): Promise<void> {
     if (!isCurrent() || isWorkCancelled()) return;
     if (unavailable) {
         showToast(SHEET_UNAVAILABLE, {
-            tone: "error",
+            title: "ORE checked only the visible cells", tone: "info", duration: 0,
             action: {label: "Retry", onClick: () => { resumeAutomaticWork(); return fetchSheetDois(); }},
         });
     } else if (sheetCsvDois.length === 0 && extractDOIs(document).length === 0) {
