@@ -51,5 +51,8 @@ export function normaliseDOI(raw: unknown): DoiString | null {
   // to the same work, and every lookup keys the single-slash one.
   doi = doi.replace(/^(10\.\d{4,})\/{2,}/, "$1/");
 
+  // A signed number after the slash is a coordinate pair ("10.4806/-66.9036"); no registered DOI suffix starts with one.
+  if (/^10\.\d{4,}(?:\.\d+)*\/[-+−]\d/.test(doi)) return null;
+
   return doi.toLowerCase() as DoiString;
 }

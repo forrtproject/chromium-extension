@@ -1396,3 +1396,41 @@ describe("lone DOI adoption across history entries", () => {
     }
   });
 });
+
+describe("coordinates and other numbers", () => {
+  it("does not read coordinates as DOIs", () => {
+    expect(extractDOIsFromText("Site A: 10.4806/-66.9036, elevation 900 m")).toEqual([]);
+    expect(extractDOIsFromText("Site B: -10.48061/66.9036")).toEqual([]);
+    expect(extractDOIsFromText("Site C: -110.12345/32.1234")).toEqual([]);
+    expect(extractDOIsFromText("Grid 2010.12345/7.5 and 3.10.4567/8")).toEqual([]);
+  });
+
+  it("still finds DOIs after the usual separators", () => {
+    expect(extractDOIsFromText("doi:10.1063/5.0290984 (2021)")).toEqual(["10.1063/5.0290984"]);
+    expect(extractDOIsFromText("See https://doi.org/10.1117/12.818025.")).toEqual(["10.1117/12.818025"]);
+    expect(extractDOIsFromText("(10.1038/nature12373)")).toEqual(["10.1038/nature12373"]);
+    expect(extractDOIsFromText("id=doi-10.1371/journal.pone.0012345")).toEqual(["10.1371/journal.pone.0012345"]);
+  });
+
+  it("does not link a coordinate written in page text", () => {
+    const doc = new JSDOM("<body><p>Sampled at 10.4806/-66.9036 and -110.12345/32.1234.</p><p>Cite doi:10.1038/nature12373.</p></body>").window.document;
+    expect(extractDOIs(doc)).toEqual(["10.1038/nature12373"]);
+  });
+});
+
+describe("map credits", () => {
+  const page = () => new JSDOM(`<body>
+    <main><p>Post office opening hours.</p>
+      <div class="mapboxgl-ctrl mapboxgl-ctrl-attrib"><div class="mapboxgl-ctrl-attrib-inner">
+        <a href="https://www.openstreetmap.org/copyright">&copy; OpenStreetMap contributors</a>
+        <a href="https://doi.org/10.2909/602507b2-96c7-47bb-b79d-7ba25e97d0a9">&copy; Copernicus</a>
+      </div></div>
+      <div class="leaflet-control-attribution">Land cover doi:10.2909/71c95a07-e296-44fc-b22b-415f42acfdf0</div>
+      <p>Cite <a href="https://doi.org/10.1038/nature12373">this paper</a>.</p>
+    </main></body>`).window.document;
+
+  it("ignores DOIs a map widget uses to credit its tile data", () => {
+    expect(extractDOIs(page())).toEqual(["10.1038/nature12373"]);
+    expect(extractDoiOccurrences(page()).map((o) => o.doi)).toEqual(["10.1038/nature12373"]);
+  });
+});

@@ -10,22 +10,24 @@ import { findArticleTitle, findMatchedArticleTitle, siteArticleTitle, titleConta
 // DOI suffixes may contain parens, semicolons, and slashes (e.g. SICI DOIs),
 // but a trailing slash followed by a bare word (e.g. /full, /abstract) is
 // journal URL routing, not part of the DOI.
+// "10." inside a longer or signed number is a coordinate or measurement ("-110.12345/32.1"), not a DOI.
+const NOT_MID_NUMBER = `(?<![\\d.])(?<!(?:^|[^A-Za-z0-9])[-+\\u2212])`;
 const SUFFIX_CHARS = `[^\\s,/\\]}>'"<#?&\\\\]`;
 const EXTRA_SLASH = `(?:\\/(?![a-zA-Z-]+(?:[/\\s,#?&<>{}\\[\\]]|$))${SUFFIX_CHARS}+)*`;
-const DOI_REGEX = new RegExp(`(10\\.\\d{4,}(?:\\.\\d+)*\\/${SUFFIX_CHARS}+${EXTRA_SLASH})`, "g");
+const DOI_REGEX = new RegExp(`${NOT_MID_NUMBER}(10\\.\\d{4,}(?:\\.\\d+)*\\/${SUFFIX_CHARS}+${EXTRA_SLASH})`, "g");
 
 // innerText renders &lt;/&gt; as literal < >, which SICI DOIs use — allow them
 // here so e.g. 10.1002/(SICI)...18:4<303::AID-SMJ869>3.0.CO;2-G isn't truncated.
 const TEXT_SUFFIX_CHARS = `[^\\s,/\\]'"#?&\\\\]`;
 const TEXT_EXTRA_SLASH = `(?:\\/(?![a-zA-Z-]+(?:[/\\s,#?&<>{}\\[\\]]|$))${TEXT_SUFFIX_CHARS}+)*`;
-export const DOI_TEXT_REGEX = new RegExp(`(10\\.\\d{4,}(?:\\.\\d+)*\\/${TEXT_SUFFIX_CHARS}+${TEXT_EXTRA_SLASH})`, "g");
+export const DOI_TEXT_REGEX = new RegExp(`${NOT_MID_NUMBER}(10\\.\\d{4,}(?:\\.\\d+)*\\/${TEXT_SUFFIX_CHARS}+${TEXT_EXTRA_SLASH})`, "g");
 
 // Zero-width chars sites insert inside DOIs for line-wrapping — stripped so a
 // wrapped DOI rejoins. U+FEFF stays: JAMA uses it as a separator *after* a
 // DOI (no real whitespace), and stripping it would glue the DOI to "PubMed".
 const WORD_BREAK_CHARS = /[\u200B\u200C\u200D\u00AD\u2060]/g;
 
-const ENCODED_DOI_REGEX = /(10\.\d{4,}(?:\.\d+)*%2[fF][^\s,/\]}>'"<#?&\\]+)/g;
+const ENCODED_DOI_REGEX = /(?<![\d.])(10\.\d{4,}(?:\.\d+)*%2[fF][^\s,/\]}>'"<#?&\\]+)/g;
 
 function decodeEncodedDois(text: string): string {
   return text.replace(ENCODED_DOI_REGEX, (match) => {
@@ -244,11 +246,21 @@ function extractFromJsonLd(doc: Document, found: Set<DoiString>): void {
   }
 }
 
+// Map widgets credit their tile data with DOI links (Copernicus land datasets); those aren't what the page is about.
+const MAP_CREDITS_SELECTOR = [
+  ".mapboxgl-ctrl-attrib",
+  ".maplibregl-ctrl-attrib",
+  ".leaflet-control-attribution",
+  ".ol-attribution",
+  ".gm-style-cc",
+  ".esri-attribution",
+].join(", ");
+
 function extractFromDoiLinks(doc: Document, found: Set<DoiString>): void {
   const links = doc.querySelectorAll<HTMLAnchorElement>("a[href]");
   for (const link of links) {
     const href = link.href;
-    if (!href) continue;
+    if (!href || link.closest(MAP_CREDITS_SELECTOR)) continue;
     const doi = normaliseDOI(href);
     if (doi) found.add(doi);
   }
@@ -288,7 +300,7 @@ export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
   };
 
   for (const link of doc.querySelectorAll<HTMLAnchorElement>("a[href]")) {
-    if (link.closest(FLORA_UI_SELECTOR)) continue;
+    if (link.closest(FLORA_UI_SELECTOR) || link.closest(MAP_CREDITS_SELECTOR)) continue;
     if (word && link.closest('[aria-hidden="true"]')) continue;
     const textDois = new Set<DoiString>();
     const linkText = link.innerText || link.textContent || "";
@@ -322,7 +334,7 @@ export function extractDoiOccurrences(doc: Document): DoiOccurrence[] {
       if (tag === "script" || tag === "style" || tag === "noscript" || tag === "a") {
         return NodeFilter.FILTER_REJECT;
       }
-      if (el.matches(FLORA_UI_SELECTOR)) return NodeFilter.FILTER_REJECT;
+      if (el.matches(FLORA_UI_SELECTOR) || el.matches(MAP_CREDITS_SELECTOR)) return NodeFilter.FILTER_REJECT;
       if (word && el.getAttribute("aria-hidden") === "true") return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_SKIP;
     },
@@ -361,7 +373,11 @@ export function containsDoiCandidate(el: Element): boolean {
 
 function extractFromVisibleText(doc: Document, found: Set<DoiString>): void {
   if (!pageMightContainDoi(doc)) return;
-  const rawText = doc.body?.innerText || doc.body?.textContent || "";
+  let rawText = doc.body?.innerText || doc.body?.textContent || "";
+  for (const credits of doc.querySelectorAll<HTMLElement>(MAP_CREDITS_SELECTOR)) {
+    const creditsText = credits.innerText || credits.textContent;
+    if (creditsText) rawText = rawText.replace(creditsText, " ");
+  }
   const bodyText = decodeEncodedDois(rawText.replace(WORD_BREAK_CHARS, ""));
   const matches = bodyText.matchAll(DOI_TEXT_REGEX);
   for (const match of matches) {
