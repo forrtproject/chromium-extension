@@ -47,22 +47,29 @@ describe("side panel teardown", () => {
         vi.restoreAllMocks();
     });
 
-    it("removes the iframe message listener when the panel is removed", () => {
-        const addSpy = vi.spyOn(window, "addEventListener");
-        const removeSpy = vi.spyOn(window, "removeEventListener");
+    it("stops following hidden-commenter changes when the panel is removed", () => {
+        const addSpy = vi.mocked(chrome.storage.onChanged.addListener);
+        const removeSpy = vi.mocked(chrome.storage.onChanged.removeListener);
+        render();
+        removeSidePanel();
+        addSpy.mockClear();
+        removeSpy.mockClear();
 
         render();
-        const added = addSpy.mock.calls.filter(([type]) => type === "message");
-        expect(added).toHaveLength(1);
+        expect(addSpy).toHaveBeenCalledTimes(1);
 
         removeSidePanel();
 
-        expect(removeSpy).toHaveBeenCalledWith("message", added[0][1]);
+        expect(removeSpy).toHaveBeenCalledWith(addSpy.mock.calls[0][0]);
     });
 
-    it("does not stack message listeners across re-renders", () => {
-        const addSpy = vi.spyOn(window, "addEventListener");
-        const removeSpy = vi.spyOn(window, "removeEventListener");
+    it("does not stack hidden-commenter listeners across re-renders", () => {
+        const addSpy = vi.mocked(chrome.storage.onChanged.addListener);
+        const removeSpy = vi.mocked(chrome.storage.onChanged.removeListener);
+        render();
+        removeSidePanel();
+        addSpy.mockClear();
+        removeSpy.mockClear();
 
         render();
         renderSidePanel(
@@ -74,13 +81,11 @@ describe("side panel teardown", () => {
             []
         );
 
-        const added = addSpy.mock.calls.filter(([type]) => type === "message");
-        const removed = removeSpy.mock.calls.filter(([type]) => type === "message");
-        expect(added).toHaveLength(2);
-        expect(removed).toHaveLength(1);
+        expect(addSpy).toHaveBeenCalledTimes(2);
+        expect(removeSpy).toHaveBeenCalledTimes(1);
     });
 
-    it("does not fire the fallback timer after the panel is removed", () => {
+    it("leaves nothing scheduled after the panel is removed", () => {
         vi.useFakeTimers();
         try {
             render();

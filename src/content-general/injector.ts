@@ -2,6 +2,9 @@ import { fetchOpenAccess } from "@shared/openaccess";
 import { webUrl } from "@shared/web-url";
 import type { DoiString, LookupState, ReplicationResult, ReplicationEntry, OriginalEntry, DoiContext } from "../shared/types";
 import type { PubPeerFeedback } from "../shared/pubpeer-api";
+import type { PubPeerComment, PubPeerCommentsResponse } from "@shared/pubpeer-comments";
+import { getHiddenCommenters, isHiddenCommenter, onHiddenCommentersChanged } from "@shared/pubpeer-filter";
+import { renderCommentList } from "./pubpeer-comments-view";
 import { debugLog, debugWarn } from "../shared/debug";
 import { safeSendMessage } from "../shared/messages";
 import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
@@ -487,6 +490,19 @@ let _tabRepositionTimer: ReturnType<typeof setTimeout> | null = null;
 
 const panelCleanups: Array<() => void> = [];
 
+const pubPeerCommentRequests = new Map<string, Promise<PubPeerComment[] | null>>();
+
+function requestPubPeerComments(url: string, commentCount: number): Promise<PubPeerComment[] | null> {
+  const key = `${url}#${commentCount}`;
+  const cached = pubPeerCommentRequests.get(key);
+  if (cached) return cached;
+  const request = safeSendMessage<PubPeerCommentsResponse>({ type: "FLORA_PUBPEER_COMMENTS", url })
+    .then((response) => response?.comments ?? null, () => null);
+  pubPeerCommentRequests.set(key, request);
+  void request.then((comments) => { if (!comments) pubPeerCommentRequests.delete(key); });
+  return request;
+}
+
 function runPanelCleanups(): void {
   while (panelCleanups.length > 0) panelCleanups.pop()!();
 }
@@ -843,7 +859,6 @@ export function renderSidePanel(
     plainTitle(getPageArticleTitle()) ||
     "Article";
 
-  // Rebuilding recreates the <iframe>, reloading the embedded PubPeer thread.
   const signature = panelSignature(
     primary, references, articleDois, pageState, refFeedbackByDoi, retractionByDoi, articleTitleText
   ) + `;pubpeer:${onRetryPubPeer ? "unavailable" : "available"}`;
@@ -1499,6 +1514,7 @@ export function renderSidePanel(
   scrollBody.style.cssText = "flex:1;overflow-y:auto; background: #f5f8fa;";
   scrollBody.appendChild(summary);
 
+  let loadThreadComments: (() => void) | null = null;
   // PubPeer comments section — only rendered when there is a primary PubPeer URL
   if (primary) {
     const commentsHeader = document.createElement("p");
@@ -1508,67 +1524,73 @@ export function renderSidePanel(
     commentsHeader.textContent = "Comments";
     scrollBody.appendChild(commentsHeader);
 
-    const iframeWrap = document.createElement("div");
-    iframeWrap.style.cssText = "overflow:hidden;";
-    const iframe = document.createElement("iframe");
-    iframe.src = primary.url;
-    iframe.title = "PubPeer comments";
-    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups allow-forms");
-    iframe.style.cssText = "width:100%;height:200px;border:none;display:block;opacity:0;transition:opacity 0.15s;overflow:hidden;";
+    const threadUrl = primary.url;
+    const threadCommentCount = primary.total_comments;
+    const commentsBody = document.createElement("div");
+    commentsBody.dataset.floraPubpeerComments = "";
+    commentsBody.setAttribute("aria-live", "polite");
+    scrollBody.appendChild(commentsBody);
 
-    const revealIframe = (): void => { iframe.style.opacity = "1"; };
-
-    // When PubPeer refuses to embed (X-Frame-Options / CSP frame-ancestors) the
-    // frame stays blank and our in-iframe script never posts CSS_READY. Swap the
-    // broken frame for an external link so the comments are still reachable.
-    const showFallback = (): void => {
-      if (iframeWrap.dataset.floraFallback === "1") return;
-      iframeWrap.dataset.floraFallback = "1";
-      clearTimeout(fallbackTimer);
-      window.removeEventListener("message", onIframeMessage);
-      iframe.remove();
-
-      const fb = document.createElement("div");
-      fb.style.cssText =
-        "display:flex;flex-direction:column;align-items:center;gap:10px;" +
-        "padding:24px 20px;text-align:center;color:#5f6368;";
-      const msg = document.createElement("span");
-      msg.style.cssText = "font-size:12px;line-height:1.5;";
-      msg.textContent = "PubPeer comments can't be shown inline here.";
+    const threadLink = (text: string): HTMLAnchorElement => {
       const link = document.createElement("a");
-      link.href = primary.url;
+      link.href = threadUrl;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = "View comments on PubPeer ↗";
+      link.textContent = text;
       link.style.cssText =
         "display:inline-flex;align-items:center;gap:6px;padding:8px 14px;" +
         "font-size:13px;font-weight:600;color:#fff;background:#853953;" +
         "border-radius:6px;text-decoration:none;";
-      fb.appendChild(msg);
-      fb.appendChild(link);
-      iframeWrap.appendChild(fb);
+      return link;
     };
 
-    const fallbackTimer = setTimeout(showFallback, 4000);
-    const onIframeMessage = (e: MessageEvent): void => {
-      if (e.source !== iframe.contentWindow) return;
-      const data = e.data as { type?: string; height?: number };
-      if (data?.type === "FLORA_PUBPEER_CSS_READY") {
-        clearTimeout(fallbackTimer);
-        revealIframe();
-      } else if (data?.type === "FLORA_PUBPEER_HEIGHT" && typeof data.height === "number") {
-        iframe.style.height = `${data.height}px`;
+    const showCommentsStatus = (message: string, withLink: boolean): void => {
+      const status = document.createElement("div");
+      status.style.cssText =
+        "display:flex;flex-direction:column;align-items:center;gap:10px;" +
+        "padding:24px 20px;text-align:center;color:#5f6368;";
+      const msg = document.createElement("span");
+      msg.style.cssText = "font-size:12px;line-height:1.5;";
+      msg.textContent = message;
+      status.appendChild(msg);
+      if (withLink) status.appendChild(threadLink("View comments on PubPeer ↗"));
+      commentsBody.replaceChildren(status);
+    };
+
+    let loadedComments: PubPeerComment[] | null = null;
+    const paintComments = (hidden: readonly string[]): void => {
+      if (!loadedComments) return;
+      const visible = loadedComments.filter((c) => !isHiddenCommenter(c.user, hidden));
+      if (loadedComments.length === 0) {
+        showCommentsStatus("These comments can only be read on PubPeer.", true);
+      } else if (visible.length === 0) {
+        showCommentsStatus("Every comment here is from a commenter you've hidden in Settings.", true);
+      } else {
+        const footer = document.createElement("div");
+        footer.style.cssText = "display:flex;justify-content:center;padding:4px 16px 16px;";
+        footer.appendChild(threadLink("Reply on PubPeer ↗"));
+        commentsBody.replaceChildren(renderCommentList(visible), footer);
       }
     };
-    window.addEventListener("message", onIframeMessage);
-    panelCleanups.push(() => {
-      clearTimeout(fallbackTimer);
-      window.removeEventListener("message", onIframeMessage);
-    });
-    iframe.addEventListener("error", showFallback);
 
-    iframeWrap.appendChild(iframe);
-    scrollBody.appendChild(iframeWrap);
+    let commentsRequested = false;
+    loadThreadComments = (): void => {
+      if (commentsRequested) return;
+      commentsRequested = true;
+      showCommentsStatus("Loading comments…", false);
+      void Promise.all([requestPubPeerComments(threadUrl, threadCommentCount), getHiddenCommenters()])
+        .then(([comments, hidden]) => {
+          if (!host.isConnected) return;
+          if (!comments) {
+            commentsRequested = false;
+            showCommentsStatus("PubPeer comments couldn't be loaded here.", true);
+            return;
+          }
+          loadedComments = comments;
+          paintComments(hidden);
+        });
+    };
+    panelCleanups.push(onHiddenCommentersChanged(paintComments));
   } else if (!options.documentMode || onRetryPubPeer) {
     // Documents omit a confirmed-empty state, but retain unavailable status and Retry.
     // No PubPeer thread for this article — show an empty state so the panel
@@ -1671,6 +1693,7 @@ export function renderSidePanel(
     arrow.style.transform = "rotate(180deg)";
     setTabLabel(tab, "Close FLoRA panel");
     setPanelZIndex("2147483646");
+    loadThreadComments?.();
   };
 
   const closePanel = (): void => {

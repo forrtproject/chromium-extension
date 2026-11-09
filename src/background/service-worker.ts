@@ -19,6 +19,7 @@ import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
 import {debugError, debugLog, debugWarn, isDebugEnabledAsync, isTestingBuild, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 import {isFeedbackPromptRequest, type FeedbackPromptResponse, type FeedbackPromptStep} from "@shared/messages";
+import {extractPubPeerComments, isPubPeerCommentsRequest, type PubPeerCommentsResponse} from "@shared/pubpeer-comments";
 
 // The worker-wide manager budgets all providers together.
 const cache = new LocalCache<ReplicationResult>("flora", 0);
@@ -436,6 +437,11 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (isPubPeerCommentsRequest(message)) {
+            void fetchPubPeerComments(message.url).then(sendResponse);
+            return true;
+        }
+
         if (isAugmentRequest(message)) {
             run(signal => handleAugment(message.requests, signal))
                 .then(sendResponse)
@@ -673,6 +679,23 @@ async function fetchSheetCsv(url: string, signal?: AbortSignal): Promise<SheetFe
         return {
             type: "FLORA_SHEET_FETCH_RESULT",
             csv: null,
+            error: err instanceof Error ? err.message : "Fetch failed",
+        };
+    }
+}
+
+async function fetchPubPeerComments(url: string): Promise<PubPeerCommentsResponse> {
+    try {
+        const resp = await fetchWithDeadline(url, {credentials: "omit", signal: null});
+        if (!resp.ok) return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: null, error: `HTTP ${resp.status}`};
+        const comments = extractPubPeerComments(await resp.text());
+        if (!comments) return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: null, error: "No comment data on the PubPeer page"};
+        return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments, error: null};
+    } catch (err) {
+        debugError("PubPeer: comment fetch failed —", err);
+        return {
+            type: "FLORA_PUBPEER_COMMENTS_RESULT",
+            comments: null,
             error: err instanceof Error ? err.message : "Fetch failed",
         };
     }

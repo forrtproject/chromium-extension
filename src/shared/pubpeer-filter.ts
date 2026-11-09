@@ -1,4 +1,4 @@
-// Commenters muted in the embedded PubPeer panel, matched case-insensitively
+// Commenters muted in the PubPeer panel, matched case-insensitively
 // on their PubPeer display name.
 
 import { debugWarn } from "./debug";
@@ -79,45 +79,4 @@ export function isHiddenCommenter(id: string, hidden: readonly string[]): boolea
   const needle = id.trim().toLowerCase();
   if (!needle) return false;
   return hidden.some((h) => h.trim().toLowerCase() === needle);
-}
-
-/** Marks a comment block hidden by FLoRA, so unmuting can restore it. */
-export const HIDDEN_COMMENTER_ATTR = "data-flora-hidden-commenter";
-
-const COMMENT_BLOCK_SELECTOR = ".vertical-timeline-content";
-
-/**
- * The commenter's display name: the first `strong` that is not `.inner-id`
- * (which holds the comment number). Pseudonyms are wrapped in `<em>`.
- */
-export function commenterNameOf(block: Element): string | null {
-  const left = block.querySelector(".ibox-title .left");
-  const nameEl = left?.querySelector("strong:not(.inner-id)");
-  const name = nameEl?.textContent?.trim();
-  return name ? name : null;
-}
-
-/** Hide, and re-show on unmute, PubPeer comment blocks under `root`. */
-export function applyCommenterFilter(root: Node | null, hidden: readonly string[]): void {
-  if (!root) return;
-  const el = root instanceof Element ? root : root.parentElement;
-  if (!el) return;
-
-  const blocks: Element[] = el.matches?.(COMMENT_BLOCK_SELECTOR) ? [el] : [];
-  blocks.push(...el.querySelectorAll(COMMENT_BLOCK_SELECTOR));
-
-  for (const block of blocks) {
-    const name = commenterNameOf(block);
-    // No name means this isn't a real comment (e.g. the reply editor shares the
-    // block class) — leave it alone.
-    if (!name) continue;
-    const el = block as HTMLElement;
-    if (isHiddenCommenter(name, hidden)) {
-      el.style.display = "none";
-      el.setAttribute(HIDDEN_COMMENTER_ATTR, name);
-    } else if (el.hasAttribute(HIDDEN_COMMENTER_ATTR)) {
-      el.style.removeProperty("display");
-      el.removeAttribute(HIDDEN_COMMENTER_ATTR);
-    }
-  }
 }
