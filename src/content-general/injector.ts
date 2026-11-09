@@ -5,7 +5,7 @@ import type { PubPeerFeedback } from "../shared/pubpeer-api";
 import { debugLog, debugWarn } from "../shared/debug";
 import { safeSendMessage } from "../shared/messages";
 import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
-import { renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
+import { outcomeLabel, renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
 import { writeClipboard } from "@shared/clipboard";
 import { showToast } from "@shared/toast";
 import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
@@ -310,6 +310,8 @@ function escapeHtml(s: string): string {
 // ──────────────────────────────────────────────
 
 const SHEETS_MODAL_ID = "flora-sheets-modal";
+/** How long the sheets card's Snooze keeps it away. */
+export const SHEETS_SNOOZE_MINUTES = 10;
 
 export interface SheetsModalCallbacks {
   onDismiss: () => void;
@@ -437,7 +439,7 @@ export function renderSheetsModal(
         <a data-flora-details-link target="_blank" rel="noopener" style="
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">View details</a>` : "";
+        ">Open in FLoRA Atlas</a>` : "";
 
   const host = document.createElement("div");
   host.id = SHEETS_MODAL_ID;
@@ -471,16 +473,16 @@ export function renderSheetsModal(
         ${statCards}
       </div>
 
-      <div style="padding:10px 16px 14px;display:flex;align-items:center;gap:8px;">
-        <button class="flora-modal-snooze" title="Snooze for 10 minutes" style="
-          all:unset;cursor:pointer;padding:7px 8px;font-size:0;line-height:0;
-          color:#5f6368;border-radius:6px;transition:color 0.15s;
-          display:flex;align-items:center;justify-content:center;margin-right:auto;
-        "><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+      <div style="padding:10px 16px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;">
+        <button class="flora-modal-snooze" title="Hide this card for ${SHEETS_SNOOZE_MINUTES} minutes" style="
+          all:unset;cursor:pointer;padding:7px 8px;font-size:13px;font-weight:500;line-height:1;
+          color:#5f6368;border-radius:6px;transition:color 0.15s;white-space:nowrap;
+          display:flex;align-items:center;justify-content:center;gap:6px;margin-right:auto;
+        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Snooze ${SHEETS_SNOOZE_MINUTES} min</button>
         <button class="flora-modal-dismiss" style="
-          all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
-          color:#5f6368;border-radius:6px;transition:background 0.15s;
-        ">Dismiss</button>
+          all:unset;cursor:pointer;padding:7px 12px;font-size:13px;font-weight:500;
+          color:#5f6368;border-radius:6px;transition:background 0.15s;white-space:nowrap;
+        ">Hide for this sheet</button>
         ${detailsLink}
       </div>
     </div>
@@ -754,9 +756,10 @@ function panelSignature(
 }
 
 const HEADER_ACTION_STYLE =
-  "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);line-height:0;" +
-  "width:28px;height:28px;display:flex;align-items:center;justify-content:center;" +
-  "border-radius:50%;transition:color 0.15s,background 0.15s;";
+  "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);line-height:1;" +
+  "height:28px;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:5px;" +
+  "font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;" +
+  "border-radius:14px;transition:color 0.15s,background 0.15s;";
 
 const DOWNLOAD_ICON =
   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
@@ -768,12 +771,15 @@ const SHARE_ICON =
   `stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>` +
   `<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 
-function headerAction(icon: string, label: string, onClick: () => void): HTMLButtonElement {
+/** A header button with an icon and a visible label; `description` is the tooltip. */
+function headerAction(icon: string, text: string, description: string, onClick: () => void): HTMLButtonElement {
   const btn = document.createElement("button");
-  btn.setAttribute("aria-label", label);
-  btn.title = label;
+  btn.title = description;
   btn.style.cssText = HEADER_ACTION_STYLE;
   btn.innerHTML = icon;
+  const label = document.createElement("span");
+  label.textContent = text;
+  btn.append(label);
   btn.addEventListener("mouseenter", () => {
     btn.style.color = "#fff";
     btn.style.background = "rgba(255,255,255,0.15)";
@@ -850,7 +856,7 @@ function toReportEntry(entry: {
  * that most publisher print stylesheets hide outright.
  */
 function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(DOWNLOAD_ICON, "Save this report (print to PDF)", () => {
+  return headerAction(DOWNLOAD_ICON, "Print", "Print this report, or save it as a PDF", () => {
     const win = window.open("", "_blank", "width=900,height=1000");
     if (!win) {
       showToast("Allow pop-ups for this site to save the report", { tone: "error" });
@@ -863,7 +869,7 @@ function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
 }
 
 function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(SHARE_ICON, "Copy a link to this report", () => {
+  return headerAction(SHARE_ICON, "Copy link", "Copy a link to this report", () => {
     void reportUrl(payload())
       .then((url) => writeClipboard(url))
       .then((copied) => {
@@ -1072,7 +1078,7 @@ export function renderSidePanel(
     "display:flex;align-items:center;gap:10px;flex-shrink:0;";
   header.innerHTML = `
     <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
-    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;">Meta Report</span>`;
+    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;">Meta Report</span>`;
 
   const buildPayload = (): ReportPayload => ({
     v: 1,
@@ -1293,7 +1299,7 @@ export function renderSidePanel(
             : isFailure
               ? "background:#fee2e2;color:#991b1b;"
               : "background:#fef8e8;color:#b8860b;");
-        badge.textContent = entry.outcome;
+        badge.textContent = outcomeLabel(entry.outcome);
         titleRow.appendChild(badge);
       }
       item.appendChild(titleRow);

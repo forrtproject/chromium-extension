@@ -47,16 +47,16 @@ const cardTitle = () => card()?.querySelector("h2")?.textContent ?? "";
 const press = (selector: string) => card()!.querySelector<HTMLButtonElement>(selector)!.click();
 
 describe("the on-page tour of an article", () => {
-    it("visits what is on the page in reading order", async () => {
+    it("stops at a pill, its details and the report tab, naming the other pills on the way", async () => {
         await articlePage();
         const {articleTourStops} = await import("../../src/shared/page-tour");
-        expect(articleTourStops().map((s) => s.title)).toEqual([
-            "This pill is about the article you are reading",
+        const stops = articleTourStops();
+        expect(stops.map((s) => s.title)).toEqual([
+            "Findings for this article",
             "Point at a pill to see the details",
-            "Every paper in the reference list gets one",
-            "So does a DOI mentioned in the text",
             "Everything in one place",
         ]);
+        expect(stops[0].text).toBe("ORE adds the same pill to each paper in the reference list and each DOI mentioned in the text.");
     });
 
     it("skips stops the page does not have, and adds a retraction when there is one", async () => {
@@ -65,7 +65,6 @@ describe("the on-page tour of an article", () => {
         document.getElementById("flora-pubpeer-panel")!.remove();
         const {articleTourStops} = await import("../../src/shared/page-tour");
         const titles = articleTourStops().map((s) => s.title);
-        expect(titles).not.toContain("So does a DOI mentioned in the text");
         expect(titles).not.toContain("Everything in one place");
         expect(titles).toContain("This paper has been retracted");
     });
@@ -76,15 +75,14 @@ describe("the on-page tour of an article", () => {
         const {articleTourStops} = await import("../../src/shared/page-tour");
         const stops = articleTourStops();
         expect(stops[0].title).toBe("Every paper in the reference list gets a pill");
-        expect(stops[0].text).toContain("gets two pills");
-        expect(stops.map((s) => s.title)).not.toContain("Every paper in the reference list gets one");
+        expect(stops[0].text).toBe("A reference without a pill is one ORE could not identify. ORE adds the same pill to each DOI mentioned in the text.");
     });
 
     it("steps forward and back, opens the pill for its popover stop, and closes it again", async () => {
         await articlePage();
         const {startPageTour, isPageTourOpen} = await import("../../src/shared/page-tour");
         expect(startPageTour("article")).toBe(true);
-        expect(cardTitle()).toBe("This pill is about the article you are reading");
+        expect(cardTitle()).toBe("Findings for this article");
         const titleButton = document.querySelector<HTMLElement>("[data-flora-title-pill] > [role=button]")!;
 
         press(".next");
@@ -92,11 +90,12 @@ describe("the on-page tour of an article", () => {
         expect(titleButton.getAttribute("aria-expanded")).toBe("true");
 
         press(".back");
-        expect(cardTitle()).toBe("This pill is about the article you are reading");
+        expect(cardTitle()).toBe("Findings for this article");
         await vi.waitFor(() => expect(titleButton.getAttribute("aria-expanded")).toBe("false"));
 
-        for (let i = 0; i < 4; i++) press(".next");
+        for (let i = 0; i < 2; i++) press(".next");
         expect(card()!.querySelector(".next")!.textContent).toBe("Done");
+        expect(card()!.querySelector<HTMLElement>(".skip")!.style.visibility).toBe("hidden");
         press(".next");
         expect(isPageTourOpen()).toBe(false);
         expect(document.getElementById("flora-page-tour")).toBeNull();
@@ -164,9 +163,8 @@ describe("a tour asked for while the page is still being checked", () => {
         document.body.append(reference);
         endWorkIndicator();
         await expect(started).resolves.toBe(true);
-        press(".next");
-        press(".next");
-        expect(cardTitle()).toBe("Every paper in the reference list gets one");
+        expect(cardTitle()).toBe("Findings for this article");
+        expect(card()!.querySelector("p")!.textContent).toContain("each paper in the reference list");
     });
 
     it("does not start once the reader has cancelled", async () => {

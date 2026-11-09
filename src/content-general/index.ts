@@ -37,6 +37,7 @@ import {
     renderSetupPrompt,
     renderSheetsModal,
     type SheetsModalCallbacks,
+    SHEETS_SNOOZE_MINUTES,
     showAllFloraUI
 } from "./injector";
 import {resetWorkSummary} from "@shared/progress-toast";
@@ -70,7 +71,8 @@ import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {isExcelOnline, startExcelOnline, excelOnlineText, excelWorkbookKey, excelContentRevision} from "@shared/excel-online";
 import {injectLooseDoiPills, resetLooseDoiPills} from "./loose-dois";
 import {maybeOfferFeedback} from "@shared/feedback-prompt";
-import {hasReplication, lookUpMissingReferenceStates, ResolvedReferences} from "./reference-states";
+import {countFindings, hasReplication, lookUpMissingReferenceStates, ResolvedReferences} from "./reference-states";
+import type {PageFindings, PageStateResponse} from "@shared/messages";
 
 const pageState = new Map<DoiString, LookupState>();
 // PubPeer answers gathered before pills are drawn, so a pill's face is final when it appears.
@@ -178,7 +180,20 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         reportActiveState(true);
         sendResponse({ok: true});
     } else if (type === "FLORA_GET_STATE") {
-        sendResponse({hidden: floraHidden});
+        // content-search owns result pages and answers for them with its own summary.
+        if (searchScriptOwns()) return;
+        if (embedsOfficeDocument()) {
+            // The document frame does the work and answers first. A late host answer only keeps the popup asking.
+            setTimeout(() => sendResponse({hidden: floraHidden, findings: HOST_STILL_CHECKING} satisfies PageStateResponse),
+                OFFICE_HOST_GRACE_MS);
+            return true;
+        }
+        void pageFindings().then((findings) => sendResponse({hidden: floraHidden, findings} satisfies PageStateResponse));
+        return true;
+    } else if (type === "FLORA_OPEN_PANEL") {
+        // The panel lives in the document frame; the host page stays silent rather than say "not opened".
+        if (searchScriptOwns() || embedsOfficeDocument()) return;
+        sendResponse({opened: openSidePanel()});
     } else if (type === "FLORA_GET_RECENT_LOG") {
         if (searchScriptOwns()) return;
         if (window !== window.top) {
@@ -199,6 +214,97 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         cancelPageTourStart();
     }
 });
+
+/**
+ * Word/Excel Online run ORE in the document frame as well as the host page,
+ * and the first frame to answer wins, so a host page that embeds a document
+ * frame answers late, and only with "still checking".
+ */
+const OFFICE_HOST_GRACE_MS = 800;
+const HOST_STILL_CHECKING: PageFindings = {
+    checking: true,
+    others: {papers: 0, checked: 0, unavailable: 0, retracted: 0, concern: 0, replications: 0, pubpeer: 0},
+    panel: false,
+};
+
+/** The Word and Excel editor frames ORE runs in (see manifest.json), not any Office viewer embed. */
+const OFFICE_EDITOR_FRAMES = 'iframe[src*=".officeapps.live.com/we/wordeditorframe.aspx"], iframe[src*=".officeapps.live.com/x/_layouts/"]';
+
+function embedsOfficeDocument(): boolean {
+    return window === window.top && !!document.querySelector(OFFICE_EDITOR_FRAMES);
+}
+
+let startupSettled = false;
+
+/** True when no pass is running. */
+async function workIsIdle(): Promise<boolean> {
+    let idle = false;
+    void waitForWorkToFinish().then(() => { idle = true; });
+    await Promise.resolve();
+    return idle;
+}
+
+/** The page's own paper(s): DOIs classified as the article, plus the primary DOI. */
+function articleDois(): Set<DoiString> {
+    const dois = new Set<DoiString>();
+    for (const [doi, ctx] of doiContext) if (ctx === "article" && !invalidDois.has(doi)) dois.add(doi);
+    const primary = extractPrimaryDOI(document);
+    if (primary && !invalidDois.has(primary)) dois.add(primary);
+    return dois;
+}
+
+/** The popup's summary: the article, then its references (or every paper on a page without one). */
+async function pageFindings(): Promise<PageFindings> {
+    const own = articleDois();
+    const ownKeys = new Set([...own].map((doi) => doi.toLowerCase()));
+    let article: PageFindings["article"];
+    if (own.size > 0) {
+        article = {retracted: false, concern: false, replications: 0, reproductions: 0, originals: 0,
+            pubpeerComments: 0, incomplete: articlePubPeerUnavailable};
+        for (const doi of own) {
+            const state = pageState.get(doi);
+            if (state?.status === "matched") {
+                const stats = state.result.record.stats;
+                article.replications += stats.n_replications_total;
+                article.reproductions += stats.n_reproductions_total;
+                article.originals += stats.n_originals_total;
+            }
+            if (state?.status === "error" || unavailableRetractionDois.has(doi)) article.incomplete = true;
+        }
+        for (const notice of redacts) {
+            if (!ownKeys.has(notice.originDoi.toLowerCase())) continue;
+            if (notice.kind === "retraction") article.retracted = true;
+            else article.concern = true;
+        }
+        if (article.retracted) article.concern = false;
+        article.pubpeerComments = Math.max(0, ...lastArticleFeedbacks.map((f) => f.total_comments));
+    }
+    const group = own.size > 0
+        ? [...doiContext].filter(([doi, ctx]) => ctx === "reference" && !ownKeys.has(doi.toLowerCase())).map(([doi]) => doi)
+        // A DOI list counts every paper it shows, including ones known only from a notice or PubPeer.
+        : [...new Set([...pageState.keys(), ...redacts.map((n) => n.originDoi)])]
+            .filter((doi) => pageState.get(doi)?.status !== "idle");
+    const others = countFindings(group.filter((doi) => !invalidDois.has(doi)), {
+        pageState, notices: redacts, hasComments: (doi) => pubPeerVerdict(doi) === "comments",
+        checkFailed: (doi) => unavailableRetractionDois.has(doi) || pubPeerVerdict(doi) === "unavailable",
+    });
+    const loading = [...pageState.values()].some((state) => state.status === "loading");
+    return {
+        checking: !startupSettled || loading || !(await workIsIdle()),
+        ...(article ? {article} : {}),
+        others,
+        panel: !floraHidden && !!document.querySelector("#flora-pubpeer-panel [data-flora-panel-tab]"),
+    };
+}
+
+/** Open the page's side panel through its tab, as a reader's click would. */
+function openSidePanel(): boolean {
+    const host = document.getElementById("flora-pubpeer-panel");
+    const tab = host?.querySelector<HTMLElement>("[data-flora-panel-tab]");
+    if (floraHidden || !host || !tab) return false;
+    if (host.dataset.floraPanelOpen !== "1") tab.click();
+    return host.dataset.floraPanelOpen === "1";
+}
 
 function pageTourAllowed(): boolean {
     return !floraHidden && !isSheets && !isDocumentEditor() && !searchScriptOwns();
@@ -1273,7 +1379,7 @@ const sheetsModalCallbacks: SheetsModalCallbacks = {
         debugLog("Sheets modal dismissed for tab:", currentSheetKey());
     },
     onSnooze() {
-        snoozeUntil = Date.now() + 10 * 60 * 1000; // 10 minutes
+        snoozeUntil = Date.now() + SHEETS_SNOOZE_MINUTES * 60 * 1000;
         debugLog("Sheets modal snoozed until", new Date(snoozeUntil).toLocaleTimeString());
     },
 };
@@ -1482,6 +1588,7 @@ const pageStartup = (async () => {
     reportActiveState(false);
     reportCodeError(`ORE failed to start on ${location.hostname}`, err);
   } finally {
+    startupSettled = true;
     if (!editorAllowed && isGoogleDocs()) document.dispatchEvent(new Event("flora-docs-stop-capture"));
     if (!editorAllowed && isExcel) document.dispatchEvent(new Event("flora-excel-stop-capture"));
   }

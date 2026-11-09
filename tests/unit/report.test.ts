@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 import {
     decodeReport,
     encodeReport,
+    outcomeLabel,
     renderReportBody,
     renderReportDocument,
     reportUrl,
@@ -211,5 +212,23 @@ describe("the printable report", () => {
         const html = renderReportBody(payload({notice: {kind: "concern", doi: "10.1/notice"}}));
         expect(html).toContain('href="https://doi.org/10.1/notice"');
         expect(html).toContain("Read the notice");
+    });
+});
+
+describe("outcome wording", () => {
+    it("reads FLoRA's raw \"success\" as \"successful\" and leaves other outcomes as recorded", () => {
+        expect(outcomeLabel("success")).toBe("successful");
+        expect(outcomeLabel("Success")).toBe("successful");
+        expect(outcomeLabel("failed")).toBe("failed");
+        expect(outcomeLabel("mixed")).toBe("mixed");
+        expect(outcomeLabel("partial success")).toBe("partial success");
+    });
+
+    it("shows the reworded outcome in the printable report, keeping its colour", () => {
+        const html = renderReportBody(payload({
+            replications: [{title: "A direct replication", doi: "10.1/rep", year: 2015, outcome: "success"}],
+        }));
+        expect(html).toContain(">successful</span>");
+        expect(html).toContain("background:#d1fae5");
     });
 });

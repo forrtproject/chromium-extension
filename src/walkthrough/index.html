@@ -38,15 +38,13 @@
           <div class="wt-step is-active" id="step-0">
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome">
-                <span class="wt-step-num">1 of 11</span>
+                <span class="wt-step-num">1 of 9</span>
                 <h1 class="wt-title wt-title-lead">
                   See what is known about a paper while you read
                 </h1>
                 <p class="wt-desc wt-desc-lead">
-                  For every paper ORE spots on a page, it answers four
-                  questions: Has anyone repeated the study to check it? Has it
-                  been retracted or flagged? Are researchers discussing it? Is
-                  there an open-access version?
+                  ORE checks each paper on a page for replications,
+                  retractions, PubPeer discussion and open-access versions.
                 </p>
                 <p class="wt-desc wt-desc-lead">
                   ORE recognises a paper by its <strong>DOI</strong> — the
@@ -68,7 +66,7 @@
                         Google Scholar, PubMed, Europe PMC, OpenAlex, Semantic
                         Scholar, Scopus and EBSCO: each result gets a panel.
                       </p>
-                      <span class="wt-place-steps">Screens 2–3</span>
+                      <span class="wt-place-steps">Screen 2</span>
                     </div>
                   </div>
 
@@ -87,7 +85,7 @@
                         The article, every paper in its reference list, and any
                         DOI mentioned elsewhere on a page.
                       </p>
-                      <span class="wt-place-steps">Screens 4–7</span>
+                      <span class="wt-place-steps">Screens 3–6</span>
                     </div>
                   </div>
 
@@ -106,7 +104,7 @@
                         in full. References in Google Docs and Word Online are
                         marked as you write.
                       </p>
-                      <span class="wt-place-steps">Screen 8</span>
+                      <span class="wt-place-steps">Screen 7</span>
                     </div>
                   </div>
                 </div>
@@ -133,17 +131,22 @@
                     </svg>
                     Search results
                   </span>
-                  <span class="wt-step-num">2 of 11</span>
+                  <span class="wt-step-num">2 of 9</span>
                 </div>
                 <h2 class="wt-title">Judge a result before you open it</h2>
                 <p class="wt-desc">
-                  On search sites, ORE adds a small panel beside each result,
-                  so you can tell which papers are worth opening.
+                  On search sites, ORE adds a small panel beside each result to
+                  help you skim the results. Click a row to open the paper, copy
+                  its reference, find an open-access version, read the
+                  discussion, or see its replications. A row that says
+                  &ldquo;Checking&hellip;&rdquo; is still running; it does not
+                  mean nothing was found.
                 </p>
                 <p class="wt-desc">
-                  Every row is also a button: open the paper, copy its
-                  reference, get an open-access version, read the discussion, or see its
-                  replications.
+                  When a result doesn't show a DOI, ORE looks the title up in
+                  Crossref and OpenAlex and picks the closest match by author
+                  and year. A DOI found this way is <strong>underlined with
+                  dots</strong>.
                 </p>
                 <div class="wt-callouts">
                   <div class="wt-callout">
@@ -161,19 +164,20 @@
                       </div>
                     </div>
                   </div>
-                  <div class="wt-callout">
-                    <div class="wt-callout-icon icon-neutral">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                  <div class="wt-callout callout-warning">
+                    <div class="wt-callout-icon icon-warning">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linejoin="round">
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">“Checking…” is not “nothing found”</div>
+                      <div class="wt-callout-title">Check a dotted DOI before you rely on it</div>
                       <div class="wt-callout-text">
-                        Each row says whether its check found something, found
-                        nothing, is still running, or could not be done.
+                        Two papers can have almost the same title. If the match
+                        is wrong, everything else in the panel describes the
+                        wrong paper. Open the DOI once to confirm.
                       </div>
                     </div>
                   </div>
@@ -184,7 +188,7 @@
                 <div class="mock-browser">
                   <div class="mock-browser-bar">
                     <div class="mock-browser-dots"><span></span><span></span><span></span></div>
-                    <div class="mock-url">scholar.google.com/scholar?q=power+posing</div>
+                    <div class="mock-url">scholar.google.com/scholar?q=social+psychology+replication</div>
                   </div>
                   <div class="mock-scholar-body">
                     <div class="mock-scholar-result">
@@ -212,67 +216,7 @@
                         <div data-demo="scholar-panel"></div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ─────────────────────────────────────────────
-               STEP 2 — Scholar: DOI found by search
-               ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-2">
-            <div class="wt-step-inner">
-              <div class="wt-info">
-                <div class="wt-context">
-                  <span class="wt-context-tag tag-scholar">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="m21 21-4.35-4.35" />
-                    </svg>
-                    Search results
-                  </span>
-                  <span class="wt-step-num">3 of 11</span>
-                </div>
-                <h2 class="wt-title">When ORE has to guess the DOI</h2>
-                <p class="wt-desc">
-                  Some results and references don't show a DOI. ORE then looks
-                  the title up in public paper databases (Crossref and
-                  OpenAlex) and picks the closest match by author and year.
-                </p>
-                <p class="wt-desc">
-                  A DOI found this way is <strong>underlined with dots</strong>.
-                  Hover it to see that it was matched by title.
-                </p>
-                <div class="wt-callouts">
-                  <div class="wt-callout callout-warning">
-                    <div class="wt-callout-icon icon-warning">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linejoin="round">
-                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Check a dotted DOI before you rely on it</div>
-                      <div class="wt-callout-text">
-                        Two papers can have almost the same title. If the match
-                        is wrong, everything else in the panel describes the
-                        wrong paper. Open the DOI once to confirm.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="step-demo">
-                <div class="mock-browser">
-                  <div class="mock-browser-bar">
-                    <div class="mock-browser-dots"><span></span><span></span><span></span></div>
-                    <div class="mock-url">scholar.google.com/scholar?q=ego+depletion</div>
-                  </div>
-                  <div class="mock-scholar-body">
-                    <div class="mock-scholar-result">
+                    <div class="mock-scholar-result mock-scholar-result--next">
                       <div class="mock-gs-ri">
                         <div class="mock-paper-title">
                           Ego Depletion: Is the Active Self a Limited Resource?
@@ -298,18 +242,15 @@
                     </div>
                   </div>
                 </div>
-                <p class="demo-note">
-                  The dotted underline is the only difference. Hover it to see
-                  why.
-                </p>
               </div>
             </div>
           </div>
 
+
           <!-- ─────────────────────────────────────────────
                STEP 3 — Journal pages: pill and side tab
                ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-3">
+          <div class="wt-step" id="step-2">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
@@ -322,7 +263,7 @@
                     </svg>
                     Articles &amp; other pages
                   </span>
-                  <span class="wt-step-num">4 of 11</span>
+                  <span class="wt-step-num">3 of 9</span>
                 </div>
                 <h2 class="wt-title">On an article page, two things appear</h2>
                 <p class="wt-desc">
@@ -417,7 +358,7 @@
           <!-- ─────────────────────────────────────────────
                STEP 4 — Reading the pill
                ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-4">
+          <div class="wt-step" id="step-3">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
@@ -429,7 +370,7 @@
                     </svg>
                     Reading the pill
                   </span>
-                  <span class="wt-step-num">5 of 11</span>
+                  <span class="wt-step-num">4 of 9</span>
                 </div>
                 <h2 class="wt-title">Reading the pill</h2>
                 <p class="wt-desc">
@@ -521,7 +462,7 @@
           <!-- ─────────────────────────────────────────────
                STEP 5 — Retractions and concerns
                ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-5">
+          <div class="wt-step" id="step-4">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
@@ -533,7 +474,7 @@
                     </svg>
                     Withdrawn &amp; questioned work
                   </span>
-                  <span class="wt-step-num">6 of 11</span>
+                  <span class="wt-step-num">5 of 9</span>
                 </div>
                 <h2 class="wt-title">Retracted, or under question</h2>
                 <p class="wt-desc">
@@ -598,7 +539,7 @@
           <!-- ─────────────────────────────────────────────
                STEP 6 — The Meta Report
                ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-6">
+          <div class="wt-step" id="step-5">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
@@ -611,7 +552,7 @@
                     </svg>
                     Articles &amp; other pages
                   </span>
-                  <span class="wt-step-num">7 of 11</span>
+                  <span class="wt-step-num">6 of 9</span>
                 </div>
                 <h2 class="wt-title">The Meta Report: everything in one place</h2>
                 <p class="wt-desc">
@@ -664,32 +605,16 @@
                   <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral">
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                    </div>
-                    <div class="wt-callout-body">
-                      <div class="wt-callout-title">Save it</div>
-                      <div class="wt-callout-text">
-                        The download button opens a printable page. Print it to
-                        PDF to keep with your notes.
-                      </div>
-                    </div>
-                  </div>
-                  <div class="wt-callout">
-                    <div class="wt-callout-icon icon-neutral">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Share it</div>
+                      <div class="wt-callout-title">Print or share it</div>
                       <div class="wt-callout-text">
-                        The share button copies a link that anyone can open,
-                        even without ORE. The report is stored inside the link
-                        itself, so nothing is uploaded.
+                        <strong>Print</strong> makes a printable page.
+                        <strong>Copy link</strong> shares the whole report in
+                        the link itself, so nothing is uploaded.
                       </div>
                     </div>
                   </div>
@@ -711,7 +636,7 @@
           <!-- ─────────────────────────────────────────────
                STEP 7 — Spreadsheets
                ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-7">
+          <div class="wt-step" id="step-6">
             <div class="wt-step-inner">
               <div class="wt-info">
                 <div class="wt-context">
@@ -723,7 +648,7 @@
                     </svg>
                     Spreadsheets &amp; documents
                   </span>
-                  <span class="wt-step-num">8 of 11</span>
+                  <span class="wt-step-num">7 of 9</span>
                 </div>
                 <h2 class="wt-title">Check a whole list of papers at once</h2>
                 <p class="wt-desc">
@@ -761,10 +686,11 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Dismiss or snooze</div>
+                      <div class="wt-callout-title">Hide or snooze</div>
                       <div class="wt-callout-text">
-                        Dismiss closes the popup for this tab. The clock hides
-                        it for ten minutes.
+                        <strong>Hide for this sheet</strong> closes the card for
+                        this sheet. <strong>Snooze</strong> hides it for ten
+                        minutes.
                       </div>
                     </div>
                   </div>
@@ -817,33 +743,16 @@
           </div>
 
           <!-- ─────────────────────────────────────────────
-               STEP 8 — Where ORE runs
+               STEP 8 — Setup: email, citation style, where ORE runs
                ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-8">
-            <div class="wt-step-inner is-welcome">
-              <div class="wt-welcome wt-sites">
-                <span class="wt-step-num">9 of 11</span>
-                <h1 class="wt-title wt-title-lead">Where should ORE run?</h1>
-                <p class="wt-desc wt-desc-lead">
-                  ORE is on for journals, publishers, preprint servers and
-                  documents, and off for shopping, video, messaging and web
-                  search. Tick or untick a category, or open it to choose site
-                  by site. Your choice is saved straight away, and you can
-                  change it any time in Settings.
-                </p>
-                <div id="wt-site-categories" class="site-categories"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="wt-step" id="step-9">
+          <div class="wt-step" id="step-7">
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome wt-sites wt-setup-step">
-                <span class="wt-step-num">10 of 11</span>
-                <h1 class="wt-title wt-title-lead">Two quick choices</h1>
+                <span class="wt-step-num">8 of 9</span>
+                <h1 class="wt-title wt-title-lead">Set up ORE</h1>
                 <p class="wt-desc wt-desc-lead">
-                  Both are saved as soon as you make them, and you can change
-                  them any time in Settings.
+                  Your choices are saved as soon as you make them, and you can
+                  change them any time in Settings.
                 </p>
                 <div class="wt-setup">
                   <form class="wt-setup-field" id="wt-email-form" novalidate>
@@ -877,6 +786,14 @@
                     <p class="wt-setup-status" id="wt-citation-status" role="status"></p>
                   </div>
                 </div>
+                <h2 class="wt-setup-heading">Where should ORE run?</h2>
+                <p class="wt-desc wt-desc-lead">
+                  ORE is on for journals, publishers, preprint servers and
+                  documents, and off for shopping, video, messaging and web
+                  search. Tick or untick a category, or open it to choose site
+                  by site.
+                </p>
+                <div id="wt-site-categories" class="site-categories"></div>
               </div>
             </div>
           </div>
@@ -884,10 +801,10 @@
           <!-- ─────────────────────────────────────────────
                STEP 10 — You're set
                ───────────────────────────────────────────── -->
-          <div class="wt-step" id="step-10">
+          <div class="wt-step" id="step-8">
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome">
-                <span class="wt-step-num">11 of 11</span>
+                <span class="wt-step-num">9 of 9</span>
                 <h1 class="wt-title wt-title-lead">You're ready</h1>
                 <p class="wt-desc wt-desc-lead">
                   ORE works by itself as you browse. While it checks a page, a
@@ -947,15 +864,13 @@
           <div class="wt-dots">
             <button class="wt-dot active" data-step="0" aria-label="Welcome"></button>
             <button class="wt-dot" data-step="1" aria-label="Search results"></button>
-            <button class="wt-dot" data-step="2" aria-label="DOIs matched by title"></button>
-            <button class="wt-dot" data-step="3" aria-label="The pill and the side tab"></button>
-            <button class="wt-dot" data-step="4" aria-label="Reading the pill"></button>
-            <button class="wt-dot" data-step="5" aria-label="Retractions and concerns"></button>
-            <button class="wt-dot" data-step="6" aria-label="The Meta Report"></button>
-            <button class="wt-dot" data-step="7" aria-label="Spreadsheets and documents"></button>
-            <button class="wt-dot" data-step="8" aria-label="Where ORE runs"></button>
-            <button class="wt-dot" data-step="9" aria-label="Email and citation style"></button>
-            <button class="wt-dot" data-step="10" aria-label="You're ready"></button>
+            <button class="wt-dot" data-step="2" aria-label="The pill and the side tab"></button>
+            <button class="wt-dot" data-step="3" aria-label="Reading the pill"></button>
+            <button class="wt-dot" data-step="4" aria-label="Retractions and concerns"></button>
+            <button class="wt-dot" data-step="5" aria-label="The Meta Report"></button>
+            <button class="wt-dot" data-step="6" aria-label="Spreadsheets and documents"></button>
+            <button class="wt-dot" data-step="7" aria-label="Setup"></button>
+            <button class="wt-dot" data-step="8" aria-label="You're ready"></button>
           </div>
           <button class="wt-nav-btn primary" id="next-btn">Next &rarr;</button>
         </div>

@@ -59,7 +59,7 @@ describe("the popup's page tour button", () => {
         await openPopup();
         clickTour();
         await vi.waitFor(() => expect(element("tour-help").hidden).toBe(false));
-        expect(helpTitle()).toBe("Nothing to show on this page");
+        expect(helpTitle()).toBe("No pills on this page");
         expect(element("tour-reload-btn").hidden).toBe(true);
         expect(chrome.tabs.create).not.toHaveBeenCalled();
         expect(window.close).not.toHaveBeenCalled();
@@ -110,16 +110,6 @@ describe("the popup's page tour button", () => {
         expect(document.activeElement).toBe(element("page-tour-btn"));
     });
 
-    it("closes when the backdrop is clicked, but not when the card is", async () => {
-        await openPopup();
-        clickTour();
-        await vi.waitFor(() => expect(element("tour-help").hidden).toBe(false));
-        element("tour-help-text").click();
-        expect(element("tour-help").hidden).toBe(false);
-        element("tour-help").click();
-        expect(element("tour-help").hidden).toBe(true);
-    });
-
     it("offers a reload when the tab has no content script", async () => {
         tourReply = () => Promise.reject(new Error("Receiving end does not exist"));
         await openPopup();
@@ -132,7 +122,7 @@ describe("the popup's page tour button", () => {
     it("says the browser's own pages are out of reach without messaging them", async () => {
         await openPopup("chrome://extensions/");
         clickTour();
-        await vi.waitFor(() => expect(helpTitle()).toBe("ORE can't run on this page"));
+        await vi.waitFor(() => expect(helpTitle()).toBe("ORE can't run on browser pages"));
         expect(chrome.tabs.sendMessage).not.toHaveBeenCalledWith(1, {type: "FLORA_START_PAGE_TOUR"});
         expect(element("tour-sample-btn").hidden).toBe(false);
         expect(element("tour-reload-btn").hidden).toBe(true);
@@ -193,6 +183,6 @@ describe("the popup's page tour button", () => {
         await vi.waitFor(() => expect(chrome.tabs.query).toHaveBeenCalled());
         expect(element("tour-help").hidden).toBe(true);
         resolveTabs([{id: 1, url: "https://example.org/article"}]);
-        await vi.waitFor(() => expect(helpTitle()).toBe("Nothing to show on this page"));
+        await vi.waitFor(() => expect(helpTitle()).toBe("No pills on this page"));
     });
 });
