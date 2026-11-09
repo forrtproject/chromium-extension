@@ -7,7 +7,7 @@ import {isInRelatedWorks} from "@shared/related-works";
 import {REFERENCE_ENTRY_ATTR} from "@shared/flora-ui";
 import {pillRow} from "@shared/pill-row";
 import {debugLog} from "@shared/debug";
-import type {DoiOccurrence} from "@shared/doi-extractor";
+import {isComponentDoi, type DoiOccurrence} from "@shared/doi-extractor";
 import type {DoiContext, DoiString, LookupState} from "@shared/types";
 
 export const LOOSE_PILL_ATTR = "data-flora-loose-pill";
@@ -110,6 +110,8 @@ export function injectLooseDoiPills({occurrences, context, pageState, noticed, p
         if (isEditableSurface(occ.source)) continue;
         if (isInRelatedWorks(occ.source, article)) continue;
         if (occ.doi === primary || isPrefixOfPrimary(occ.doi, primary)) continue;
+        // A figure/table DOI of this article is not a separate paper to check.
+        if (isComponentDoi(occ.doi, primary)) continue;
 
         const state = pageState.get(occ.doi);
         const stats = state?.status === "matched" ? state.result.record.stats : null;

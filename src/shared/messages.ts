@@ -91,6 +91,65 @@ export function isTakeReportRequest(msg: unknown): msg is TakeReportRequest {
     return type === "FLORA_TAKE_REPORT" || type === "FLORA_PEEK_REPORT";
 }
 
+/** Distinct-paper counts for one group of DOIs: an article's references, or every paper on a page. */
+export interface FindingCounts {
+    papers: number;
+    /** Papers settled by a FLoRA lookup or a retraction/concern notice. */
+    checked: number;
+    /** Papers with a check that failed: FLoRA, retraction or PubPeer. */
+    unavailable: number;
+    retracted: number;
+    concern: number;
+    /** Papers with replication, reproduction or original-study records (not a study count). */
+    replications: number;
+    pubpeer: number;
+}
+
+/** The paper the page is about. */
+export interface ArticleFindings {
+    retracted: boolean;
+    concern: boolean;
+    /** Study totals from FLoRA, as in the report. */
+    replications: number;
+    reproductions: number;
+    /** Original studies this paper replicates. */
+    originals: number;
+    pubpeerComments: number;
+    /**
+     * A FLoRA, retraction or PubPeer check for the article failed. In Word and
+     * Google Docs a failed PubPeer lookup for a reference also sets it.
+     */
+    incomplete: boolean;
+}
+
+/** What ORE found on an ordinary page, for the popup's summary. */
+export interface PageFindings {
+    /** A pass is still running, or the page has not started one yet. */
+    checking: boolean;
+    /** Present when the page is an article ORE recognised. */
+    article?: ArticleFindings;
+    /** The article's references when `article` is set, otherwise every paper on the page. */
+    others: FindingCounts;
+    /** The page has a side panel that "Open report" can open. */
+    panel: boolean;
+}
+
+/** content-search's summary of a results page. */
+export interface ResultFindings {
+    papers: number;
+    flagged: number;
+    incomplete: boolean;
+    /** The search script is still starting up or its lookups are still running. */
+    checking?: boolean;
+}
+
+/** A content script's answer to `FLORA_GET_STATE`. */
+export interface PageStateResponse {
+    hidden: boolean;
+    findings?: PageFindings;
+    results?: ResultFindings;
+}
+
 export type ScanState =
     | {phase: "scanning"; papers: number}
     | {phase: "done"; papers: number; flagged: number; incomplete: boolean}
@@ -216,6 +275,8 @@ export interface SheetFetchResponse {
     type: "FLORA_SHEET_FETCH_RESULT";
     csv: string | null;
     error: string | null;
+    /** True when the CSV came from `/export`, whose row N is sheet row N (gviz drops blank rows). */
+    fullTab?: boolean;
 }
 
 /** Content script → service worker: resolve DOIs from article titles */

@@ -137,6 +137,12 @@ export function searchScanSummary(): ScanSummary | null {
     return {papers: papers.size, flagged: flagged.size, incomplete};
 }
 
+/** True while any result's FLoRA lookup is in flight. */
+export function searchLookupsPending(): boolean {
+    for (const state of lookupState.values()) if (state.status === "loading") return true;
+    return false;
+}
+
 // Set by the popup's hide command and by the work toast's pause control (both
 // handled in index.ts). The pass reads it to stop marking up rows.
 let searchHidden = false;

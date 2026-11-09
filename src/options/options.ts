@@ -249,7 +249,7 @@ function renderBlockedList(): void {
   if (blocked.length === 0) {
     const empty = document.createElement("div");
     empty.className = "domain-empty";
-    empty.textContent = "No domains blocked — ORE is active on all sites.";
+    empty.textContent = "No sites blocked.";
     domainList.appendChild(empty);
     return;
   }
@@ -531,3 +531,11 @@ debugClearBtn.addEventListener("click", async () => {
   await refreshDebugReport();
   showDebugStatus("Debug log cleared.", "success");
 });
+
+// A jump link to a collapsed card opens it.
+for (const link of document.querySelectorAll<HTMLAnchorElement>(".section-nav a")) {
+  link.addEventListener("click", () => {
+    const target = document.querySelector(link.hash);
+    if (target instanceof HTMLDetailsElement) target.open = true;
+  });
+}

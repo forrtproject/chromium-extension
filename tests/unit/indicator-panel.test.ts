@@ -48,7 +48,10 @@ describe("createIndicatorPanel", () => {
     document.body.appendChild(panel);
     const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
     updateIndicatorPillBadges(document, states, () => [], "panels", undefined, SAME_PAGE);
-    expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("Unavailable");
+    const row = panel.querySelector("[data-flora-badge-row]")?.textContent ?? "";
+    expect(row).toContain("Replication / Reproduction data");
+    expect(row).toContain("FORRT unavailable");
+    expect(row).not.toMatch(/^\s*FORRT\b/);
     const state = matchedState(3).get(DOI)!;
     vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({results: {[DOI]: state.status === "matched" ? state.result : null}, errors: {}});
     panel.querySelector<HTMLButtonElement>("[data-flora-badge-row] button")!.click();
@@ -57,6 +60,16 @@ describe("createIndicatorPanel", () => {
     expect(states.get(DOI)?.status).toBe("matched");
     updateIndicatorPillBadges(document, states, () => [], "panels", undefined, SAME_PAGE);
     expect(panel.querySelector("[data-flora-badge-row]")?.textContent).toContain("3");
+  });
+
+  it("keeps the row label while FORRT data is being checked", () => {
+    const panel = createIndicatorPanel({doi: DOI});
+    document.body.appendChild(panel);
+    const states = new Map<DoiString, LookupState>([[DOI, {status: "loading"}]]);
+    updateIndicatorPillBadges(document, states, () => [], "panels", undefined, SAME_PAGE);
+    const row = panel.querySelector("[data-flora-badge-row]")?.textContent ?? "";
+    expect(row).toContain("Replication / Reproduction data");
+    expect(row).toContain("Checking FORRT…");
   });
 
   it("reports a recovered retry so the owning page rerenders its panel", async () => {

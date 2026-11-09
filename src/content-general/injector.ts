@@ -5,7 +5,7 @@ import type { PubPeerFeedback } from "../shared/pubpeer-api";
 import { debugLog, debugWarn } from "../shared/debug";
 import { safeSendMessage } from "../shared/messages";
 import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
-import { renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
+import { outcomeLabel, renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
 import { writeClipboard } from "@shared/clipboard";
 import { showToast } from "@shared/toast";
 import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
@@ -14,6 +14,7 @@ import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
 import { hasCustomTabTop, positionTabOnRightEdge, saveCustomTabTop } from "@shared/tab-position";
 import { adoptPanelTab, canOpenPanel, releasePanelTab, setTabLabel } from "@shared/progress-tab";
 import { plainTitle } from "@shared/plain-title";
+import { isPageTourOpen, onPageTourOpenChange } from "@shared/page-tour";
 import { lookupRegisteredReports, registeredReportDetail, RR_ACCENT, type RegisteredReport } from "@shared/registered-reports";
 
 // The work/progress toast lives in shared so the Scholar content script can
@@ -133,16 +134,26 @@ export async function renderSetupPrompt(): Promise<void> {
 
   document.body.appendChild(host);
 
+  // The page tour dims everything under it; hold the prompt back until the
+  // tour is finished or skipped.
+  const followTour = (open: boolean): void => { host.style.display = open ? "none" : ""; };
+  followTour(isPageTourOpen());
+  const stopFollowingTour = onPageTourOpenChange((open) => {
+    if (!host.isConnected) stopFollowingTour();
+    else followTour(open);
+  });
+  const removePrompt = (): void => { stopFollowingTour(); host.remove(); };
+
   const closeEl = host.querySelector(".flora-setup-close");
   if (closeEl) {
     onActivate(closeEl, () => {
-      void dismissSetupForSession().then(() => host.remove());
+      void dismissSetupForSession().then(removePrompt);
     });
   }
 
   host.querySelector(".flora-setup-open")?.addEventListener("click", () => {
     void safeSendMessage({ type: "FLORA_OPEN_OPTIONS" });
-    host.remove();
+    removePrompt();
   });
 
   for (const btn of host.querySelectorAll<HTMLButtonElement>(".flora-remind-options button")) {
@@ -150,7 +161,7 @@ export async function renderSetupPrompt(): Promise<void> {
       const ms = Number(btn.dataset.ms);
       if (!ms) return;
       await snoozeSetup(ms);
-      host.remove();
+      removePrompt();
     });
   }
 }
@@ -173,6 +184,8 @@ function escapeHtml(s: string): string {
 // ──────────────────────────────────────────────
 
 const SHEETS_MODAL_ID = "flora-sheets-modal";
+/** How long the sheets card's Snooze keeps it away. */
+export const SHEETS_SNOOZE_MINUTES = 10;
 
 export interface SheetsModalCallbacks {
   onDismiss: () => void;
@@ -190,28 +203,41 @@ function sheetsHeadline(retracted: number, concerned: number): string {
   return "Replication data found";
 }
 
-function noticeSection(notices: RetractionResponse[]): string {
+/** Row lookup for the Sheets card: where each DOI sits in the current tab. */
+export interface SheetsRowLookup {
+  gid: string;
+  byDoi: Map<string, number>;
+}
+
+function noticeSection(notices: RetractionResponse[], rows?: SheetsRowLookup): string {
   if (notices.length === 0) return "";
 
-  const rows = notices.map((notice) => {
+  const rowsHtml = notices.map((notice) => {
     const { label, pillBackground, pillStroke, pillText } = noticePresentation(notice.kind);
+    const row = rows?.byDoi.get(notice.originDoi.toLowerCase());
+    const goTo = row && rows ? `
+          <a data-flora-sheet-row="gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" href="#gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" style="
+            all:unset;cursor:pointer;flex-shrink:0;font-size:11px;font-weight:600;color:#1a73e8;
+          ">Go to row ${row}</a>` : "";
     return `
-      <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
-        all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;
+      <div data-flora-notice-row style="
         padding:6px 8px;border-radius:6px;background:${pillBackground};
         border:1px solid ${pillStroke}55;margin-bottom:6px;box-sizing:border-box;
+        display:flex;align-items:center;gap:8px;
       ">
-        <span style="
-          flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.2px;
-          color:${pillText};border:1px solid ${pillStroke};background:#fff;
-          padding:1px 6px;border-radius:4px;
-        ">${label}</span>
-        <span style="
-          flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-          font-size:11px;color:#3c4043;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-        ">${escapeHtml(notice.originDoi)}</span>
-        <span style="flex-shrink:0;font-size:11px;color:${pillText};">Notice ↗</span>
-      </a>`;
+          <span style="
+            flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.2px;
+            color:${pillText};border:1px solid ${pillStroke};background:#fff;
+            padding:1px 6px;border-radius:4px;
+          ">${label}</span>
+          <span style="
+            flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+            font-size:11px;color:#3c4043;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+          ">${escapeHtml(notice.originDoi)}</span>
+          <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
+            all:unset;cursor:pointer;flex-shrink:0;font-size:11px;color:${pillText};
+          ">Notice ↗</a>${goTo}
+      </div>`;
   }).join("");
 
   return `
@@ -219,7 +245,7 @@ function noticeSection(notices: RetractionResponse[]): string {
         <div style="font-size:11px;font-weight:600;color:#5f6368;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;">
           Withdrawn or questioned
         </div>
-        ${rows}
+        ${rowsHtml}
       </div>`;
 }
 
@@ -231,7 +257,8 @@ function noticeSection(notices: RetractionResponse[]): string {
 export function renderSheetsModal(
   matched: { doi: string; result: ReplicationResult }[],
   notices: RetractionResponse[] = [],
-  callbacks?: SheetsModalCallbacks
+  callbacks?: SheetsModalCallbacks,
+  rows?: SheetsRowLookup
 ): void {
   const totalRepl = matched.reduce(
     (sum, m) => sum + m.result.record.stats.n_replications_total, 0
@@ -253,7 +280,7 @@ export function renderSheetsModal(
 
   const signature = [
     doiCount, totalRepl, totalRepro,
-    ...notices.map((n) => `${n.originDoi}:${n.kind}`).sort(),
+    ...notices.map((n) => `${n.originDoi}:${n.kind}:${rows?.byDoi.get(n.originDoi.toLowerCase()) ?? ""}`).sort(),
   ].join("|");
 
   const existing = document.getElementById(SHEETS_MODAL_ID);
@@ -286,7 +313,7 @@ export function renderSheetsModal(
         <a data-flora-details-link target="_blank" rel="noopener" style="
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">View details</a>` : "";
+        ">Open in FLoRA Atlas</a>` : "";
 
   const host = document.createElement("div");
   host.id = SHEETS_MODAL_ID;
@@ -316,20 +343,20 @@ export function renderSheetsModal(
 
       <div style="padding:16px;">
         <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">${summary}</div>
-        ${noticeSection(notices)}
+        ${noticeSection(notices, rows)}
         ${statCards}
       </div>
 
-      <div style="padding:10px 16px 14px;display:flex;align-items:center;gap:8px;">
-        <button class="flora-modal-snooze" title="Snooze for 10 minutes" style="
-          all:unset;cursor:pointer;padding:7px 8px;font-size:0;line-height:0;
-          color:#5f6368;border-radius:6px;transition:color 0.15s;
-          display:flex;align-items:center;justify-content:center;margin-right:auto;
-        "><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+      <div style="padding:10px 16px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;">
+        <button class="flora-modal-snooze" title="Hide this card for ${SHEETS_SNOOZE_MINUTES} minutes" style="
+          all:unset;cursor:pointer;padding:7px 8px;font-size:13px;font-weight:500;line-height:1;
+          color:#5f6368;border-radius:6px;transition:color 0.15s;white-space:nowrap;
+          display:flex;align-items:center;justify-content:center;gap:6px;margin-right:auto;
+        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Snooze ${SHEETS_SNOOZE_MINUTES} min</button>
         <button class="flora-modal-dismiss" style="
-          all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
-          color:#5f6368;border-radius:6px;transition:background 0.15s;
-        ">Dismiss</button>
+          all:unset;cursor:pointer;padding:7px 12px;font-size:13px;font-weight:500;
+          color:#5f6368;border-radius:6px;transition:background 0.15s;white-space:nowrap;
+        ">Hide for this sheet</button>
         ${detailsLink}
       </div>
     </div>
@@ -344,6 +371,15 @@ export function renderSheetsModal(
   document.body.appendChild(host);
 
   bindAtlasLink(host.querySelector<HTMLAnchorElement>("[data-flora-details-link]"), matchedDois);
+
+  // Sheets selects the cell named in its own URL fragment. Set the fragment
+  // directly so a <base> element on the page can never turn it into a navigation.
+  for (const link of host.querySelectorAll<HTMLAnchorElement>("[data-flora-sheet-row]")) {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      location.hash = link.dataset.floraSheetRow ?? "";
+    });
+  }
 
   // Wire up close / dismiss
   for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
@@ -588,9 +624,10 @@ function panelSignature(
 }
 
 const HEADER_ACTION_STYLE =
-  "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);line-height:0;" +
-  "width:28px;height:28px;display:flex;align-items:center;justify-content:center;" +
-  "border-radius:50%;transition:color 0.15s,background 0.15s;";
+  "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);line-height:1;" +
+  "height:28px;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:5px;" +
+  "font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;" +
+  "border-radius:14px;transition:color 0.15s,background 0.15s;";
 
 const DOWNLOAD_ICON =
   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
@@ -602,12 +639,15 @@ const SHARE_ICON =
   `stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>` +
   `<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 
-function headerAction(icon: string, label: string, onClick: () => void): HTMLButtonElement {
+/** A header button with an icon and a visible label; `description` is the tooltip. */
+function headerAction(icon: string, text: string, description: string, onClick: () => void): HTMLButtonElement {
   const btn = document.createElement("button");
-  btn.setAttribute("aria-label", label);
-  btn.title = label;
+  btn.title = description;
   btn.style.cssText = HEADER_ACTION_STYLE;
   btn.innerHTML = icon;
+  const label = document.createElement("span");
+  label.textContent = text;
+  btn.append(label);
   btn.addEventListener("mouseenter", () => {
     btn.style.color = "#fff";
     btn.style.background = "rgba(255,255,255,0.15)";
@@ -684,7 +724,7 @@ function toReportEntry(entry: {
  * that most publisher print stylesheets hide outright.
  */
 function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(DOWNLOAD_ICON, "Save this report (print to PDF)", () => {
+  return headerAction(DOWNLOAD_ICON, "Print", "Print this report, or save it as a PDF", () => {
     const win = window.open("", "_blank", "width=900,height=1000");
     if (!win) {
       showToast("Allow pop-ups for this site to save the report", { tone: "error" });
@@ -697,7 +737,7 @@ function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
 }
 
 function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(SHARE_ICON, "Copy a link to this report", () => {
+  return headerAction(SHARE_ICON, "Copy link", "Copy a link to this report", () => {
     void reportUrl(payload())
       .then((url) => writeClipboard(url))
       .then((copied) => {
@@ -721,6 +761,7 @@ export function renderSidePanel(
   onRetryPubPeer?: () => Promise<void>,
   options: {documentMode?: boolean} = {},
 ): void {
+  ensureFocusStyle();
   const references = rawReferences.map((ref) => ({ ...ref, title: plainTitle(ref.title) }));
   const existingHost = document.getElementById(PUBPEER_PANEL_ID);
   // Track open state via a stateful marker on the host — comparing inline
@@ -905,7 +946,7 @@ export function renderSidePanel(
     "display:flex;align-items:center;gap:10px;flex-shrink:0;";
   header.innerHTML = `
     <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
-    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;">Meta Report</span>`;
+    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;">Meta Report</span>`;
 
   const buildPayload = (): ReportPayload => ({
     v: 1,
@@ -1126,7 +1167,7 @@ export function renderSidePanel(
             : isFailure
               ? "background:#fee2e2;color:#991b1b;"
               : "background:#fef8e8;color:#b8860b;");
-        badge.textContent = entry.outcome;
+        badge.textContent = outcomeLabel(entry.outcome);
         titleRow.appendChild(badge);
       }
       item.appendChild(titleRow);
@@ -1377,16 +1418,25 @@ export function renderSidePanel(
     list.style.cssText = "margin:0;list-style:none;padding:0;";
 
     const COLLAPSED_COUNT = 5;
+    // Retracted and expression-of-concern references lead the list and are
+    // never folded behind "Show more".
+    const noticeRank = (doi: DoiString): number => {
+      const kind = retractionByDoi.get(doi)?.kind;
+      return kind === "retraction" ? 0 : kind ? 1 : 2;
+    };
+    const ordered = [...refs].sort((a, b) => noticeRank(a.doi) - noticeRank(b.doi));
+    const noticeCount = ordered.filter((ref) => noticeRank(ref.doi) < 2).length;
+    const visibleCount = Math.max(COLLAPSED_COUNT, noticeCount);
     const items: HTMLLIElement[] = [];
-    for (const ref of refs) {
+    for (const ref of ordered) {
       const li = buildRefRow(ref);
       items.push(li);
       list.appendChild(li);
     }
     section.appendChild(list);
 
-    if (items.length > COLLAPSED_COUNT) {
-      const hidden = items.slice(COLLAPSED_COUNT);
+    if (items.length > visibleCount) {
+      const hidden = items.slice(visibleCount);
       for (const li of hidden) li.style.display = "none";
 
       const toggleWrap = document.createElement("div");
