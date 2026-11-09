@@ -1,4 +1,5 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
+import {jsPDF} from "jspdf";
 import {buildReportPdf, pdfText, reportPdfFilename} from "../../src/shared/report-pdf";
 import type {ReportPayload} from "../../src/shared/report";
 import {renderSidePanel, removeSidePanel} from "../../src/content-general/injector";
@@ -109,7 +110,18 @@ describe("report PDF layout", () => {
         expect(pdf).not.toContain(`(Somebody et al. · 2020 · ${journal})`);
         expect(pdf).toContain("Somebody et al.");
         expect(pdf).toContain("Subtitles in Applied Research");
-        const positions = [...pdf.matchAll(/([\d.]+) [\d.]+ Td/g)].map((m) => Number(m[1]));
-        expect(Math.max(...positions)).toBeLessThan(595.28 - 48);
+
+        const fonts = new jsPDF({unit: "pt"});
+        const fontById = new Map(([["helvetica", "normal"], ["helvetica", "bold"], ["courier", "normal"]] as const)
+            .map(([name, style]) => [fonts.internal.getFont(name, style).id as string, [name, style] as const]));
+        const lines = [...pdf.matchAll(/\/(F\d+) ([\d.]+) Tf[\s\S]*?([\d.]+) [\d.]+ Td\s*\(((?:\\.|[^\\)])*)\) Tj/g)].map((m) => {
+            const [name, style] = fontById.get(m[1])!;
+            fonts.setFont(name, style);
+            fonts.setFontSize(Number(m[2]));
+            const text = m[4].replace(/\\(.)/g, "$1");
+            return {text, right: Number(m[3]) + fonts.getTextWidth(text)};
+        });
+        expect(lines.length).toBeGreaterThan(10);
+        expect(lines.find((line) => line.right > 595.28 - 48 + 0.5)).toBeUndefined();
     });
 });

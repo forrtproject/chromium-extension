@@ -75,6 +75,24 @@ describe("lookupPubPeerForDoi batching", () => {
     expect(pubPeerLookupsPending()).toBe(false);
   });
 
+  it("stops reporting a per-DOI lookup as pending when it fails", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    const pending = lookupPubPeerForDoi("10.1234/a");
+    const outcome = expect(pending).rejects.toThrow();
+    expect(pubPeerLookupsPending()).toBe(true);
+    await vi.advanceTimersByTimeAsync(50);
+    await outcome;
+    expect(pubPeerLookupsPending()).toBe(false);
+  });
+
+  it("clears the pending count when the cache is reset for a test", () => {
+    vi.useFakeTimers();
+    void lookupPubPeerForDoi("10.1234/a").catch(() => {});
+    _resetPubPeerCacheForTesting();
+    expect(pubPeerLookupsPending()).toBe(false);
+  });
+
   it("drops cancelled queued batches after the scan indicator ends", async () => {
     vi.useFakeTimers();
     beginCancellableWork();

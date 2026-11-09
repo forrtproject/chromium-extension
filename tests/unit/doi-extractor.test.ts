@@ -1414,7 +1414,7 @@ describe("coordinates and other numbers", () => {
 
   it("does not take a signed coordinate from a link's path", () => {
     expect(extractDoiFromHref("https://maps.example/place/-10.4806/66.9036/")).toBeNull();
-    expect(extractDoiFromHref("https://maps.example/at/151.12345/33.1")).toBeNull();
+    expect(extractDoiFromHref("https://maps.example/at/10.12345/-33.1")).toBeNull();
     expect(extractDoiFromHref("https://journal.example/article/10.1038/nature12373")).toBe("10.1038/nature12373");
   });
 

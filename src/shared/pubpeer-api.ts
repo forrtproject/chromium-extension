@@ -318,13 +318,13 @@ function flushPendingDois(): void {
   }
 }
 
-/** A confirmed miss resolves to null; unavailable responses reject so the UI can offer retry. */
 let doiLookupsInFlight = 0;
 
 export function pubPeerLookupsPending(): boolean {
   return doiLookupsInFlight > 0;
 }
 
+/** A confirmed miss resolves to null; unavailable responses reject so the UI can offer retry. */
 export function lookupPubPeerForDoi(doi: string): Promise<PubPeerFeedback | null> {
   doiLookupsInFlight++;
   const settled = () => { doiLookupsInFlight--; };
@@ -398,5 +398,6 @@ export function _resetPubPeerCacheForTesting(): void {
   flushHandle = null;
   pendingDois.clear();
   inFlight.clear();
+  doiLookupsInFlight = 0;
   rateLimitedUntil = 0;
 }

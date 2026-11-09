@@ -257,6 +257,7 @@ describe("side panel comments", () => {
 
         expect(commentRequests()).toHaveLength(0);
         expect(commentsSection().textContent).toContain("can only be read on PubPeer");
+        expect(commentsSection().querySelector<HTMLAnchorElement>("a")?.href).toBe("https://pubpeer.com/search?q=10.1177");
         expect(commentsSection().querySelector("button")).toBeNull();
     });
 
