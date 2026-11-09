@@ -34,18 +34,20 @@ function link(href: string, text: string): HTMLAnchorElement {
   return a;
 }
 
+// Every open-ended part is length-capped: an unmatched `*`, `` ` `` or `[` would otherwise rescan the rest
+// of a long comment from each opener, freezing the host page.
 const INLINE = new RegExp(
   [
     /\\([\\`*_{}[\]()#+\-.!>~|])/.source,
-    /`([^`]+)`/.source,
-    /!?\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/.source,
-    /<(https?:\/\/[^>\s]+)>/.source,
-    /(https?:\/\/[^\s<>]+)/.source,
-    /\*\*(?=\S)([\s\S]+?)\*\*/.source,
-    /(?<![A-Za-z0-9_])__(?=\S)([\s\S]+?)__(?![A-Za-z0-9_])/.source,
-    /\*(?=[^\s*])([\s\S]+?)\*/.source,
-    /(?<![A-Za-z0-9_])_(?=[^\s_])([\s\S]+?)_(?![A-Za-z0-9_])/.source,
-    /~~(?=\S)([\s\S]+?)~~/.source,
+    /`([^`\n]{1,500})`/.source,
+    /!?\[([^\]\n]{0,500})\]\(\s{0,10}<?((?:[^()\s<>]|\([^()\s<>]{0,500}\)){1,2000})>?(?:\s{1,10}"[^"\n]{0,500}")?\s{0,10}\)/.source,
+    /<(https?:\/\/[^>\s]{1,2000})>/.source,
+    /(https?:\/\/[^\s<>]{1,2000})/.source,
+    /\*\*(?=\S)([\s\S]{1,1000}?)\*\*/.source,
+    /(?<![A-Za-z0-9_])__(?=\S)([\s\S]{1,1000}?)__(?![A-Za-z0-9_])/.source,
+    /\*(?=[^\s*])([\s\S]{1,1000}?)\*/.source,
+    /(?<![A-Za-z0-9_])_(?=[^\s_])([\s\S]{1,1000}?)_(?![A-Za-z0-9_])/.source,
+    /~~(?=\S)([\s\S]{1,1000}?)~~/.source,
   ].join("|"),
   "g"
 );
@@ -89,7 +91,7 @@ function appendInline(parent: Node, text: string): void {
       const raw = autolink ?? trimBareUrl(bare!);
       if (bare !== undefined) last = start + raw.length;
       const href = webHref(raw);
-      if (href) parent.appendChild(link(href, raw));
+      if (href) parent.appendChild(link(href, decodeEntities(raw)));
       else pushText(raw);
     } else if (bold !== undefined || boldUnderscore !== undefined) wrap("strong", bold ?? boldUnderscore!);
     else if (italic !== undefined || italicUnderscore !== undefined) wrap("em", italic ?? italicUnderscore!);
@@ -108,7 +110,7 @@ function appendLines(parent: HTMLElement, lines: string[]): void {
 const LIST_ITEM = /^\s{0,3}([*+-]|\d{1,9}[.)])\s+(.*)$/;
 const QUOTE_LINE = /^\s{0,3}>\s?(.*)$/;
 const HEADING = /^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$/;
-const FENCE = /^\s{0,3}(```|~~~)/;
+const FENCE = /^\s{0,3}(```+|~~~+)/;
 const BLOCK_STYLE = "margin:0 0 8px;";
 
 export function renderCommentMarkdown(markdown: string): DocumentFragment {
@@ -123,7 +125,8 @@ export function renderCommentMarkdown(markdown: string): DocumentFragment {
     if (fence) {
       const body: string[] = [];
       i++;
-      while (i < lines.length && !lines[i].trim().startsWith(fence[1])) body.push(lines[i++]);
+      const closer = new RegExp(`^\\s{0,3}${fence[1][0] === "`" ? "`" : "~"}{${fence[1].length},}\\s*$`);
+      while (i < lines.length && !closer.test(lines[i])) body.push(lines[i++]);
       i++;
       const pre = document.createElement("pre");
       pre.textContent = body.join("\n");

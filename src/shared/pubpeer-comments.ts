@@ -19,15 +19,20 @@ export interface PubPeerCommentsResponse {
   error: string | null;
 }
 
-export function isPubPeerThreadUrl(url: string): boolean {
+// The worker's host permission covers pubpeer.com only, so a www. link is fetched from the bare host.
+export function pubPeerThreadUrl(url: string): string | null {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" &&
-      parsed.hostname === "pubpeer.com" &&
-      /^\/publications\/[A-Za-z0-9]+\/?$/.test(parsed.pathname);
+    const host = parsed.hostname;
+    if (parsed.protocol !== "https:" || (host !== "pubpeer.com" && !host.endsWith(".pubpeer.com"))) return null;
+    return /^\/publications\/[A-Za-z0-9]+\/?$/.test(parsed.pathname) ? `https://pubpeer.com${parsed.pathname}` : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function isPubPeerThreadUrl(url: string): boolean {
+  return pubPeerThreadUrl(url) !== null;
 }
 
 export function isPubPeerCommentsRequest(msg: unknown): msg is PubPeerCommentsRequest {

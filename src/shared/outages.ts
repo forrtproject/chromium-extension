@@ -9,6 +9,7 @@ export type OutageSource = "oa" | "pubpeer";
 
 const failed = new Map<object, Partial<Record<OutageSource, () => void>>>();
 const anchors = new Map<object, Element>();
+const shownOwners = new WeakSet<object>();
 const listeners = new Set<() => void>();
 // Bumped on every page change; a lookup started for an earlier page reports nothing.
 let epoch = 0;
@@ -46,15 +47,18 @@ function forget(owner: object): void {
     anchors.delete(owner);
 }
 
-const shownOwners = new WeakSet<object>();
-
 function dropRemovedOwners(): void {
+    let dropped = false;
     for (const owner of [...failed.keys()]) {
         const anchor = anchors.get(owner);
         if (!anchor) continue;
         if (anchor.isConnected) shownOwners.add(owner);
-        else if (shownOwners.has(owner)) forget(owner);
+        else if (shownOwners.has(owner)) {
+            forget(owner);
+            dropped = true;
+        }
     }
+    if (dropped) changed();
 }
 
 export function outageSources(): Set<OutageSource> {

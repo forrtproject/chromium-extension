@@ -2,7 +2,7 @@ import { fetchOpenAccess } from "@shared/openaccess";
 import { webUrl } from "@shared/web-url";
 import type { DoiString, LookupState, ReplicationResult, ReplicationEntry, OriginalEntry, DoiContext } from "../shared/types";
 import type { PubPeerFeedback } from "../shared/pubpeer-api";
-import type { PubPeerComment, PubPeerCommentsResponse } from "@shared/pubpeer-comments";
+import { isPubPeerThreadUrl, type PubPeerComment, type PubPeerCommentsResponse } from "@shared/pubpeer-comments";
 import { getHiddenCommenters, isHiddenCommenter, onHiddenCommentersChanged } from "@shared/pubpeer-filter";
 import { renderCommentList } from "./pubpeer-comments-view";
 import { debugLog, debugWarn } from "../shared/debug";
@@ -490,6 +490,7 @@ let _tabRepositionTimer: ReturnType<typeof setTimeout> | null = null;
 
 const panelCleanups: Array<() => void> = [];
 
+const MAX_CACHED_THREADS = 10;
 const pubPeerCommentRequests = new Map<string, Promise<PubPeerComment[] | null>>();
 
 function requestPubPeerComments(url: string, commentCount: number): Promise<PubPeerComment[] | null> {
@@ -499,6 +500,9 @@ function requestPubPeerComments(url: string, commentCount: number): Promise<PubP
   const request = safeSendMessage<PubPeerCommentsResponse>({ type: "FLORA_PUBPEER_COMMENTS", url })
     .then((response) => response?.comments ?? null, () => null);
   pubPeerCommentRequests.set(key, request);
+  if (pubPeerCommentRequests.size > MAX_CACHED_THREADS) {
+    pubPeerCommentRequests.delete(pubPeerCommentRequests.keys().next().value!);
+  }
   void request.then((comments) => { if (!comments) pubPeerCommentRequests.delete(key); });
   return request;
 }
@@ -1603,6 +1607,10 @@ export function renderSidePanel(
     loadThreadComments = (): void => {
       if (commentsRequested) return;
       commentsRequested = true;
+      if (!isPubPeerThreadUrl(threadUrl)) {
+        showCommentsStatus("These comments can only be read on PubPeer.", true);
+        return;
+      }
       showCommentsStatus("Loading comments…", false);
       void Promise.all([requestPubPeerComments(threadUrl, threadCommentCount), getHiddenCommenters()])
         .then(([comments, hidden]) => {

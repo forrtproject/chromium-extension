@@ -163,3 +163,32 @@ describe("the popup's findings summary", () => {
     await vi.waitFor(() => expect(document.getElementById("open-report-btn")!.hidden).toBe(false));
   });
 });
+
+describe("the popup's findings polling", () => {
+  beforeEach(() => {
+    backStorage("local");
+    backStorage("sync");
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps one polling loop when ORE is shown again mid-check", async () => {
+    answer({hidden: true, findings: findings({checking: true})});
+    await openPopup();
+    await stateAnswered();
+    answer({hidden: false, findings: findings({checking: true})});
+    vi.useFakeTimers();
+    document.getElementById("hide-btn")!.click();
+    await vi.advanceTimersByTimeAsync(0);
+    const send = vi.mocked(chrome.tabs.sendMessage);
+    const polls = () => send.mock.calls.filter(([, msg]) => (msg as {type: string}).type === "FLORA_GET_STATE").length;
+    const before = polls();
+
+    await vi.advanceTimersByTimeAsync(3_000);
+
+    expect(polls() - before).toBe(3);
+  });
+});

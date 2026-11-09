@@ -319,7 +319,21 @@ function flushPendingDois(): void {
 }
 
 /** A confirmed miss resolves to null; unavailable responses reject so the UI can offer retry. */
+let doiLookupsInFlight = 0;
+
+export function pubPeerLookupsPending(): boolean {
+  return doiLookupsInFlight > 0;
+}
+
 export function lookupPubPeerForDoi(doi: string): Promise<PubPeerFeedback | null> {
+  doiLookupsInFlight++;
+  const settled = () => { doiLookupsInFlight--; };
+  const lookup = queueDoiLookup(doi);
+  lookup.then(settled, settled);
+  return lookup;
+}
+
+function queueDoiLookup(doi: string): Promise<PubPeerFeedback | null> {
   const signal = activeWorkSignal() ?? null;
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(signal.reason); return; }

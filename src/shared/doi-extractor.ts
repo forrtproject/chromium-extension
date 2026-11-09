@@ -15,6 +15,7 @@ const NOT_MID_NUMBER = `(?<![\\d.])(?<!(?:^|[^A-Za-z0-9])[-+\\u2212])`;
 const SUFFIX_CHARS = `[^\\s,/\\]}>'"<#?&\\\\]`;
 const EXTRA_SLASH = `(?:\\/(?![a-zA-Z-]+(?:[/\\s,#?&<>{}\\[\\]]|$))${SUFFIX_CHARS}+)*`;
 const DOI_REGEX = new RegExp(`${NOT_MID_NUMBER}(10\\.\\d{4,}(?:\\.\\d+)*\\/${SUFFIX_CHARS}+${EXTRA_SLASH})`, "g");
+const HREF_PATH_DOI_REGEX = new RegExp(`${NOT_MID_NUMBER}\\b(10\\.\\d{4,}(?:\\.\\d+)*\\/[^\\s&"'#?]+)`);
 
 // innerText renders &lt;/&gt; as literal < >, which SICI DOIs use — allow them
 // here so e.g. 10.1002/(SICI)...18:4<303::AID-SMJ869>3.0.CO;2-G isn't truncated.
@@ -111,7 +112,7 @@ export function extractDoiFromHref(href: string): DoiString | null {
 
   try {
     const decoded = decodeURIComponent(href);
-    const m = decoded.match(/\b(10\.\d{4,}(?:\.\d+)*\/[^\s&"'#?]+)/);
+    const m = decoded.match(HREF_PATH_DOI_REGEX);
     if (m) {
       const cleaned = cleanDoiTrailing(m[1]);
       if (isValidDoiSuffix(cleaned)) {

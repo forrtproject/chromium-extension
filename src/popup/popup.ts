@@ -91,6 +91,7 @@ let pendingTourStart: object | null = null;
 let findings: PageFindings | null = null;
 let results: ResultFindings | null = null;
 let findingsPolls = 0;
+let findingsPollTimer: ReturnType<typeof setTimeout> | undefined;
 
 reportBtn.style.display = "none";
 
@@ -203,6 +204,8 @@ function renderFindings(): void {
 /** Ask the content script for hidden state and findings; keep asking while it is still checking. */
 async function refreshPageState(): Promise<void> {
   if (activeTabId == null) return;
+  clearTimeout(findingsPollTimer);
+  findingsPollTimer = undefined;
   try {
     const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_GET_STATE" }) as PageStateResponse | undefined;
     findings = response?.findings ?? null;
@@ -222,7 +225,10 @@ async function refreshPageState(): Promise<void> {
     return;
   }
   if (findings?.checking || results?.checking) {
-    setTimeout(() => void refreshPageState(), findingsPolls++ < FINDINGS_FAST_POLLS ? FINDINGS_POLL_MS : FINDINGS_SLOW_POLL_MS);
+    clearTimeout(findingsPollTimer);
+    findingsPollTimer = setTimeout(() => void refreshPageState(), findingsPolls++ < FINDINGS_FAST_POLLS ? FINDINGS_POLL_MS : FINDINGS_SLOW_POLL_MS);
+  } else {
+    findingsPolls = 0;
   }
 }
 

@@ -98,3 +98,18 @@ describe("the panel's Download button", () => {
         expect(openSpy).not.toHaveBeenCalled();
     });
 });
+
+describe("report PDF layout", () => {
+    it("wraps a long author, journal and DOI line inside the page instead of running off it", () => {
+        const journal = "Proceedings of the International Conference on Very Long Journal Names and Their Many Subtitles in Applied Research";
+        const pdf = new TextDecoder("latin1").decode(buildReportPdf(payload({
+            replications: [{title: "A replication", doi: "10.1/" + "x".repeat(140), authors: "Somebody et al.", year: 2020, journal, outcome: "failed"}],
+        })));
+
+        expect(pdf).not.toContain(`(Somebody et al. · 2020 · ${journal})`);
+        expect(pdf).toContain("Somebody et al.");
+        expect(pdf).toContain("Subtitles in Applied Research");
+        const positions = [...pdf.matchAll(/([\d.]+) [\d.]+ Td/g)].map((m) => Number(m[1]));
+        expect(Math.max(...positions)).toBeLessThan(595.28 - 48);
+    });
+});

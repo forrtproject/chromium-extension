@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {extractPubPeerComments, isPubPeerCommentsRequest, isPubPeerThreadUrl} from "../../src/shared/pubpeer-comments";
+import {extractPubPeerComments, isPubPeerCommentsRequest, isPubPeerThreadUrl, pubPeerThreadUrl} from "../../src/shared/pubpeer-comments";
 import {renderCommentMarkdown} from "../../src/content-general/pubpeer-comments-view";
 import {removeSidePanel, renderSidePanel} from "../../src/content-general/injector";
 import type {PubPeerFeedback} from "../../src/shared/pubpeer-api";
@@ -66,6 +66,11 @@ describe("extractPubPeerComments", () => {
 });
 
 describe("PubPeer thread URLs", () => {
+    it("fetches a www. thread from the host the extension may reach", () => {
+        expect(pubPeerThreadUrl("https://www.pubpeer.com/publications/ABC123")).toBe("https://pubpeer.com/publications/ABC123");
+        expect(isPubPeerCommentsRequest({type: "FLORA_PUBPEER_COMMENTS", url: "https://www.pubpeer.com/publications/ABC123"})).toBe(true);
+    });
+
     it("accepts only https pubpeer.com publication pages", () => {
         expect(isPubPeerThreadUrl(THREAD)).toBe(true);
         expect(isPubPeerThreadUrl("http://pubpeer.com/publications/ABC")).toBe(false);
@@ -123,6 +128,31 @@ describe("renderCommentMarkdown", () => {
 
     it("decodes HTML entities as text", () => {
         expect(render("p &lt; .01 &amp; r = .44").textContent).toBe("p < .01 & r = .44");
+    });
+
+    it("keeps balanced parentheses in a link target", () => {
+        const a = render("see [the article](https://en.wikipedia.org/wiki/Power_(physics)) for more").querySelector("a")!;
+        expect(a.getAttribute("href")).toBe("https://en.wikipedia.org/wiki/Power_(physics)");
+        expect(a.textContent).toBe("the article");
+    });
+
+    it("shows an autolink's text decoded, as its href is", () => {
+        const a = render("<https://example.org/a?x=1&amp;y=2>").querySelector("a")!;
+        expect(a.textContent).toBe("https://example.org/a?x=1&y=2");
+        expect(a.getAttribute("href")).toBe("https://example.org/a?x=1&y=2");
+    });
+
+    it("closes a code fence only on a bare fence line", () => {
+        const pre = render(["```", "code line", "```not-a-fence", "more code", "```", "after"].join("\n")).querySelector("pre")!;
+        expect(pre.textContent).toBe(["code line", "```not-a-fence", "more code"].join("\n"));
+    });
+
+    it("renders a long comment full of unmatched markers quickly", () => {
+        const hostile = "*_`[ ".repeat(20_000);
+        const started = performance.now();
+        const div = render(hostile);
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(div.textContent!.length).toBeGreaterThan(50_000);
     });
 
     it("leaves unknown entity names, including inherited object keys, as written", () => {
@@ -217,6 +247,17 @@ describe("side panel comments", () => {
 
         await vi.waitFor(() => expect(commentsSection().textContent).toContain("couldn't be loaded"));
         expect(commentsSection().querySelector<HTMLAnchorElement>("a")?.href).toBe(unreachable);
+    });
+
+    it("links straight to PubPeer, without a request or Retry, for a thread the worker can't fetch", async () => {
+        sendMessage.mockResolvedValue({type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: [], error: null});
+        render("https://pubpeer.com/search?q=10.1177");
+
+        openPanel();
+
+        expect(commentRequests()).toHaveLength(0);
+        expect(commentsSection().textContent).toContain("can only be read on PubPeer");
+        expect(commentsSection().querySelector("button")).toBeNull();
     });
 
     it("retries a failed fetch from the panel", async () => {

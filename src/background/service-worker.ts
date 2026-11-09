@@ -19,7 +19,7 @@ import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
 import {debugError, debugLog, debugWarn, isDebugEnabledAsync, isTestingBuild, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 import {isFeedbackPromptRequest, type FeedbackPromptResponse, type FeedbackPromptStep} from "@shared/messages";
-import {extractPubPeerComments, isPubPeerCommentsRequest, type PubPeerCommentsResponse} from "@shared/pubpeer-comments";
+import {extractPubPeerComments, isPubPeerCommentsRequest, pubPeerThreadUrl, type PubPeerCommentsResponse} from "@shared/pubpeer-comments";
 import {isReportPdfRequest, type ReportPdfResponse} from "@shared/messages";
 import {readPayload} from "@shared/report";
 import {buildReportPdf, reportPdfFilename} from "@shared/report-pdf";
@@ -441,7 +441,7 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (isPubPeerCommentsRequest(message)) {
-            void fetchPubPeerComments(message.url).then(sendResponse);
+            void fetchPubPeerComments(pubPeerThreadUrl(message.url)!).then(sendResponse);
             return true;
         }
 

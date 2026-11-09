@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   lookupPubPeerForDoi,
   lookupPubPeerForDois,
+  pubPeerLookupsPending,
   _resetPubPeerCacheForTesting,
 } from "../../src/shared/pubpeer-api";
 import {createIndicatorPill} from "../../src/shared/indicator-pill";
@@ -63,6 +64,15 @@ describe("lookupPubPeerForDoi batching", () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     _resetPubPeerCacheForTesting();
+  });
+
+  it("reports a per-DOI lookup as pending until it settles", async () => {
+    vi.useFakeTimers();
+    const pending = lookupPubPeerForDoi("10.1234/a");
+    expect(pubPeerLookupsPending()).toBe(true);
+    await vi.advanceTimersByTimeAsync(50);
+    await pending;
+    expect(pubPeerLookupsPending()).toBe(false);
   });
 
   it("drops cancelled queued batches after the scan indicator ends", async () => {

@@ -202,18 +202,30 @@ function entry(l: Layout, item: ReportEntry): void {
   const doiUrl = validDoiUrl(item.doi);
   if (meta || doiUrl) {
     l.font("normal", 8.5, MUTED);
-    const text = pdfText(meta);
-    if (text) l.doc.text(text, x, l.y + 9);
-    if (doiUrl && item.doi) {
-      const doiX = x + (text ? l.doc.getTextWidth(`${text} · `) : 0);
-      const doiLabel = `doi:${item.doi}`;
-      if (doiX + l.doc.getTextWidth(doiLabel) <= PAGE_W - MARGIN) {
-        if (text) l.doc.text(" · ", x + l.doc.getTextWidth(text), l.y + 9);
-        l.doc.textWithLink(doiLabel, doiX, l.y + 9, {url: doiUrl});
-      } else {
+    const width = PAGE_W - MARGIN - x;
+    const metaLines = meta ? l.lines(meta, width) : [];
+    metaLines.forEach((line, i) => {
+      if (i > 0) {
         l.y += 12;
         l.ensure(12);
-        l.doc.textWithLink(doiLabel, MARGIN, l.y + 9, {url: doiUrl});
+      }
+      l.doc.text(line, x, l.y + 9);
+    });
+    if (doiUrl && item.doi) {
+      const doiLabel = pdfText(`doi:${item.doi}`);
+      const last = metaLines.at(-1);
+      const doiX = last ? x + l.doc.getTextWidth(`${last} · `) : x;
+      if (doiX + l.doc.getTextWidth(doiLabel) <= PAGE_W - MARGIN) {
+        if (last) l.doc.text(" · ", x + l.doc.getTextWidth(last), l.y + 9);
+        l.doc.textWithLink(doiLabel, doiX, l.y + 9, {url: doiUrl});
+      } else {
+        for (const [i, line] of l.lines(doiLabel, width).entries()) {
+          if (i > 0 || last) {
+            l.y += 12;
+            l.ensure(12);
+          }
+          l.doc.textWithLink(line, x, l.y + 9, {url: doiUrl});
+        }
       }
     }
     l.y += 12;

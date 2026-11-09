@@ -1412,6 +1412,12 @@ describe("coordinates and other numbers", () => {
     expect(extractDOIsFromText("id=doi-10.1371/journal.pone.0012345")).toEqual(["10.1371/journal.pone.0012345"]);
   });
 
+  it("does not take a signed coordinate from a link's path", () => {
+    expect(extractDoiFromHref("https://maps.example/place/-10.4806/66.9036/")).toBeNull();
+    expect(extractDoiFromHref("https://maps.example/at/151.12345/33.1")).toBeNull();
+    expect(extractDoiFromHref("https://journal.example/article/10.1038/nature12373")).toBe("10.1038/nature12373");
+  });
+
   it("does not link a coordinate written in page text", () => {
     const doc = new JSDOM("<body><p>Sampled at 10.4806/-66.9036 and -110.12345/32.1234.</p><p>Cite doi:10.1038/nature12373.</p></body>").window.document;
     expect(extractDOIs(doc)).toEqual(["10.1038/nature12373"]);

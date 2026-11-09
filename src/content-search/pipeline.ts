@@ -17,7 +17,7 @@ import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator
 import {applyPlacement} from "@shared/site-adapters";
 import {showToast} from "@shared/toast";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
-import {pubPeerVerdict} from "@shared/pubpeer-api";
+import {pubPeerLookupsPending, pubPeerVerdict} from "@shared/pubpeer-api";
 import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
 import {reportCodeError} from "@shared/error-report";
 import {hasReplication} from "../content-general/reference-states";
@@ -140,9 +140,9 @@ export function searchScanSummary(): ScanSummary | null {
 
 let passesInFlight = 0;
 
-/** True while a pass is queued or running, a retry is pending, or any result's FLoRA lookup is in flight. */
+/** True while a pass is queued or running, a retry is pending, or any result's FLoRA or PubPeer lookup is in flight. */
 export function searchWorkPending(): boolean {
-    if (passesInFlight > 0 || retryingSearchChecks || !isWorkIndicatorIdle()) return true;
+    if (passesInFlight > 0 || retryingSearchChecks || !isWorkIndicatorIdle() || pubPeerLookupsPending()) return true;
     for (const state of lookupState.values()) if (state.status === "loading") return true;
     return false;
 }

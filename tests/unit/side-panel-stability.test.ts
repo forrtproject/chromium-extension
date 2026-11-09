@@ -1,4 +1,4 @@
-import {describe, it, expect, beforeEach} from "vitest";
+import {describe, it, expect, beforeEach, vi} from "vitest";
 import {renderSidePanel} from "../../src/content-general/injector";
 import type {DoiContext, DoiString, LookupState} from "../../src/shared/types";
 import type {PubPeerFeedback} from "../../src/shared/pubpeer-api";
@@ -58,13 +58,15 @@ describe("side panel stability", () => {
         expect(panel()).toBe(host);
     });
 
-    it("rebuilds when the PubPeer thread changes", () => {
+    it("rebuilds when the PubPeer thread changes, pointing at the new thread", async () => {
         render([feedback()]);
         const first = comments();
 
         render([feedback({url: "https://pubpeer.com/publications/DIFFERENT", total_comments: 9})]);
 
         expect(comments()).not.toBe(first);
+        document.querySelector<HTMLElement>('[aria-label="Open the FORRT ORE panel"]')!.click();
+        await vi.waitFor(() => expect(comments()?.querySelector("a")?.href).toContain("DIFFERENT"));
     });
 
     it("rebuilds when the comment count changes on the same thread", () => {
