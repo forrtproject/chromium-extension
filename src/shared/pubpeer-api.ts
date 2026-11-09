@@ -335,6 +335,43 @@ export function lookupPubPeerForDoi(doi: string): Promise<PubPeerFeedback | null
   });
 }
 
+/**
+ * The article's PubPeer state for the side panel. The per-DOI cached lookup
+ * the article's pill uses comes first, so the panel and the pill agree; only
+ * a failed lookup of this DOI makes it unavailable. When that finds no
+ * thread, a thread PubPeer matches by the page URL is still shown.
+ */
+export async function lookupArticlePubPeer(
+  doi: string,
+  pageUrl: string | null = null,
+  signal: AbortSignal | null | undefined = activeWorkSignal(),
+  known?: PubPeerFeedback | null
+): Promise<{ feedbacks: PubPeerFeedback[]; feedback: PubPeerFeedback | null; unavailable: boolean }> {
+  let feedback: PubPeerFeedback | null;
+  if (known !== undefined) {
+    feedback = known;
+  } else {
+    const unavailable = new Set<string>();
+    try {
+      feedback = (await lookupPubPeerForDois([doi], unavailable, signal)).get(doi) ?? null;
+    } catch {
+      return { feedbacks: [], feedback: null, unavailable: true };
+    }
+    if (unavailable.has(doi)) return { feedbacks: [], feedback: null, unavailable: true };
+  }
+  if (feedback && feedback.total_comments > 0) return { feedbacks: [feedback], feedback, unavailable: false };
+  // The URL fallback respects the same 429 back-off as the DOI lookups.
+  if (!pageUrl || Date.now() < rateLimitedUntil) return { feedbacks: feedback ? [feedback] : [], feedback, unavailable: false };
+  try {
+    const byUrl = await lookupPubPeer([doi], [pageUrl], signal);
+    if (byUrl.some((f) => f.total_comments > 0)) return { feedbacks: byUrl, feedback, unavailable: false };
+  } catch (err) {
+    // The DOI answer stands; a failed URL fallback does not make it unavailable.
+    if (err instanceof PubPeerRateLimitError) rateLimitedUntil = Date.now() + err.retryAfterMs;
+  }
+  return { feedbacks: feedback ? [feedback] : [], feedback, unavailable: false };
+}
+
 export function _recordPubPeerVerdictsForTesting(entries: Array<[string, PubPeerVerdict]>): void {
   recordVerdicts(entries);
 }

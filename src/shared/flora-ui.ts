@@ -14,6 +14,17 @@ export const FLORA_OWNED_SELECTOR = FLORA_OWNED_PARTS.join(", ");
 
 const FOCUS_STYLE_ID = "flora-focus-style";
 
+// ORE's own roots: everything marked data-flora-ui, plus the injector's
+// panels, which carry only an id. Listed by id, not `[id^="flora-"]`, so a
+// host element that happens to use that prefix keeps its own hyphenation.
+const HYPHEN_RESET_ROOTS = [
+    FLORA_UI_SELECTOR,
+    "#flora-banner-host",
+    "#flora-setup-prompt",
+    "#flora-sheets-modal",
+    "#flora-pubpeer-panel",
+];
+
 export function ensureFocusStyle(): void {
     if (document.getElementById(FOCUS_STYLE_ID)) return;
     const style = document.createElement("style");
@@ -25,9 +36,13 @@ export function ensureFocusStyle(): void {
     const suppressed = FLORA_OWNED_PARTS.map(
         (part) => `${part} :where(button, a):not(:focus-visible)`
     );
+    // A host's `* { hyphens: auto }` would split words inside ORE ("open-ac-
+    // cess"); shadow roots inherit the reset from their host.
+    const owned = HYPHEN_RESET_ROOTS.flatMap((part) => [part, `${part} *`]);
     style.textContent =
         `${focused.join(", ")} { outline: 2px solid #853953; outline-offset: 2px; }`
         + `${suppressed.join(", ")} { outline: none !important; }`
+        + `${owned.join(", ")} { hyphens: manual !important; -webkit-hyphens: manual !important; }`
         + "@keyframes flora-segment-pending { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }"
         + "@media (prefers-reduced-motion: reduce) { [data-flora-pending] * { animation: none !important; } }";
     (document.head ?? document.documentElement).appendChild(style);

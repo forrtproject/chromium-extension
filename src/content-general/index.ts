@@ -40,7 +40,7 @@ import {
     showAllFloraUI
 } from "./injector";
 import {resetWorkSummary} from "@shared/progress-toast";
-import {lookupPubPeer, lookupPubPeerForDois, pubPeerVerdict, type PubPeerFeedback} from "@shared/pubpeer-api";
+import {lookupArticlePubPeer, lookupPubPeerForDois, pubPeerVerdict, type PubPeerFeedback} from "@shared/pubpeer-api";
 import {setScanSummarySource, type ScanSummary} from "@shared/toolbar-scan";
 import {debugError, debugLog, debugWarn, recentDebugEntries} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
@@ -59,7 +59,8 @@ import {searchScriptOwns} from "@shared/search-sites";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showToast, dismissToast} from "@shared/toast";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
-import {fetchSheetCsv, parseSheetsUrl, sheetTabKey} from "./sheets";
+import {fetchSheetCsv, parseSheetsUrl, sheetRowsByDoi, sheetTabKey} from "./sheets";
+import type {SheetsRowLookup} from "./injector";
 import {canStartAutomaticWork, cancelWork, isAbortError, resumeAutomaticWork} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
 import {SeenDois} from "./seen-dois";
@@ -117,6 +118,8 @@ let lastRenderedPageStateVersion = -1;
 let sheetFetchGen = 0;
 // DOIs extracted from the full sheet CSV (populated asynchronously on Sheets)
 let sheetCsvDois: DoiString[] = [];
+/** Sheet row per DOI from the full-tab export, for the card's "Go to row" links. */
+let sheetRows: SheetsRowLookup | undefined;
 // Sheet tabs where the user explicitly dismissed the modal (session only).
 const dismissedSheets = new Set<string>();
 // Timestamp until which all Sheets modals are snoozed.
@@ -458,7 +461,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
                         if (isSheets) {
                             const matched = [...pageState.entries()].flatMap(([doi, state]) =>
                                 state.status === "matched" ? [{doi, result: state.result}] : []);
-                            if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks);
+                            if (!isSheetsModalSuppressed()) renderSheetsModal(matched, redacts, sheetsModalCallbacks, sheetRows);
                         } else {
                             repaintBadges();
                             beginDomScanPass();
@@ -772,7 +775,7 @@ async function runScanPass(): Promise<void> {
             debugLog("Matched DOIs with replication data:", matched.length, matched.map(m => m.doi));
             if (isSheets) {
                 if (isSheetsModalSuppressed()) removeSheetsModal();
-                else renderSheetsModal(matched, redacts, sheetsModalCallbacks);
+                else renderSheetsModal(matched, redacts, sheetsModalCallbacks, sheetRows);
             } else {
                 void checkPubPeer(refsDone);
             }
@@ -1186,18 +1189,21 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         if (articleFeedbacksFetched && refKey === lastReferenceDoiKey && lastRenderedPageStateVersion === pageStateVersion) return;
 
         if (floraHidden || isWorkCancelled() || navigated()) return;
-        // Article: URL lookup once/page. References: one batched, cached lookup.
+        // Article: the same per-DOI result its pill shows, with a page-URL
+        // match as fallback, once per page. References: one batched, cached lookup.
         const articlePromise = !primaryDoi
             ? Promise.resolve({feedbacks: [] as PubPeerFeedback[], unavailable: false})
             : articleFeedbacksFetched
             ? Promise.resolve({feedbacks: lastArticleFeedbacks, unavailable: articlePubPeerUnavailable})
-            : lookupPubPeer([primaryDoi], [passUrl], signal).then(
-                feedbacks => ({feedbacks, unavailable: false}),
-                err => {
-                    if (!signal?.aborted) debugWarn("Article PubPeer data unavailable —", err);
-                    return {feedbacks: [] as PubPeerFeedback[], unavailable: true};
-                },
-            );
+            : lookupArticlePubPeer(primaryDoi, passUrl, signal, knownPubPeer.get(primaryDoi))
+                .then(({feedbacks, feedback, unavailable}) => {
+                    if (unavailable) {
+                        if (!signal?.aborted) debugWarn("Article PubPeer data unavailable");
+                    } else {
+                        knownPubPeer.set(primaryDoi, feedback);
+                    }
+                    return {feedbacks, unavailable};
+                });
         const unavailableReferences = new Set<string>();
         reportWorkStage("lookup", `Checking PubPeer for ${count(referenceDois.length + (primaryDoi ? 1 : 0), "paper")}…`);
         const [article, refFeedbackByDoi, articleTitle] = await Promise.all([
@@ -1207,7 +1213,10 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         ]);
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
         articleFeedbacksFetched = true;
-        articlePubPeerUnavailable = article.unavailable || unavailableReferences.size > 0;
+        // On an article page a failed reference lookup shows on that reference's
+        // pill, not as the article's state. Documents have no pills, so there
+        // the panel keeps the unavailable state and Retry, as before.
+        articlePubPeerUnavailable = article.unavailable || (editorDocument && unavailableReferences.size > 0);
         if (article.feedbacks.some((f) => f.total_comments > 0)
             || [...refFeedbackByDoi.values()].some((f) => f.total_comments > 0)) withdrawNothingFound();
         lastArticleFeedbacks = article.feedbacks;
@@ -1294,13 +1303,15 @@ async function fetchSheetDois(): Promise<void> {
     try {
         try {
             reportWorkStage("scan", "Exporting this sheet tab…");
-            const csv = await fetchSheetCsv(parsed);
+            const {csv, fullTab} = await fetchSheetCsv(parsed);
             if (!isCurrent()) return;
             sheetCsvDois = extractDOIsFromText(csv);
+            sheetRows = fullTab ? {gid: parsed.gid, byDoi: sheetRowsByDoi(csv)} : undefined;
             debugLog(`Sheets: CSV export found ${sheetCsvDois.length} DOIs`);
         } catch (err) {
             if (!isCurrent() || isAbortError(err)) return;
             sheetCsvDois = [];
+            sheetRows = undefined;
             unavailable = true;
             debugWarn("Sheets: full-tab export unavailable — checking visible cells only", err);
         }
@@ -1358,6 +1369,7 @@ async function startOnPage(): Promise<void> {
                     debugLog("Sheets: tab change detected:", nowSheet, "— re-fetching…");
                     sheetFetchGen++;
                     sheetCsvDois = [];
+                    sheetRows = undefined;
                     processedDois.clear();
                     seenDois.clear();
                     pageState.clear();

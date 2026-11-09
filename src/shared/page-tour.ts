@@ -24,7 +24,7 @@ const CARD_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 
 const PILL = `.${INDICATOR_PILL_CLASS}`;
-const PILL_FACE_TEXT = "Each part answers one question: its DOI, a free copy (OA), discussion on PubPeer, and replications or reproductions (Reps). A coloured part means yes; a faded one means nothing was found.";
+const PILL_FACE_TEXT = "Each part answers one question: its DOI, an open-access version (OA), discussion on PubPeer, and replications or reproductions (Reps). A coloured part means yes; a faded one means nothing was found.";
 const REFERENCE_PILL_TEXT = "A reference that cites two papers gets two pills. No pill means ORE could not identify that reference.";
 
 function shown(el: Element | null): el is HTMLElement {
@@ -65,7 +65,7 @@ function popoverStop(wrapper: HTMLElement): TourStop | null {
     return {
         target: popover,
         title: "Point at a pill to see the details",
-        text: "Each row is a link: copy the reference, open a free copy, read the discussion, or see the replications. Click a pill to keep it open.",
+        text: "Each row is a link: copy the reference, open an open-access version, read the discussion, or see the replications. Click a pill to keep it open.",
         enter: () => pinIndicatorPopover(wrapper, true),
         leave: () => pinIndicatorPopover(wrapper, false),
     };
@@ -117,7 +117,7 @@ export function searchTourStops(): TourStop[] {
         stops.push({
             target: pill,
             title: panel ? "ORE adds this panel to each result" : "ORE adds this pill to each result",
-            text: "Each row is one check: the paper's DOI, a free copy, discussion on PubPeer, and replications. Every row is also a link.",
+            text: "Each row is one check: the paper's DOI, an open-access version, discussion on PubPeer, and replications. Every row is also a link.",
         });
     }
     const matched = firstShown(`${PILL}[data-flora-augmented]`);
@@ -167,9 +167,20 @@ interface OpenTour {
 }
 
 let openTour: OpenTour | null = null;
+const openChangeListeners = new Set<(open: boolean) => void>();
 
 export function isPageTourOpen(): boolean {
     return openTour !== null;
+}
+
+/** Follow the tour opening and closing; returns a function that stops following. */
+export function onPageTourOpenChange(listener: (open: boolean) => void): () => void {
+    openChangeListeners.add(listener);
+    return () => { openChangeListeners.delete(listener); };
+}
+
+function notifyOpenChange(open: boolean): void {
+    for (const listener of [...openChangeListeners]) listener(open);
 }
 
 export function closePageTour(): void {
@@ -275,9 +286,11 @@ export function runPageTour(stops: TourStop[]): boolean {
         document.removeEventListener("keydown", onKey, true);
         host.remove();
         if (returnFocus?.isConnected) returnFocus.focus({preventScroll: true});
+        notifyOpenChange(false);
     };
     const tour: OpenTour = {close};
     openTour = tour;
+    notifyOpenChange(true);
 
     root.querySelector(".skip")!.addEventListener("click", close);
     back.addEventListener("click", () => { if (index > 0) show(index - 1); });

@@ -282,7 +282,12 @@ function sheetsPopup(frame: HTMLElement): void {
     removeSheetsModal();
     renderSheetsModal(
         [{doi: POWER_POSING, result: replicationResult(POWER_POSING, {replications: 3, reproductions: 1})}],
-        [notice(RETRACTED, "retraction"), notice(CONCERNED, "concern")]
+        [notice(RETRACTED, "retraction"), notice(CONCERNED, "concern")],
+        undefined,
+        {gid: "0", byDoi: new Map([
+            [RETRACTED.toLowerCase(), 3],
+            [CONCERNED.toLowerCase(), 4],
+        ])}
     );
     const popup = document.getElementById("flora-sheets-modal");
     if (popup) reanchor(popup, frame);

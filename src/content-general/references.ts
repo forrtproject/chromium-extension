@@ -6,7 +6,7 @@
 // link href), gray dotted = DOI resolved via Crossref/OpenAlex augmentation
 // for entries that exposed no DOI of their own.
 
-import {findReferenceEntries, extractPrimaryDOI, type ReferenceEntry} from "@shared/doi-extractor";
+import {findReferenceEntries, extractPrimaryDOI, isComponentDoi, type ReferenceEntry} from "@shared/doi-extractor";
 import {findArticleTitle} from "@shared/article-title";
 import {isInRelatedWorks} from "@shared/related-works";
 import {isDocumentEditor, editorAnnotationTarget} from "@shared/document-editor";
@@ -159,7 +159,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     const pending: PendingEntry[] = [];
     for (const entry of entries) {
         if (entry.element.hasAttribute(REFERENCE_ENTRY_ATTR) || entry.element.querySelector(`[${REFERENCE_ENTRY_ATTR}]`)) continue;
-        const cited = entry.dois.filter((doi) => doi !== primary);
+        const cited = entry.dois.filter((doi) => doi !== primary && !isComponentDoi(doi, primary));
         if (entry.dois.length > 0 && cited.length === 0) continue;
         if (entry.text.length < MIN_CITATION_LENGTH) continue;
         // Filter before augmenting: an out-of-scope block that reaches

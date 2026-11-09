@@ -48,7 +48,7 @@ describe("a pill drawn from data the page already has", () => {
         const oa = pill.querySelector<HTMLElement>("[data-flora-oa-segment]")!;
 
         expect(oa.hasAttribute("data-flora-pending")).toBe(true);
-        expect(oa.title).toBe("Checking for a free copy…");
+        expect(oa.title).toBe("Checking for an open-access version…");
         expect(oa.style.textDecoration).toBe("none");
     });
 

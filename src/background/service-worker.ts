@@ -643,11 +643,15 @@ async function handlePmcResolve(pmcids: string[], idtype: NcbiIdType = "pmcid", 
     return {type: "FLORA_PMC_RESOLVE_RESULT", results};
 }
 
-async function handleSheetFetch(
-    spreadsheetId: string,
-    gid: string, signal?: AbortSignal
-): Promise<SheetFetchResponse> {
-    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+// `/export` returns every row and cell as stored. `gviz` drops text in
+// mostly-numeric columns and blank rows, and can merge a section row into the
+// header, so it is only the fallback (e.g. owners who disable downloads).
+function sheetCsvUrls(spreadsheetId: string, gid: string): string[] {
+    const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+    return [`${base}/export?format=csv&gid=${gid}`, `${base}/gviz/tq?tqx=out:csv&gid=${gid}`];
+}
+
+async function fetchSheetCsv(url: string, signal?: AbortSignal): Promise<SheetFetchResponse> {
     try {
         const resp = await fetchWithDeadline(url, {credentials: "include", signal});
         if (!resp.ok) {
@@ -672,6 +676,18 @@ async function handleSheetFetch(
             error: err instanceof Error ? err.message : "Fetch failed",
         };
     }
+}
+
+async function handleSheetFetch(
+    spreadsheetId: string,
+    gid: string, signal?: AbortSignal
+): Promise<SheetFetchResponse> {
+    const [exportUrl, gvizUrl] = sheetCsvUrls(spreadsheetId, gid);
+    const exported = await fetchSheetCsv(exportUrl, signal);
+    if (exported.csv !== null) return {...exported, fullTab: true};
+    if (signal?.aborted) return exported;
+    debugLog(`Sheets: export failed (${exported.error}) — falling back to gviz`);
+    return fetchSheetCsv(gvizUrl, signal);
 }
 
 // ── Retraction lookups ──────────────────────────────────────────────────────

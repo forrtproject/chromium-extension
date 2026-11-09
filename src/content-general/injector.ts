@@ -14,6 +14,7 @@ import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
 import { hasCustomTabTop, positionTabOnRightEdge, saveCustomTabTop } from "@shared/tab-position";
 import { adoptPanelTab, canOpenPanel, releasePanelTab, setTabLabel } from "@shared/progress-tab";
 import { plainTitle } from "@shared/plain-title";
+import { isPageTourOpen, onPageTourOpenChange } from "@shared/page-tour";
 import { lookupRegisteredReports, registeredReportDetail, RR_ACCENT, type RegisteredReport } from "@shared/registered-reports";
 
 // The work/progress toast lives in shared so the Scholar content script can
@@ -161,16 +162,26 @@ export async function renderSetupPrompt(): Promise<void> {
 
   document.body.appendChild(host);
 
+  // The page tour dims everything under it; hold the prompt back until the
+  // tour is finished or skipped.
+  const followTour = (open: boolean): void => { host.style.display = open ? "none" : ""; };
+  followTour(isPageTourOpen());
+  const stopFollowingTour = onPageTourOpenChange((open) => {
+    if (!host.isConnected) stopFollowingTour();
+    else followTour(open);
+  });
+  const removePrompt = (): void => { stopFollowingTour(); host.remove(); };
+
   const closeEl = host.querySelector(".flora-setup-close");
   if (closeEl) {
     onActivate(closeEl, () => {
-      void dismissSetupForSession().then(() => host.remove());
+      void dismissSetupForSession().then(removePrompt);
     });
   }
 
   host.querySelector(".flora-setup-open")?.addEventListener("click", () => {
     void safeSendMessage({ type: "FLORA_OPEN_OPTIONS" });
-    host.remove();
+    removePrompt();
   });
 
   for (const btn of host.querySelectorAll<HTMLButtonElement>(".flora-remind-options button")) {
@@ -178,7 +189,7 @@ export async function renderSetupPrompt(): Promise<void> {
       const ms = Number(btn.dataset.ms);
       if (!ms) return;
       await snoozeSetup(ms);
-      host.remove();
+      removePrompt();
     });
   }
 }
@@ -316,28 +327,41 @@ function sheetsHeadline(retracted: number, concerned: number): string {
   return "Replication data found";
 }
 
-function noticeSection(notices: RetractionResponse[]): string {
+/** Row lookup for the Sheets card: where each DOI sits in the current tab. */
+export interface SheetsRowLookup {
+  gid: string;
+  byDoi: Map<string, number>;
+}
+
+function noticeSection(notices: RetractionResponse[], rows?: SheetsRowLookup): string {
   if (notices.length === 0) return "";
 
-  const rows = notices.map((notice) => {
+  const rowsHtml = notices.map((notice) => {
     const { label, pillBackground, pillStroke, pillText } = noticePresentation(notice.kind);
+    const row = rows?.byDoi.get(notice.originDoi.toLowerCase());
+    const goTo = row && rows ? `
+          <a data-flora-sheet-row="gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" href="#gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" style="
+            all:unset;cursor:pointer;flex-shrink:0;font-size:11px;font-weight:600;color:#1a73e8;
+          ">Go to row ${row}</a>` : "";
     return `
-      <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
-        all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;
+      <div data-flora-notice-row style="
         padding:6px 8px;border-radius:6px;background:${pillBackground};
         border:1px solid ${pillStroke}55;margin-bottom:6px;box-sizing:border-box;
+        display:flex;align-items:center;gap:8px;
       ">
-        <span style="
-          flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.2px;
-          color:${pillText};border:1px solid ${pillStroke};background:#fff;
-          padding:1px 6px;border-radius:4px;
-        ">${label}</span>
-        <span style="
-          flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-          font-size:11px;color:#3c4043;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-        ">${escapeHtml(notice.originDoi)}</span>
-        <span style="flex-shrink:0;font-size:11px;color:${pillText};">Notice ↗</span>
-      </a>`;
+          <span style="
+            flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.2px;
+            color:${pillText};border:1px solid ${pillStroke};background:#fff;
+            padding:1px 6px;border-radius:4px;
+          ">${label}</span>
+          <span style="
+            flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+            font-size:11px;color:#3c4043;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+          ">${escapeHtml(notice.originDoi)}</span>
+          <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
+            all:unset;cursor:pointer;flex-shrink:0;font-size:11px;color:${pillText};
+          ">Notice ↗</a>${goTo}
+      </div>`;
   }).join("");
 
   return `
@@ -345,7 +369,7 @@ function noticeSection(notices: RetractionResponse[]): string {
         <div style="font-size:11px;font-weight:600;color:#5f6368;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;">
           Withdrawn or questioned
         </div>
-        ${rows}
+        ${rowsHtml}
       </div>`;
 }
 
@@ -357,7 +381,8 @@ function noticeSection(notices: RetractionResponse[]): string {
 export function renderSheetsModal(
   matched: { doi: string; result: ReplicationResult }[],
   notices: RetractionResponse[] = [],
-  callbacks?: SheetsModalCallbacks
+  callbacks?: SheetsModalCallbacks,
+  rows?: SheetsRowLookup
 ): void {
   const totalRepl = matched.reduce(
     (sum, m) => sum + m.result.record.stats.n_replications_total, 0
@@ -379,7 +404,7 @@ export function renderSheetsModal(
 
   const signature = [
     doiCount, totalRepl, totalRepro,
-    ...notices.map((n) => `${n.originDoi}:${n.kind}`).sort(),
+    ...notices.map((n) => `${n.originDoi}:${n.kind}:${rows?.byDoi.get(n.originDoi.toLowerCase()) ?? ""}`).sort(),
   ].join("|");
 
   const existing = document.getElementById(SHEETS_MODAL_ID);
@@ -442,7 +467,7 @@ export function renderSheetsModal(
 
       <div style="padding:16px;">
         <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">${summary}</div>
-        ${noticeSection(notices)}
+        ${noticeSection(notices, rows)}
         ${statCards}
       </div>
 
@@ -470,6 +495,15 @@ export function renderSheetsModal(
   document.body.appendChild(host);
 
   bindAtlasLink(host.querySelector<HTMLAnchorElement>("[data-flora-details-link]"), matchedDois);
+
+  // Sheets selects the cell named in its own URL fragment. Set the fragment
+  // directly so a <base> element on the page can never turn it into a navigation.
+  for (const link of host.querySelectorAll<HTMLAnchorElement>("[data-flora-sheet-row]")) {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      location.hash = link.dataset.floraSheetRow ?? "";
+    });
+  }
 
   // Wire up close / dismiss
   for (const el of host.querySelectorAll(".flora-modal-close, .flora-modal-dismiss")) {
@@ -853,6 +887,7 @@ export function renderSidePanel(
   onRetryPubPeer?: () => Promise<void>,
   options: {documentMode?: boolean} = {},
 ): void {
+  ensureFocusStyle();
   const references = rawReferences.map((ref) => ({ ...ref, title: plainTitle(ref.title) }));
   const existingHost = document.getElementById(PUBPEER_PANEL_ID);
   // Track open state via a stateful marker on the host — comparing inline
@@ -1509,16 +1544,25 @@ export function renderSidePanel(
     list.style.cssText = "margin:0;list-style:none;padding:0;";
 
     const COLLAPSED_COUNT = 5;
+    // Retracted and expression-of-concern references lead the list and are
+    // never folded behind "Show more".
+    const noticeRank = (doi: DoiString): number => {
+      const kind = retractionByDoi.get(doi)?.kind;
+      return kind === "retraction" ? 0 : kind ? 1 : 2;
+    };
+    const ordered = [...refs].sort((a, b) => noticeRank(a.doi) - noticeRank(b.doi));
+    const noticeCount = ordered.filter((ref) => noticeRank(ref.doi) < 2).length;
+    const visibleCount = Math.max(COLLAPSED_COUNT, noticeCount);
     const items: HTMLLIElement[] = [];
-    for (const ref of refs) {
+    for (const ref of ordered) {
       const li = buildRefRow(ref);
       items.push(li);
       list.appendChild(li);
     }
     section.appendChild(list);
 
-    if (items.length > COLLAPSED_COUNT) {
-      const hidden = items.slice(COLLAPSED_COUNT);
+    if (items.length > visibleCount) {
+      const hidden = items.slice(visibleCount);
       for (const li of hidden) li.style.display = "none";
 
       const toggleWrap = document.createElement("div");
