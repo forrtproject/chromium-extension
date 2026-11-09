@@ -42,13 +42,13 @@ describe("side panel article title", () => {
         expect(text).toContain("mixed");
     });
 
-    it("labels the header's print and share actions in words", () => {
+    it("labels the header's download and share actions in words", () => {
         render("Test article");
         const buttons = [...document.querySelectorAll<HTMLButtonElement>("#flora-pubpeer-panel button")];
-        const print = buttons.find((b) => b.textContent === "Print");
+        const download = buttons.find((b) => b.textContent === "Download");
         const share = buttons.find((b) => b.textContent === "Copy link");
-        expect(print?.querySelector("svg")).not.toBeNull();
-        expect(print?.title).toBe("Print this report, or save it as a PDF");
+        expect(download?.querySelector("svg")).not.toBeNull();
+        expect(download?.title).toBe("Download this report as a PDF");
         expect(share?.querySelector("svg")).not.toBeNull();
         expect(share?.title).toBe("Copy a link to this report");
     });

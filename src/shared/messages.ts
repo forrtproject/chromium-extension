@@ -279,6 +279,19 @@ export interface SheetFetchResponse {
     fullTab?: boolean;
 }
 
+export interface ReportPdfRequest {
+    type: "FLORA_REPORT_PDF";
+    payload: unknown;
+}
+
+export interface ReportPdfResponse {
+    type: "FLORA_REPORT_PDF_RESULT";
+    /** Base64: message passing can't carry an ArrayBuffer. */
+    pdf: string | null;
+    filename: string | null;
+    error: string | null;
+}
+
 /** Content script → service worker: resolve DOIs from article titles */
 export interface AugmentRequest {
     type: "FLORA_AUGMENT";
@@ -580,6 +593,10 @@ export function isSheetFetchRequest(msg: unknown): msg is SheetFetchRequest {
         typeof (msg as Record<string, unknown>).gid === "string" &&
         /^\d+$/.test((msg as Record<string, unknown>).gid as string)
     );
+}
+
+export function isReportPdfRequest(msg: unknown): msg is ReportPdfRequest {
+    return typeof msg === "object" && msg !== null && (msg as Record<string, unknown>).type === "FLORA_REPORT_PDF";
 }
 
 export type FeedbackPromptStep = "visit" | "claim" | "release";

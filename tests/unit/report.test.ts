@@ -4,7 +4,6 @@ import {
     encodeReport,
     outcomeLabel,
     renderReportBody,
-    renderReportDocument,
     reportUrl,
     type ReportPayload,
 } from "../../src/shared/report";
@@ -192,13 +191,6 @@ describe("report rendering", () => {
     it("says what the evidence is and is not", () => {
         expect(renderReportBody(payload())).toContain("not a verdict");
     });
-
-    it("prints as a standalone document with its own styles", () => {
-        const doc = renderReportDocument(payload());
-        expect(doc.startsWith("<!doctype html>")).toBe(true);
-        expect(doc).toContain("@media print");
-        expect(doc).toContain("Power Posing");
-    });
 });
 
 describe("the printable report", () => {
@@ -209,7 +201,7 @@ describe("the printable report", () => {
     });
 
     it("prints an entry whose DOI holds a lone surrogate, keeping its own link and dropping the DOI", () => {
-        const html = renderReportDocument(payload({
+        const html = renderReportBody(payload({
             replications: [{title: "Odd record", doi: "10.1/\uD800bad", url: "https://example.org/rep", year: 2015, outcome: "failed"}],
         }));
         expect(html).toContain('href="https://example.org/rep"');

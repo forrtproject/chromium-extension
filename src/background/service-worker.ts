@@ -20,6 +20,9 @@ import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared
 import {debugError, debugLog, debugWarn, isDebugEnabledAsync, isTestingBuild, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 import {isFeedbackPromptRequest, type FeedbackPromptResponse, type FeedbackPromptStep} from "@shared/messages";
 import {extractPubPeerComments, isPubPeerCommentsRequest, type PubPeerCommentsResponse} from "@shared/pubpeer-comments";
+import {isReportPdfRequest, type ReportPdfResponse} from "@shared/messages";
+import {readPayload} from "@shared/report";
+import {buildReportPdf, reportPdfFilename} from "@shared/report-pdf";
 
 // The worker-wide manager budgets all providers together.
 const cache = new LocalCache<ReplicationResult>("flora", 0);
@@ -442,6 +445,11 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (isReportPdfRequest(message)) {
+            sendResponse(handleReportPdf(message.payload));
+            return false;
+        }
+
         if (isAugmentRequest(message)) {
             run(signal => handleAugment(message.requests, signal))
                 .then(sendResponse)
@@ -682,6 +690,28 @@ async function fetchSheetCsv(url: string, signal?: AbortSignal): Promise<SheetFe
             error: err instanceof Error || err instanceof DOMException ? err.message : "Fetch failed",
             timedOut: (err as {name?: unknown} | null)?.name === "TimeoutError",
         };
+    }
+}
+
+function toBase64(bytes: Uint8Array): string {
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+}
+
+function handleReportPdf(raw: unknown): ReportPdfResponse {
+    const payload = readPayload(raw);
+    if (!payload) return {type: "FLORA_REPORT_PDF_RESULT", pdf: null, filename: null, error: "Invalid report"};
+    try {
+        return {
+            type: "FLORA_REPORT_PDF_RESULT",
+            pdf: toBase64(new Uint8Array(buildReportPdf(payload))),
+            filename: reportPdfFilename(payload),
+            error: null,
+        };
+    } catch (err) {
+        debugError("Report: PDF build failed —", err);
+        return {type: "FLORA_REPORT_PDF_RESULT", pdf: null, filename: null, error: err instanceof Error ? err.message : "PDF build failed"};
     }
 }
 

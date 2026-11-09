@@ -940,4 +940,22 @@ describe("service-worker", () => {
             expect(fetchMock).not.toHaveBeenCalled();
         });
     });
+
+    describe("report PDF", () => {
+        const ask = (payload: unknown) => new Promise<{pdf: string | null; filename: string | null; error: string | null}>((resolve) => {
+            messageHandler({type: "FLORA_REPORT_PDF", payload}, {}, resolve as (r: unknown) => void);
+        });
+
+        it("builds the PDF and names the file after the article", async () => {
+            const response = await ask({v: 1, title: "Power Posing", generated: Date.UTC(2026, 0, 1), replications: [], reproductions: [], originals: [], references: []});
+
+            expect(response.error).toBeNull();
+            expect(atob(response.pdf!).startsWith("%PDF-")).toBe(true);
+            expect(response.filename).toBe("ORE report – Power Posing.pdf");
+        });
+
+        it("refuses a payload that isn't a report", async () => {
+            expect(await ask({title: "no version"})).toMatchObject({pdf: null, error: "Invalid report"});
+        });
+    });
 });

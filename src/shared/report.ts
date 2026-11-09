@@ -145,7 +145,12 @@ function readReference(raw: Untrusted): ReportReference | null {
     };
 }
 
-function readPayload(raw: unknown): ReportPayload | null {
+export function validDoiUrl(doi: unknown): string | null {
+    const valid = doiText(doi);
+    return valid ? doiUrl(valid) : null;
+}
+
+export function readPayload(raw: unknown): ReportPayload | null {
     if (!isRecord(raw) || raw.v !== 1) return null;
     const title = text(raw.title);
     const generated = timestamp(raw.generated);
@@ -395,13 +400,4 @@ export function renderReportBody(payload: ReportPayload): string {
       Replication evidence is a starting point for judgement, not a verdict.
     </div>
   </div>`;
-}
-
-/** A standalone document, for printing to PDF without a network round trip. */
-export function renderReportDocument(payload: ReportPayload): string {
-    return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<title>${esc(plainTitle(payload.title))} — FORRT ORE Meta Report</title>
-<style>${REPORT_STYLES}</style>
-</head><body>${renderReportBody(payload)}</body></html>`;
 }

@@ -6,9 +6,9 @@ import type { PubPeerComment, PubPeerCommentsResponse } from "@shared/pubpeer-co
 import { getHiddenCommenters, isHiddenCommenter, onHiddenCommentersChanged } from "@shared/pubpeer-filter";
 import { renderCommentList } from "./pubpeer-comments-view";
 import { debugLog, debugWarn } from "../shared/debug";
-import { safeSendMessage } from "../shared/messages";
+import { safeSendMessage, type ReportPdfResponse } from "../shared/messages";
 import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
-import { outcomeLabel, renderReportDocument, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
+import { outcomeLabel, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
 import { writeClipboard } from "@shared/clipboard";
 import { showToast } from "@shared/toast";
 import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
@@ -734,22 +734,39 @@ function toReportEntry(entry: {
   };
 }
 
-/**
- * Print the report from a detached window rather than the host page: printing
- * the page itself would produce the article, and the panel is a fixed overlay
- * that most publisher print stylesheets hide outright.
- */
+function saveFile(bytes: Uint8Array<ArrayBuffer>, filename: string, mime: string): void {
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(DOWNLOAD_ICON, "Print", "Print this report, or save it as a PDF", () => {
-    const win = window.open("", "_blank", "width=900,height=1000");
-    if (!win) {
-      showToast("Allow pop-ups for this site to save the report", { tone: "error" });
-      return;
-    }
-    win.document.write(renderReportDocument(payload()));
-    win.document.close();
-    win.addEventListener("load", () => win.print(), { once: true });
+  let busy = false;
+  const button = headerAction(DOWNLOAD_ICON, "Download", "Download this report as a PDF", () => {
+    if (busy) return;
+    busy = true;
+    button.setAttribute("aria-busy", "true");
+    void safeSendMessage<ReportPdfResponse>({ type: "FLORA_REPORT_PDF", payload: payload() })
+      .then((response) => {
+        if (!response?.pdf || !response.filename) throw new Error(response?.error ?? "No response");
+        saveFile(Uint8Array.from(atob(response.pdf), (c) => c.charCodeAt(0)), response.filename, "application/pdf");
+      })
+      .catch((err) => {
+        debugWarn("Report: PDF download failed —", err);
+        showToast("Couldn't create the PDF", { tone: "error" });
+      })
+      .finally(() => {
+        busy = false;
+        button.removeAttribute("aria-busy");
+      });
   });
+  return button;
 }
 
 function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
