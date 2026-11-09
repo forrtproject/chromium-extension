@@ -208,6 +208,14 @@ describe("the printable report", () => {
         expect(html).not.toContain("doi.org/xx10");
     });
 
+    it("prints an entry whose DOI holds a lone surrogate, keeping its own link and dropping the DOI", () => {
+        const html = renderReportDocument(payload({
+            replications: [{title: "Odd record", doi: "10.1/\uD800bad", url: "https://example.org/rep", year: 2015, outcome: "failed"}],
+        }));
+        expect(html).toContain('href="https://example.org/rep"');
+        expect(html).not.toContain("doi:10.1/");
+    });
+
     it("links a notice with a usable DOI", () => {
         const html = renderReportBody(payload({notice: {kind: "concern", doi: "10.1/notice"}}));
         expect(html).toContain('href="https://doi.org/10.1/notice"');

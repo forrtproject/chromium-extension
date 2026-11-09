@@ -15,7 +15,8 @@ import type { PageFindings, PageStateResponse, ResultFindings } from "../shared/
 
 const TOUR_CHECKING_DELAY_MS = 300;
 const FINDINGS_POLL_MS = 1000;
-const FINDINGS_POLL_LIMIT = 30;
+const FINDINGS_SLOW_POLL_MS = 5000;
+const FINDINGS_FAST_POLLS = 30;
 
 const TOUR_HELP = {
   checking: {
@@ -220,8 +221,8 @@ async function refreshPageState(): Promise<void> {
     renderFindings();
     return;
   }
-  if ((findings?.checking || results?.checking) && findingsPolls++ < FINDINGS_POLL_LIMIT) {
-    setTimeout(() => void refreshPageState(), FINDINGS_POLL_MS);
+  if (findings?.checking || results?.checking) {
+    setTimeout(() => void refreshPageState(), findingsPolls++ < FINDINGS_FAST_POLLS ? FINDINGS_POLL_MS : FINDINGS_SLOW_POLL_MS);
   }
 }
 

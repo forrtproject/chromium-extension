@@ -1544,7 +1544,7 @@ export function renderSidePanel(
       return link;
     };
 
-    const showCommentsStatus = (message: string, withLink: boolean): void => {
+    const showCommentsStatus = (message: string, withLink: boolean, onRetry?: () => void): void => {
       const status = document.createElement("div");
       status.style.cssText =
         "display:flex;flex-direction:column;align-items:center;gap:10px;" +
@@ -1553,6 +1553,15 @@ export function renderSidePanel(
       msg.style.cssText = "font-size:12px;line-height:1.5;";
       msg.textContent = message;
       status.appendChild(msg);
+      if (onRetry) {
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.textContent = "Retry";
+        retry.style.cssText = "cursor:pointer;padding:6px 14px;font-size:12px;font-weight:500;" +
+          "color:#853953;border:1px solid #853953;border-radius:6px;background:white;";
+        retry.addEventListener("click", onRetry);
+        status.appendChild(retry);
+      }
       if (withLink) status.appendChild(threadLink("View comments on PubPeer ↗"));
       commentsBody.replaceChildren(status);
     };
@@ -1583,7 +1592,7 @@ export function renderSidePanel(
           if (!host.isConnected) return;
           if (!comments) {
             commentsRequested = false;
-            showCommentsStatus("PubPeer comments couldn't be loaded here.", true);
+            showCommentsStatus("PubPeer comments couldn't be loaded here.", true, () => loadThreadComments?.());
             return;
           }
           loadedComments = comments;

@@ -216,7 +216,8 @@ function outcomeTone(outcome: string): string {
 }
 
 function entryHtml(entry: ReportEntry): string {
-    const href = webUrl(entry.url) ?? (entry.doi ? doiUrl(entry.doi) : null);
+    const validDoi = doiText(entry.doi);
+    const href = webUrl(entry.url) ?? (validDoi ? doiUrl(validDoi) : null);
     const heading = href
         ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(plainTitle(entry.title))}</a>`
         : esc(plainTitle(entry.title));
@@ -226,8 +227,8 @@ function entryHtml(entry: ReportEntry): string {
     const badge = entry.outcome
         ? `<span class="badge" style="${outcomeTone(entry.outcome)}">${esc(outcomeLabel(entry.outcome))}</span>`
         : "";
-    const doi = entry.doi
-        ? `<a class="meta-doi" href="${esc(doiUrl(entry.doi))}" target="_blank" rel="noopener">doi:${esc(entry.doi)}</a>`
+    const doi = validDoi
+        ? `<a class="meta-doi" href="${esc(doiUrl(validDoi))}" target="_blank" rel="noopener">doi:${esc(validDoi)}</a>`
         : "";
     const metaLine = [meta ? esc(meta) : "", doi].filter(Boolean).join(" · ");
     return `<li><div class="entry-head">${heading}${badge}</div>${

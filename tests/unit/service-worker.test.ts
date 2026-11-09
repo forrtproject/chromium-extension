@@ -216,6 +216,17 @@ describe("service-worker", () => {
         } finally { fetchMock.mockRestore(); }
     });
 
+    it("does not wait out a second deadline on gviz when the export timed out", async () => {
+        const fetchMock = vi.spyOn(globalThis, "fetch")
+            .mockRejectedValueOnce(new DOMException("Request timed out", "TimeoutError"));
+        try {
+            const response = await getSheet();
+            expect(response).toMatchObject({csv: null, error: "Request timed out"});
+            expect(response).not.toHaveProperty("timedOut");
+            expect(urlsOf(fetchMock)).toEqual([EXPORT_URL]);
+        } finally { fetchMock.mockRestore(); }
+    });
+
     it("rejects HTML responses from both URLs while accepting HTML-looking CSV cells", async () => {
         const fetchMock = vi.spyOn(globalThis, "fetch")
             .mockResolvedValueOnce(html())
@@ -876,6 +887,57 @@ describe("service-worker", () => {
 
             const response = await sendPmcResolve(["PMC12638941"]);
             expect(response.results).toEqual({});
+        });
+    });
+
+    describe("PubPeer comments", () => {
+        const THREAD = "https://pubpeer.com/publications/ABC123";
+        const page = (comments: unknown) => new Response(
+            `<html><body><script data-page="app" type="application/json">${JSON.stringify({props: {comments}})}</script></body></html>`,
+            {headers: {"content-type": "text/html; charset=utf-8"}},
+        );
+        const getComments = () => new Promise<{comments: unknown; error: string | null}>((resolve) => {
+            messageHandler({type: "FLORA_PUBPEER_COMMENTS", url: THREAD}, {}, resolve as (r: unknown) => void);
+        });
+
+        afterEach(() => { vi.unstubAllGlobals(); });
+
+        it("fetches the thread page without cookies and returns its comments", async () => {
+            const fetchMock = vi.fn(async () => page([{id: 1, number: 1, user: "Peer 1", createdAt: "2020-01-01", contentMarkdown: "Hi", status: "published"}]));
+            vi.stubGlobal("fetch", fetchMock);
+
+            const response = await getComments();
+
+            expect(response).toMatchObject({error: null, comments: [{id: 1, user: "Peer 1", markdown: "Hi"}]});
+            expect(fetchMock).toHaveBeenCalledWith(THREAD, expect.objectContaining({credentials: "omit"}));
+        });
+
+        it("reports a non-OK status as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => new Response("busy", {status: 503})));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "HTTP 503"});
+        });
+
+        it("reports a page without comment data as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => new Response("<html><body>Just a moment...</body></html>")));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "No comment data on the PubPeer page"});
+        });
+
+        it("reports a network failure as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "Failed to fetch"});
+        });
+
+        it("ignores requests for pages other than PubPeer threads", () => {
+            const fetchMock = vi.fn();
+            vi.stubGlobal("fetch", fetchMock);
+            const sendResponse = vi.fn();
+
+            messageHandler({type: "FLORA_PUBPEER_COMMENTS", url: "https://example.com/publications/ABC"}, {}, sendResponse);
+
+            expect(fetchMock).not.toHaveBeenCalled();
         });
     });
 });

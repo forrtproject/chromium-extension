@@ -109,10 +109,10 @@ export interface FindingCounts {
 export interface ArticleFindings {
     retracted: boolean;
     concern: boolean;
-    /** Study totals from FLoRA, as in the report. */
+    /** Study totals from FLoRA, as in the report: replications, reproductions and originals. */
     replications: number;
     reproductions: number;
-    /** Original studies this paper replicates. */
+    /** Original studies this paper replicates (a study total). */
     originals: number;
     pubpeerComments: number;
     /**

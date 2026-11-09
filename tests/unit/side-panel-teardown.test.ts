@@ -90,11 +90,8 @@ describe("side panel teardown", () => {
         try {
             render();
             removeSidePanel();
-            const before = document.body.innerHTML;
 
-            vi.advanceTimersByTime(10_000);
-
-            expect(document.body.innerHTML).toBe(before);
+            expect(vi.getTimerCount()).toBe(0);
         } finally {
             vi.useRealTimers();
         }

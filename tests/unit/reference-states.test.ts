@@ -147,6 +147,16 @@ describe("countFindings", () => {
     const C = "10.1000/c" as DoiString;
     const D = "10.1000/d" as DoiString;
 
+    it("finds a paper's state under any casing of its DOI", () => {
+        const upper = "10.1000/MIXED" as DoiString;
+        const lower = "10.1000/mixed" as DoiString;
+        const counts = countFindings([upper, lower], {
+            pageState: new Map<DoiString, LookupState>([[lower, withReplications]]),
+            notices: [], hasComments: (doi) => doi === lower,
+        });
+        expect(counts).toMatchObject({papers: 1, checked: 1, replications: 1, pubpeer: 1});
+    });
+
     it("counts failed checks as unavailable, not as clear", () => {
         const counts = countFindings([A, B, C], {
             pageState: new Map<DoiString, LookupState>([[A, { status: "error" } as LookupState], [B, withReplications], [C, withReplications]]),

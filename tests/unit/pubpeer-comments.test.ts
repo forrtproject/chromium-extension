@@ -52,6 +52,12 @@ describe("extractPubPeerComments", () => {
         expect(comments?.map((c) => c.id)).toEqual([3]);
     });
 
+    it("returns null when no published comment can be read, but [] for an all-unpublished thread", () => {
+        expect(extractPubPeerComments(threadPage([{id: "x", status: "published"}, null]))).toBeNull();
+        expect(extractPubPeerComments(threadPage([rawComment({status: "pending"})]))).toEqual([]);
+        expect(extractPubPeerComments(threadPage([]))).toEqual([]);
+    });
+
     it("returns null when the page carries no comment data", () => {
         expect(extractPubPeerComments("<html><body>Just a moment…</body></html>")).toBeNull();
         expect(extractPubPeerComments(`<script data-page="app" type="application/json">{not json</script>`)).toBeNull();
@@ -117,6 +123,10 @@ describe("renderCommentMarkdown", () => {
 
     it("decodes HTML entities as text", () => {
         expect(render("p &lt; .01 &amp; r = .44").textContent).toBe("p < .01 & r = .44");
+    });
+
+    it("leaves unknown entity names, including inherited object keys, as written", () => {
+        expect(render("&constructor; &toString; &bogus;").textContent).toBe("&constructor; &toString; &bogus;");
     });
 
     it("never creates elements from HTML in the comment", () => {
@@ -207,5 +217,23 @@ describe("side panel comments", () => {
 
         await vi.waitFor(() => expect(commentsSection().textContent).toContain("couldn't be loaded"));
         expect(commentsSection().querySelector<HTMLAnchorElement>("a")?.href).toBe(unreachable);
+    });
+
+    it("retries a failed fetch from the panel", async () => {
+        const flaky = "https://pubpeer.com/publications/FLAKY";
+        sendMessage.mockResolvedValueOnce({type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: null, error: "HTTP 503"});
+        render(flaky);
+        openPanel();
+        await vi.waitFor(() => expect(commentsSection().textContent).toContain("couldn't be loaded"));
+
+        sendMessage.mockResolvedValueOnce({
+            type: "FLORA_PUBPEER_COMMENTS_RESULT",
+            comments: [{id: 7, number: 1, user: "Peer 1", createdAt: "2020-01-01", markdown: "Back.", isAuthorResponse: false, isEditorResponse: false}],
+            error: null,
+        });
+        [...commentsSection().querySelectorAll("button")].find((b) => b.textContent === "Retry")!.click();
+
+        await vi.waitFor(() => expect(commentsSection().textContent).toContain("Back."));
+        expect(commentRequests()).toHaveLength(2);
     });
 });

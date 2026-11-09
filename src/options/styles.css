@@ -970,19 +970,13 @@ label {
 .section-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 0;
+  gap: 0.2rem 1rem;
   margin: 0 0 0.75rem 0.25rem;
   font-size: 12.5px;
 }
 .section-nav a {
   color: var(--text-muted);
   text-decoration: none;
-}
-.section-nav a + a::before {
-  content: "·";
-  display: inline-block;
-  margin: 0 0.5rem;
-  color: var(--border-light);
 }
 .section-nav a:hover {
   color: var(--primary);

@@ -40,10 +40,14 @@ export function isPubPeerCommentsRequest(msg: unknown): msg is PubPeerCommentsRe
 
 const PAGE_DATA = /<script\b[^>]*\bdata-page="app"[^>]*>([\s\S]*?)<\/script>/i;
 
+function isPublished(raw: unknown): boolean {
+  const status = typeof raw === "object" && raw !== null ? (raw as {status?: unknown}).status : undefined;
+  return status === undefined || status === "published";
+}
+
 function toComment(raw: unknown): PubPeerComment | null {
   if (typeof raw !== "object" || raw === null) return null;
   const c = raw as Record<string, unknown>;
-  if (c.status !== undefined && c.status !== "published") return null;
   if (typeof c.id !== "number" || typeof c.contentMarkdown !== "string") return null;
   return {
     id: c.id,
@@ -67,5 +71,7 @@ export function extractPubPeerComments(html: string): PubPeerComment[] | null {
   }
   const comments = (page as {props?: {comments?: unknown}} | null)?.props?.comments;
   if (!Array.isArray(comments)) return null;
-  return comments.map(toComment).filter((c): c is PubPeerComment => c !== null);
+  const published = comments.filter(isPublished);
+  const parsed = published.map(toComment).filter((c): c is PubPeerComment => c !== null);
+  return published.length > 0 && parsed.length === 0 ? null : parsed;
 }

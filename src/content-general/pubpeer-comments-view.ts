@@ -8,7 +8,8 @@ function decodeEntities(text: string): string {
       const code = name[1] === "x" || name[1] === "X" ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10);
       return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
     }
-    return ENTITIES[name.toLowerCase()] ?? whole;
+    const key = name.toLowerCase();
+    return Object.hasOwn(ENTITIES, key) ? ENTITIES[key] : whole;
   });
 }
 
