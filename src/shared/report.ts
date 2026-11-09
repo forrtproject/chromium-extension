@@ -197,6 +197,15 @@ function esc(value: string): string {
     ));
 }
 
+/**
+ * Display text for a FLoRA outcome: the raw value "success" reads as
+ * "successful"; every other value is shown as recorded. Colours still key off
+ * the raw value.
+ */
+export function outcomeLabel(outcome: string): string {
+    return outcome.trim().toLowerCase() === "success" ? "successful" : outcome;
+}
+
 function outcomeTone(outcome: string): string {
     const lower = outcome.toLowerCase();
     if (lower.includes("success") || lower.includes("replicated") || lower === "yes") {
@@ -207,7 +216,8 @@ function outcomeTone(outcome: string): string {
 }
 
 function entryHtml(entry: ReportEntry): string {
-    const href = webUrl(entry.url) ?? (entry.doi ? doiUrl(entry.doi) : null);
+    const validDoi = doiText(entry.doi);
+    const href = webUrl(entry.url) ?? (validDoi ? doiUrl(validDoi) : null);
     const heading = href
         ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(plainTitle(entry.title))}</a>`
         : esc(plainTitle(entry.title));
@@ -215,10 +225,14 @@ function entryHtml(entry: ReportEntry): string {
         .filter((part): part is string => !!part)
         .join(" · ");
     const badge = entry.outcome
-        ? `<span class="badge" style="${outcomeTone(entry.outcome)}">${esc(entry.outcome)}</span>`
+        ? `<span class="badge" style="${outcomeTone(entry.outcome)}">${esc(outcomeLabel(entry.outcome))}</span>`
         : "";
+    const doi = validDoi
+        ? `<a class="meta-doi" href="${esc(doiUrl(validDoi))}" target="_blank" rel="noopener">doi:${esc(validDoi)}</a>`
+        : "";
+    const metaLine = [meta ? esc(meta) : "", doi].filter(Boolean).join(" · ");
     return `<li><div class="entry-head">${heading}${badge}</div>${
-        meta ? `<div class="meta">${esc(meta)}</div>` : ""
+        metaLine ? `<div class="meta">${metaLine}</div>` : ""
     }</li>`;
 }
 
@@ -307,6 +321,7 @@ export const REPORT_STYLES = `
   .entry-head a { font-size: 13px; font-weight: 500; color: #853953; text-decoration: none; }
   .badge { flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 1px 8px; border-radius: 10px; }
   .meta { font-size: 11px; color: #5f6368; margin-top: 2px; }
+  .meta-doi { color: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; text-decoration: none; overflow-wrap: anywhere; }
   .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
   .tag { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 10px; }
   .tag-repl { background: #e0f2fe; color: #0369a1; }

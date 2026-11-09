@@ -183,13 +183,55 @@ describe("service-worker", () => {
         for (const fn of storageChangeHandlers) fn({[RET_MAP_KEY]: {newValue: map}}, "local");
     }
 
-    it("rejects HTML export responses while accepting HTML-looking CSV cells", async () => {
+    const getSheet = () => new Promise<SheetFetchResponse>(resolve => {
+        messageHandler({type: "FLORA_SHEET_FETCH", spreadsheetId: "book", gid: "42"}, {}, resolve as (r: unknown) => void);
+    });
+    const EXPORT_URL = "https://docs.google.com/spreadsheets/d/book/export?format=csv&gid=42";
+    const GVIZ_URL = "https://docs.google.com/spreadsheets/d/book/gviz/tq?tqx=out:csv&gid=42";
+    const csv = (body: string) => new Response(body, {headers: {"content-type": "text/csv"}});
+    const html = () => new Response("<html><body>Sign in</body></html>", {headers: {"content-type": "text/html; charset=utf-8"}});
+    const urlsOf = (mock: {mock: {calls: unknown[][]}}) => mock.mock.calls.map((c) => String(c[0]));
+
+    it("reads the sheet through the CSV export, without gviz, when export works", async () => {
+        const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(csv("Title,Score\nA,10.1234/paper"));
+        try {
+            expect(await getSheet()).toMatchObject({csv: "Title,Score\nA,10.1234/paper", error: null, fullTab: true});
+            expect(urlsOf(fetchMock)).toEqual([EXPORT_URL]);
+        } finally { fetchMock.mockRestore(); }
+    });
+
+    it.each([
+        ["a non-OK status", () => Promise.resolve(new Response("Forbidden", {status: 403}))],
+        ["a sign-in page", () => Promise.resolve(html())],
+        ["a network error", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ])("falls back to gviz when the export returns %s", async (_label, exportResponse) => {
         const fetchMock = vi.spyOn(globalThis, "fetch")
-            .mockResolvedValueOnce(new Response("<html><body>Sign in</body></html>", {headers: {"content-type": "text/html; charset=utf-8"}}))
-            .mockResolvedValueOnce(new Response("<html>\n10.1234/paper", {headers: {"content-type": "text/csv"}}));
-        const getSheet = () => new Promise<SheetFetchResponse>(resolve => {
-            messageHandler({type: "FLORA_SHEET_FETCH", spreadsheetId: "book", gid: "42"}, {}, resolve as (r: unknown) => void);
-        });
+            .mockImplementationOnce(exportResponse as () => Promise<Response>)
+            .mockResolvedValueOnce(csv("10.1234/paper"));
+        try {
+            const response = await getSheet();
+            expect(response).toMatchObject({csv: "10.1234/paper", error: null});
+            expect(response.fullTab).toBeUndefined();
+            expect(urlsOf(fetchMock)).toEqual([EXPORT_URL, GVIZ_URL]);
+        } finally { fetchMock.mockRestore(); }
+    });
+
+    it("does not wait out a second deadline on gviz when the export timed out", async () => {
+        const fetchMock = vi.spyOn(globalThis, "fetch")
+            .mockRejectedValueOnce(new DOMException("Request timed out", "TimeoutError"));
+        try {
+            const response = await getSheet();
+            expect(response).toMatchObject({csv: null, error: "Request timed out"});
+            expect(response).not.toHaveProperty("timedOut");
+            expect(urlsOf(fetchMock)).toEqual([EXPORT_URL]);
+        } finally { fetchMock.mockRestore(); }
+    });
+
+    it("rejects HTML responses from both URLs while accepting HTML-looking CSV cells", async () => {
+        const fetchMock = vi.spyOn(globalThis, "fetch")
+            .mockResolvedValueOnce(html())
+            .mockResolvedValueOnce(html())
+            .mockResolvedValueOnce(csv("<html>\n10.1234/paper"));
         try {
             expect(await getSheet()).toMatchObject({csv: null, error: "Sheet export returned a sign-in or error page"});
             expect(await getSheet()).toMatchObject({csv: "<html>\n10.1234/paper", error: null});
@@ -845,6 +887,57 @@ describe("service-worker", () => {
 
             const response = await sendPmcResolve(["PMC12638941"]);
             expect(response.results).toEqual({});
+        });
+    });
+
+    describe("PubPeer comments", () => {
+        const THREAD = "https://pubpeer.com/publications/ABC123";
+        const page = (comments: unknown) => new Response(
+            `<html><body><script data-page="app" type="application/json">${JSON.stringify({props: {comments}})}</script></body></html>`,
+            {headers: {"content-type": "text/html; charset=utf-8"}},
+        );
+        const getComments = () => new Promise<{comments: unknown; error: string | null}>((resolve) => {
+            messageHandler({type: "FLORA_PUBPEER_COMMENTS", url: THREAD}, {}, resolve as (r: unknown) => void);
+        });
+
+        afterEach(() => { vi.unstubAllGlobals(); });
+
+        it("fetches the thread page without cookies and returns its comments", async () => {
+            const fetchMock = vi.fn(async () => page([{id: 1, number: 1, user: "Peer 1", createdAt: "2020-01-01", contentMarkdown: "Hi", status: "published"}]));
+            vi.stubGlobal("fetch", fetchMock);
+
+            const response = await getComments();
+
+            expect(response).toMatchObject({error: null, comments: [{id: 1, user: "Peer 1", markdown: "Hi"}]});
+            expect(fetchMock).toHaveBeenCalledWith(THREAD, expect.objectContaining({credentials: "omit"}));
+        });
+
+        it("reports a non-OK status as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => new Response("busy", {status: 503})));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "HTTP 503"});
+        });
+
+        it("reports a page without comment data as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => new Response("<html><body>Just a moment...</body></html>")));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "No comment data on the PubPeer page"});
+        });
+
+        it("reports a network failure as an error", async () => {
+            vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+
+            expect(await getComments()).toMatchObject({comments: null, error: "Failed to fetch"});
+        });
+
+        it("ignores requests for pages other than PubPeer threads", () => {
+            const fetchMock = vi.fn();
+            vi.stubGlobal("fetch", fetchMock);
+            const sendResponse = vi.fn();
+
+            messageHandler({type: "FLORA_PUBPEER_COMMENTS", url: "https://example.com/publications/ABC"}, {}, sendResponse);
+
+            expect(fetchMock).not.toHaveBeenCalled();
         });
     });
 });

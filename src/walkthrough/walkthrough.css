@@ -493,7 +493,7 @@ body {
 }
 
 .mock-sheets-stage {
-  height: 480px;
+  height: 540px;
   background: var(--white);
 }
 
@@ -1191,4 +1191,17 @@ body {
 
 .site-remove:hover {
   color: #b42318;
+}
+
+.wt-setup-heading {
+  margin-top: 1.75rem;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--neutral);
+}
+
+.mock-scholar-result--next {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light, #e0e1e1);
 }

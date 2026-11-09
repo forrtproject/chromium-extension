@@ -39,6 +39,34 @@ describe("registered reports updater", () => {
     expect(map.reports["10.5555/protocol"]).toEqual({ key: "P1", stage: 1, linked: "https://doi.org/10.5555/report" });
     expect(map.reports["10.5555/not"]).toBeUndefined();
   });
+
+  it("skips items filed only in the shared reading list", () => {
+    const map = buildRegisteredReportMap([
+      item("READ", { DOI: "10.1371/journal.pmed.0020124", collections: ["BB5B9YHG"] }),
+      item("BOTH", { DOI: "10.5555/both", collections: ["BB5B9YHG", "C3RGTYXM"] }),
+      item("RR", { DOI: "10.5555/rr", collections: ["C3RGTYXM"] }),
+      item("LOOSE", { DOI: "10.5555/loose" }),
+    ]);
+    expect(map.reports["10.1371/journal.pmed.0020124"]).toBeUndefined();
+    expect(Object.keys(map.reports).sort()).toEqual(["10.5555/both", "10.5555/loose", "10.5555/rr"]);
+  });
+
+  it("does not link a companion filed only in the shared reading list", () => {
+    const map = buildRegisteredReportMap([
+      item("S2", { DOI: "10.5555/stage2", tags: ["Stage 2 Manuscript"], collections: ["C3RGTYXM"], relations: relation("S1") }),
+      item("S1", { DOI: "10.5555/stage1", tags: ["Stage 1 Manuscript"], collections: ["BB5B9YHG"] }),
+    ]);
+    expect(map.reports["10.5555/stage2"]).toEqual({ key: "S2", stage: 2 });
+    expect(map.reports["10.5555/stage1"]).toBeUndefined();
+  });
+
+  it("still links a companion filed in the reading list and the RR collection", () => {
+    const map = buildRegisteredReportMap([
+      item("S2", { DOI: "10.5555/stage2", tags: ["Stage 2 Manuscript"], collections: ["C3RGTYXM"], relations: relation("S1") }),
+      item("S1", { DOI: "10.5555/stage1", tags: ["Stage 1 Manuscript"], collections: ["BB5B9YHG", "C3RGTYXM"] }),
+    ]);
+    expect(map.reports["10.5555/stage2"]).toEqual({ key: "S2", stage: 2, linked: "https://doi.org/10.5555/stage1" });
+  });
 });
 
 describe("downloaded Registered Reports map", () => {

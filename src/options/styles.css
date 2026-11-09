@@ -315,6 +315,41 @@ body {
   color: var(--text-secondary);
 }
 
+/* Small "more detail" disclosure under a section's explanation */
+.dh-more {
+  margin-top: 0.4rem;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.dh-more > summary {
+  cursor: pointer;
+  width: fit-content;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.dh-more > summary:hover {
+  text-decoration: underline;
+}
+
+.dh-more > summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.dh-more > p {
+  margin: 0.35rem 0 0;
+}
+
+.dh-more a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .dh-callout-text a {
   color: var(--primary);
   text-decoration: underline;
@@ -888,4 +923,65 @@ label {
 
 .site-remove:hover {
   color: #b42318;
+}
+
+/* ─── Collapsible technical sections ─── */
+.tech-card > summary {
+  list-style: none;
+  cursor: pointer;
+  position: relative;
+  padding-right: 3.25rem;
+  border-bottom: none;
+}
+.tech-card > summary::-webkit-details-marker { display: none; }
+.tech-card > summary::after {
+  content: "";
+  position: absolute;
+  right: 1.75rem;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform var(--transition-fast);
+}
+.tech-card[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
+.tech-card > summary:hover .dh-title { color: var(--primary); }
+.tech-card .dh-title { margin-bottom: 0.15rem; }
+.tech-hint { font-size: 13px; color: var(--text-muted); }
+/* Spans, because <summary> takes only phrasing content; block keeps the stacked layout. */
+.tech-summary .dh-label, .tech-summary .tech-hint { display: block; }
+.tech-card[open] .tech-hint { display: none; }
+.tech-card[open] > summary { border-bottom: none; padding-bottom: 0.25rem; }
+.tech-body { padding-top: 0; }
+.tech-inline { border-top: 1px solid var(--border-light); }
+.tech-inline > summary {
+  cursor: pointer;
+  padding: 0.85rem 1.75rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.tech-inline > summary:hover { background: var(--primary-faint); }
+.tech-inline .tech-callout { margin: 0 1.75rem 0.5rem; }
+
+/* ─── Section jump links ─── */
+.section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  margin: 0 0 0.75rem 0.25rem;
+  font-size: 12.5px;
+}
+.section-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.section-nav a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.detail-card[id] {
+  scroll-margin-top: 1rem;
 }

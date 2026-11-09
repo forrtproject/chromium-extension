@@ -19,6 +19,7 @@ import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
 import {appendDebugEntries, installDebugLogStore, MAX_LOG_ENTRIES} from "@shared/debug-log";
 import {debugError, debugLog, debugWarn, isDebugEnabledAsync, isTestingBuild, type DebugLogEntry, type RuntimeErrorInfo} from "@shared/debug";
 import {isFeedbackPromptRequest, type FeedbackPromptResponse, type FeedbackPromptStep} from "@shared/messages";
+import {extractPubPeerComments, isPubPeerCommentsRequest, type PubPeerCommentsResponse} from "@shared/pubpeer-comments";
 
 // The worker-wide manager budgets all providers together.
 const cache = new LocalCache<ReplicationResult>("flora", 0);
@@ -436,6 +437,11 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (isPubPeerCommentsRequest(message)) {
+            void fetchPubPeerComments(message.url).then(sendResponse);
+            return true;
+        }
+
         if (isAugmentRequest(message)) {
             run(signal => handleAugment(message.requests, signal))
                 .then(sendResponse)
@@ -643,11 +649,15 @@ async function handlePmcResolve(pmcids: string[], idtype: NcbiIdType = "pmcid", 
     return {type: "FLORA_PMC_RESOLVE_RESULT", results};
 }
 
-async function handleSheetFetch(
-    spreadsheetId: string,
-    gid: string, signal?: AbortSignal
-): Promise<SheetFetchResponse> {
-    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+// `/export` returns every row and cell as stored. `gviz` drops text in
+// mostly-numeric columns and blank rows, and can merge a section row into the
+// header, so it is only the fallback (e.g. owners who disable downloads).
+function sheetCsvUrls(spreadsheetId: string, gid: string): string[] {
+    const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+    return [`${base}/export?format=csv&gid=${gid}`, `${base}/gviz/tq?tqx=out:csv&gid=${gid}`];
+}
+
+async function fetchSheetCsv(url: string, signal?: AbortSignal): Promise<SheetFetchResponse & {timedOut?: boolean}> {
     try {
         const resp = await fetchWithDeadline(url, {credentials: "include", signal});
         if (!resp.ok) {
@@ -669,9 +679,41 @@ async function handleSheetFetch(
         return {
             type: "FLORA_SHEET_FETCH_RESULT",
             csv: null,
+            error: err instanceof Error || err instanceof DOMException ? err.message : "Fetch failed",
+            timedOut: (err as {name?: unknown} | null)?.name === "TimeoutError",
+        };
+    }
+}
+
+async function fetchPubPeerComments(url: string): Promise<PubPeerCommentsResponse> {
+    try {
+        const resp = await fetchWithDeadline(url, {credentials: "omit", signal: null});
+        if (!resp.ok) return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: null, error: `HTTP ${resp.status}`};
+        const comments = extractPubPeerComments(await resp.text());
+        if (!comments) return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments: null, error: "No comment data on the PubPeer page"};
+        return {type: "FLORA_PUBPEER_COMMENTS_RESULT", comments, error: null};
+    } catch (err) {
+        debugError("PubPeer: comment fetch failed —", err);
+        return {
+            type: "FLORA_PUBPEER_COMMENTS_RESULT",
+            comments: null,
             error: err instanceof Error ? err.message : "Fetch failed",
         };
     }
+}
+
+async function handleSheetFetch(
+    spreadsheetId: string,
+    gid: string, signal?: AbortSignal
+): Promise<SheetFetchResponse> {
+    const [exportUrl, gvizUrl] = sheetCsvUrls(spreadsheetId, gid);
+    const {timedOut, ...exported} = await fetchSheetCsv(exportUrl, signal);
+    if (exported.csv !== null) return {...exported, fullTab: true};
+    if (signal?.aborted || timedOut) return exported;
+    debugLog(`Sheets: export failed (${exported.error}) — falling back to gviz`);
+    const gviz = await fetchSheetCsv(gvizUrl, signal);
+    delete gviz.timedOut;
+    return gviz;
 }
 
 // ── Retraction lookups ──────────────────────────────────────────────────────

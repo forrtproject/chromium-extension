@@ -1,5 +1,6 @@
 import {safeSendMessage, type LookupResponse} from "@shared/messages";
 import {fetchOpenAccess} from "@shared/openaccess";
+import {noteOutage, outageEpoch} from "@shared/outages";
 import {isAbortError} from "@shared/work-cancellation";
 import {webUrl} from "@shared/web-url";
 // Merged FLoRA indicator pill — combines the DOI badge, Open Access padlock,
@@ -368,7 +369,7 @@ function buildOaSegment(state: OaState, color = "#853953"): HTMLElement {
         attr: "data-flora-oa-segment",
         iconHtml: OA_UNLOCK_SVG.replace('width="12" height="12"', 'width="11" height="11"'),
         label: "OA",
-        title: state === "pending" ? "Checking for a free copy…" : `Open Access — ${oaSubtitle(state, available)}`,
+        title: state === "pending" ? "Checking for an open-access version…" : `Open Access — ${oaSubtitle(state, available)}`,
         exists: available,
         pending: state === "pending",
     }, color);
@@ -615,7 +616,7 @@ function oaLocations(oa: OpenAccessStatus | null): OpenAccessLocation[] {
     if (!oa?.isOa) return [];
     if (oa.locations?.length) return oa.locations.filter((loc) => webUrl(loc.url));
     const url = webUrl(oa.url);
-    return url ? [{url, label: "Free copy", version: null, isPdf: false}] : [];
+    return url ? [{url, label: "Open-access version", version: null, isPdf: false}] : [];
 }
 
 /** One free copy, as a line in the chooser under the Open Access row. */
@@ -692,8 +693,8 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
         accent: "#853953",
         available: true,
         title: "Open Access",
-        subtitle: `${locations.length} free copies`,
-        subtitleShort: `${locations.length} free`,
+        subtitle: `${locations.length} open-access versions`,
+        subtitleShort: `${locations.length} versions`,
         href: locations[0].url,
         actionLabel: "View PDF",
         attr: "data-flora-oa-primary",
@@ -711,7 +712,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
     toggle.setAttribute("data-flora-oa-choices", "");
     toggle.setAttribute("role", "button");
     toggle.tabIndex = 0;
-    toggle.title = `Choose from ${locations.length} free copies`;
+    toggle.title = `Choose from ${locations.length} open-access versions`;
     toggle.style.cssText =
         rowActionStyle("#853953", compact)
         + `cursor:pointer;user-select:none;border-radius:5px;padding:${compact ? "1px 4px" : "3px 5px"};`;
@@ -949,7 +950,18 @@ function buildDoiRow(
 
     contentRow.appendChild(doiText);
     contentRow.appendChild(actions);
-    return contentRow;
+    // The opened popover spells out what the dotted underline means; the
+    // compact search panel keeps the underline alone.
+    if (!isAugmented || compact) return contentRow;
+    const wrap = document.createElement("div");
+    wrap.setAttribute("data-flora-doi-provenance", "");
+    const matched = document.createElement("div");
+    matched.textContent = "Matched by title \u2014 check it is the right paper";
+    matched.title = provenanceLabel ?? SEARCH_PROVENANCE;
+    matched.style.cssText = `${rowSubStyle()}margin:-4px 0 3px 28px;`;
+    wrap.appendChild(contentRow);
+    wrap.appendChild(matched);
+    return wrap;
 }
 
 /**
@@ -1079,10 +1091,15 @@ interface IndicatorLookups {
 function startIndicatorLookups(
     doi: DoiString,
     oaStatus: Promise<OpenAccessStatus | null> | undefined,
-    knownPubPeer?: PubPeerFeedback | null,
+    knownPubPeer: PubPeerFeedback | null | undefined,
+    anchor: Element,
 ): IndicatorLookups {
     const listeners: Array<() => void> = [];
     const changed = () => { for (const listener of listeners) listener(); };
+    const epoch = outageEpoch();
+    // The page notice's Retry may be pressed again while these are still running.
+    const retryOaOnce = () => { if (lookups.oa !== "pending") lookups.retryOa(); };
+    const retryPubPeerOnce = () => { if (lookups.pubpeer !== "pending") lookups.retryPubPeer(); };
     const lookups: IndicatorLookups = {
         oa: oaStatus ? "pending" : null,
         pubpeer: "pending",
@@ -1098,10 +1115,12 @@ function startIndicatorLookups(
             changed();
             void lookupPubPeerForDoi(doi).then((feedback) => {
                 lookups.pubpeer = feedback;
+                noteOutage(lookups, "pubpeer", null, epoch, anchor);
                 changed();
             }).catch((error) => {
                 lookups.pubpeer = isAbortError(error) ? "cancelled" : "unavailable";
                 lookups.pubpeerRetryAfterMs = typeof error?.retryAfterMs === "number" ? error.retryAfterMs : null;
+                if (lookups.pubpeer === "unavailable") noteOutage(lookups, "pubpeer", retryPubPeerOnce, epoch, anchor);
                 changed();
             });
         },
@@ -1112,6 +1131,8 @@ function startIndicatorLookups(
             .catch((err): OaState => isAbortError(err) ? "cancelled" : null)
             .then((state) => {
                 lookups.oa = state;
+                // null after the email check is a failed lookup, not "no open-access version".
+                if (state !== "cancelled") noteOutage(lookups, "oa", state === null ? retryOaOnce : null, epoch, anchor);
                 changed();
             });
     };
@@ -1436,7 +1457,7 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
 
     // Segment 3 — PubPeer marker. Callers that already hold the answer pass it
     // in; otherwise per-pill lookups are coalesced into one cached batch request.
-    const lookups = startIndicatorLookups(doi, oaStatus, options.pubpeer);
+    const lookups = startIndicatorLookups(doi, oaStatus, options.pubpeer, wrapper);
     const initialFeedback = typeof lookups.pubpeer === "string" ? null : lookups.pubpeer;
     let pubpeerSegment = buildPubPeerSegment(initialFeedback, pubPeerAnswered(lookups.pubpeer), color);
     pill.appendChild(pubpeerSegment);
@@ -1958,6 +1979,7 @@ function ensurePanelStyle(): void {
  * pill, so updateIndicatorPillBadges refreshes it identically.
  */
 export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement {
+    ensureFocusStyle();
     const {
         doi, color = "#853953", isAugmented = false, provenanceLabel,
         retraction = null, replicationsCount = null, reproductionsCount = null,
@@ -1986,7 +2008,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
 
     ensurePanelStyle();
     wrapper.appendChild(buildIndicatorRows({
-        doi, color, isAugmented, provenanceLabel, lookups: startIndicatorLookups(doi, oaStatus, options.pubpeer),
+        doi, color, isAugmented, provenanceLabel, lookups: startIndicatorLookups(doi, oaStatus, options.pubpeer, wrapper),
         retraction, replicationsCount, reproductionsCount, compact: true,
     }));
     if (typeof options.oaStatus === "function") whenNearViewport(wrapper, startOa);
@@ -1997,7 +2019,8 @@ export interface BadgeRetryHooks {
     /** Owning page's identity, read when a retry starts and again when it lands. */
     generation: () => unknown;
     /** Runs after a retry writes its result, so the owner can rerender dependent UI. */
-    onResolved?: () => void;
+    /** `ok` is false when the retried lookup failed again. */
+    onResolved?: (doi: DoiString, ok: boolean) => void;
 }
 
 /** `getRedacts` is read on every repaint, so a notice found after a row failed still lands on it. */
@@ -2073,11 +2096,12 @@ export function updateIndicatorPillBadges(
                 if (hooks.generation() !== startedOn) return;
                 next.set(doi, resolved);
                 updateIndicatorPillBadges(root, next, getRedacts, scope, doi, hooks);
-                hooks.onResolved?.();
+                hooks.onResolved?.(doi, resolved.status !== "error");
             };
             replaceIndicatorRow(badgeRow, shieldFromPageCss(buildRow({
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,
-                title: "FORRT", subtitle: pending ? "Checking…" : "Unavailable",
+                // Keep the row's usual label; the subtitle says the lookup failed.
+                title: signal.rowTitle, subtitle: signal.rowSubtitle,
                 actionLabel: "Retry", onAction: pending ? undefined : () => { void retry(); },
                 attr: "data-flora-badge-row", compact,
             })));

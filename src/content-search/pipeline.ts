@@ -16,6 +16,7 @@ import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
 import {applyPlacement} from "@shared/site-adapters";
 import {showToast} from "@shared/toast";
+import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {pubPeerVerdict} from "@shared/pubpeer-api";
 import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
 import {reportCodeError} from "@shared/error-report";
@@ -28,6 +29,7 @@ import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 import {
     beginWorkIndicator,
     waitForWorkToFinish,
+    isWorkIndicatorIdle,
     count,
     endWorkIndicator,
     isWorkCancelled,
@@ -102,6 +104,7 @@ function syncRetractionPage(): void {
     retractions.clear();
     for (const row of document.querySelectorAll<HTMLElement>(`[${PROCESSED_ATTR}]`)) clearResultRow(row);
     unansweredRows = new WeakSet();
+    clearOutages();
     dismissSearchRetry();
 }
 // Available since Chrome 102. Unlike a content-world history patch, this sees
@@ -135,6 +138,15 @@ export function searchScanSummary(): ScanSummary | null {
     return {papers: papers.size, flagged: flagged.size, incomplete};
 }
 
+let passesInFlight = 0;
+
+/** True while a pass is queued or running, a retry is pending, or any result's FLoRA lookup is in flight. */
+export function searchWorkPending(): boolean {
+    if (passesInFlight > 0 || retryingSearchChecks || !isWorkIndicatorIdle()) return true;
+    for (const state of lookupState.values()) if (state.status === "loading") return true;
+    return false;
+}
+
 // Set by the popup's hide command and by the work toast's pause control (both
 // handled in index.ts). The pass reads it to stop marking up rows.
 let searchHidden = false;
@@ -166,12 +178,14 @@ export function processSearchResults(adapter: SearchSiteAdapter, root: ParentNod
     if (!pending) pendingPasses.set(adapter, pending = new Map());
     const existing = pending.get(root);
     if (existing) return existing;
+    passesInFlight++;
     const next = passQueue.then(async () => {
         try {
             if (!canStartAutomaticWork() || !await waitUntilVisible(activeWorkSignal())) return;
             pending!.delete(root);
             await runQueuedPass(adapter, root);
         } finally {
+            passesInFlight--;
             if (pending!.get(root) === next) pending!.delete(root);
             if (pending!.size === 0 && pendingPasses.get(adapter) === pending) pendingPasses.delete(adapter);
         }
@@ -188,6 +202,7 @@ async function runQueuedPass(adapter: SearchSiteAdapter, root: ParentNode): Prom
         debugLog(`${adapter.label}: paused on this site — skipping the pass`);
         return;
     }
+    lastSearchRetryContext = {adapter, root: document};
     // A replaced result container may discard the failed rows without changing the URL.
     if (searchRetryMessage) await updateSearchRetry(adapter, document);
     const rows = root.querySelectorAll<HTMLElement>(`${adapter.resultRow}:not([${PROCESSED_ATTR}])`);
@@ -529,8 +544,27 @@ function dismissSearchRetry(): void {
     searchRetryMessage = "";
 }
 
+// Pills' Open Access and PubPeer failures land outside a pass; refresh the notice for them.
+let lastSearchRetryContext: {adapter: SearchSiteAdapter; root: ParentNode} | null = null;
+let searchRetryQueued = false;
+onOutagesChanged(() => {
+    if (searchRetryQueued || !lastSearchRetryContext) return;
+    searchRetryQueued = true;
+    setTimeout(() => {
+        searchRetryQueued = false;
+        const context = lastSearchRetryContext;
+        if (context) void updateSearchRetry(context.adapter, context.root).catch(error => debugWarn("Search notice refresh failed —", error));
+    }, 50);
+});
+
+/** "a", "a and b", "a, b and c" */
+function listOf(items: string[]): string {
+    return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
 /** A single retry keeps either failure from hiding the other provider's recovery action. */
 async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): Promise<void> {
+    lastSearchRetryContext = {adapter, root};
     const passUrl = pageUrl(location.href);
     const generation = searchNavigationGeneration;
     const titleMatchingEnabled = await isSetupComplete();
@@ -538,23 +572,35 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
     const titleFailed = titleMatchingEnabled && [...root.querySelectorAll<HTMLElement>(adapter.resultRow)]
         .some(row => unansweredRows.has(row));
     const noticesFailed = pageUrl(retractionPage.href) === passUrl && unavailableRetractionDois.size > 0;
-    if (!titleFailed && !noticesFailed) {
+    const outages = outageSources();
+    if (!titleFailed && !noticesFailed && outages.size === 0) {
         dismissSearchRetry();
         noteScanUpdated();
         return;
     }
-    searchRetryMessage = titleFailed && noticesFailed
-        ? "ORE: DOI matching and retraction checks unavailable. Other results are still shown."
-        : titleFailed ? "ORE: DOI matching unavailable for some results."
-        : "ORE: Retraction checks unavailable. Other results are still shown.";
+    // Popover order: open access, PubPeer; then DOI matching and retractions.
+    const what: string[] = [];
+    if (outages.has("oa")) what.push("open access");
+    if (outages.has("pubpeer")) what.push("PubPeer");
+    if (titleFailed) what.push("DOI matching");
+    if (noticesFailed) what.push("retraction checks");
+    const list = listOf(what);
+    searchRetryMessage = what.length === 1 && titleFailed
+        ? "DOI matching is unavailable for some results."
+        : `${list[0].toUpperCase()}${list.slice(1)} ${what.length > 1 || what[0] === "retraction checks" ? "are" : "is"} unavailable.`;
+    if (searchRetryToast?.isConnected && searchRetryToast.getAttribute("data-flora-toast-message") === searchRetryMessage) {
+        noteScanUpdated();
+        return;
+    }
     searchRetryToast = showToast(searchRetryMessage, {
-        tone: "info", duration: 0, dismissOnAction: false,
+        title: "Some ORE checks didn't load", tone: "info", duration: 0, dismissOnAction: false,
         action: {label: "Retry", onClick: () => {
             if (pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration) {
                 if (generation === searchNavigationGeneration) dismissSearchRetry();
                 return;
             }
             if (searchHidden || retryingSearchChecks) return;
+            retryOutages();
             void retryFailedSearchChecks(adapter, root).catch(error => debugWarn("Search checks retry failed —", error));
         }},
     });

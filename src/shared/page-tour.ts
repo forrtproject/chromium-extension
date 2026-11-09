@@ -24,8 +24,7 @@ const CARD_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 
 const PILL = `.${INDICATOR_PILL_CLASS}`;
-const PILL_FACE_TEXT = "Each part answers one question: its DOI, a free copy (OA), discussion on PubPeer, and replications or reproductions (Reps). A coloured part means yes; a faded one means nothing was found.";
-const REFERENCE_PILL_TEXT = "A reference that cites two papers gets two pills. No pill means ORE could not identify that reference.";
+const NO_PILL_TEXT = "A reference without a pill is one ORE could not identify.";
 
 function shown(el: Element | null): el is HTMLElement {
     if (!(el instanceof HTMLElement) || !el.isConnected) return false;
@@ -65,7 +64,7 @@ function popoverStop(wrapper: HTMLElement): TourStop | null {
     return {
         target: popover,
         title: "Point at a pill to see the details",
-        text: "Each row is a link: copy the reference, open a free copy, read the discussion, or see the replications. Click a pill to keep it open.",
+        text: "Each row is a link: copy the reference, find an open-access version, read the PubPeer discussion, or see replications. Click a pill to keep this open.",
         enter: () => pinIndicatorPopover(wrapper, true),
         leave: () => pinIndicatorPopover(wrapper, false),
     };
@@ -77,25 +76,23 @@ export function articleTourStops(): TourStop[] {
     const referencePill = firstShown(`[${REFERENCE_ENTRY_ATTR}] ${PILL}`);
     const loosePill = firstShown(`${PILL}[data-flora-loose-pill]`);
     const sample = titlePill ?? referencePill ?? loosePill;
+    // Three stops (a pill, its details, the report tab), plus a retraction
+    // warning when the page has one. The first stop names the other pills
+    // instead of visiting each of them.
+    const others = [
+        referencePill && referencePill !== sample ? "each paper in the reference list" : null,
+        loosePill && loosePill !== sample ? "each DOI mentioned in the text" : null,
+    ].filter(Boolean);
+    const alsoText = others.length ? `ORE adds the same pill to ${others.join(" and ")}.` : "";
     if (sample === titlePill && titlePill) {
-        stops.push({target: titlePill, title: "This pill is about the article you are reading", text: PILL_FACE_TEXT});
+        stops.push({target: titlePill, title: "Findings for this article", text: alsoText || "Point at it to see what ORE found."});
     } else if (sample === referencePill && referencePill) {
-        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${PILL_FACE_TEXT} ${REFERENCE_PILL_TEXT}`});
+        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${NO_PILL_TEXT} ${alsoText}`.trim()});
     } else if (sample) {
-        stops.push({target: sample, title: "A pill marks a paper ORE recognised", text: PILL_FACE_TEXT});
+        stops.push({target: sample, title: "A pill marks a paper ORE recognised", text: alsoText || "Point at it to see what ORE found."});
     }
     const popover = sample ? popoverStop(sample) : null;
     if (popover) stops.push(popover);
-    if (referencePill && referencePill !== sample) {
-        stops.push({target: referencePill, title: "Every paper in the reference list gets one", text: REFERENCE_PILL_TEXT});
-    }
-    if (loosePill && loosePill !== sample) {
-        stops.push({
-            target: loosePill,
-            title: "So does a DOI mentioned in the text",
-            text: "Papers named outside the reference list are checked the same way.",
-        });
-    }
     const notice = noticeStop();
     if (notice) stops.push(notice);
     const tab = firstShown("[data-flora-panel-tab]");
@@ -103,7 +100,7 @@ export function articleTourStops(): TourStop[] {
         stops.push({
             target: tab,
             title: "Everything in one place",
-            text: "This tab opens the Meta Report: the article's replications, any retraction, its discussion, and which references have something to report.",
+            text: "This tab opens the full report on the article and its references.",
         });
     }
     return stops;
@@ -117,7 +114,7 @@ export function searchTourStops(): TourStop[] {
         stops.push({
             target: pill,
             title: panel ? "ORE adds this panel to each result" : "ORE adds this pill to each result",
-            text: "Each row is one check: the paper's DOI, a free copy, discussion on PubPeer, and replications. Every row is also a link.",
+            text: "Each row is one check: the paper's DOI, an open-access version, discussion on PubPeer, and replications. Every row is also a link.",
         });
     }
     const matched = firstShown(`${PILL}[data-flora-augmented]`);
@@ -125,7 +122,7 @@ export function searchTourStops(): TourStop[] {
         stops.push({
             target: matched,
             title: "A dotted DOI was matched by title",
-            text: "This result showed no DOI, so ORE looked its title up. Open the DOI once to check it is the right paper.",
+            text: "This result had no DOI, so ORE matched it by title; check that it is the right paper.",
         });
     }
     const notice = noticeStop();
@@ -167,9 +164,20 @@ interface OpenTour {
 }
 
 let openTour: OpenTour | null = null;
+const openChangeListeners = new Set<(open: boolean) => void>();
 
 export function isPageTourOpen(): boolean {
     return openTour !== null;
+}
+
+/** Follow the tour opening and closing; returns a function that stops following. */
+export function onPageTourOpenChange(listener: (open: boolean) => void): () => void {
+    openChangeListeners.add(listener);
+    return () => { openChangeListeners.delete(listener); };
+}
+
+function notifyOpenChange(open: boolean): void {
+    for (const listener of [...openChangeListeners]) listener(open);
 }
 
 export function closePageTour(): void {
@@ -216,6 +224,7 @@ export function runPageTour(stops: TourStop[]): boolean {
     const foot = root.querySelector<HTMLElement>(".foot")!;
     const back = root.querySelector<HTMLButtonElement>(".back")!;
     const next = root.querySelector<HTMLButtonElement>(".next")!;
+    const skip = root.querySelector<HTMLButtonElement>(".skip")!;
     document.documentElement.appendChild(host);
 
     let index = -1;
@@ -254,6 +263,8 @@ export function runPageTour(stops: TourStop[]): boolean {
         text.textContent = stop.text;
         const last = index === stops.length - 1;
         foot.hidden = !last;
+        // "Done" ends the tour on the last stop; "Skip tour" beside it says the same.
+        skip.style.visibility = last ? "hidden" : "";
         back.disabled = index === 0;
         next.textContent = last ? "Done" : "Next";
         stop.target.scrollIntoView({block: "center", inline: "nearest", behavior: reduceMotion ? "auto" : "smooth"});
@@ -275,9 +286,11 @@ export function runPageTour(stops: TourStop[]): boolean {
         document.removeEventListener("keydown", onKey, true);
         host.remove();
         if (returnFocus?.isConnected) returnFocus.focus({preventScroll: true});
+        notifyOpenChange(false);
     };
     const tour: OpenTour = {close};
     openTour = tour;
+    notifyOpenChange(true);
 
     root.querySelector(".skip")!.addEventListener("click", close);
     back.addEventListener("click", () => { if (index > 0) show(index - 1); });

@@ -11,6 +11,7 @@ import {debugLog, flushDebugLog, isDebugEnabled, onDebugChange} from "@shared/de
 import {msUntilTomorrow6am} from "@shared/snooze-durations";
 import {buildDebugReport} from "@shared/debug-report";
 import {writeClipboard} from "@shared/clipboard";
+import {ensureFocusStyle} from "@shared/flora-ui";
 import {noteScanEnded, noteScanHidden, noteScanProgress, noteScanReset, noteScanShown, noteScanStarted} from "@shared/toolbar-scan";
 import {blockDomain, snoozeDomain} from "@shared/domains";
 import {getSettings} from "@shared/settings";
@@ -446,6 +447,7 @@ function ensureToast(): HTMLElement {
     const existing = document.getElementById(WORK_TOAST_ID);
     if (existing) return existing;
 
+    ensureFocusStyle();
     const host = document.createElement("div");
     host.id = WORK_TOAST_ID;
     // Marks it as FLoRA's own — the DOI extractor and DOM listener skip these.
@@ -947,6 +949,10 @@ export function isWorkCancelled(): boolean {
 /** Wait for the current pass and its detached work to unwind before an explicit retry. */
 export function waitForWorkToFinish(): Promise<void> {
     return refCount === 0 ? Promise.resolve() : new Promise(resolve => idleWaiters.add(resolve));
+}
+
+export function isWorkIndicatorIdle(): boolean {
+    return refCount === 0;
 }
 
 /** Hide the toast once all outstanding work has finished. */

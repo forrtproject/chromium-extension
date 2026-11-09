@@ -6,6 +6,10 @@ import type {RegisteredReport, RegisteredReportMap} from './src/shared/registere
 const API_URL = 'https://api.zotero.org/groups/5937153/items/top';
 const PAGE_SIZE = 100;
 const FS_OUTPUT_PATH = './src/registered-reports.json';
+// "QRCshared" is a shared reading list kept in the same group library. Its
+// items (e.g. Ioannidis 2005, OSC 2015) are background literature, not
+// Registered Reports, so an item filed only there is skipped.
+export const NON_RR_COLLECTIONS = new Set(['BB5B9YHG']);
 
 export interface ZoteroItem {
     key: string;
@@ -13,6 +17,7 @@ export interface ZoteroItem {
         key: string;
         DOI?: string;
         url?: string;
+        collections?: string[];
         tags?: {tag: string}[];
         relations?: Record<string, string | string[]>;
     };
@@ -45,7 +50,14 @@ function itemLink(data: ZoteroItem['data']): string | undefined {
     return doi ? `https://doi.org/${doi}` : data.url || undefined;
 }
 
-export function buildRegisteredReportMap(items: ZoteroItem[]): RegisteredReportMap {
+function onlyInNonRrCollections(data: ZoteroItem['data']): boolean {
+    const collections = data.collections ?? [];
+    return collections.length > 0 && collections.every(c => NON_RR_COLLECTIONS.has(c));
+}
+
+export function buildRegisteredReportMap(allItems: ZoteroItem[]): RegisteredReportMap {
+    // Drop reading-list items before indexing so they cannot surface as a companion either.
+    const items = allItems.filter(item => !onlyInNonRrCollections(item.data));
     const byKey = new Map(items.map(item => [item.data.key, item.data] as const));
     const reports: Record<string, RegisteredReport> = {};
     for (const item of items) {

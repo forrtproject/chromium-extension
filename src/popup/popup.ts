@@ -11,8 +11,12 @@ import { debugError, debugWarn, isDebugEnabledAsync, isTestingBuild, setDebug, t
 import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-report";
 import { getSettings, saveSettings } from "../shared/settings";
 import { openTourSample } from "../shared/tour-sample";
+import type { PageFindings, PageStateResponse, ResultFindings } from "../shared/messages";
 
 const TOUR_CHECKING_DELAY_MS = 300;
+const FINDINGS_POLL_MS = 1000;
+const FINDINGS_SLOW_POLL_MS = 5000;
+const FINDINGS_FAST_POLLS = 30;
 
 const TOUR_HELP = {
   checking: {
@@ -20,32 +24,34 @@ const TOUR_HELP = {
     text: "The tour starts as soon as ORE has finished.",
   },
   "no-pills": {
-    title: "Nothing to show on this page",
-    text: "The tour points out ORE's pills, and there aren't any here. Try it on a sample article instead? It opens in a new tab.",
+    title: "No pills on this page",
+    text: "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
   },
   "not-running": {
     title: "ORE isn't running on this tab",
-    text: "This usually means the tab was open before ORE was installed or updated. Reload the page to start ORE, or try the tour on a sample article.",
+    text: "The tab was probably open before ORE was installed or updated. Reload it, or try a sample article.",
   },
   unavailable: {
-    title: "ORE can't run on this page",
-    text: "Browsers keep extensions off their own pages. Try the tour on a sample article instead? It opens in a new tab.",
+    title: "ORE can't run on browser pages",
+    text: "Try the tour on a sample article (opens in a new tab).",
   },
   paused: {
     title: "ORE is off on this page",
-    text: "It's hidden, snoozed or disabled here, so there are no pills to point out. Turn it back on above, or try the tour on a sample article.",
+    text: "It's hidden, snoozed or turned off here. Turn it back on above, or try a sample article.",
   },
 } as const;
 
 const domainEl = document.getElementById("current-domain")!;
 const blockBtn = document.getElementById("block-btn")!;
 const blockLabel = document.getElementById("block-btn-label")!;
+const blockSub = document.getElementById("block-btn-sub")!;
 const snoozeNote = document.getElementById("snooze-note")!;
 const resumeBtn = document.getElementById("resume-btn")!;
 const snoozeBtn = document.getElementById("snooze-btn")!;
 const snoozeOptions = document.getElementById("snooze-options")!;
 const hideBtn = document.getElementById("hide-btn")!;
 const hideLabel = document.getElementById("hide-btn-label")!;
+const hideSub = document.getElementById("hide-btn-sub")!;
 const pageTourBtn = document.getElementById("page-tour-btn")!;
 const tourBtn = document.getElementById("tour-btn")!;
 const optionsBtn = document.getElementById("options-btn")!;
@@ -53,17 +59,20 @@ const reportBtn = document.getElementById("report-btn")!;
 const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
 const debugHint = document.getElementById("debug-hint")!;
 const logCopyRow = document.getElementById("log-copy-row")!;
+const debugStateChip = document.getElementById("debug-state-chip")!;
 const logCopyToggle = document.getElementById("log-copy-toggle") as HTMLInputElement;
 const screenshotRow = document.getElementById("screenshot-row")!;
 const screenshotToggle = document.getElementById("screenshot-toggle") as HTMLInputElement;
 const tourHelp = document.getElementById("tour-help")!;
 const tourHelpTitle = document.getElementById("tour-help-title")!;
 const tourHelpText = document.getElementById("tour-help-text")!;
-const popupBody = document.querySelector<HTMLElement>(".popup-body")!;
 const tourSampleBtn = document.getElementById("tour-sample-btn")!;
 const tourReloadBtn = document.getElementById("tour-reload-btn")!;
 const tourDismissBtn = document.getElementById("tour-dismiss-btn")!;
 const statusEl = document.getElementById("popup-status")!;
+const findingsEl = document.getElementById("page-findings")!;
+const findingsList = document.getElementById("page-findings-list")!;
+const openReportBtn = document.getElementById("open-report-btn")!;
 const versionEl = document.getElementById("popup-version")!;
 
 const extensionVersion = chrome.runtime.getManifest().version;
@@ -79,6 +88,9 @@ let debugOn = false;
 let activeTabId: number | undefined;
 let activeWindowId: number | undefined;
 let pendingTourStart: object | null = null;
+let findings: PageFindings | null = null;
+let results: ResultFindings | null = null;
+let findingsPolls = 0;
 
 reportBtn.style.display = "none";
 
@@ -92,13 +104,10 @@ function showStatus(msg: string, type: "success" | "error"): void {
 }
 
 function updateBlockUI(): void {
-  if (blocked) {
-    blockLabel.textContent = "Enable on this domain";
-    blockBtn.classList.add("is-blocked");
-  } else {
-    blockLabel.textContent = "Disable on this domain";
-    blockBtn.classList.remove("is-blocked");
-  }
+  blockLabel.textContent = blocked ? "Turn on for this site" : "Turn off on this site";
+  blockSub.hidden = blocked;
+  blockBtn.classList.toggle("is-blocked", blocked);
+  renderFindings();
 }
 
 function updateSnoozeUI(): void {
@@ -109,6 +118,111 @@ function updateSnoozeUI(): void {
   if (paused) {
     snoozeNote.textContent = `Paused until ${formatSnoozeEnd(snoozedUntil!)}`;
     closeSnoozeOptions();
+  }
+  renderFindings();
+}
+
+const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+
+type Part = { text: string; tone?: "retracted" | "concern" };
+
+function articleParts(f: PageFindings): Part[] {
+  const a = f.article!;
+  const parts: Part[] = [];
+  if (a.retracted) parts.push({ text: "Retracted", tone: "retracted" });
+  if (a.concern) parts.push({ text: "Expression of concern", tone: "concern" });
+  if (a.replications) parts.push({ text: plural(a.replications, "replication study", "replication studies") });
+  if (a.reproductions) parts.push({ text: plural(a.reproductions, "reproduction", "reproductions") });
+  if (a.originals) parts.push({ text: `Replicates ${plural(a.originals, "original study", "original studies")}` });
+  if (a.pubpeerComments) parts.push({ text: plural(a.pubpeerComments, "PubPeer comment", "PubPeer comments") });
+  if (f.checking && parts.length === 0) return [{ text: "Checking…" }];
+  if (a.incomplete) parts.push({ text: "some checks unavailable" });
+  else if (parts.length === 0) parts.push({ text: "No replications, retractions or PubPeer comments found" });
+  return parts;
+}
+
+function otherParts(f: PageFindings): Part[] {
+  const o = f.others;
+  const parts: Part[] = [
+    { text: o.checked < o.papers ? `Checking… ${o.checked} of ${o.papers}` : `${o.papers} checked` },
+  ];
+  if (o.retracted) parts.push({ text: `${o.retracted} retracted`, tone: "retracted" });
+  if (o.concern) parts.push({ text: `${o.concern} with an expression of concern`, tone: "concern" });
+  if (o.replications) parts.push({ text: `${o.replications} with replication studies` });
+  if (o.pubpeer) parts.push({ text: `${o.pubpeer} discussed on PubPeer` });
+  if (o.unavailable) parts.push({ text: `${o.unavailable} not fully checked` });
+  else if (parts.length === 1 && o.checked >= o.papers && !f.checking) parts.push({ text: "no findings" });
+  return parts;
+}
+
+function appendScope(label: string, parts: Part[]): void {
+  const scope = document.createElement("div");
+  scope.className = "popup-findings-scope";
+  const name = document.createElement("span");
+  name.className = "popup-findings-label";
+  name.textContent = label;
+  const line = document.createElement("span");
+  line.className = "popup-findings-text";
+  parts.forEach((part, i) => {
+    if (i > 0) line.append(" · ");
+    const piece = document.createElement("span");
+    if (part.tone) piece.className = `popup-findings-${part.tone}`;
+    piece.textContent = part.text;
+    line.append(piece);
+  });
+  scope.append(name, line);
+  findingsList.append(scope);
+}
+
+/** The summary of what ORE found on this page; hidden while ORE is paused or has nothing to report. */
+function renderFindings(): void {
+  findingsList.replaceChildren();
+  openReportBtn.hidden = true;
+  findingsEl.hidden = true;
+  if (!currentDomain || blocked || snoozedUntil !== null || hidden) return;
+  if (results) {
+    if (results.papers === 0) return;
+    const parts: Part[] = [{ text: results.checking ? `Checking ${results.papers}…` : `${results.papers} checked` }];
+    if (results.flagged) parts.push({ text: `${results.flagged} with findings` });
+    if (results.incomplete) parts.push({ text: "some checks unavailable" });
+    else if (!results.flagged && !results.checking) parts.push({ text: "no findings" });
+    appendScope("Search results", parts);
+  } else if (findings) {
+    if (findings.article) appendScope("This article", articleParts(findings));
+    if (findings.others.papers > 0) {
+      appendScope(findings.article ? "References" : "On this page", otherParts(findings));
+    }
+    if (findingsList.childElementCount === 0) return;
+    openReportBtn.hidden = !findings.panel;
+  } else {
+    return;
+  }
+  findingsEl.hidden = false;
+}
+
+/** Ask the content script for hidden state and findings; keep asking while it is still checking. */
+async function refreshPageState(): Promise<void> {
+  if (activeTabId == null) return;
+  try {
+    const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_GET_STATE" }) as PageStateResponse | undefined;
+    findings = response?.findings ?? null;
+    results = response?.results ?? null;
+    if (!!response?.hidden !== hidden) {
+      hidden = !!response?.hidden;
+      updateHideUI();
+    } else {
+      renderFindings();
+    }
+  } catch (err) {
+    // Expected on pages ORE doesn't run on; only useful when chasing a report.
+    debugWarn("Popup: no content script on this tab —", err);
+    findings = null;
+    results = null;
+    renderFindings();
+    return;
+  }
+  if (findings?.checking || results?.checking) {
+    setTimeout(() => void refreshPageState(), findingsPolls++ < FINDINGS_FAST_POLLS ? FINDINGS_POLL_MS : FINDINGS_SLOW_POLL_MS);
   }
 }
 
@@ -149,21 +263,19 @@ function buildSnoozeOptions(): void {
 }
 
 function updateHideUI(): void {
-  if (hidden) {
-    hideLabel.textContent = "Show on this page";
-    hideBtn.classList.add("is-hidden");
-  } else {
-    hideLabel.textContent = "Hide on this page";
-    hideBtn.classList.remove("is-hidden");
-  }
+  hideLabel.textContent = hidden ? "Show on this page" : "Hide on this page";
+  hideSub.hidden = hidden;
+  hideBtn.classList.toggle("is-hidden", hidden);
+  renderFindings();
 }
 
 function updateDebugUI(): void {
   debugToggle.checked = debugOn;
   debugHint.textContent = debugOn
     ? "On. Reload the page to see ORE's progress and record a detailed log."
-    : "Turn on to see ORE's progress on each page and send a detailed log with issue reports.";
+    : "Shows ORE's progress on each page and adds a detailed log to issue reports.";
   logCopyRow.hidden = !debugOn;
+  debugStateChip.hidden = !debugOn;
 }
 
 async function init(): Promise<void> {
@@ -218,19 +330,8 @@ async function init(): Promise<void> {
   reportBtn.style.display = "";
   screenshotRow.hidden = false;
 
-  // Ask the content script whether UI is currently hidden
-  if (activeTabId != null) {
-    try {
-      const response = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_GET_STATE" });
-      if (response?.hidden) {
-        hidden = true;
-        updateHideUI();
-      }
-    } catch (err) {
-      // Expected on pages ORE doesn't run on; only useful when chasing a report.
-      debugWarn("Popup: no content script on this tab —", err);
-    }
-  }
+  // Ask the content script whether UI is currently hidden, and what it found
+  await refreshPageState();
 }
 
 async function tearDownFloraOnPage(): Promise<boolean> {
@@ -307,6 +408,8 @@ hideBtn.addEventListener("click", async () => {
     hidden = !hidden;
     updateHideUI();
     showStatus(hidden ? "Hidden until page refresh" : "ORE restored", "success");
+    // Showing ORE again brings back its panel and findings; ask for them afresh.
+    if (!hidden) void refreshPageState();
   } catch (err) {
     debugWarn("Popup: hide/show message failed —", err);
     showStatus("Nothing from ORE on this page", "error");
@@ -393,13 +496,11 @@ function showTourHelp(kind: keyof typeof TOUR_HELP): void {
   tourSampleBtn.hidden = kind === "checking";
   tourReloadBtn.hidden = kind !== "not-running";
   tourHelp.hidden = false;
-  popupBody.inert = true;
   (tourSampleBtn.hidden ? tourDismissBtn : tourSampleBtn).focus();
 }
 
 function closeTourHelp(): void {
   tourHelp.hidden = true;
-  popupBody.inert = false;
   pageTourBtn.focus();
   if (pendingTourStart && activeTabId != null) {
     pendingTourStart = null;
@@ -455,12 +556,22 @@ tourReloadBtn.addEventListener("click", async () => {
 
 tourDismissBtn.addEventListener("click", closeTourHelp);
 
-tourHelp.addEventListener("click", (event) => {
-  if (event.target === tourHelp) closeTourHelp();
-});
-
 tourHelp.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeTourHelp();
+});
+
+openReportBtn.addEventListener("click", async () => {
+  if (activeTabId == null) return;
+  try {
+    const reply = await chrome.tabs.sendMessage(activeTabId, { type: "FLORA_OPEN_PANEL" }) as { opened?: boolean } | undefined;
+    if (reply?.opened) {
+      window.close();
+      return;
+    }
+  } catch (err) {
+    debugWarn("Popup: open report message failed —", err);
+  }
+  showStatus("Couldn't open the report on this page", "error");
 });
 
 // Open walkthrough

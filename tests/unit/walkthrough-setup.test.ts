@@ -6,8 +6,8 @@ vi.mock("../../src/walkthrough/demos", () => ({installOfflineFixtures: vi.fn(), 
 vi.mock("../../src/shared/site-category-picker", () => ({mountSiteCategoryPicker: vi.fn()}));
 
 const WALKTHROUGH_HTML = readFileSync(join(__dirname, "..", "..", "src", "walkthrough", "index.html"), "utf-8");
-const SETUP_STEP = 9;
-const LAST_STEP = 10;
+const SETUP_STEP = 7;
+const LAST_STEP = 8;
 
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const emailInput = () => byId<HTMLInputElement>("wt-email-input");
