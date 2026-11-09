@@ -81,7 +81,7 @@ export function countFindings(dois: Iterable<DoiString>, sources: FindingSources
         const kind = noticeKind.get(key);
         counts.papers++;
         if (kind || (state && state.status !== "loading" && state.status !== "idle")) counts.checked++;
-        if (state?.status === "error" || variants.some((doi) => sources.checkFailed?.(doi))) counts.unavailable++;
+        if (states.some((s) => s.status === "error") || variants.some((doi) => sources.checkFailed?.(doi))) counts.unavailable++;
         if (kind === "retraction") counts.retracted++;
         else if (kind === "concern") counts.concern++;
         if (states.some(hasReplication)) counts.replications++;

@@ -25,7 +25,7 @@ function changed(): void {
 /** Record one lookup's outcome; `retry` set means it failed and how to run it again. */
 export function noteOutage(owner: object, source: OutageSource, retry: (() => void) | null, startedIn = epoch, anchor?: Element): void {
     if (startedIn !== epoch) return;
-    if (anchor) {
+    if (anchor && retry) {
         anchors.set(owner, anchor);
         if (anchor.isConnected) shownOwners.add(owner);
     }

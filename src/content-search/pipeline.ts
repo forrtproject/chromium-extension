@@ -138,10 +138,10 @@ export function searchScanSummary(): ScanSummary | null {
     return {papers: papers.size, flagged: flagged.size, incomplete};
 }
 
-/** True while any result's FLoRA lookup is in flight. */
 let passesInFlight = 0;
 
-export function searchLookupsPending(): boolean {
+/** True while a pass is queued or running, a retry is pending, or any result's FLoRA lookup is in flight. */
+export function searchWorkPending(): boolean {
     if (passesInFlight > 0 || retryingSearchChecks || !isWorkIndicatorIdle()) return true;
     for (const state of lookupState.values()) if (state.status === "loading") return true;
     return false;
