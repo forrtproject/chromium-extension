@@ -66,6 +66,13 @@ describe("report link encoding", () => {
         expect(await decodeReport(encoded.slice(0, encoded.length - 12))).toBeNull();
     });
 
+    it("drops a top-level DOI that isn't a valid DOI, as it does for entries", async () => {
+        const decoded = await decodeReport(await encodeReport(payload({doi: "10.1/\uD800bad"})));
+        expect(decoded?.doi).toBeUndefined();
+        const kept = await decodeReport(await encodeReport(payload()));
+        expect(kept?.doi).toBe("10.1126/science.1185714");
+    });
+
     it("rejects a payload from a version it cannot read", async () => {
         const encoded = await encodeReport({...payload(), v: 2 as unknown as 1});
         expect(await decodeReport(encoded)).toBeNull();

@@ -1412,6 +1412,14 @@ describe("coordinates and other numbers", () => {
     expect(extractDOIsFromText("id=doi-10.1371/journal.pone.0012345")).toEqual(["10.1371/journal.pone.0012345"]);
   });
 
+  it("still finds a DOI after a hyphen bullet, with or without a space", () => {
+    expect(extractDOIsFromText("- 10.1038/nature12373")).toEqual(["10.1038/nature12373"]);
+    expect(extractDOIsFromText(["-10.1038/nature12373", "-10.1371/journal.pone.0012345"].join("\n")))
+      .toEqual(["10.1038/nature12373", "10.1371/journal.pone.0012345"]);
+    expect(extractDOIsFromText("− 10.1002/(SICI)1097-4679")).toEqual(["10.1002/(sici)1097-4679"]);
+    expect(extractDOIsFromText("-10.48061/66.9036")).toEqual([]);
+  });
+
   it("does not take a signed coordinate from a link's path", () => {
     expect(extractDoiFromHref("https://maps.example/place/-10.4806/66.9036/")).toBeNull();
     expect(extractDoiFromHref("https://maps.example/at/10.12345/-33.1")).toBeNull();

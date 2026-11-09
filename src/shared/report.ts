@@ -162,7 +162,7 @@ export function readPayload(raw: unknown): ReportPayload | null {
     return {
         v: 1,
         title,
-        doi: text(raw.doi),
+        doi: doiText(raw.doi),
         authors: text(raw.authors),
         year: count(raw.year),
         sourceUrl: text(raw.sourceUrl),

@@ -93,6 +93,25 @@ describe("lookupPubPeerForDoi batching", () => {
     expect(pubPeerLookupsPending()).toBe(false);
   });
 
+  it("does not let a lookup from before a reset clear a newer lookup's pending state", async () => {
+    vi.useFakeTimers();
+    const respond = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve(respond()); }));
+    const stale = lookupPubPeerForDoi("10.1234/a");
+    await vi.advanceTimersByTimeAsync(50);
+    _resetPubPeerCacheForTesting();
+    const fresh = lookupPubPeerForDoi("10.1234/b");
+
+    release();
+    await stale.catch(() => {});
+    expect(pubPeerLookupsPending()).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(50);
+    await fresh;
+    expect(pubPeerLookupsPending()).toBe(false);
+  });
+
   it("drops cancelled queued batches after the scan indicator ends", async () => {
     vi.useFakeTimers();
     beginCancellableWork();

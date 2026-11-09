@@ -10,8 +10,9 @@ import { findArticleTitle, findMatchedArticleTitle, siteArticleTitle, titleConta
 // DOI suffixes may contain parens, semicolons, and slashes (e.g. SICI DOIs),
 // but a trailing slash followed by a bare word (e.g. /full, /abstract) is
 // journal URL routing, not part of the DOI.
-// "10." inside a longer or signed number is a coordinate or measurement ("-110.12345/32.1"), not a DOI.
-const NOT_MID_NUMBER = `(?<![\\d.])(?<!(?:^|[^A-Za-z0-9])[-+\\u2212])`;
+// "10." inside a longer number, or a signed one with a numeric tail, is a coordinate ("-10.4806/66.9"), not a DOI;
+// a hyphen bullet before a DOI with a word suffix ("-10.1038/nature12373") is still one.
+const NOT_MID_NUMBER = `(?<![\\d.])(?:(?<!(?:^|[^A-Za-z0-9])[-+\\u2212])|(?=10\\.\\d{4,}(?:\\.\\d+)*\\/[A-Za-z(]))`;
 const SUFFIX_CHARS = `[^\\s,/\\]}>'"<#?&\\\\]`;
 const EXTRA_SLASH = `(?:\\/(?![a-zA-Z-]+(?:[/\\s,#?&<>{}\\[\\]]|$))${SUFFIX_CHARS}+)*`;
 const DOI_REGEX = new RegExp(`${NOT_MID_NUMBER}(10\\.\\d{4,}(?:\\.\\d+)*\\/${SUFFIX_CHARS}+${EXTRA_SLASH})`, "g");
