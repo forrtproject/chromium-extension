@@ -105,6 +105,7 @@ describe("service-worker", () => {
         (changes: Record<string, {newValue?: unknown}>, area: string) => void
     >;
     let pendingMapReads: Array<(result: unknown) => void>;
+    let resetDebugLog: () => void;
 
     beforeEach(async () => {
         cacheStore.clear();
@@ -132,10 +133,14 @@ describe("service-worker", () => {
 
         vi.resetModules();
         await import("../../src/background/service-worker");
+        ({_resetDebugLogForTesting: resetDebugLog} = await import("../../src/shared/debug-log"));
 
         messageHandler = addListenerMock.mock.calls[0][0];
         alarmHandler = alarmListenerMock.mock.calls[0][0];
     });
+
+    // A logged error schedules a delayed storage write; without this it fires after the file's environment is gone.
+    afterEach(() => resetDebugLog());
 
     function sendMessage(request: LookupRequest): Promise<LookupResponse> {
         return new Promise((resolve) => {
