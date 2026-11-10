@@ -111,6 +111,44 @@ describe('Docs canvas capture', () => {
         vi.advanceTimersByTime(110);
         expect(events.at(-1)?.runs).toEqual([]);
     });
+    it('keeps text in the gap between two clipped rectangles', () => {
+        const c = ctx as unknown as CanvasRenderingContext2D;
+        c.fillText('top', 20, 30);
+        c.fillText('gap', 20, 300);
+        c.fillText('bottom', 20, 600);
+        c.save();
+        c.beginPath();
+        c.rect(0, 10, 400, 40);
+        c.rect(0, 580, 400, 40);
+        c.clip();
+        c.fillRect(0, 0, 800, 1000);
+        c.restore();
+        vi.advanceTimersByTime(110);
+        expect(events.at(-1)?.runs.map(r => r.text)).toEqual(['gap']);
+    });
+    it('keeps every run when the clip path is empty', () => {
+        const c = ctx as unknown as CanvasRenderingContext2D;
+        c.fillText('first', 20, 30);
+        c.save();
+        c.beginPath();
+        c.clip();
+        c.fillRect(0, 0, 800, 1000);
+        c.restore();
+        vi.advanceTimersByTime(110);
+        expect(events.at(-1)?.runs.map(r => r.text)).toEqual(['first']);
+    });
+    it('ignores a restore with no matching save', () => {
+        const c = ctx as unknown as CanvasRenderingContext2D;
+        c.fillText('top', 20, 30);
+        c.fillText('below', 20, 300);
+        c.beginPath();
+        c.rect(0, 10, 400, 40);
+        c.clip();
+        c.restore();
+        c.fillRect(0, 0, 800, 1000);
+        vi.advanceTimersByTime(110);
+        expect(events.at(-1)?.runs.map(r => r.text)).toEqual(['below']);
+    });
     it('treats a clip it cannot measure as covering the whole fill', () => {
         const c = ctx as unknown as CanvasRenderingContext2D;
         c.fillText('first', 20, 30);

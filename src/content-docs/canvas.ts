@@ -57,7 +57,7 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
         return { x: left, y: top, width: Math.max(...points.map(p => p.x)) - left, height: Math.max(...points.map(p => p.y)) - top };
     };
     type Box = Omit<CanvasRun, "text">;
-    type Clip = Box | "unknown" | null;
+    type Clip = Box[] | "unknown" | null;
     interface ClipState { path: Box[] | null; clip: Clip; stack: Clip[] }
     const clips = new WeakMap<HTMLCanvasElement, ClipState>();
     const clipState = (canvas: HTMLCanvasElement): ClipState => {
@@ -70,21 +70,19 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
         const right = Math.min(a.x + a.width, b.x + b.width), bottom = Math.min(a.y + a.height, b.y + b.height);
         return right > x && bottom > y ? {x, y, width: right - x, height: bottom - y} : null;
     };
-    const union = (boxes: Box[]): Box | null => {
-        if (boxes.length === 0) return null;
-        const x = Math.min(...boxes.map(b => b.x)), y = Math.min(...boxes.map(b => b.y));
-        return {x, y, width: Math.max(...boxes.map(b => b.x + b.width)) - x, height: Math.max(...boxes.map(b => b.y + b.height)) - y};
-    };
-    const painted = (canvas: HTMLCanvasElement, box: Box): Box | null => {
+    const overlap = (region: Box[], boxes: Box[]): Box[] =>
+        region.flatMap(a => boxes.map(b => intersect(a, b)).filter((box): box is Box => box !== null));
+    const painted = (canvas: HTMLCanvasElement, box: Box): Box[] => {
         const clip = clips.get(canvas)?.clip ?? null;
-        return clip === null || clip === "unknown" ? box : intersect(box, clip);
+        return clip === null || clip === "unknown" ? [box] : overlap(clip, [box]);
     };
     const erase = (canvas: HTMLCanvasElement, area: Box) => {
         const runs = snapshots.get(canvas);
-        const box = painted(canvas, area);
-        if (!runs || !box)
+        const boxes = painted(canvas, area);
+        if (!runs || boxes.length === 0)
             return;
-        snapshots.set(canvas, runs.filter(r => r.x + r.width <= box.x || r.x >= box.x + box.width || r.y + r.height <= box.y || r.y >= box.y + box.height));
+        const outside = (r: CanvasRun, box: Box) => r.x + r.width <= box.x || r.x >= box.x + box.width || r.y + r.height <= box.y || r.y >= box.y + box.height;
+        snapshots.set(canvas, runs.filter(r => boxes.every(box => outside(r, box))));
         changed(canvas);
     };
     const fillText = proto.fillText;
@@ -216,7 +214,10 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
         restore.push(() => { if (proto[name] === wrapper) Object.assign(proto, {[name]: original}); });
     };
     track("save", ctx => { const state = clipState(ctx.canvas); state.stack.push(state.clip); });
-    track("restore", ctx => { const state = clipState(ctx.canvas); state.clip = state.stack.pop() ?? null; });
+    track("restore", ctx => {
+        const state = clipState(ctx.canvas);
+        if (state.stack.length > 0) state.clip = state.stack.pop()!;
+    });
     track("beginPath", ctx => { clipState(ctx.canvas).path = []; });
     track("rect", (ctx, [x, y, w, h]) => {
         const state = clipState(ctx.canvas);
@@ -226,10 +227,9 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
         track(name, ctx => { clipState(ctx.canvas).path = null; });
     track("clip", (ctx, args) => {
         const state = clipState(ctx.canvas);
-        const box = typeof Path2D !== "undefined" && args[0] instanceof Path2D || state.path === null ? null : union(state.path);
-        if (!box) { state.clip = "unknown"; return; }
+        if (typeof Path2D !== "undefined" && args[0] instanceof Path2D || state.path === null) { state.clip = "unknown"; return; }
         const current = state.clip;
-        state.clip = current === null || current === "unknown" ? box : intersect(current, box) ?? {...box, width: 0, height: 0};
+        state.clip = current === null || current === "unknown" ? [...state.path] : overlap(current, state.path);
     });
     const replay = () => {
         for (const canvas of document.querySelectorAll<HTMLCanvasElement>(TILE)) publish(canvas);

@@ -421,6 +421,7 @@ function followDomainPause(): void {
     });
 }
 
+const MAX_SPREADSHEET_VALIDATIONS = 200;
 const invalidDois = new Set<DoiString>();
 
 function disownDoi(doi: DoiString): void {
@@ -770,7 +771,11 @@ async function runScanPass(): Promise<void> {
     reportWorkStage("scan", `Found ${count(dois.length, "DOI")} on this page`);
 
     // Validate extracted DOIs via doi.org — remove invalid ones
-    if (hasDoiChange && dois.length > 0) {
+    const validateHere = !isSheets || dois.length <= MAX_SPREADSHEET_VALIDATIONS;
+    if (hasDoiChange && dois.length > 0 && !validateHere) {
+        debugLog(`Sheets: ${dois.length} DOIs is above ${MAX_SPREADSHEET_VALIDATIONS} — skipping doi.org validation`);
+    }
+    if (hasDoiChange && dois.length > 0 && validateHere) {
         beginWorkIndicator();
         try {
             reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);

@@ -59,13 +59,13 @@ function identity(text: string): string {
 let contentKey = '';
 let scannedKey: string | null = null;
 function referenceKey(): string {
-    const texts = new Set<string>();
+    const keys: string[] = [];
     for (const group of entries.values())
         for (const entry of group)
-            if (entry.canvas.isConnected) texts.add(identity(entry.copy.textContent ?? ''));
+            if (entry.canvas.isConnected) keys.push(`canvas ${identity(entry.copy.textContent ?? '')}`);
     if (exportKey === googleDocsExportUrl(location.href))
-        for (const element of exportedEntries) texts.add(identity(element.getAttribute('data-flora-source-text') ?? ''));
-    return [...texts].sort().join('\n');
+        for (const element of exportedEntries) keys.push(`export ${identity(element.getAttribute('data-flora-source-text') ?? '')}`);
+    return keys.sort().join('\n');
 }
 function noteContent(): void {
     const key = referenceKey();
@@ -345,9 +345,10 @@ function rebuildEntries(doc: Document): HTMLElement[] {
         }
         next.set(canvas, group);
     }
-    retired = available.filter(e => !taken.has(e)).slice(-MAX_RETIRED_ENTRIES);
-    for (const entry of retired)
+    const unused = available.filter(e => !taken.has(e));
+    for (const entry of unused)
         entry.row?.remove();
+    retired = unused.slice(-MAX_RETIRED_ENTRIES);
     entries.clear();
     for (const [canvas, group] of next)
         entries.set(canvas, group);

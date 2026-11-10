@@ -23,7 +23,10 @@ it("asks for a reload once the extension is updated on a page ORE has marked up"
     vi.advanceTimersByTime(2000);
     expect(toast()?.getAttribute("data-flora-toast-message")).toBe("ORE was updated — reload this page to run checks.");
     expect([...toast()!.querySelectorAll("button")].map((b) => b.textContent)).toContain("Reload");
-    expect(vi.getTimerCount()).toBe(0);
+    toast()!.remove();
+    vi.advanceTimersByTime(10_000);
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(toast()).toBeNull();
 });
 
 it("checks as soon as the tab is shown again", () => {
@@ -39,5 +42,8 @@ it("stays quiet on pages where ORE showed nothing", () => {
     (chrome.runtime as {id?: string}).id = undefined;
     vi.advanceTimersByTime(2000);
     expect(toast()).toBeNull();
-    expect(vi.getTimerCount()).toBe(0);
+    document.body.innerHTML = `<span data-flora-ui></span>`;
+    vi.advanceTimersByTime(10_000);
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(toast()).toBeNull();
 });

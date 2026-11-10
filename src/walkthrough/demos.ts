@@ -73,8 +73,17 @@ function pubpeerFeedback(doi: string): PubPeerFeedback | null {
 
 type StorageKeys = string | string[] | Record<string, unknown> | null | undefined;
 
-function memoryLocalArea(real: chrome.storage.StorageArea | undefined) {
+type LocalChanges = Record<string, {oldValue?: unknown; newValue?: unknown}>;
+type ChangeListener = (changes: LocalChanges, area: string) => void;
+
+function memoryLocalArea(real: chrome.storage.StorageArea | undefined, listeners: ReadonlySet<ChangeListener>) {
     const store = new Map<string, unknown>();
+    const emit = (changes: LocalChanges): void => {
+        if (Object.keys(changes).length === 0) return;
+        queueMicrotask(() => {
+            for (const listener of listeners) listener(structuredClone(changes), "local");
+        });
+    };
     const isReal = (key: string): boolean => real !== undefined && key === TOUR_REQUEST_KEY;
     const names = (keys: StorageKeys): string[] =>
         keys == null ? [...store.keys()] : typeof keys === "string" ? [keys] : Array.isArray(keys) ? keys : Object.keys(keys);
@@ -92,15 +101,27 @@ function memoryLocalArea(real: chrome.storage.StorageArea | undefined) {
         },
         async set(items: Record<string, unknown>): Promise<void> {
             const realItems: Record<string, unknown> = {};
+            const changes: LocalChanges = {};
             for (const [key, value] of Object.entries(items)) {
-                if (isReal(key)) realItems[key] = value;
-                else store.set(key, structuredClone(value));
+                if (isReal(key)) {
+                    realItems[key] = value;
+                    continue;
+                }
+                changes[key] = {oldValue: store.get(key), newValue: value};
+                store.set(key, structuredClone(value));
             }
+            emit(changes);
             if (Object.keys(realItems).length > 0) await real!.set(realItems);
         },
         async remove(keys: string | string[]): Promise<void> {
             const realKeys = names(keys).filter(isReal);
-            for (const key of names(keys)) store.delete(key);
+            const changes: LocalChanges = {};
+            for (const key of names(keys)) {
+                if (!store.has(key)) continue;
+                changes[key] = {oldValue: store.get(key)};
+                store.delete(key);
+            }
+            emit(changes);
             if (realKeys.length > 0) await real!.remove(realKeys);
         },
         async getBytesInUse(): Promise<number> {
@@ -147,9 +168,9 @@ export function installOfflineFixtures(): void {
             set: local.set.bind(local),
             remove: local.remove.bind(local),
         } as chrome.storage.StorageArea;
-        Object.assign(local, memoryLocalArea(realLocal));
+        const localListeners = new Set<ChangeListener>();
+        Object.assign(local, memoryLocalArea(realLocal, localListeners));
 
-        type ChangeListener = Parameters<typeof onChanged.addListener>[0];
         const addListener = onChanged.addListener.bind(onChanged);
         const removeListener = onChanged.removeListener.bind(onChanged);
         const wrapped = new WeakMap<ChangeListener, ChangeListener>();
@@ -159,20 +180,26 @@ export function installOfflineFixtures(): void {
                     if (area !== "local") listener(changes, area);
                 };
                 wrapped.set(listener, nonLocal);
-                addListener(nonLocal);
+                localListeners.add(listener);
+                addListener(nonLocal as Parameters<typeof addListener>[0]);
             },
             removeListener: (listener: ChangeListener) => {
+                localListeners.delete(listener);
                 const nonLocal = wrapped.get(listener);
-                if (nonLocal) removeListener(nonLocal);
+                if (nonLocal) removeListener(nonLocal as Parameters<typeof removeListener>[0]);
             },
         });
     } else {
         const empty = (): Promise<Record<string, unknown>> => Promise.resolve({});
+        const localListeners = new Set<ChangeListener>();
         (globalThis as Record<string, unknown>).chrome = {
             storage: {
-                local: memoryLocalArea(undefined),
+                local: memoryLocalArea(undefined, localListeners),
                 sync: {get: empty, set: () => Promise.resolve()},
-                onChanged: {addListener: () => {}},
+                onChanged: {
+                    addListener: (listener: ChangeListener) => localListeners.add(listener),
+                    removeListener: (listener: ChangeListener) => localListeners.delete(listener),
+                },
             },
             runtime: {
                 sendMessage: (message: {type?: string}) => Promise.resolve(message?.type === "FLORA_RR_CHECK"

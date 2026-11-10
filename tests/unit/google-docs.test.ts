@@ -131,6 +131,39 @@ describe('Google Docs reference adapter', () => {
             expect(scan).toHaveBeenCalledTimes(1);
         });
 
+        it('rescans when a DOI already in the document is cited a second time', async () => {
+            emit({ width: 816, height: 1056, runs });
+            vi.advanceTimersByTime(0);
+            await resolveReferenceDois();
+            scan.mockClear();
+            emit({ width: 816, height: 1056, runs: [...runs, body('Also see https://doi.org/10.1037/h0054651 for the original task.')] });
+            vi.advanceTimersByTime(1500);
+            expect(scan).toHaveBeenCalledTimes(1);
+        });
+
+        it('rescans when a reference already in the export appears on a canvas', () => {
+            document.querySelector('canvas')!.remove();
+            const fresh = document.createElement('canvas');
+            fresh.className = 'kix-canvas-tile-content';
+            document.querySelector('.kix-appview-editor')!.append(fresh);
+            setGoogleDocsText(runs[3].text);
+            googleDocsReferenceElements(document);
+            scan.mockClear();
+            fresh.dispatchEvent(new CustomEvent(DOCS_TEXT_EVENT, { bubbles: true, detail: JSON.stringify({ width: 816, height: 1056, runs: [runs[3]] }) }));
+            vi.advanceTimersByTime(0);
+            expect(scan).toHaveBeenCalledTimes(1);
+        });
+
+        it('takes every unused marker row off the page, even past the reuse limit', () => {
+            const many = Array.from({ length: 205 }, (_, i) => ({ text: `10.1234/cap${i}`, x: 90, y: 100 + i * 40, width: 200, height: 16 }));
+            emit({ width: 816, height: 9000, runs: many });
+            for (const copy of googleDocsReferenceElements(document)) googleDocsAnnotationTarget(copy);
+            expect(document.querySelectorAll('.flora-docs-annotation').length).toBeGreaterThanOrEqual(205);
+            emit({ width: 816, height: 9000, runs: [] });
+            googleDocsReferenceElements(document);
+            expect(document.querySelectorAll('.flora-docs-annotation')).toHaveLength(0);
+        });
+
         it('does not rescan or redraw pills when only non-reference text changes', async () => {
             emit({ width: 816, height: 1056, runs });
             const refs = await resolveReferenceDois();

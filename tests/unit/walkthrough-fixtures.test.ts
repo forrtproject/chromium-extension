@@ -42,6 +42,17 @@ describe("the walkthrough's offline fixtures", () => {
         for (const {url} of feedbacks) expect(isPubPeerThreadUrl(url)).toBe(true);
     });
 
+    it("tells local listeners about its own writes, as Chrome would", async () => {
+        const listener = vi.fn();
+        chrome.storage.onChanged.addListener(listener);
+        await chrome.storage.local.set({flora_pubpeer_blob: {a: 1}});
+        await chrome.storage.local.remove("flora_pubpeer_blob");
+        await Promise.resolve();
+        expect(listener).toHaveBeenCalledWith({flora_pubpeer_blob: {oldValue: undefined, newValue: {a: 1}}}, "local");
+        expect(listener).toHaveBeenCalledWith({flora_pubpeer_blob: {oldValue: {a: 1}}}, "local");
+        chrome.storage.onChanged.removeListener(listener);
+    });
+
     it("still writes the sample-tour request and settings to real storage", async () => {
         await chrome.storage.local.set({[TOUR_REQUEST_KEY]: 1, other: 2});
         expect(local.set).toHaveBeenCalledWith({[TOUR_REQUEST_KEY]: 1});
