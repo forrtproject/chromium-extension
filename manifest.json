@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FORRT ORE \u2014 Open Research Extension",
   "short_name": "FORRT ORE",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Shows Replications, Retractions, Registered Reports, PubPeer comments and open-access copies for the papers you search for and read.",
   "minimum_chrome_version": "116",
   "permissions": [
