@@ -57,6 +57,7 @@ import {findArticleTitle, placeTitlePill} from "@shared/article-title";
 import {searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
+import {showUpdatedToast, watchForExtensionUpdate} from "@shared/update-notice";
 import {showToast, dismissToast} from "@shared/toast";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
@@ -613,9 +614,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
         if (stale()) return null;
         for (const doi of dois) unavailableRetractionDois.add(doi);
         if (error instanceof Error && error.message.includes("Extension context invalidated")) {
-            showToast("ORE was updated — reload this page to run checks.", {
-                action: {label: "Reload", onClick: () => location.reload()},
-            });
+            showUpdatedToast();
             return [];
         }
         debugWarn("Retraction checks unavailable —", error);
@@ -1636,6 +1635,7 @@ const pageStartup = (async () => {
   try {
     if (window !== window.top && !isWordOnline() && !isExcel) return;
     installErrorReporting();
+    watchForExtensionUpdate();
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
     // that URL resolves and FLoRA would pill an interstitial. Render nothing

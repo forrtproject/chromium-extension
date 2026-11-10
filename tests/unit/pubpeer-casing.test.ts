@@ -16,7 +16,7 @@ function feedback(id: string) {
     total_peeriodical_comments: 0,
     last_commented_at: "",
     users: "",
-    url: `https://pubpeer.com/publications/${id}`,
+    url: "https://pubpeer.com/publications/69477CA2ACFC09B9239A8A256F143C",
   };
 }
 

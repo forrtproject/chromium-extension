@@ -2,6 +2,7 @@ import {activeWorkSignal, fetchWithDeadline} from "@shared/work-cancellation";
 import { debugLog } from "./debug";
 import { BlobCache } from "./blob-cache";
 import { getHiddenCommenters, isHiddenCommenter } from "./pubpeer-filter";
+import { isPubPeerThreadUrl } from "./pubpeer-comments";
 
 export interface PubPeerFeedback {
   id: string;
@@ -229,7 +230,7 @@ async function lookupUnsharedDois<T extends string>(
     const entry = cached.get(cacheKey(doi));
     // A confirmed miss stays a miss; a cached hit the callers cannot use is
     // fetched again.
-    if (entry && (entry.feedback === null || isUsableFeedback(entry.feedback))) {
+    if (entry && (entry.feedback === null || (isUsableFeedback(entry.feedback) && isPubPeerThreadUrl(entry.feedback.url)))) {
       outcomes.set(cacheKey(doi), entry.feedback);
       if (entry.feedback) result.set(doi, visible(entry.feedback));
     } else {

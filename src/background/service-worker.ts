@@ -230,6 +230,8 @@ chrome.runtime.onInstalled.addListener((details) => {
     syncRegisteredReports().catch((err) => debugError("Registered Reports: sync failed —", err));
 });
 
+chrome.runtime.onUpdateAvailable.addListener(() => chrome.runtime.reload());
+
 chrome.runtime.onStartup.addListener(() => {
     getSettings()
         .then(({refreshDataOnStartup}) => refreshDataOnStartup

@@ -19,6 +19,7 @@ import type {
 } from "@shared/types";
 import type {OpenAccessStatus} from "@shared/openaccess";
 import type {PubPeerFeedback} from "@shared/pubpeer-api";
+import {TOUR_REQUEST_KEY} from "@shared/tour-sample";
 
 const POWER_POSING = "10.1177/0956797610383437" as DoiString;
 const EGO_DEPLETION = "10.1037/0022-3514.74.5.1252" as DoiString;
@@ -45,11 +46,15 @@ const OA_NONE: OpenAccessStatus = {isOa: false, url: null, locations: []};
 // components make is answered from the table below instead.
 // ──────────────────────────────────────────────
 
-const PUBPEER_FIXTURES: Record<string, {comments: number; title: string}> = {
-    [POWER_POSING]: {comments: 4, title: "Power Posing"},
-    [EGO_DEPLETION]: {comments: 14, title: "Ego Depletion"},
-    [RETRACTED]: {comments: 96, title: "Hydroxychloroquine and COVID-19"},
-    [CONCERNED]: {comments: 7, title: "Estimating the reproducibility of psychological science"},
+const PUBPEER_FIXTURES: Record<string, {comments: number; title: string; thread: string}> = {
+    [POWER_POSING]: {comments: 4, title: "Power Posing", thread: "69477CA2ACFC09B9239A8A256F143C"},
+    [EGO_DEPLETION]: {comments: 14, title: "Ego Depletion", thread: "6BD0A25AD183B6A575CDE364B67977"},
+    [RETRACTED]: {comments: 96, title: "Hydroxychloroquine and COVID-19", thread: "71DA593B9943638F1ADE6F80696914"},
+    [CONCERNED]: {
+        comments: 7,
+        title: "Estimating the reproducibility of psychological science",
+        thread: "0115DF644CBF969779F00829E78A83",
+    },
 };
 
 function pubpeerFeedback(doi: string): PubPeerFeedback | null {
@@ -62,7 +67,45 @@ function pubpeerFeedback(doi: string): PubPeerFeedback | null {
         total_peeriodical_comments: 0,
         last_commented_at: "2025-11-02",
         users: "",
-        url: `https://pubpeer.com/publications/${doi}`,
+        url: `https://pubpeer.com/publications/${fixture.thread}`,
+    };
+}
+
+type StorageKeys = string | string[] | Record<string, unknown> | null | undefined;
+
+function memoryLocalArea(real: chrome.storage.StorageArea | undefined) {
+    const store = new Map<string, unknown>();
+    const isReal = (key: string): boolean => real !== undefined && key === TOUR_REQUEST_KEY;
+    const names = (keys: StorageKeys): string[] =>
+        keys == null ? [...store.keys()] : typeof keys === "string" ? [keys] : Array.isArray(keys) ? keys : Object.keys(keys);
+
+    return {
+        async get(keys?: StorageKeys): Promise<Record<string, unknown>> {
+            const out: Record<string, unknown> = keys && typeof keys === "object" && !Array.isArray(keys) ? {...keys} : {};
+            const realKeys: string[] = [];
+            for (const key of names(keys)) {
+                if (isReal(key)) realKeys.push(key);
+                else if (store.has(key)) out[key] = structuredClone(store.get(key));
+            }
+            if (realKeys.length > 0) Object.assign(out, await real!.get(realKeys));
+            return out;
+        },
+        async set(items: Record<string, unknown>): Promise<void> {
+            const realItems: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(items)) {
+                if (isReal(key)) realItems[key] = value;
+                else store.set(key, structuredClone(value));
+            }
+            if (Object.keys(realItems).length > 0) await real!.set(realItems);
+        },
+        async remove(keys: string | string[]): Promise<void> {
+            const realKeys = names(keys).filter(isReal);
+            for (const key of names(keys)) store.delete(key);
+            if (realKeys.length > 0) await real!.remove(realKeys);
+        },
+        async getBytesInUse(): Promise<number> {
+            return 0;
+        },
     };
 }
 
@@ -97,13 +140,37 @@ export function installOfflineFixtures(): void {
         return Promise.resolve(jsonResponse({}));
     };
 
-    // On file:// — how the docs screenshots are taken — there is no extension
-    // context at all, and the caches read chrome.storage on construction.
-    if (typeof chrome === "undefined" || !chrome.storage) {
+    if (typeof chrome !== "undefined" && chrome.storage) {
+        const {local, onChanged} = chrome.storage;
+        const realLocal = {
+            get: local.get.bind(local),
+            set: local.set.bind(local),
+            remove: local.remove.bind(local),
+        } as chrome.storage.StorageArea;
+        Object.assign(local, memoryLocalArea(realLocal));
+
+        type ChangeListener = Parameters<typeof onChanged.addListener>[0];
+        const addListener = onChanged.addListener.bind(onChanged);
+        const removeListener = onChanged.removeListener.bind(onChanged);
+        const wrapped = new WeakMap<ChangeListener, ChangeListener>();
+        Object.assign(onChanged, {
+            addListener: (listener: ChangeListener) => {
+                const nonLocal: ChangeListener = (changes, area) => {
+                    if (area !== "local") listener(changes, area);
+                };
+                wrapped.set(listener, nonLocal);
+                addListener(nonLocal);
+            },
+            removeListener: (listener: ChangeListener) => {
+                const nonLocal = wrapped.get(listener);
+                if (nonLocal) removeListener(nonLocal);
+            },
+        });
+    } else {
         const empty = (): Promise<Record<string, unknown>> => Promise.resolve({});
         (globalThis as Record<string, unknown>).chrome = {
             storage: {
-                local: {get: empty, set: () => Promise.resolve(), remove: () => Promise.resolve()},
+                local: memoryLocalArea(undefined),
                 sync: {get: empty, set: () => Promise.resolve()},
                 onChanged: {addListener: () => {}},
             },

@@ -211,6 +211,15 @@ describe("lookupPubPeerForDoi batching", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("refetches a cached feedback whose url is not a PubPeer thread", async () => {
+    store["flora_pubpeer_blob"] = {"10.1234/a": {t: Date.now(), v: {feedback: {
+      id: "10.1234/a", title: "A", total_comments: 3, total_peeriodical_comments: 0,
+      last_commented_at: "", users: "", url: "https://pubpeer.com/publications/10.1234/a",
+    }}}};
+    expect((await lookupPubPeerForDoi("10.1234/a"))?.url).toBe("https://pubpeer.com/publications/a");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects failures without caching them, so a later retry can succeed", async () => {
     fetchMock.mockRejectedValue(new Error("network down"));
     await expect(lookupPubPeerForDoi("10.1234/a")).rejects.toThrow("PubPeer unavailable");

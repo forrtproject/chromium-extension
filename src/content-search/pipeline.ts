@@ -15,6 +15,7 @@ import type {DoiString, DoiSource, LookupState, RetractionResponse} from "@share
 import type {LookupRequest, LookupResponse} from "@shared/messages";
 import {createIndicatorPanel, updateIndicatorPillBadges} from "@shared/indicator-pill";
 import {applyPlacement} from "@shared/site-adapters";
+import {showUpdatedToast} from "@shared/update-notice";
 import {showToast} from "@shared/toast";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {pubPeerLookupsPending, pubPeerVerdict} from "@shared/pubpeer-api";
@@ -347,9 +348,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
                     for (const row of rows) clearResultRow(row);
                     if (!searchHidden && !isWorkCancelled()) {
                         searchRequiresReload = true;
-                        showToast("ORE was updated — reload this page to run checks.", {
-                            action: {label: "Reload", onClick: () => location.reload()},
-                        });
+                        showUpdatedToast();
                     }
                     return;
                 }
@@ -466,9 +465,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
             for (const {row} of resolved) clearResultRow(row);
             if (!searchHidden && !isWorkCancelled()) {
                 searchRequiresReload = true;
-                showToast("ORE was updated — reload this page to run checks.", {
-                    action: {label: "Reload", onClick: () => location.reload()},
-                });
+                showUpdatedToast();
             }
             return;
         }
@@ -660,9 +657,7 @@ async function checkSearchRetractions(dois: DoiString[], adapter: SearchSiteAdap
         for (const doi of dois) unavailableRetractionDois.add(doi);
         if (error instanceof Error && error.message.includes("Extension context invalidated")) {
             searchRequiresReload = true;
-            showToast("ORE was updated — reload this page to run checks.", {
-                action: {label: "Reload", onClick: () => location.reload()},
-            });
+            showUpdatedToast();
             return [];
         }
         debugWarn("Retraction checks unavailable —", error);
