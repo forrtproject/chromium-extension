@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { INSTALL_URL, outcomeLabel, validDoiUrl, type ReportEntry, type ReportPayload, type ReportReference } from "./report";
+import { INSTALL_URL, outcomeTags, validDoiUrl, type ReportEntry, type ReportPayload, type ReportReference } from "./report";
 import { plainTitle } from "./plain-title";
 import { webUrl } from "./web-url";
 
@@ -187,9 +187,9 @@ function entry(l: Layout, item: ReportEntry): void {
   l.font("bold", 10.5, MAROON);
   l.paragraph(plainTitle(item.title), 10.5, {url: webUrl(item.url) ?? validDoiUrl(item.doi)});
   let x = MARGIN;
-  if (item.outcome) {
-    const label = pdfText(outcomeLabel(item.outcome));
-    const tone = outcomeColours(item.outcome);
+  for (const tag of item.outcome ? outcomeTags(item.outcome) : []) {
+    const label = pdfText(tag);
+    const tone = outcomeColours(tag);
     l.font("bold", 7.5, tone.text);
     const width = l.doc.getTextWidth(label) + 10;
     l.ensure(14);

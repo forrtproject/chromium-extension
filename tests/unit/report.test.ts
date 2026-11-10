@@ -2,7 +2,7 @@ import {describe, expect, it} from "vitest";
 import {
     decodeReport,
     encodeReport,
-    outcomeLabel,
+    outcomeTags,
     renderReportBody,
     reportUrl,
     type ReportPayload,
@@ -224,11 +224,31 @@ describe("the printable report", () => {
 
 describe("outcome wording", () => {
     it("reads FLoRA's raw \"success\" as \"successful\" and leaves other outcomes as recorded", () => {
-        expect(outcomeLabel("success")).toBe("successful");
-        expect(outcomeLabel("Success")).toBe("successful");
-        expect(outcomeLabel("failed")).toBe("failed");
-        expect(outcomeLabel("mixed")).toBe("mixed");
-        expect(outcomeLabel("partial success")).toBe("partial success");
+        expect(outcomeTags("success")).toEqual(["successful"]);
+        expect(outcomeTags("Success")).toEqual(["successful"]);
+        expect(outcomeTags("failed")).toEqual(["failed"]);
+        expect(outcomeTags("mixed")).toEqual(["mixed"]);
+        expect(outcomeTags("partial success")).toEqual(["partial success"]);
+    });
+
+    it.each([
+        ["computational issues, not checked", ["computational issues", "robustness not checked"]],
+        ["computationally reproducible, not checked", ["computationally reproducible", "robustness not checked"]],
+        ["technical failure, not checked", ["technical failure", "robustness not checked"]],
+        ["not checked, robustness challenges", ["computation not checked", "robustness challenges"]],
+        ["computationally reproducible, robust", ["computationally reproducible", "robust"]],
+        ["computational issues, robustness challenges", ["computational issues", "robustness challenges"]],
+    ])("splits the reproduction outcome %j into one tag per part", (outcome, tags) => {
+        expect(outcomeTags(outcome)).toEqual(tags);
+    });
+
+    it("draws each part of a reproduction outcome as its own badge in the printable report", () => {
+        const html = renderReportBody(payload({
+            reproductions: [{title: "A reproduction", doi: "10.1/repro", year: 2020, outcome: "computational issues, not checked"}],
+        }));
+        expect(html).toContain(">computational issues</span>");
+        expect(html).toContain(">robustness not checked</span>");
+        expect(html).not.toContain("computational issues, not checked");
     });
 
     it("shows the reworded outcome in the printable report, keeping its colour", () => {
