@@ -801,7 +801,11 @@ async function runScanPass(): Promise<void> {
         }
     }
 
-    if (pageChanged()) { abandonReferences(); return; }
+    if (pageChanged()) {
+        seenDois.clear();
+        abandonReferences();
+        return;
+    }
 
     // Drop occurrences inside FLoRA's own UI so we don't pill our own panel rows.
     const FLORA_UI_IDS = ["flora-pubpeer-panel", "flora-banner-host", "flora-setup-prompt", "flora-sheets-modal"];
@@ -817,7 +821,11 @@ async function runScanPass(): Promise<void> {
     if (hasDoiChange && dois.length > 0) {
         reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
         const notices = await checkPageRetractions(dois);
-        if (pageChanged()) { abandonReferences(); return; }
+        if (pageChanged()) {
+            seenDois.clear();
+            abandonReferences();
+            return;
+        }
         if (!notices) {
             // Abandoned mid-check on this page: give back the scan markers, so
             // the pass that resumes checks these DOIs instead of skipping them.
