@@ -262,7 +262,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         }
     }
     const confirmed = resolved.filter(
-        (r) => r.mode === "pmc" || validated.get(r.doi) !== false
+        (r) => r.mode === "pmc" || r.mode === "page" && !editor || validated.get(r.doi) !== false
     );
     if (confirmed.length < resolved.length) {
         debugLog(`References: dropped ${resolved.length - confirmed.length} DOI(s) doi.org does not know`);
