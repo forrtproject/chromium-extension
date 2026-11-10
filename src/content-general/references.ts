@@ -246,21 +246,27 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
 
     // Augmented DOIs are fuzzy title matches — validate them against doi.org.
     // On-page DOIs were read off the page and PMC-mapped ones came from NCBI's
-    // exact id record; trust both and skip validation so doi.org doesn't
-    // rate-limit the whole batch.
-    const augmentResolved = resolved.filter((r) => r.mode === "augment");
+    // exact id record; outside document editors the page scan validates the
+    // on-page ones, so skip them here so doi.org doesn't rate-limit the batch.
+    const editor = isDocumentEditor();
+    const toValidate = [...new Set(resolved
+        .filter((r) => r.mode === "augment" || editor && r.mode === "page")
+        .map((r) => r.doi))];
     let validated = new Map<DoiString, boolean>();
-    if (augmentResolved.length > 0) {
-        reportWorkStage("validate", `Checking ${count(augmentResolved.length, "augmented DOI")} resolve…`);
+    if (toValidate.length > 0) {
+        reportWorkStage("validate", `Checking ${count(toValidate.length, "DOI")} resolve…`);
         try {
-            validated = await validateDOIs(augmentResolved.map((r) => r.doi));
+            validated = await validateDOIs(toValidate);
         } catch (err) {
-            debugWarn(`References: validation unavailable for ${augmentResolved.length} augmented DOI(s) —`, err);
+            debugWarn(`References: validation unavailable for ${toValidate.length} DOI(s) —`, err);
         }
     }
     const confirmed = resolved.filter(
-        (r) => r.mode === "page" || validated.get(r.doi) !== false
+        (r) => r.mode === "pmc" || validated.get(r.doi) !== false
     );
+    if (confirmed.length < resolved.length) {
+        debugLog(`References: dropped ${resolved.length - confirmed.length} DOI(s) doi.org does not know`);
+    }
     if (confirmed.length === 0) {
         debugLog("References: resolved DOIs all failed doi.org validation");
         return [];

@@ -770,7 +770,7 @@ async function runScanPass(): Promise<void> {
     reportWorkStage("scan", `Found ${count(dois.length, "DOI")} on this page`);
 
     // Validate extracted DOIs via doi.org — remove invalid ones
-    if (hasDoiChange && !isSheets && dois.length > 0) {
+    if (hasDoiChange && dois.length > 0) {
         beginWorkIndicator();
         try {
             reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);
