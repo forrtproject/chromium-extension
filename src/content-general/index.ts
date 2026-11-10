@@ -57,6 +57,7 @@ import {findArticleTitle, placeTitlePill} from "@shared/article-title";
 import {searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
+import {showUpdatedToast, watchForExtensionUpdate} from "@shared/update-notice";
 import {showToast, dismissToast} from "@shared/toast";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
@@ -420,6 +421,7 @@ function followDomainPause(): void {
     });
 }
 
+const MAX_SPREADSHEET_VALIDATIONS = 200;
 const invalidDois = new Set<DoiString>();
 
 function disownDoi(doi: DoiString): void {
@@ -613,9 +615,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
         if (stale()) return null;
         for (const doi of dois) unavailableRetractionDois.add(doi);
         if (error instanceof Error && error.message.includes("Extension context invalidated")) {
-            showToast("ORE was updated — reload this page to run checks.", {
-                action: {label: "Reload", onClick: () => location.reload()},
-            });
+            showUpdatedToast();
             return [];
         }
         debugWarn("Retraction checks unavailable —", error);
@@ -771,7 +771,11 @@ async function runScanPass(): Promise<void> {
     reportWorkStage("scan", `Found ${count(dois.length, "DOI")} on this page`);
 
     // Validate extracted DOIs via doi.org — remove invalid ones
-    if (hasDoiChange && !isSheets && dois.length > 0) {
+    const validateHere = !isSheets || dois.length <= MAX_SPREADSHEET_VALIDATIONS;
+    if (hasDoiChange && dois.length > 0 && !validateHere) {
+        debugLog(`Sheets: ${dois.length} DOIs is above ${MAX_SPREADSHEET_VALIDATIONS} — skipping doi.org validation`);
+    }
+    if (hasDoiChange && dois.length > 0 && validateHere) {
         beginWorkIndicator();
         try {
             reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);
@@ -1636,6 +1640,7 @@ const pageStartup = (async () => {
   try {
     if (window !== window.top && !isWordOnline() && !isExcel) return;
     installErrorReporting();
+    watchForExtensionUpdate();
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
     // that URL resolves and FLoRA would pill an interstitial. Render nothing

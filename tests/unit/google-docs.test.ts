@@ -1,11 +1,13 @@
 // @vitest-environment-options {"url":"https://docs.google.com/document/d/test-document/edit"}
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { googleDocsContentSnapshot, setGoogleDocsText, docsParagraphs, isGoogleDocs, startGoogleDocs, googleDocsReferenceElements, googleDocsAnnotationTarget, googleDocsAnnotatedReferences } from "../../src/shared/google-docs";
+import { googleDocsContentSnapshot, isReferenceCandidate, setGoogleDocsText, docsParagraphs, isGoogleDocs, startGoogleDocs, googleDocsReferenceElements, googleDocsAnnotationTarget, googleDocsAnnotatedReferences } from "../../src/shared/google-docs";
 import { DOCS_TEXT_EVENT } from "../../src/content-docs/canvas";
+import { validateDOIs } from "../../src/shared/doi-validate";
 import { markerColumnLeft } from "../../src/shared/editor-marker";
 import { beginDomScanPass, findReferenceEntries } from "../../src/shared/doi-extractor";
 import { resolveReferenceDois, renderResolvedReferences } from "../../src/content-general/references";
 vi.mock("../../src/shared/google-docs-source", () => ({fetchGoogleDocsText: vi.fn().mockRejectedValue(new Error("offline")), googleDocsExportUrl: (url: string) => url}));
+vi.mock("../../src/shared/doi-validate", () => ({ validateDOIs: vi.fn(async (dois: string[]) => new Map(dois.map((doi) => [doi, !doi.startsWith("10.9999/")]))) }));
 vi.mock("../../src/shared/pubpeer-api", () => ({ lookupPubPeerForDoi: vi.fn().mockResolvedValue(null) }));
 vi.mock("../../src/shared/settings", () => ({ getSettings: vi.fn().mockResolvedValue({ email: 'test@example.com' }) }));
 vi.mock("../../src/shared/openaccess", () => ({ fetchOpenAccess: vi.fn().mockResolvedValue(null), deferredOpenAccess: () => () => Promise.resolve(null) }));
@@ -98,7 +100,132 @@ describe('Google Docs reference adapter', () => {
         expect(document.querySelectorAll('.flora-docs-annotation [data-flora-marker]')).toHaveLength(2);
         expect(canvas.outerHTML).toBe(original);
         expect(googleDocsAnnotatedReferences()).toHaveLength(2);
-        await vi.waitFor(() => expect(scan).toHaveBeenCalled());
+    });
+    it.each([
+        ['a DOI in ordinary prose', 'We relied on the dataset at 10.5281/zenodo.123456 for this analysis.'],
+        ['an APA reference without a DOI', 'Bem, D. J. (2011). Feeling the future: Experimental evidence for anomalous retroactive influences.'],
+        ['a Vancouver reference without a DOI', 'Bem DJ. Feeling the future: experimental evidence for anomalous retroactive influences. J Pers Soc Psychol. 2011;100(3):407-25.'],
+        ['a numbered reference without a DOI', '[12] Bem, D. J. Feeling the future: experimental evidence for anomalous retroactive influences, 2011.'],
+    ])('treats %s as something to check', (_label, text) => {
+        expect(isReferenceCandidate(text)).toBe(true);
+    });
+    it('ignores ordinary prose with no DOI', () => {
+        expect(isReferenceCandidate('The study ran for most of 2011 and we discuss its limitations at length below.')).toBe(false);
+    });
+    describe('while the user types', () => {
+        beforeEach(() => vi.useFakeTimers());
+        afterEach(() => vi.useRealTimers());
+        const body = (text: string) => ({ text, x: 90, y: 20, width: 600, height: 16 });
+
+        it('waits for typing to stop before scanning a new reference', () => {
+            const typing = 'Bem, D. J. (2011). Feeling the future. https://doi.org/10.1037/a00215';
+            emit({ width: 816, height: 1056, runs });
+            vi.advanceTimersByTime(0);
+            scan.mockClear();
+            emit({ width: 816, height: 1056, runs: [...runs, {...runs[3], y: 260, text: typing}] });
+            vi.advanceTimersByTime(1000);
+            emit({ width: 816, height: 1056, runs: [...runs, {...runs[3], y: 260, text: typing + '24'}] });
+            vi.advanceTimersByTime(1000);
+            expect(scan).not.toHaveBeenCalled();
+            vi.advanceTimersByTime(500);
+            expect(scan).toHaveBeenCalledTimes(1);
+        });
+
+        it('rescans when a DOI already in the document is cited a second time', async () => {
+            emit({ width: 816, height: 1056, runs });
+            vi.advanceTimersByTime(0);
+            await resolveReferenceDois();
+            scan.mockClear();
+            emit({ width: 816, height: 1056, runs: [...runs, body('Also see https://doi.org/10.1037/h0054651 for the original task.')] });
+            vi.advanceTimersByTime(1500);
+            expect(scan).toHaveBeenCalledTimes(1);
+        });
+
+        it('rescans when a reference already in the export appears on a canvas', () => {
+            document.querySelector('canvas')!.remove();
+            const fresh = document.createElement('canvas');
+            fresh.className = 'kix-canvas-tile-content';
+            document.querySelector('.kix-appview-editor')!.append(fresh);
+            setGoogleDocsText(runs[3].text);
+            googleDocsReferenceElements(document);
+            scan.mockClear();
+            fresh.dispatchEvent(new CustomEvent(DOCS_TEXT_EVENT, { bubbles: true, detail: JSON.stringify({ width: 816, height: 1056, runs: [runs[3]] }) }));
+            vi.advanceTimersByTime(0);
+            expect(scan).toHaveBeenCalledTimes(1);
+        });
+
+        it('takes every unused marker row off the page, even past the reuse limit', () => {
+            const many = Array.from({ length: 205 }, (_, i) => ({ text: `10.1234/cap${i}`, x: 90, y: 100 + i * 40, width: 200, height: 16 }));
+            emit({ width: 816, height: 9000, runs: many });
+            for (const copy of googleDocsReferenceElements(document)) googleDocsAnnotationTarget(copy);
+            expect(document.querySelectorAll('.flora-docs-annotation').length).toBeGreaterThanOrEqual(205);
+            emit({ width: 816, height: 9000, runs: [] });
+            googleDocsReferenceElements(document);
+            expect(document.querySelectorAll('.flora-docs-annotation')).toHaveLength(0);
+        });
+
+        it('does not rescan or redraw pills when only non-reference text changes', async () => {
+            emit({ width: 816, height: 1056, runs });
+            const refs = await resolveReferenceDois();
+            renderResolvedReferences(refs, new Map(), new Map());
+            const marker = document.querySelector('.flora-docs-annotation [data-flora-marker]');
+            const revision = googleDocsContentSnapshot();
+            for (const typed of ['I', 'In', 'Int', 'Intro']) {
+                emit({ width: 816, height: 1056, runs: [...runs, body(typed)] });
+                vi.advanceTimersByTime(200);
+            }
+            vi.advanceTimersByTime(2000);
+            expect(scan).not.toHaveBeenCalled();
+            expect(googleDocsContentSnapshot()).toBe(revision);
+            expect(marker?.isConnected).toBe(true);
+        });
+
+        it('keeps rendered pills when Docs swaps in a new canvas with the same text', async () => {
+            emit({ width: 816, height: 1056, runs });
+            const refs = await resolveReferenceDois();
+            renderResolvedReferences(refs, new Map(), new Map());
+            const markers = [...document.querySelectorAll('.flora-docs-annotation [data-flora-marker]')];
+            const old = document.querySelector('canvas')!;
+            const fresh = document.createElement('canvas');
+            fresh.className = 'kix-canvas-tile-content';
+            old.replaceWith(fresh);
+            await Promise.resolve();
+            emit({ width: 816, height: 1056, runs });
+            vi.advanceTimersByTime(0);
+            expect(markers.every(marker => marker.isConnected)).toBe(true);
+            expect(googleDocsAnnotatedReferences()).toHaveLength(2);
+            vi.advanceTimersByTime(2000);
+            expect(scan).not.toHaveBeenCalled();
+        });
+
+        it('keeps the pill and skips the rescan when only the text around a DOI changes', async () => {
+            const sentence = (lead: string) => ({ text: `${lead} as shown by https://doi.org/10.1037/a0021524 in that study.`, x: 90, y: 260, width: 600, height: 16 });
+            emit({ width: 816, height: 1056, runs: [...runs, sentence('Earlier work')] });
+            const refs = await resolveReferenceDois();
+            renderResolvedReferences(refs, new Map(), new Map());
+            const marker = document.querySelector('.flora-docs-annotation [data-flora-doi="10.1037/a0021524"]');
+            expect(marker).not.toBeNull();
+            emit({ width: 816, height: 1056, runs: [...runs, sentence('Much earlier work')] });
+            vi.advanceTimersByTime(2000);
+            expect(scan).not.toHaveBeenCalled();
+            expect(marker!.isConnected).toBe(true);
+        });
+
+        it('rescans once an edited reference settles', async () => {
+            emit({ width: 816, height: 1056, runs });
+            await resolveReferenceDois();
+            emit({ width: 816, height: 1056, runs: [runs[0], runs[1], runs[2], {...runs[3], text: 'Stroop, J. R. (1935). Studies of interference. https://doi.org/10.1037/h0054652'}] });
+            vi.advanceTimersByTime(1500);
+            expect(scan).toHaveBeenCalledTimes(1);
+        });
+    });
+    it('does not mark a DOI that doi.org does not know', async () => {
+        emit({ width: 816, height: 1056, runs: [...runs, { text: '10.9999/not-a-real-doi-12345', x: 90, y: 260, width: 300, height: 16 }] });
+        const refs = await resolveReferenceDois();
+        renderResolvedReferences(refs, new Map(), new Map());
+        expect(refs.map(ref => ref.doi)).not.toContain('10.9999/not-a-real-doi-12345');
+        expect(document.querySelector('[data-flora-doi="10.9999/not-a-real-doi-12345"]')).toBeNull();
+        expect(validateDOIs).toHaveBeenCalledWith(expect.arrayContaining(['10.9999/not-a-real-doi-12345']));
     });
     it('preserves markers on an unchanged redraw, but removes edited references', () => {
         emit({ width: 816, height: 1056, runs });
@@ -170,6 +297,14 @@ describe('Google Docs reference adapter', () => {
             ]);
             expect(paragraphs).toHaveLength(2);
             expect(paragraphs[0].text).toContain('10.1037/0022-3514.71.2.230');
+        });
+        it('keeps DOIs listed one per line as separate DOIs', () => {
+            const paragraphs = docsParagraphs([
+                line('10.1126/science.1201068', 100),
+                line('10.9999/not-a-real-doi-12345', 122),
+                line('10.1037/a0021524', 144),
+            ]);
+            expect(paragraphs.map(p => p.text)).toEqual(['10.1126/science.1201068', '10.9999/not-a-real-doi-12345', '10.1037/a0021524']);
         });
         it('keeps the two DOIs of one reference together', () => {
             const paragraphs = docsParagraphs([

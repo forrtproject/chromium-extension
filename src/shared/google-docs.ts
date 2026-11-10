@@ -4,6 +4,7 @@ import type { CanvasRun } from "../content-docs/canvas";
 import { DOCS_TEXT_EVENT, DOCS_REQUEST_EVENT } from "../content-docs/canvas";
 import type { DoiString } from "./types";
 import { markerColumnLeft } from "./editor-marker";
+import { findDOIsInText } from "./doi-extractor";
 export function isGoogleDocs(url = location.href): boolean {
     try {
         const u = new URL(url);
@@ -42,23 +43,66 @@ let exportKey = '';
 let exportText: string | undefined;
 let exportPending = false;
 let exportCheckedAt = 0;
+const TYPING_IDLE_MS = 1500;
+const MAX_RETIRED_ENTRIES = 200;
+let retired: Entry[] = [];
+const DOI_CANDIDATE = /10\.\d{4,}\//;
+const CITATION_YEAR = /\b(?:18|19|20)\d{2}[a-z]?\b/;
+const CITATION_START = /^(?:(?:\[\d{1,3}\]|\d{1,3}[.)])\s*)?[A-ZÀ-Ž][\p{L}'’\-]+(?:,|\s[A-Z]{1,3}[,.])/u;
+export function isReferenceCandidate(text: string): boolean {
+    return DOI_CANDIDATE.test(text) || text.length > 60 && CITATION_YEAR.test(text) && CITATION_START.test(text);
+}
+function identity(text: string): string {
+    const dois = findDOIsInText(text);
+    return dois.length > 0 ? `doi:${dois.sort().join(' ')}` : `text:${text}`;
+}
+let contentKey = '';
+let scannedKey: string | null = null;
+function referenceKey(): string {
+    const keys: string[] = [];
+    for (const group of entries.values())
+        for (const entry of group)
+            if (entry.canvas.isConnected) keys.push(`canvas ${identity(entry.copy.textContent ?? '')}`);
+    if (exportKey === googleDocsExportUrl(location.href))
+        for (const element of exportedEntries) keys.push(`export ${identity(element.getAttribute('data-flora-source-text') ?? '')}`);
+    return keys.sort().join('\n');
+}
+function noteContent(): void {
+    const key = referenceKey();
+    if (key === contentKey) return;
+    contentKey = key;
+    contentRevision++;
+}
+function rescanIfChanged(onChange: () => void): void {
+    if (!document.hidden && contentKey !== scannedKey) onChange();
+}
 /** Detached reference entries persist when Docs recycles offscreen canvases. */
 export function setGoogleDocsText(text: string, doc: Document = document): void {
     const key = googleDocsExportUrl(doc.URL);
-    if (exportKey !== key || exportText !== text) contentRevision++;
     exportKey = key;
     exportText = text;
-    const previous = new Map(exportedEntries.map(element => [element.getAttribute('data-flora-source-text'), element]));
-    exportedEntries = text.split(/\r?\n/).map(line => line.trim()).filter(line =>
-        /10\.\d{4,}\//.test(line) || line.length > 60 && /\b(?:18|19|20)\d{2}\b/.test(line) && /^[A-ZÀ-Ž][\p{L}'’\-]+,/u.test(line)
-    ).map(line => {
-        const existing = previous.get(line);
-        if (existing) return existing;
+    const previous = exportedEntries;
+    const taken = new Set<HTMLElement>();
+    const sourceText = (element: HTMLElement) => element.getAttribute('data-flora-source-text') ?? '';
+    exportedEntries = text.split(/\r?\n/).map(line => line.trim()).filter(isReferenceCandidate).map(line => {
+        const key = identity(line);
+        const existing = previous.find(element => !taken.has(element) && sourceText(element) === line)
+            ?? (key.startsWith('doi:') ? previous.find(element => !taken.has(element) && identity(sourceText(element)) === key) : undefined);
+        if (existing) {
+            taken.add(existing);
+            if (sourceText(existing) !== line) {
+                existing.setAttribute('data-flora-source-text', line);
+                if (existing.firstChild?.nodeType === Node.TEXT_NODE) existing.firstChild.textContent = line;
+                else existing.prepend(line);
+            }
+            return existing;
+        }
         const copy = doc.createElement('p');
         copy.textContent = line;
         copy.setAttribute('data-flora-source-text', line);
         return copy;
     });
+    noteContent();
 }
 function showExportStatus(unavailable: boolean): void {
     let status = document.getElementById('flora-docs-scan-status');
@@ -78,13 +122,12 @@ function showExportStatus(unavailable: boolean): void {
 async function refreshGoogleDocsText(onChange: () => void): Promise<void> {
     const key = googleDocsExportUrl(location.href);
     if (key !== exportKey) {
-        contentRevision++;
-        const hadExport = exportedEntries.length > 0;
         exportKey = key;
         exportedEntries = [];
         exportText = undefined;
         exportCheckedAt = 0;
-        if (hadExport) onChange();
+        noteContent();
+        rescanIfChanged(onChange);
     }
     if (exportPending || Date.now() - exportCheckedAt < 60000) return;
     exportPending = true;
@@ -96,7 +139,7 @@ async function refreshGoogleDocsText(onChange: () => void): Promise<void> {
         if (text !== exportText) {
             setGoogleDocsText(text);
             debugLog('Google Docs: full-document export loaded', exportedEntries.length, 'reference candidates');
-            onChange();
+            rescanIfChanged(onChange);
         }
     } catch {
         if (googleDocsExportUrl(location.href) === key) {
@@ -143,6 +186,7 @@ export function docsParagraphs(runs: CanvasRun[]): Paragraph[] {
     const midAuthorList = /(?:[,;:&]|\band)$/;
     const endsInDoi = /10\.\d{4,}\/\S*$/;
     const doiTail = /^[a-z0-9][a-z0-9./_\-]+[.;)]?$/i;
+    const startsDoi = /^10\.\d{4,}\//;
     const orderedLines = lines.sort((a, b) => a.y - b.y);
     const lineGaps = orderedLines.slice(1).map((line, i) => line.y - (orderedLines[i].y + orderedLines[i].height)).sort((a, b) => a - b);
     const typicalGap = lineGaps[Math.floor((lineGaps.length - 1) / 2)] ?? 0;
@@ -152,7 +196,7 @@ export function docsParagraphs(runs: CanvasRun[]): Paragraph[] {
         const prev = paragraphs.at(-1);
         const gap = prev ? line.y - (prev.y + prev.height) : Infinity;
         const lineText = line.text.trim();
-        const continuesDoi = !!prev && endsInDoi.test(prev.text) && doiTail.test(lineText);
+        const continuesDoi = !!prev && endsInDoi.test(prev.text) && doiTail.test(lineText) && !startsDoi.test(lineText);
         // APA hanging indents and author-led entries separate references even
         // in double-spaced bibliographies; continuation lines preserve DOIs.
         if (!prev || gap > Math.min(line.height * 1.8, typicalGap + line.height * .4)
@@ -206,6 +250,13 @@ export function startGoogleDocs(onChange: () => void): void {
         if (!document.hidden && isGoogleDocs()) void refreshGoogleDocsText(onChange);
     }, 2000);
     let timer: ReturnType<typeof setTimeout>;
+    const refreshWhenIdle = (delay = TYPING_IDLE_MS) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            rebuildEntries(document);
+            rescanIfChanged(onChange);
+        }, delay);
+    };
     document.addEventListener(DOCS_TEXT_EVENT, (event) => {
         const canvas = event.target;
         if (!(canvas instanceof HTMLCanvasElement) || !canvas.matches('.kix-canvas-tile-content') || !canvas.isConnected)
@@ -221,9 +272,7 @@ export function startGoogleDocs(onChange: () => void): void {
             if (previous && JSON.stringify(previous) === detail) return;
             debugLog("Google Docs: received canvas snapshot", next.runs.length, "text runs");
             snapshots.set(canvas, next);
-            if (exportText === undefined) contentRevision++;
-            clearTimeout(timer);
-            timer = setTimeout(onChange, 300);
+            refreshWhenIdle(previous ? TYPING_IDLE_MS : 0);
         }
         catch { }
     });
@@ -232,20 +281,12 @@ export function startGoogleDocs(onChange: () => void): void {
         return; queued = true; requestAnimationFrame(() => { queued = false; positionGoogleDocsAnnotations(); }); };
     document.addEventListener("scroll", schedule, true);
     window.addEventListener("resize", schedule);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) {
-        clearTimeout(timer);
-        timer = setTimeout(onChange, 300);
-    } });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshWhenIdle(300); });
     new MutationObserver(() => {
         for (const canvas of snapshots.keys())
             if (!canvas.isConnected) {
                 snapshots.delete(canvas);
-                if (exportText === undefined) contentRevision++;
-                for (const entry of entries.get(canvas) ?? [])
-                    entry.row?.remove();
-                entries.delete(canvas);
-                clearTimeout(timer);
-                timer = setTimeout(onChange, 300);
+                refreshWhenIdle(0);
             }
         schedule();
     }).observe(document.querySelector('.kix-appview') ?? document.body, { childList: true, subtree: true, attributes: true });
@@ -255,22 +296,42 @@ export function googleDocsReferenceElements(doc: Document): HTMLElement[] {
     if (!isGoogleDocs(doc.URL))
         return [];
     const exportCurrent = exportKey === googleDocsExportUrl(doc.URL);
-    const all: HTMLElement[] = exportCurrent ? [...exportedEntries] : [];
+    const all = [...(exportCurrent ? exportedEntries : []), ...rebuildEntries(doc)];
+    scannedKey = contentKey;
+    return all;
+}
+function rebuildEntries(doc: Document): HTMLElement[] {
+    const exportCurrent = exportKey === googleDocsExportUrl(doc.URL);
+    const available = [...[...entries.values()].flat(), ...retired];
+    const taken = new Set<Entry>();
+    const reusable = (canvas: HTMLCanvasElement, text: string): Entry | undefined => {
+        const free = available.filter(e => !taken.has(e));
+        const same = (e: Entry) => e.copy.textContent === text;
+        const key = identity(text);
+        const sameDois = (e: Entry) => key.startsWith('doi:') && identity(e.copy.textContent ?? '') === key;
+        return free.find(e => e.canvas === canvas && same(e)) ?? free.find(same)
+            ?? free.find(e => e.canvas === canvas && sameDois(e)) ?? free.find(sameDois);
+    };
+    const next = new Map<HTMLCanvasElement, Entry[]>();
+    const all: HTMLElement[] = [];
     for (const [canvas, snapshot] of snapshots) {
         if (!canvas.isConnected)
             continue;
-        const previous = entries.get(canvas) ?? [];
-        const next: Entry[] = [];
+        const group: Entry[] = [];
         const paragraphs = docsParagraphs(snapshot.runs);
         for (const [index, box] of paragraphs.entries()) {
             const rendered = box.text.trim();
             const text = exportCurrent ? acrossPageBreak(rendered, index === 0, index === paragraphs.length - 1) : rendered;
             if (text === null)
                 continue;
-            if (!/10\.\d{4,}\//.test(text) && !(text.length > 60 && /\b(?:18|19|20)\d{2}\b/.test(text) && /^[A-ZÀ-Ž][\p{L}'’\-]+,/u.test(text)))
+            if (!isReferenceCandidate(text))
                 continue;
-            let entry = previous.find(e => e.copy.textContent === text && !next.includes(e));
-            if (!entry) {
+            let entry = reusable(canvas, text);
+            if (entry) {
+                if (entry.row && !entry.row.isConnected) doc.body.append(entry.row);
+                if (entry.copy.textContent !== text) entry.copy.textContent = text;
+                entry.canvas = canvas;
+            } else {
                 const copy = doc.createElement('p');
                 copy.textContent = text;
                 entry = { canvas, copy, box, snapshot };
@@ -278,15 +339,21 @@ export function googleDocsReferenceElements(doc: Document): HTMLElement[] {
             }
             entry.box = box;
             entry.snapshot = snapshot;
-            next.push(entry);
+            taken.add(entry);
+            group.push(entry);
             all.push(entry.copy);
         }
-        for (const entry of previous)
-            if (!next.includes(entry))
-                entry.row?.remove();
-        entries.set(canvas, next);
+        next.set(canvas, group);
     }
+    const unused = available.filter(e => !taken.has(e));
+    for (const entry of unused)
+        entry.row?.remove();
+    retired = unused.slice(-MAX_RETIRED_ENTRIES);
+    entries.clear();
+    for (const [canvas, group] of next)
+        entries.set(canvas, group);
     positionGoogleDocsAnnotations();
+    noteContent();
     return all;
 }
 export function googleDocsAnnotationTarget(copy: Element): HTMLElement | null {

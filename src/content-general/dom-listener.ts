@@ -2,6 +2,7 @@ import {awaitingArticleTitle, containsDoiCandidate, touchesReferenceSection} fro
 import {isExternalMutation, isFloraOwnedNode, owningElement} from "@shared/flora-ui";
 import {debugLog} from "@shared/debug";
 import {isWordOnline} from "@shared/word-online";
+import {isGoogleDocs} from "@shared/google-docs";
 import {editorContentSnapshot} from "@shared/document-editor";
 import {currentPageEntry, isSamePage, pageUrl} from "@shared/page-identity";
 
@@ -60,6 +61,10 @@ export function startDomListener({scanWholePage, getLastUrl}: DomListenerOptions
         pendingNodes = [];
         pendingFullScan = false;
         navigated = false;
+        if (isGoogleDocs() && samePage && !wasNavigation) {
+            logSkip("Google Docs edits are tracked from its canvas");
+            return;
+        }
         if (isWordOnline() && samePage && !wasNavigation) {
             const text = editorContentSnapshot();
             if (text === lastWordText && !scanAddedNodes(nodes.filter((node) => !node.closest("#WACViewPanel")))) {
