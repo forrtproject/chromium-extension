@@ -53,6 +53,19 @@ describe("the walkthrough's offline fixtures", () => {
         chrome.storage.onChanged.removeListener(listener);
     });
 
+    it("reports the value as it was written, even if the caller changes it straight after", async () => {
+        const listener = vi.fn();
+        chrome.storage.onChanged.addListener(listener);
+        const value = {count: 1};
+        const write = chrome.storage.local.set({flora_doival_blob: value});
+        value.count = 2;
+        await write;
+        await Promise.resolve();
+        expect(listener).toHaveBeenCalledWith({flora_doival_blob: {oldValue: undefined, newValue: {count: 1}}}, "local");
+        expect(await chrome.storage.local.get("flora_doival_blob")).toEqual({flora_doival_blob: {count: 1}});
+        chrome.storage.onChanged.removeListener(listener);
+    });
+
     it("still writes the sample-tour request and settings to real storage", async () => {
         await chrome.storage.local.set({[TOUR_REQUEST_KEY]: 1, other: 2});
         expect(local.set).toHaveBeenCalledWith({[TOUR_REQUEST_KEY]: 1});

@@ -107,7 +107,7 @@ function memoryLocalArea(real: chrome.storage.StorageArea | undefined, listeners
                     realItems[key] = value;
                     continue;
                 }
-                changes[key] = {oldValue: store.get(key), newValue: value};
+                changes[key] = {oldValue: store.get(key), newValue: structuredClone(value)};
                 store.set(key, structuredClone(value));
             }
             emit(changes);
