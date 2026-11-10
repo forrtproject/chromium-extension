@@ -33,7 +33,7 @@ function installFake() {
     Object.assign(FakeContext.prototype, {
         fillText: vi.fn(), measureText: vi.fn((text: string) => ({ width: text.length * 8, actualBoundingBoxAscent: 12, actualBoundingBoxDescent: 4 })),
         clearRect: vi.fn(), fillRect: vi.fn(), drawImage: vi.fn(),
-        save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), rect: vi.fn(), clip: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(),
+        save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), rect: vi.fn(), clip: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), reset: vi.fn(),
     });
     vi.stubGlobal('CanvasRenderingContext2D', FakeContext);
 }
@@ -148,6 +148,43 @@ describe('Docs canvas capture', () => {
         c.fillRect(0, 0, 800, 1000);
         vi.advanceTimersByTime(110);
         expect(events.at(-1)?.runs.map(r => r.text)).toEqual(['below']);
+    });
+    it('does not record text drawn outside the active clip', () => {
+        const c = ctx as unknown as CanvasRenderingContext2D;
+        c.save();
+        c.beginPath();
+        c.rect(0, 10, 400, 40);
+        c.clip();
+        c.fillText('inside', 20, 30);
+        c.fillText('outside', 20, 300);
+        c.restore();
+        vi.advanceTimersByTime(110);
+        expect(events.at(-1)?.runs.map(r => r.text)).toEqual(['inside']);
+    });
+    it('forgets captured text and the clip when the context is reset', () => {
+        const c = ctx as unknown as CanvasRenderingContext2D;
+        c.fillText('before', 20, 30);
+        c.beginPath();
+        c.rect(0, 10, 400, 40);
+        c.clip();
+        c.reset();
+        c.fillText('after', 20, 300);
+        vi.advanceTimersByTime(110);
+        expect(events.at(-1)?.runs.map(r => r.text)).toEqual(['after']);
+    });
+    it('keeps text inside the hole of an evenodd clip', () => {
+        const c = ctx as unknown as CanvasRenderingContext2D;
+        c.fillText('frame', 20, 30);
+        c.fillText('hole', 20, 300);
+        c.save();
+        c.beginPath();
+        c.rect(0, 0, 400, 700);
+        c.rect(0, 280, 400, 40);
+        c.clip('evenodd');
+        c.fillRect(0, 0, 800, 1000);
+        c.restore();
+        vi.advanceTimersByTime(110);
+        expect(events.at(-1)?.runs.map(r => r.text)).toEqual(['hole']);
     });
     it('treats a clip it cannot measure as covering the whole fill', () => {
         const c = ctx as unknown as CanvasRenderingContext2D;

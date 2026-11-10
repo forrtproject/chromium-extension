@@ -56,6 +56,36 @@ function identity(text: string): string {
     const dois = findDOIsInText(text);
     return dois.length > 0 ? `doi:${dois.sort().join(' ')}` : `text:${text}`;
 }
+function matchKeys(text: string): string[] {
+    const key = identity(text);
+    return key.startsWith('doi:') ? [`text:${text}`, key] : [key];
+}
+class ReusePool<T> {
+    private byKey = new Map<string, T[]>();
+    private taken = new Set<T>();
+    constructor(items: readonly T[], text: (item: T) => string) {
+        for (const item of items)
+            for (const key of matchKeys(text(item))) {
+                const list = this.byKey.get(key);
+                if (list) list.push(item);
+                else this.byKey.set(key, [item]);
+            }
+    }
+    take(text: string, prefer: (item: T) => boolean = () => false): T | undefined {
+        for (const key of matchKeys(text)) {
+            const free = this.byKey.get(key)?.filter(item => !this.taken.has(item)) ?? [];
+            const item = free.find(prefer) ?? free[0];
+            if (item) {
+                this.taken.add(item);
+                return item;
+            }
+        }
+        return undefined;
+    }
+    isTaken(item: T): boolean {
+        return this.taken.has(item);
+    }
+}
 let contentKey = '';
 let scannedKey: string | null = null;
 function referenceKey(): string {
@@ -81,15 +111,11 @@ export function setGoogleDocsText(text: string, doc: Document = document): void 
     const key = googleDocsExportUrl(doc.URL);
     exportKey = key;
     exportText = text;
-    const previous = exportedEntries;
-    const taken = new Set<HTMLElement>();
     const sourceText = (element: HTMLElement) => element.getAttribute('data-flora-source-text') ?? '';
+    const pool = new ReusePool(exportedEntries, sourceText);
     exportedEntries = text.split(/\r?\n/).map(line => line.trim()).filter(isReferenceCandidate).map(line => {
-        const key = identity(line);
-        const existing = previous.find(element => !taken.has(element) && sourceText(element) === line)
-            ?? (key.startsWith('doi:') ? previous.find(element => !taken.has(element) && identity(sourceText(element)) === key) : undefined);
+        const existing = pool.take(line);
         if (existing) {
-            taken.add(existing);
             if (sourceText(existing) !== line) {
                 existing.setAttribute('data-flora-source-text', line);
                 if (existing.firstChild?.nodeType === Node.TEXT_NODE) existing.firstChild.textContent = line;
@@ -303,15 +329,7 @@ export function googleDocsReferenceElements(doc: Document): HTMLElement[] {
 function rebuildEntries(doc: Document): HTMLElement[] {
     const exportCurrent = exportKey === googleDocsExportUrl(doc.URL);
     const available = [...[...entries.values()].flat(), ...retired];
-    const taken = new Set<Entry>();
-    const reusable = (canvas: HTMLCanvasElement, text: string): Entry | undefined => {
-        const free = available.filter(e => !taken.has(e));
-        const same = (e: Entry) => e.copy.textContent === text;
-        const key = identity(text);
-        const sameDois = (e: Entry) => key.startsWith('doi:') && identity(e.copy.textContent ?? '') === key;
-        return free.find(e => e.canvas === canvas && same(e)) ?? free.find(same)
-            ?? free.find(e => e.canvas === canvas && sameDois(e)) ?? free.find(sameDois);
-    };
+    const pool = new ReusePool(available, e => e.copy.textContent ?? '');
     const next = new Map<HTMLCanvasElement, Entry[]>();
     const all: HTMLElement[] = [];
     for (const [canvas, snapshot] of snapshots) {
@@ -326,7 +344,7 @@ function rebuildEntries(doc: Document): HTMLElement[] {
                 continue;
             if (!isReferenceCandidate(text))
                 continue;
-            let entry = reusable(canvas, text);
+            let entry = pool.take(text, e => e.canvas === canvas);
             if (entry) {
                 if (entry.row && !entry.row.isConnected) doc.body.append(entry.row);
                 if (entry.copy.textContent !== text) entry.copy.textContent = text;
@@ -339,16 +357,15 @@ function rebuildEntries(doc: Document): HTMLElement[] {
             }
             entry.box = box;
             entry.snapshot = snapshot;
-            taken.add(entry);
             group.push(entry);
             all.push(entry.copy);
         }
         next.set(canvas, group);
     }
-    const unused = available.filter(e => !taken.has(e));
+    const unused = available.filter(e => !pool.isTaken(e));
     for (const entry of unused)
         entry.row?.remove();
-    retired = unused.slice(-MAX_RETIRED_ENTRIES);
+    retired = unused.slice(0, MAX_RETIRED_ENTRIES);
     entries.clear();
     for (const [canvas, group] of next)
         entries.set(canvas, group);

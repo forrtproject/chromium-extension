@@ -29,6 +29,14 @@ it("asks for a reload once the extension is updated on a page ORE has marked up"
     expect(toast()).toBeNull();
 });
 
+it("asks for a reload when ORE's only element on the page is a panel without the UI attribute", () => {
+    document.body.innerHTML = `<div id="flora-pubpeer-panel"></div>`;
+    watchForExtensionUpdate();
+    (chrome.runtime as {id?: string}).id = undefined;
+    vi.advanceTimersByTime(2000);
+    expect(toast()).not.toBeNull();
+});
+
 it("checks as soon as the tab is shown again", () => {
     document.body.innerHTML = `<span data-flora-ui></span>`;
     watchForExtensionUpdate();

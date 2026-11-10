@@ -54,7 +54,7 @@ import {injectInlineRetractionPills, removeNoticePillsFor, resetRetractionPills,
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 import {findArticleTitle, placeTitlePill} from "@shared/article-title";
-import {searchScriptOwns} from "@shared/search-sites";
+import {isSearchHost, searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showUpdatedToast, watchForExtensionUpdate} from "@shared/update-notice";
@@ -780,7 +780,11 @@ async function runScanPass(): Promise<void> {
         try {
             reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);
             const validation = await validateDOIs(dois);
-            if (pageChanged()) { abandonReferences(); return; }
+            if (pageChanged()) {
+                seenDois.clear();
+                abandonReferences();
+                return;
+            }
             const before = dois.length;
             for (const [doi, ok] of validation) {
                 if (!ok) disownDoi(doi);
@@ -1640,7 +1644,7 @@ const pageStartup = (async () => {
   try {
     if (window !== window.top && !isWordOnline() && !isExcel) return;
     installErrorReporting();
-    watchForExtensionUpdate();
+    if (!isSearchHost()) watchForExtensionUpdate();
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
     // that URL resolves and FLoRA would pill an interstitial. Render nothing

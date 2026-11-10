@@ -154,6 +154,22 @@ describe('Google Docs reference adapter', () => {
             expect(scan).toHaveBeenCalledTimes(1);
         });
 
+        it('keeps the most recently set-aside markers when the reuse limit is reached', () => {
+            const line = (doi: string, i: number) => ({ text: doi, x: 90, y: 100 + i * 40, width: 200, height: 16 });
+            emit({ width: 816, height: 9000, runs: [line('10.1234/oldest', 0)] });
+            googleDocsReferenceElements(document);
+            emit({ width: 816, height: 9000, runs: [] });
+            googleDocsReferenceElements(document);
+            const recent = Array.from({ length: 200 }, (_, i) => line(`10.1234/recent${i}`, i));
+            emit({ width: 816, height: 9000, runs: recent });
+            const row = googleDocsAnnotationTarget(googleDocsReferenceElements(document)[0])!;
+            emit({ width: 816, height: 9000, runs: [] });
+            googleDocsReferenceElements(document);
+            emit({ width: 816, height: 9000, runs: [recent[0]] });
+            googleDocsReferenceElements(document);
+            expect(row.isConnected).toBe(true);
+        });
+
         it('takes every unused marker row off the page, even past the reuse limit', () => {
             const many = Array.from({ length: 205 }, (_, i) => ({ text: `10.1234/cap${i}`, x: 90, y: 100 + i * 40, width: 200, height: 16 }));
             emit({ width: 816, height: 9000, runs: many });

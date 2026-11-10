@@ -177,7 +177,11 @@ export function installOfflineFixtures(): void {
         Object.assign(onChanged, {
             addListener: (listener: ChangeListener) => {
                 const nonLocal: ChangeListener = (changes, area) => {
-                    if (area !== "local") listener(changes, area);
+                    if (area !== "local") {
+                        listener(changes, area);
+                        return;
+                    }
+                    if (TOUR_REQUEST_KEY in changes) listener({[TOUR_REQUEST_KEY]: changes[TOUR_REQUEST_KEY]}, area);
                 };
                 wrapped.set(listener, nonLocal);
                 localListeners.add(listener);

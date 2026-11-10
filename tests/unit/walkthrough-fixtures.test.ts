@@ -66,6 +66,19 @@ describe("the walkthrough's offline fixtures", () => {
         chrome.storage.onChanged.removeListener(listener);
     });
 
+    it("passes real changes to the sample-tour request on, and keeps real cache changes out", () => {
+        const realAdd = vi.fn();
+        chrome.storage.onChanged.addListener = realAdd as never;
+        installOfflineFixtures();
+        const listener = vi.fn();
+        chrome.storage.onChanged.addListener(listener);
+        const fromChrome = realAdd.mock.calls.at(-1)![0] as (changes: object, area: string) => void;
+        fromChrome({[TOUR_REQUEST_KEY]: {newValue: 1}, flora_pubpeer_blob: {newValue: {}}}, "local");
+        fromChrome({flora_pubpeer_blob: {newValue: {}}}, "local");
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledWith({[TOUR_REQUEST_KEY]: {newValue: 1}}, "local");
+    });
+
     it("still writes the sample-tour request and settings to real storage", async () => {
         await chrome.storage.local.set({[TOUR_REQUEST_KEY]: 1, other: 2});
         expect(local.set).toHaveBeenCalledWith({[TOUR_REQUEST_KEY]: 1});
