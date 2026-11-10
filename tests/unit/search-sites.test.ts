@@ -4,7 +4,7 @@ import path from "node:path";
 import {resolveSearchSite, SEARCH_SITE_ADAPTERS} from "../../src/content-search/sites";
 import {OPENALEX} from "../../src/content-search/sites/openalex";
 import {normaliseOpenAlexId} from "../../src/shared/openalex-resolve";
-import {matchSearchSite, SEARCH_SITES, searchScriptOwns} from "../../src/shared/search-sites";
+import {isSearchHost, matchSearchSite, SEARCH_SITES, searchScriptOwns} from "../../src/shared/search-sites";
 import {mockResult, patternToRegExp} from "../helpers";
 
 const OPENALEX_ROW = `
@@ -99,6 +99,16 @@ const PAGES: Record<keyof typeof SEARCH_SITES, {results: string[]; records: stri
         records: ["https://research.ebsco.com/c/abc123/search/details/xyz789"],
     },
 };
+
+describe("hosts content-search runs on", () => {
+    it("covers result and record pages alike, and nothing else", () => {
+        expect(isSearchHost("pubmed.ncbi.nlm.nih.gov")).toBe(true);
+        expect(isSearchHost("www.scopus.com")).toBe(true);
+        expect(isSearchHost("scholar.google.de")).toBe(true);
+        expect(isSearchHost("www.nature.com")).toBe(false);
+        expect(isSearchHost("docs.google.com")).toBe(false);
+    });
+});
 
 describe("page ownership between content-search and content-general", () => {
     it("every search site lists a results page", () => {

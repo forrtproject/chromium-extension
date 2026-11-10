@@ -9,6 +9,7 @@ import {setScanSummarySource} from "@shared/toolbar-scan";
 import type {PageStateResponse} from "@shared/messages";
 import {debugError, debugLog, recentDebugEntries} from "@shared/debug";
 import {installErrorReporting, reportCodeError} from "@shared/error-report";
+import {watchForExtensionUpdate} from "@shared/update-notice";
 import {isSetupComplete} from "@shared/settings";
 import {getDomainPause, onDomainPauseChange, type DomainPause} from "@shared/domains";
 import {cancelWork, resumeAutomaticWork} from "@shared/work-cancellation";
@@ -74,6 +75,7 @@ const pageStartup = (async () => {
     try {
         if (window !== window.top) return;
         installErrorReporting();
+        watchForExtensionUpdate();
 
         const adapter = resolveSearchSite(location.hostname);
         if (!adapter) {

@@ -56,11 +56,53 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
         const left = Math.min(...points.map(p => p.x)), top = Math.min(...points.map(p => p.y));
         return { x: left, y: top, width: Math.max(...points.map(p => p.x)) - left, height: Math.max(...points.map(p => p.y)) - top };
     };
-    const erase = (canvas: HTMLCanvasElement, box: Omit<CanvasRun, "text">) => {
+    type Box = Omit<CanvasRun, "text">;
+    type Clip = Box[] | "unknown" | null;
+    interface ClipState { path: Box[] | null; clip: Clip; stack: Clip[] }
+    const clips = new WeakMap<HTMLCanvasElement, ClipState>();
+    const clipState = (canvas: HTMLCanvasElement): ClipState => {
+        let state = clips.get(canvas);
+        if (!state) clips.set(canvas, state = {path: [], clip: null, stack: []});
+        return state;
+    };
+    const intersect = (a: Box, b: Box): Box | null => {
+        const x = Math.max(a.x, b.x), y = Math.max(a.y, b.y);
+        const right = Math.min(a.x + a.width, b.x + b.width), bottom = Math.min(a.y + a.height, b.y + b.height);
+        return right > x && bottom > y ? {x, y, width: right - x, height: bottom - y} : null;
+    };
+    const overlap = (region: Box[], boxes: Box[]): Box[] =>
+        region.flatMap(a => boxes.map(b => intersect(a, b)).filter((box): box is Box => box !== null));
+    const subtract = (a: Box, b: Box): Box[] => {
+        const cut = intersect(a, b);
+        if (!cut) return [a];
+        const right = a.x + a.width, bottom = a.y + a.height;
+        const cutRight = cut.x + cut.width, cutBottom = cut.y + cut.height;
+        const pieces: Box[] = [];
+        if (cut.y > a.y) pieces.push({x: a.x, y: a.y, width: a.width, height: cut.y - a.y});
+        if (cutBottom < bottom) pieces.push({x: a.x, y: cutBottom, width: a.width, height: bottom - cutBottom});
+        if (cut.x > a.x) pieces.push({x: a.x, y: cut.y, width: cut.x - a.x, height: cut.height});
+        if (cutRight < right) pieces.push({x: cutRight, y: cut.y, width: right - cutRight, height: cut.height});
+        return pieces;
+    };
+    const evenOdd = (boxes: Box[]): Box[] => boxes.reduce<Box[]>((region, box) => [
+        ...region.flatMap(piece => subtract(piece, box)),
+        ...region.reduce<Box[]>((rest, piece) => rest.flatMap(part => subtract(part, piece)), [box]),
+    ], []);
+    const visible = (canvas: HTMLCanvasElement, box: Box): boolean => {
+        const clip = clips.get(canvas)?.clip ?? null;
+        return clip === null || clip === "unknown" || overlap(clip, [box]).length > 0;
+    };
+    const painted = (canvas: HTMLCanvasElement, box: Box): Box[] => {
+        const clip = clips.get(canvas)?.clip ?? null;
+        return clip === null || clip === "unknown" ? [box] : overlap(clip, [box]);
+    };
+    const erase = (canvas: HTMLCanvasElement, area: Box) => {
         const runs = snapshots.get(canvas);
-        if (!runs)
+        const boxes = painted(canvas, area);
+        if (!runs || boxes.length === 0)
             return;
-        snapshots.set(canvas, runs.filter(r => r.x + r.width <= box.x || r.x >= box.x + box.width || r.y + r.height <= box.y || r.y >= box.y + box.height));
+        const outside = (r: CanvasRun, box: Box) => r.x + r.width <= box.x || r.x >= box.x + box.width || r.y + r.height <= box.y || r.y >= box.y + box.height;
+        snapshots.set(canvas, runs.filter(r => boxes.every(box => outside(r, box))));
         changed(canvas);
     };
     const fillText = proto.fillText;
@@ -84,7 +126,7 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
             else if (align === "right" || align === "end" && this.direction !== "rtl" || align === "start" && this.direction === "rtl")
                 x -= width;
             const box = bounds(this, x, y - ascent, width, ascent + descent);
-            if (!Object.values(box).every(Number.isFinite))
+            if (!Object.values(box).every(Number.isFinite) || !visible(canvas, box))
                 return result;
             const runs = snapshots.get(canvas) ?? [];
             // Repainting the same text must not duplicate a citation.
@@ -132,6 +174,7 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
             ...descriptor,
             set(this: HTMLCanvasElement, value: number) {
                 descriptor.set!.call(this, value);
+                clips.delete(this);
                 if (active && snapshots.has(this)) {
                     snapshots.set(this, []);
                     changed(this);
@@ -165,6 +208,7 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
                 if (right <= left || bottom <= top) continue;
                 const box = bounds(this, dx + (left - sx) * dw / sw, dy + (top - sy) * dh / sh,
                     (right - left) * dw / sw, (bottom - top) * dh / sh);
+                if (!visible(this.canvas, box)) continue;
                 const previous = target.findIndex(r => Math.abs(r.x - box.x) < .5 && Math.abs(r.y - box.y) < .5);
                 const copied = {text: run.text, ...box};
                 if (previous >= 0) target[previous] = copied;
@@ -175,6 +219,46 @@ export function installCanvasCapture(options: CanvasCaptureOptions): () => void 
         } catch { /* Capture must never interrupt Docs painting. */ }
         return result;
     } as typeof proto.drawImage;
+    const track = <K extends keyof CanvasRenderingContext2D>(name: K, after: (ctx: CanvasRenderingContext2D, args: unknown[]) => void) => {
+        const original = proto[name];
+        if (typeof original !== "function") return;
+        const wrapper = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
+            const result = Reflect.apply(original as (...a: unknown[]) => unknown, this, args);
+            if (active) {
+                try {
+                    if (this.canvas instanceof HTMLCanvasElement) after(this, args);
+                } catch { /* Capture must never interrupt Docs painting. */ }
+            }
+            return result;
+        };
+        Object.assign(proto, {[name]: wrapper});
+        restore.push(() => { if (proto[name] === wrapper) Object.assign(proto, {[name]: original}); });
+    };
+    track("save", ctx => { const state = clipState(ctx.canvas); state.stack.push(state.clip); });
+    track("restore", ctx => {
+        const state = clipState(ctx.canvas);
+        if (state.stack.length > 0) state.clip = state.stack.pop()!;
+    });
+    track("beginPath", ctx => { clipState(ctx.canvas).path = []; });
+    track("reset", ctx => {
+        clips.delete(ctx.canvas);
+        if (!snapshots.has(ctx.canvas)) return;
+        snapshots.set(ctx.canvas, []);
+        changed(ctx.canvas);
+    });
+    track("rect", (ctx, [x, y, w, h]) => {
+        const state = clipState(ctx.canvas);
+        state.path?.push(bounds(ctx, Number(x), Number(y), Number(w), Number(h)));
+    });
+    for (const name of ["moveTo", "lineTo", "arc", "arcTo", "ellipse", "roundRect", "bezierCurveTo", "quadraticCurveTo"] as const)
+        track(name, ctx => { clipState(ctx.canvas).path = null; });
+    track("clip", (ctx, args) => {
+        const state = clipState(ctx.canvas);
+        if (typeof Path2D !== "undefined" && args[0] instanceof Path2D || state.path === null) { state.clip = "unknown"; return; }
+        const region = args.includes("evenodd") ? evenOdd(state.path) : [...state.path];
+        const current = state.clip;
+        state.clip = current === null || current === "unknown" ? region : overlap(current, region);
+    });
     const replay = () => {
         for (const canvas of document.querySelectorAll<HTMLCanvasElement>(TILE)) publish(canvas);
     };

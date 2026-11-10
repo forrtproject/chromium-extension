@@ -25,6 +25,8 @@ const HYPHEN_RESET_ROOTS = [
     "#flora-pubpeer-panel",
 ];
 
+export const FLORA_ROOT_SELECTOR = HYPHEN_RESET_ROOTS.join(", ");
+
 export function ensureFocusStyle(): void {
     if (document.getElementById(FOCUS_STYLE_ID)) return;
     const style = document.createElement("style");

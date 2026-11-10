@@ -8,7 +8,7 @@ import { renderCommentList } from "./pubpeer-comments-view";
 import { debugLog, debugWarn } from "../shared/debug";
 import { safeSendMessage, type ReportPdfResponse } from "../shared/messages";
 import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
-import { outcomeLabel, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
+import { outcomeTags, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
 import { writeClipboard } from "@shared/clipboard";
 import { showToast } from "@shared/toast";
 import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
@@ -1190,21 +1190,27 @@ export function renderSidePanel(
         titleRow.appendChild(placeholder);
         oaPlaceholders.set(entry.doi, placeholder);
       }
-      if (entry.outcome) {
-        const outcome = entry.outcome.toLowerCase();
-        const isSuccess = outcome.includes("success") || outcome.includes("replicated") || outcome === "yes";
-        const isFailure = outcome.includes("fail") || outcome === "no";
-        const badge = document.createElement("span");
-        badge.style.cssText =
-          "flex-shrink:0;font-size:10px;font-weight:600;" +
-          "padding:1px 7px;border-radius:10px;line-height:1.6;" +
-          (isSuccess
-            ? "background:#d1fae5;color:#065f46;"
-            : isFailure
-              ? "background:#fee2e2;color:#991b1b;"
-              : "background:#fef8e8;color:#b8860b;");
-        badge.textContent = outcomeLabel(entry.outcome);
-        titleRow.appendChild(badge);
+      const tags = entry.outcome ? outcomeTags(entry.outcome) : [];
+      if (tags.length > 0) {
+        const badges = document.createElement("span");
+        badges.style.cssText = "display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;flex-shrink:0;max-width:45%;";
+        for (const tag of tags) {
+          const outcome = tag.toLowerCase();
+          const isSuccess = outcome.includes("success") || outcome.includes("replicated") || outcome === "yes";
+          const isFailure = outcome.includes("fail") || outcome === "no";
+          const badge = document.createElement("span");
+          badge.style.cssText =
+            "flex-shrink:0;font-size:10px;font-weight:600;" +
+            "padding:1px 7px;border-radius:10px;line-height:1.6;" +
+            (isSuccess
+              ? "background:#d1fae5;color:#065f46;"
+              : isFailure
+                ? "background:#fee2e2;color:#991b1b;"
+                : "background:#fef8e8;color:#b8860b;");
+          badge.textContent = tag;
+          badges.appendChild(badge);
+        }
+        titleRow.appendChild(badges);
       }
       item.appendChild(titleRow);
       const meta: string[] = [];

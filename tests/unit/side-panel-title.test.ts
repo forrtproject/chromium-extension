@@ -42,6 +42,22 @@ describe("side panel article title", () => {
         expect(text).toContain("mixed");
     });
 
+    it("shows each part of a reproduction outcome as its own badge", () => {
+        const result = mockResult();
+        result.record.reproductions = [{
+            doi: "10.1/repro", type: "reproduction", title: "A reproduction", authors: [], journal: "J", year: 2020,
+            outcome: "computational issues, not checked",
+        }] as never;
+        result.record.stats.n_originals_total = 0;
+        const pageState = new Map<DoiString, LookupState>([[ARTICLE, {status: "matched", result, source: "extracted"}]]);
+        renderSidePanel([], [], pageState, new Map<DoiString, DoiContext>([[ARTICLE, "article"]]), new Map(), [], "Article");
+        const badges = [...document.querySelectorAll<HTMLElement>("#flora-pubpeer-panel span")]
+            .filter((span) => span.children.length === 0)
+            .map((span) => span.textContent);
+        expect(badges).toEqual(expect.arrayContaining(["computational issues", "robustness not checked"]));
+        expect(document.getElementById("flora-pubpeer-panel")!.textContent).not.toContain("computational issues, not checked");
+    });
+
     it("labels the header's download and share actions in words", () => {
         render("Test article");
         const buttons = [...document.querySelectorAll<HTMLButtonElement>("#flora-pubpeer-panel button")];

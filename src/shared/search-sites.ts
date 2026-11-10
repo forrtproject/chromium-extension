@@ -91,6 +91,10 @@ export function matchSearchSite<T extends SearchSite>(hostname: string, registry
     ) ?? null;
 }
 
+export function isSearchHost(hostname: string = location.hostname): boolean {
+    return matchSearchSite(hostname, Object.values(SEARCH_SITES)) !== null;
+}
+
 /** True when content-search owns this URL, so content-general must stay idle. */
 export function searchScriptOwns(href: string = location.href): boolean {
     const url = new URL(href);

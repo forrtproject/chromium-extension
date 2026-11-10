@@ -54,9 +54,10 @@ import {injectInlineRetractionPills, removeNoticePillsFor, resetRetractionPills,
 import {createIndicatorPill, removeIndicatorPills, updateIndicatorPillBadges, INDICATOR_PILL_CLASS} from "@shared/indicator-pill";
 import {applyPillStyle, applyPlacement, currentSiteAdapter} from "@shared/site-adapters";
 import {findArticleTitle, placeTitlePill} from "@shared/article-title";
-import {searchScriptOwns} from "@shared/search-sites";
+import {isSearchHost, searchScriptOwns} from "@shared/search-sites";
 
 import {fetchOpenAccess} from "@shared/openaccess";
+import {showUpdatedToast, watchForExtensionUpdate} from "@shared/update-notice";
 import {showToast, dismissToast} from "@shared/toast";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
@@ -420,6 +421,7 @@ function followDomainPause(): void {
     });
 }
 
+const MAX_SPREADSHEET_VALIDATIONS = 200;
 const invalidDois = new Set<DoiString>();
 
 function disownDoi(doi: DoiString): void {
@@ -613,9 +615,7 @@ async function checkPageRetractions(dois: DoiString[]): Promise<RetractionRespon
         if (stale()) return null;
         for (const doi of dois) unavailableRetractionDois.add(doi);
         if (error instanceof Error && error.message.includes("Extension context invalidated")) {
-            showToast("ORE was updated — reload this page to run checks.", {
-                action: {label: "Reload", onClick: () => location.reload()},
-            });
+            showUpdatedToast();
             return [];
         }
         debugWarn("Retraction checks unavailable —", error);
@@ -771,12 +771,20 @@ async function runScanPass(): Promise<void> {
     reportWorkStage("scan", `Found ${count(dois.length, "DOI")} on this page`);
 
     // Validate extracted DOIs via doi.org — remove invalid ones
-    if (hasDoiChange && !isSheets && dois.length > 0) {
+    const validateHere = !isSheets || dois.length <= MAX_SPREADSHEET_VALIDATIONS;
+    if (hasDoiChange && dois.length > 0 && !validateHere) {
+        debugLog(`Sheets: ${dois.length} DOIs is above ${MAX_SPREADSHEET_VALIDATIONS} — skipping doi.org validation`);
+    }
+    if (hasDoiChange && dois.length > 0 && validateHere) {
         beginWorkIndicator();
         try {
             reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);
             const validation = await validateDOIs(dois);
-            if (pageChanged()) { abandonReferences(); return; }
+            if (pageChanged()) {
+                seenDois.clear();
+                abandonReferences();
+                return;
+            }
             const before = dois.length;
             for (const [doi, ok] of validation) {
                 if (!ok) disownDoi(doi);
@@ -793,7 +801,11 @@ async function runScanPass(): Promise<void> {
         }
     }
 
-    if (pageChanged()) { abandonReferences(); return; }
+    if (pageChanged()) {
+        seenDois.clear();
+        abandonReferences();
+        return;
+    }
 
     // Drop occurrences inside FLoRA's own UI so we don't pill our own panel rows.
     const FLORA_UI_IDS = ["flora-pubpeer-panel", "flora-banner-host", "flora-setup-prompt", "flora-sheets-modal"];
@@ -809,7 +821,11 @@ async function runScanPass(): Promise<void> {
     if (hasDoiChange && dois.length > 0) {
         reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
         const notices = await checkPageRetractions(dois);
-        if (pageChanged()) { abandonReferences(); return; }
+        if (pageChanged()) {
+            seenDois.clear();
+            abandonReferences();
+            return;
+        }
         if (!notices) {
             // Abandoned mid-check on this page: give back the scan markers, so
             // the pass that resumes checks these DOIs instead of skipping them.
@@ -1636,6 +1652,7 @@ const pageStartup = (async () => {
   try {
     if (window !== window.top && !isWordOnline() && !isExcel) return;
     installErrorReporting();
+    if (!isSearchHost()) watchForExtensionUpdate();
 
     // A Cloudflare challenge is served at the article's own URL, so the DOI in
     // that URL resolves and FLoRA would pill an interstitial. Render nothing
