@@ -144,7 +144,9 @@ function alignedForms(english: string, translation: string): { en: MessageForm[]
   try {
     const extra = extraPluralKeys();
     const enForms = messageForms(english, extra);
-    const trForms = new Map(messageForms(translation || english, extra).map((f) => [formKey(f), f]));
+    // No translation yet: one empty box per English case, never prefilled with English.
+    if (!translation) return { en: enForms, tr: enForms.map((f) => ({ path: f.path, text: "" })) };
+    const trForms = new Map(messageForms(translation, extra).map((f) => [formKey(f), f]));
     const aligned = enForms.map((f) => trForms.get(formKey(f)));
     if (aligned.some((f) => !f) || trForms.size !== enForms.length) return null;
     return { en: enForms, tr: aligned as MessageForm[] };
@@ -526,6 +528,11 @@ async function loadFile(file: File): Promise<void> {
     const data = JSON.parse(await file.text()) as { format?: string; locale?: string; reviewer?: string; entries?: Record<string, LocalEntry> };
     if (data.format !== "ore-translation-review" || !data.entries) throw new Error("not a review file");
     if (data.locale !== lang) throw new Error(`this file is for "${data.locale}"`);
+    for (const [id, entry] of Object.entries(data.entries)) {
+      const ok = entry && typeof entry.message === "string" && typeof entry.source === "string";
+      if (!ok) delete data.entries[id];
+      else entry.approved = entry.approved === true;
+    }
     const n = Object.keys(data.entries).length;
     if (!confirm(`Load ${n} reviewed message${n === 1 ? "" : "s"} from this file? They replace your current work on the same messages.`)) return;
     Object.assign(state.entries, data.entries);

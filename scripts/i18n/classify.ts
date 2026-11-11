@@ -58,8 +58,9 @@ export async function classifyEntries(lang: string, opts: { all: boolean; model?
     for (const id of batch) {
       const got = reply[id];
       let level = got?.level === 1 || got?.level === 2 || got?.level === 3 ? got.level : null;
-      let reason = got?.reason?.trim() ?? "";
-      if (level == null) { missed++; level = 2; reason = "Not rated automatically"; }
+      let reason = typeof got?.reason === "string" ? got.reason.trim() : "";
+      // Leave unrated items for the next run rather than guessing a level.
+      if (level == null) { missed++; continue; }
       // Plurals, choices and markup always get a proper read.
       if (level < 2 && (hasChoices(en[id].message) || en[id].html)) {
         level = 2;
@@ -74,5 +75,5 @@ export async function classifyEntries(lang: string, opts: { all: boolean; model?
   }
   const counts = [1, 2, 3].map((l) => Object.values(tr).filter((t) => t.review === l).length);
   console.log(`${lang}: quick check ${counts[0]}, read ${counts[1]}, careful ${counts[2]}; ${missed} unrated; OpenRouter cost $${cost.toFixed(3)}`);
-  return 0;
+  return missed ? 1 : 0;
 }

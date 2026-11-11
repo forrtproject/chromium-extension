@@ -159,7 +159,7 @@ async function main(): Promise<number> {
       return translateMissing(arg, { model: opt("--model"), limit, dryRun: rest.includes("--dry-run") });
     }
     default:
-      console.error("usage: npm run i18n -- extract|check|status|translate|import|build");
+      console.error("usage: npm run i18n -- extract|lint|check|status|translate|classify|import|build");
       return 2;
   }
 }
