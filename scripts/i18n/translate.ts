@@ -23,7 +23,7 @@ function systemPrompt(lang: string, glossary: Record<string, Record<string, stri
   return `You translate the interface of FORRT ORE, a browser extension for researchers. It marks academic papers on web pages with small "pills" that show replications, retractions, expressions of concern, Registered Reports, PubPeer comments and open-access copies.
 
 Translate each English message into ${LANGUAGE_NAMES[lang]}. Rules:
-- Natural, concise UI language for academics. Address the user formally ("Sie"); prefer impersonal phrasing for buttons and labels.
+- Natural, concise UI language for academics. Avoid addressing the user directly: neither "du" nor "Sie". Use infinitives and impersonal or passive phrasing ("Seite neu laden, um …", "Die E-Mail-Adresse wird nur … gesendet", "Ihre/deine" → "die"). Where a sentence seems to need direct address, restructure it as a noun phrase or passive.
 - Messages use ICU MessageFormat. Keep every {placeholder} name unchanged. Keep plural/select structure ({n, plural, one {…} other {…}}) and its option keywords; translate only the text inside the options; keep "#".
 - Keep HTML tags and their attributes exactly; translate only the text between them.
 - Keep product and data-source names unchanged: FORRT, ORE, FLoRA, PubPeer, Retraction Watch, Crossref, OpenAlex, Unpaywall, Semantic Scholar, DOI, Google Scholar.
