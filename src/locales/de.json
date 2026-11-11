@@ -324,8 +324,8 @@
     "status": "machine"
   },
   "page.panel.openTab": {
-    "by": "codex-review",
-    "message": "FORRT ORE-Bereich öffnen",
+    "by": "claude-review",
+    "message": "FORRT-ORE-Bereich öffnen",
     "source": "Open the FORRT ORE panel",
     "status": "machine"
   },
@@ -1315,8 +1315,8 @@
     "status": "machine"
   },
   "pill.stack.popoverLabel": {
-    "by": "codex-review",
-    "message": "Details zur offenen Forschung zu {count, plural, one {# Artikel} other {# Artikeln}} öffnen",
+    "by": "claude-review",
+    "message": "Open-Research-Details zu {count, plural, one {# Artikel} other {# Artikeln}} öffnen",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine"
   },
@@ -3901,8 +3901,8 @@
     "status": "machine"
   },
   "walkthrough.search.panel": {
-    "by": "codex-review",
-    "message": "Auf Suchseiten fügt ORE neben jedem Treffer einen kleinen Bereich ein, der das Überfliegen der Suchergebnisse erleichtert. Ein Klick auf eine Zeile öffnet den Artikel, kopiert seine Literaturangabe, führt zu einer Open-Access-Version, zur Diskussion oder zu seinen Replikationen. „Wird geprüft…“ bedeutet, dass die Abfrage noch läuft und noch kein Ergebnis vorliegt.",
+    "by": "claude-review",
+    "message": "Auf Suchseiten fügt ORE neben jedem Treffer einen kleinen Bereich ein, der das Überfliegen der Suchergebnisse erleichtert. Ein Klick auf eine Zeile öffnet den Artikel, kopiert seine Literaturangabe, führt zu einer Open-Access-Version, zur Diskussion oder zu seinen Replikationen. „Wird geprüft…“ bedeutet, dass die Abfrage noch läuft – nicht, dass nichts gefunden wurde.",
     "source": "On search sites, ORE adds a small panel beside each result to help you skim the results. Click a row to open the paper, copy its reference, find an open-access version, read the discussion, or see its replications. A row that says “Checking…” is still running; it does not mean nothing was found.",
     "status": "machine"
   },
@@ -4016,8 +4016,8 @@
     "status": "machine"
   },
   "walkthrough.sheets.docs.title": {
-    "by": "codex-review",
-    "message": "In Google Docs oder Word Online schreiben",
+    "by": "claude-review",
+    "message": "Schreiben in Google Docs oder Word Online?",
     "source": "Writing in Google Docs or Word Online?",
     "status": "machine"
   },
