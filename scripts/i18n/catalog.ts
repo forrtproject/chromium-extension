@@ -41,6 +41,18 @@ export interface TranslationEntry {
 }
 
 export type SourceCatalog = Record<string, SourceEntry>;
+
+/**
+ * Messages under `debug.` (the debug-mode progress panel, testing-build
+ * banners) stay English, like debug logs: only maintainers and bug reporters
+ * see them, so they are not translated or reviewed.
+ */
+export const isEnglishOnly = (id: string): boolean => id.startsWith("debug.");
+
+/** The source catalog without English-only messages. */
+export function forTranslation(en: SourceCatalog): SourceCatalog {
+  return Object.fromEntries(Object.entries(en).filter(([id]) => !isEnglishOnly(id)));
+}
 export type TranslationCatalog = Record<string, TranslationEntry>;
 
 export function readJson<T>(file: string, fallback: T): T {

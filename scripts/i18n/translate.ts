@@ -7,7 +7,7 @@
 
 import {
   EN_FILE, GLOSSARY_FILE, localeFile, readJson, writeSortedJson,
-  translationProblems, type SourceCatalog, type TranslationCatalog,
+  forTranslation, translationProblems, type SourceCatalog, type TranslationCatalog,
 } from "./catalog";
 import { classifyEntries } from "./classify";
 
@@ -61,7 +61,7 @@ export function parseReply<T = string>(text: string): Record<string, T> {
 
 export async function translateMissing(lang: string, opts: Options): Promise<number> {
   const model = opts.model ?? DEFAULT_MODEL;
-  const en = readJson<SourceCatalog>(EN_FILE, {});
+  const en = forTranslation(readJson<SourceCatalog>(EN_FILE, {}));
   const path = localeFile(lang);
   const tr = readJson<TranslationCatalog>(path, {});
   const glossary = readJson<Record<string, Record<string, string>>>(GLOSSARY_FILE, {});

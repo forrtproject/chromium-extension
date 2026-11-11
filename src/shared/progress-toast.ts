@@ -68,12 +68,12 @@ const STAGE_ORDER = Object.keys(STAGE_PROGRESS) as WorkStage[];
 function stageLabel(stage: WorkStage): string {
     // i18n: stage checklist in the progress panel; imperative, one step of a page check
     switch (stage) {
-        case "scan": return t("progress.stage.scan", "Read the page");
-        case "validate": return t("progress.stage.validate", "Check DOIs resolve");
-        case "augment": return t("progress.stage.augment", "Find DOIs for references without one");
-        case "notices": return t("progress.stage.notices", "Check for retractions");
-        case "lookup": return t("progress.stage.lookup", "Look up in FORRT / Retraction Watch / PubPeer");
-        case "report": return t("progress.stage.report", "Mark up results");
+        case "scan": return t("debug.stage.scan", "Read the page");
+        case "validate": return t("debug.stage.validate", "Check DOIs resolve");
+        case "augment": return t("debug.stage.augment", "Find DOIs for references without one");
+        case "notices": return t("debug.stage.notices", "Check for retractions");
+        case "lookup": return t("debug.stage.lookup", "Look up in FORRT / Retraction Watch / PubPeer");
+        case "report": return t("debug.stage.report", "Mark up results");
     }
 }
 
@@ -364,15 +364,15 @@ function buildPauseRow(): HTMLElement {
     const row = document.createElement("div");
     row.setAttribute("data-flora-work-pause-row", "");
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", t("progress.toast.snoozeSite", "Snooze ORE on this site"));
+    row.setAttribute("aria-label", t("debug.toast.snoozeSite", "Snooze ORE on this site"));
     row.style.cssText = PAUSE_ROW_STYLE;
 
     const caption = document.createElement("span");
     caption.style.cssText = "color:rgba(255,255,255,0.75);font-size:11px;margin-right:2px;";
-    caption.textContent = t("progress.toast.snoozeHere", "Snooze ORE here:");
+    caption.textContent = t("debug.toast.snoozeHere", "Snooze ORE here:");
 
     // i18n: snooze duration button, keep short
-    const hour = textButton(t("progress.toast.snoozeHour", "1 hour"));
+    const hour = textButton(t("debug.toast.snoozeHour", "1 hour"));
     hour.addEventListener("click", () => {
         const hostname = location.hostname;
         const until = Date.now() + 60 * 60 * 1000;
@@ -380,15 +380,15 @@ function buildPauseRow(): HTMLElement {
     });
 
     // i18n: snooze duration button, keep short
-    const tomorrow = textButton(t("progress.toast.snoozeTomorrow", "Until tomorrow"));
+    const tomorrow = textButton(t("debug.toast.snoozeTomorrow", "Until tomorrow"));
     tomorrow.addEventListener("click", () => {
         const hostname = location.hostname;
         const duration = msUntilTomorrow6am();
         void pauseSite(snoozeDomain(hostname, duration), {hostname, until: Date.now() + duration});
     });
 
-    const block = textButton(t("progress.toast.disableDomain", "Disable on this domain"));
-    block.title = t("progress.toast.disableDomainTitle", "Re-enable from the ORE popup or options");
+    const block = textButton(t("debug.toast.disableDomain", "Disable on this domain"));
+    block.title = t("debug.toast.disableDomainTitle", "Re-enable from the ORE popup or options");
     block.addEventListener("click", () => {
         const hostname = location.hostname;
         void pauseSite(blockDomain(hostname), {hostname, blocked: true});
@@ -417,7 +417,7 @@ async function copyLog(button: HTMLButtonElement): Promise<boolean> {
     } catch {
         ok = false;
     }
-    flashButton(button, ok ? t("progress.toast.copied", "Copied ✓") : t("progress.toast.copyFailed", "Copy failed"));
+    flashButton(button, ok ? t("debug.toast.copied", "Copied ✓") : t("debug.toast.copyFailed", "Copy failed"));
     return ok;
 }
 
@@ -427,14 +427,14 @@ function buildFooter(): HTMLElement {
     footer.style.cssText =
         "display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center;padding-top:6px;";
 
-    const copy = textButton(t("progress.toast.copyLog", "Copy log"));
+    const copy = textButton(t("debug.toast.copyLog", "Copy log"));
     copy.setAttribute("data-flora-work-copy", "");
     copy.addEventListener("click", () => void copyLog(copy));
     footer.append(copy);
 
-    const cancel = textButton(t("progress.toast.cancel", "Cancel"));
+    const cancel = textButton(t("debug.toast.cancel", "Cancel"));
     cancel.setAttribute("data-flora-work-cancel", "");
-    cancel.title = t("progress.toast.cancelTitle", "Stop this pass — ORE runs again on the next page");
+    cancel.title = t("debug.toast.cancelTitle", "Stop this pass — ORE runs again on the next page");
     cancel.addEventListener("click", () => {
         cancelled = true;
         cancelWork();
@@ -474,14 +474,14 @@ function ensureToast(): HTMLElement {
     label.textContent = labelText;
     const elapsed = document.createElement("span");
     elapsed.setAttribute("data-flora-work-elapsed", "");
-    elapsed.title = t("progress.toast.elapsedTitle", "Time this pass has been running");
+    elapsed.title = t("debug.toast.elapsedTitle", "Time this pass has been running");
     // Kept out of the live region, which would otherwise announce every tick.
     elapsed.setAttribute("aria-hidden", "true");
     elapsed.style.cssText =
         "flex-shrink:0;color:rgba(255,255,255,0.7);font-size:11px;font-variant-numeric:tabular-nums;";
 
     const pauseRow = buildPauseRow();
-    const pause = iconButton(t("progress.toast.snoozeSite", "Snooze ORE on this site"), PAUSE_SVG);
+    const pause = iconButton(t("debug.toast.snoozeSite", "Snooze ORE on this site"), PAUSE_SVG);
     pause.setAttribute("data-flora-work-pause", "");
     pause.setAttribute("aria-expanded", "false");
     pause.addEventListener("click", () => {
@@ -490,7 +490,7 @@ function ensureToast(): HTMLElement {
         pause.setAttribute("aria-expanded", String(!open));
     });
 
-    const chevron = iconButton(t("progress.toast.showDetails", "Show details"), CHEVRON_SVG);
+    const chevron = iconButton(t("debug.toast.showDetails", "Show details"), CHEVRON_SVG);
     chevron.setAttribute("data-flora-work-chevron", "");
     chevron.setAttribute("aria-expanded", "false");
     chevron.addEventListener("click", () => {
@@ -511,7 +511,7 @@ function ensureToast(): HTMLElement {
     const track = document.createElement("div");
     track.setAttribute("data-flora-work-track", "");
     track.setAttribute("role", "progressbar");
-    track.setAttribute("aria-label", t("progress.toast.progressLabel", "ORE progress on this page"));
+    track.setAttribute("aria-label", t("debug.toast.progressLabel", "ORE progress on this page"));
     track.setAttribute("aria-valuemin", "0");
     track.setAttribute("aria-valuemax", "100");
     track.style.cssText = TRACK_STYLE;
@@ -543,8 +543,8 @@ function applyExpanded(host: HTMLElement): void {
     if (chevron) {
         chevron.setAttribute("aria-expanded", String(expanded));
         chevron.title = expanded
-            ? t("progress.toast.hideDetails", "Hide details")
-            : t("progress.toast.showDetails", "Show details");
+            ? t("debug.toast.hideDetails", "Hide details")
+            : t("debug.toast.showDetails", "Show details");
     }
     if (arrow) arrow.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
     if (expanded) renderStages(host);
@@ -608,7 +608,7 @@ function renderItems(): HTMLElement {
         more.setAttribute("data-flora-work-more", "");
         more.style.cssText = "padding:2px 0 2px 21px;color:rgba(255,255,255,0.55);";
         // i18n: further items (papers) in the running stage that are not listed
-        more.textContent = t("progress.toast.moreItems", "{count} more…", {count: items.length - MAX_ITEM_ROWS});
+        more.textContent = t("debug.toast.moreItems", "{count} more…", {count: items.length - MAX_ITEM_ROWS});
         list.append(more);
     }
     return list;
@@ -616,9 +616,9 @@ function renderItems(): HTMLElement {
 
 function markSkipped(glyph: HTMLElement): void {
     glyph.textContent = SKIPPED_GLYPH;
-    glyph.title = t("progress.toast.skipped", "Skipped");
+    glyph.title = t("debug.toast.skipped", "Skipped");
     glyph.setAttribute("role", "img");
-    glyph.setAttribute("aria-label", t("progress.toast.skipped", "Skipped"));
+    glyph.setAttribute("aria-label", t("debug.toast.skipped", "Skipped"));
 }
 
 function summaryRow(icon: string, text: string, color: string, ms?: number): HTMLLIElement {
@@ -647,7 +647,7 @@ function renderPageSummary(list: HTMLElement): void {
     if (pageScans > 1) {
         const caption = summaryRow(
             "",
-            t("progress.toast.scannedTimes", "Scanned this page {count, plural, one {# time} other {# times}}", {count: pageScans}),
+            t("debug.toast.scannedTimes", "Scanned this page {count, plural, one {# time} other {# times}}", {count: pageScans}),
             "rgba(255,255,255,0.6)",
         );
         caption.setAttribute("data-flora-work-extra", "passes");
@@ -665,8 +665,8 @@ function renderPageSummary(list: HTMLElement): void {
         list.append(row);
     }
     for (const [extra, text, ms] of [
-        ["other", t("progress.toast.otherWork", "Other work"), pageTimes.get("other") ?? 0],
-        ["idle", t("progress.toast.idle", "Waiting between passes"), pageIdleMs],
+        ["other", t("debug.toast.otherWork", "Other work"), pageTimes.get("other") ?? 0],
+        ["idle", t("debug.toast.idle", "Waiting between passes"), pageIdleMs],
     ] as const) {
         if (ms < 1) continue;
         const row = summaryRow("·", text, "rgba(255,255,255,0.6)", ms);

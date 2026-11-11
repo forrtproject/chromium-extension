@@ -80,7 +80,7 @@ function paintTab(tabId: number, path: Record<number, string>, title: () => stri
     void initI18n().catch(() => {}).then(() => {
         const text = title();
         // i18n: toolbar button tooltip in the testing build; {title} is the normal tooltip
-        const shown = isTestingBuild() ? t("toolbar.testingTitle", "{title} (Testing)", {title: text}) : text;
+        const shown = isTestingBuild() ? t("debug.testing.toolbarTitle", "{title} (Testing)", {title: text}) : text;
         return chrome.action.setTitle({ tabId, title: shown });
     }).catch(() => {});
     chrome.action.setBadgeText?.({ tabId, text: badge })?.catch?.(() => {});

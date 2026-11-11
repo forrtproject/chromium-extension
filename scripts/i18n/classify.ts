@@ -8,7 +8,7 @@
  */
 
 import { hasChoices } from "../../src/shared/i18n-format";
-import { EN_FILE, localeFile, readJson, writeSortedJson, type SourceCatalog, type TranslationCatalog } from "./catalog";
+import { EN_FILE, forTranslation, localeFile, readJson, writeSortedJson, type SourceCatalog, type TranslationCatalog } from "./catalog";
 import { callModel, parseReply } from "./translate";
 
 const DEFAULT_MODEL = "openai/gpt-6.1-sol";
@@ -29,7 +29,7 @@ type Rating = { level?: number; reason?: string };
 
 export async function classifyEntries(lang: string, opts: { all: boolean; model?: string; limit?: number }): Promise<number> {
   const model = opts.model ?? DEFAULT_MODEL;
-  const en = readJson<SourceCatalog>(EN_FILE, {});
+  const en = forTranslation(readJson<SourceCatalog>(EN_FILE, {}));
   const path = localeFile(lang);
   const tr = readJson<TranslationCatalog>(path, {});
   const todo = Object.keys(tr)

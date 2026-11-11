@@ -1,4 +1,184 @@
 {
+  "debug.stage.augment": {
+    "message": "Find DOIs for references without one",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.stage.lookup": {
+    "message": "Look up in FORRT / Retraction Watch / PubPeer",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.stage.notices": {
+    "message": "Check for retractions",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.stage.report": {
+    "message": "Mark up results",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.stage.scan": {
+    "message": "Read the page",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.stage.validate": {
+    "message": "Check DOIs resolve",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.testing.popupBanner": {
+    "message": "<strong>Testing version.</strong> Things may change or break.",
+    "where": [
+      "src/popup/popup.html"
+    ],
+    "html": true
+  },
+  "debug.testing.settingsBanner": {
+    "message": "<strong>Testing version.</strong> Things may change or break.",
+    "where": [
+      "src/options/index.html"
+    ],
+    "html": true
+  },
+  "debug.testing.toolbarTitle": {
+    "message": "{title} (Testing)",
+    "where": [
+      "src/background/service-worker.ts"
+    ],
+    "context": "toolbar button tooltip in the testing build; {title} is the normal tooltip"
+  },
+  "debug.toast.cancel": {
+    "message": "Cancel",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.cancelTitle": {
+    "message": "Stop this pass — ORE runs again on the next page",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.copied": {
+    "message": "Copied ✓",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.copyFailed": {
+    "message": "Copy failed",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.copyLog": {
+    "message": "Copy log",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.disableDomain": {
+    "message": "Disable on this domain",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.disableDomainTitle": {
+    "message": "Re-enable from the ORE popup or options",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.elapsedTitle": {
+    "message": "Time this pass has been running",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.hideDetails": {
+    "message": "Hide details",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.idle": {
+    "message": "Waiting between passes",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.moreItems": {
+    "message": "{count} more…",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ],
+    "context": "further items (papers) in the running stage that are not listed"
+  },
+  "debug.toast.otherWork": {
+    "message": "Other work",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.progressLabel": {
+    "message": "ORE progress on this page",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.scannedTimes": {
+    "message": "Scanned this page {count, plural, one {# time} other {# times}}",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.showDetails": {
+    "message": "Show details",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.skipped": {
+    "message": "Skipped",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.snoozeHere": {
+    "message": "Snooze ORE here:",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.snoozeHour": {
+    "message": "1 hour",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ],
+    "context": "snooze duration button, keep short"
+  },
+  "debug.toast.snoozeSite": {
+    "message": "Snooze ORE on this site",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ]
+  },
+  "debug.toast.snoozeTomorrow": {
+    "message": "Until tomorrow",
+    "where": [
+      "src/shared/progress-toast.ts"
+    ],
+    "context": "snooze duration button, keep short"
+  },
   "editor.docs.refreshUnavailable": {
     "message": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "where": [
@@ -1807,13 +1987,6 @@
       "src/popup/popup.html"
     ]
   },
-  "popup.testingBanner": {
-    "message": "<strong>Testing version.</strong> Things may change or break.",
-    "where": [
-      "src/popup/popup.html"
-    ],
-    "html": true
-  },
   "popup.tourHelp.checkingText": {
     "message": "The tour starts as soon as ORE has finished.",
     "where": [
@@ -1917,42 +2090,6 @@
     ],
     "context": "The aria-label attribute."
   },
-  "progress.stage.augment": {
-    "message": "Find DOIs for references without one",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.stage.lookup": {
-    "message": "Look up in FORRT / Retraction Watch / PubPeer",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.stage.notices": {
-    "message": "Check for retractions",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.stage.report": {
-    "message": "Mark up results",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.stage.scan": {
-    "message": "Read the page",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.stage.validate": {
-    "message": "Check DOIs resolve",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
   "progress.tab.checking": {
     "message": "FORRT ORE is checking this page",
     "where": [
@@ -1985,50 +2122,8 @@
     ],
     "context": "tooltip on the green side tab after a page check found nothing"
   },
-  "progress.toast.cancel": {
-    "message": "Cancel",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.cancelTitle": {
-    "message": "Stop this pass — ORE runs again on the next page",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.copied": {
-    "message": "Copied ✓",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.copyFailed": {
-    "message": "Copy failed",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.copyLog": {
-    "message": "Copy log",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
   "progress.toast.defaultLabel": {
     "message": "ORE is looking up the papers on this page…",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.disableDomain": {
-    "message": "Disable on this domain",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.disableDomainTitle": {
-    "message": "Re-enable from the ORE popup or options",
     "where": [
       "src/shared/progress-toast.ts"
     ]
@@ -2046,92 +2141,11 @@
       "src/shared/progress-toast.ts"
     ]
   },
-  "progress.toast.elapsedTitle": {
-    "message": "Time this pass has been running",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.hideDetails": {
-    "message": "Hide details",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.idle": {
-    "message": "Waiting between passes",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.moreItems": {
-    "message": "{count} more…",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ],
-    "context": "further items (papers) in the running stage that are not listed"
-  },
-  "progress.toast.otherWork": {
-    "message": "Other work",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.progressLabel": {
-    "message": "ORE progress on this page",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.scannedTimes": {
-    "message": "Scanned this page {count, plural, one {# time} other {# times}}",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
   "progress.toast.settling": {
     "message": "Finishing up…",
     "where": [
       "src/shared/progress-toast.ts"
     ]
-  },
-  "progress.toast.showDetails": {
-    "message": "Show details",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.skipped": {
-    "message": "Skipped",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.snoozeHere": {
-    "message": "Snooze ORE here:",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.snoozeHour": {
-    "message": "1 hour",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ],
-    "context": "snooze duration button, keep short"
-  },
-  "progress.toast.snoozeSite": {
-    "message": "Snooze ORE on this site",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ]
-  },
-  "progress.toast.snoozeTomorrow": {
-    "message": "Until tomorrow",
-    "where": [
-      "src/shared/progress-toast.ts"
-    ],
-    "context": "snooze duration button, keep short"
   },
   "pubpeer.comment.anonymous": {
     "message": "Anonymous",
@@ -3166,13 +3180,6 @@
       "src/options/index.html"
     ]
   },
-  "settings.testingBanner": {
-    "message": "<strong>Testing version.</strong> Things may change or break.",
-    "where": [
-      "src/options/index.html"
-    ],
-    "html": true
-  },
   "settings.topbar.about": {
     "message": "About",
     "where": [
@@ -3406,13 +3413,6 @@
       "src/shared/snooze-durations.ts"
     ],
     "context": "end of a snooze, inserted into \"Paused until …\" / \"Snoozed until …\"; {time} is a clock time such as 09:00."
-  },
-  "toolbar.testingTitle": {
-    "message": "{title} (Testing)",
-    "where": [
-      "src/background/service-worker.ts"
-    ],
-    "context": "toolbar button tooltip in the testing build; {title} is the normal tooltip"
   },
   "toolbar.title.active": {
     "message": "FORRT ORE — active on this page",

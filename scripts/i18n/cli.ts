@@ -15,7 +15,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SUPPORTED_LOCALES } from "../../src/shared/i18n";
 import {
-  EN_FILE, GLOSSARY_FILE, ROOT, extract, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
+  EN_FILE, GLOSSARY_FILE, ROOT, extract, forTranslation, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
   type SourceCatalog, type TranslationCatalog, type TranslationEntry,
 } from "./catalog";
 import { translateMissing } from "./translate";
@@ -27,7 +27,8 @@ function loadEn(): SourceCatalog {
   return readJson<SourceCatalog>(EN_FILE, {});
 }
 
-export function status(en: SourceCatalog, tr: TranslationCatalog) {
+export function status(all: SourceCatalog, tr: TranslationCatalog) {
+  const en = forTranslation(all);
   let missing = 0, stale = 0, machine = 0, reviewed = 0;
   for (const [id, src] of Object.entries(en)) {
     const entry = tr[id];
@@ -75,7 +76,7 @@ function cmdBuild(): number {
   mkdirSync(join(ROOT, "dist/locales"), { recursive: true });
   const reviewData = join(ROOT, "docs/translate/data");
   mkdirSync(reviewData, { recursive: true });
-  writeFileSync(join(reviewData, "en.json"), `${JSON.stringify(en)}\n`);
+  writeFileSync(join(reviewData, "en.json"), `${JSON.stringify(forTranslation(en))}\n`);
   writeFileSync(join(reviewData, "glossary.json"), `${JSON.stringify(readJson(GLOSSARY_FILE, {}))}\n`);
   for (const lang of TARGETS) {
     const tr = readJson<TranslationCatalog>(localeFile(lang), {});

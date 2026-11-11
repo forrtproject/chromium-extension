@@ -2164,14 +2164,6 @@
     "status": "machine",
     "review": 1
   },
-  "popup.testingBanner": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "<strong>Testversion.</strong> Funktionen können sich ändern oder ausfallen.",
-    "source": "<strong>Testing version.</strong> Things may change or break.",
-    "status": "machine",
-    "review": 2,
-    "reviewReason": "Contains formatting"
-  },
   "popup.tourHelp.checkingText": {
     "by": "anthropic/claude-sonnet-5.5",
     "message": "Die Tour startet, sobald ORE fertig ist.",
@@ -2299,50 +2291,6 @@
     "status": "machine",
     "review": 1
   },
-  "progress.stage.augment": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "DOIs für Literaturangaben ohne DOI suchen",
-    "source": "Find DOIs for references without one",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.stage.lookup": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "In FORRT / Retraction Watch / PubPeer nachschlagen",
-    "source": "Look up in FORRT / Retraction Watch / PubPeer",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.stage.notices": {
-    "by": "codex-review",
-    "message": "Auf Retractions prüfen",
-    "source": "Check for retractions",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.stage.report": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Ergebnisse markieren",
-    "source": "Mark up results",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Ambiguous mark up results may mean annotating papers, not marking results."
-  },
-  "progress.stage.scan": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Seite einlesen",
-    "source": "Read the page",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.stage.validate": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Prüfen, ob DOIs auflösbar sind",
-    "source": "Check DOIs resolve",
-    "status": "machine",
-    "review": 2,
-    "reviewReason": "Technical DOI resolution terminology deserves a native readability check."
-  },
   "progress.tab.checking": {
     "by": "anthropic/claude-sonnet-5.5",
     "message": "FORRT ORE prüft diese Seite",
@@ -2380,42 +2328,6 @@
     "review": 3,
     "reviewReason": "Claims absence of scientific flags and comments; verify scope and terminology."
   },
-  "progress.toast.cancel": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Abbrechen",
-    "source": "Cancel",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.cancelTitle": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Diesen Durchlauf beenden – ORE läuft auf der nächsten Seite erneut",
-    "source": "Stop this pass — ORE runs again on the next page",
-    "status": "machine",
-    "review": 2,
-    "reviewReason": "Check Durchlauf and next-page behavior wording for clarity."
-  },
-  "progress.toast.copied": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Kopiert ✓",
-    "source": "Copied ✓",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.copyFailed": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Kopieren fehlgeschlagen",
-    "source": "Copy failed",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.copyLog": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Protokoll kopieren",
-    "source": "Copy log",
-    "status": "machine",
-    "review": 1
-  },
   "progress.toast.defaultLabel": {
     "by": "codex-review",
     "message": "ORE fragt Daten zu den Artikeln auf dieser Seite ab…",
@@ -2423,21 +2335,6 @@
     "status": "machine",
     "review": 3,
     "reviewReason": "Explicit data-query wording merits checking against actual data-handling behavior."
-  },
-  "progress.toast.disableDomain": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Auf dieser Domain deaktivieren",
-    "source": "Disable on this domain",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.disableDomainTitle": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Erneut aktivieren über das ORE-Popup oder die Einstellungen",
-    "source": "Re-enable from the ORE popup or options",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Reactivation instructions require verification of UI locations and wording."
   },
   "progress.toast.dismiss": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2454,106 +2351,12 @@
     "review": 3,
     "reviewReason": "German can suggest future completion rather than elapsed processing time."
   },
-  "progress.toast.elapsedTitle": {
-    "by": "codex-review",
-    "message": "Bisherige Laufzeit dieses Durchlaufs",
-    "source": "Time this pass has been running",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.hideDetails": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Details ausblenden",
-    "source": "Hide details",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.idle": {
-    "by": "codex-review",
-    "message": "Warten auf den nächsten Durchlauf",
-    "source": "Waiting between passes",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.moreItems": {
-    "by": "codex-review",
-    "message": "{count} weitere…",
-    "source": "{count} more…",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.otherWork": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Sonstige Aufgaben",
-    "source": "Other work",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.progressLabel": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "ORE-Fortschritt auf dieser Seite",
-    "source": "ORE progress on this page",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.scannedTimes": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Diese Seite wurde {count, plural, one {# Mal} other {# Mal}} durchsucht",
-    "source": "Scanned this page {count, plural, one {# time} other {# times}}",
-    "status": "machine",
-    "review": 2,
-    "reviewReason": "Has number or variant forms"
-  },
   "progress.toast.settling": {
     "by": "codex-review",
     "message": "Wird abgeschlossen…",
     "source": "Finishing up…",
     "status": "machine",
     "review": 1
-  },
-  "progress.toast.showDetails": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Details anzeigen",
-    "source": "Show details",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.skipped": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Übersprungen",
-    "source": "Skipped",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.snoozeHere": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "ORE hier pausieren:",
-    "source": "Snooze ORE here:",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.snoozeHour": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "1 Stunde",
-    "source": "1 hour",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicitly space-constrained duration button; verify fit."
-  },
-  "progress.toast.snoozeSite": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "ORE auf dieser Website pausieren",
-    "source": "Snooze ORE on this site",
-    "status": "machine",
-    "review": 1
-  },
-  "progress.toast.snoozeTomorrow": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Bis morgen",
-    "source": "Until tomorrow",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicitly space-constrained duration button; verify fit."
   },
   "pubpeer.comment.anonymous": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3772,14 +3575,6 @@
     "status": "machine",
     "review": 1
   },
-  "settings.testingBanner": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "<strong>Testversion.</strong> Funktionen können sich ändern oder ausfallen.",
-    "source": "<strong>Testing version.</strong> Things may change or break.",
-    "status": "machine",
-    "review": 2,
-    "reviewReason": "Check whether Funktionen ausfallen naturally conveys potential testing-version breakage."
-  },
   "settings.topbar.about": {
     "by": "codex-review",
     "message": "Über ORE",
@@ -4053,13 +3848,6 @@
     "by": "anthropic/claude-sonnet-5.5",
     "message": "morgen um {time}",
     "source": "tomorrow at {time}",
-    "status": "machine",
-    "review": 1
-  },
-  "toolbar.testingTitle": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{title} (Test)",
-    "source": "{title} (Testing)",
     "status": "machine",
     "review": 1
   },
