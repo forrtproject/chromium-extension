@@ -9,6 +9,7 @@ import {
   EN_FILE, GLOSSARY_FILE, localeFile, readJson, writeSortedJson,
   translationProblems, type SourceCatalog, type TranslationCatalog,
 } from "./catalog";
+import { classifyEntries } from "./classify";
 
 const DEFAULT_MODEL = "anthropic/claude-sonnet-5.5";
 const BATCH = 40;
@@ -34,7 +35,7 @@ ${terms || "(none)"}
 Reply with only a JSON object mapping each id to its translation.`;
 }
 
-async function callModel(model: string, system: string, user: string): Promise<{ text: string; cost: number }> {
+export async function callModel(model: string, system: string, user: string): Promise<{ text: string; cost: number }> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new Error("OPENROUTER_API_KEY is not set");
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -53,9 +54,9 @@ async function callModel(model: string, system: string, user: string): Promise<{
   return { text: data.choices[0].message.content, cost: data.usage?.cost ?? 0 };
 }
 
-function parseReply(text: string): Record<string, string> {
+export function parseReply<T = string>(text: string): Record<string, T> {
   const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
-  return JSON.parse(json) as Record<string, string>;
+  return JSON.parse(json) as Record<string, T>;
 }
 
 export async function translateMissing(lang: string, opts: Options): Promise<number> {
@@ -114,5 +115,6 @@ export async function translateMissing(lang: string, opts: Options): Promise<num
     console.log(`  ${done}/${todo.length} translated, spend so far $${cost.toFixed(3)}`);
   }
   console.log(`${lang}: ${done} translated, ${failed} failed, OpenRouter cost $${cost.toFixed(3)}`);
+  if (done) await classifyEntries(lang, { all: false });
   return failed ? 1 : 0;
 }

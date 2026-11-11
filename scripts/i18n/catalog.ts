@@ -34,6 +34,10 @@ export interface TranslationEntry {
   by?: string;
   /** Note from the translator or reviewer. */
   note?: string;
+  /** How much human attention the translation needs: 1 quick check, 2 read it, 3 review carefully. */
+  review?: 1 | 2 | 3;
+  /** Why it got that level (levels 2 and 3). */
+  reviewReason?: string;
 }
 
 export type SourceCatalog = Record<string, SourceEntry>;

@@ -6,6 +6,7 @@
  *   npm run i18n -- check            fail on out-of-date en.json or broken translations
  *   npm run i18n -- status [lang]    count missing, stale, machine and reviewed messages
  *   npm run i18n -- translate de     machine-translate missing and stale messages (OpenRouter)
+ *   npm run i18n -- classify de      rate how much review each draft needs (also runs after translate)
  *   npm run i18n -- import <file>    apply a review file downloaded from the review page
  *   npm run i18n -- build            write dist/locales/*.json and the review page data
  */
@@ -18,6 +19,7 @@ import {
   type SourceCatalog, type TranslationCatalog, type TranslationEntry,
 } from "./catalog";
 import { translateMissing } from "./translate";
+import { classifyEntries } from "./classify";
 
 const TARGETS = SUPPORTED_LOCALES.filter((l) => l !== "en");
 
@@ -142,6 +144,11 @@ async function main(): Promise<number> {
       const en = loadEn();
       for (const lang of arg ? [arg] : TARGETS) console.log(lang, status(en, readJson<TranslationCatalog>(localeFile(lang), {})));
       return 0;
+    }
+    case "classify": {
+      if (!arg || !(TARGETS as readonly string[]).includes(arg)) { console.error(`usage: classify <${TARGETS.join("|")}> [--all] [--model id]`); return 2; }
+      const m = rest.indexOf("--model");
+      return classifyEntries(arg, { all: rest.includes("--all"), model: m >= 0 ? rest[m + 1] : undefined });
     }
     case "translate": {
       if (!arg || !(TARGETS as readonly string[]).includes(arg)) { console.error(`usage: translate <${TARGETS.join("|")}> [--model id] [--limit n] [--dry-run]`); return 2; }

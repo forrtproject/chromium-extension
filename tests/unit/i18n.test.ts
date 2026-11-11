@@ -72,3 +72,30 @@ describe("catalogs", () => {
     expect(translationProblems(en, readJson<TranslationCatalog>(localeFile("de"), {}))).toEqual([]);
   });
 });
+
+describe("message forms", () => {
+  it("splits plurals into full sentences and rebuilds them", async () => {
+    const { messageForms, formsToMessage, formatMessage: fmt } = await import("../../src/shared/i18n-format");
+    const msg = "Show {count} more {count, plural, one {reproduction} other {reproductions}}";
+    const forms = messageForms(msg);
+    expect(forms.map((f) => f.text)).toEqual(["Show {count} more reproduction", "Show {count} more reproductions"]);
+    const rebuilt = formsToMessage(forms);
+    for (const n of [1, 4]) expect(fmt(rebuilt, { count: n })).toBe(fmt(msg, { count: n }));
+  });
+
+  it("turns # into the named number and expands nested choices", async () => {
+    const { messageForms, formsToMessage, formatMessage: fmt } = await import("../../src/shared/i18n-format");
+    const msg = "{x, select, yes {A {n, plural, one {# p} other {# ps}} — inc} other {A {n, plural, one {# p} other {# ps}}}}";
+    const forms = messageForms(msg);
+    expect(forms).toHaveLength(4);
+    expect(forms[0]).toEqual({ path: [{ name: "x", type: "select", key: "yes" }, { name: "n", type: "plural", key: "one" }], text: "A {n} p — inc" });
+    const rebuilt = formsToMessage(forms);
+    for (const x of ["yes", "no"]) for (const n of [1, 3]) expect(fmt(rebuilt, { x, n })).toBe(fmt(msg, { x, n }));
+  });
+
+  it("adds plural categories a language needs and quotes literal braces", async () => {
+    const { messageForms, formsToMessage, formatMessage: fmt } = await import("../../src/shared/i18n-format");
+    expect(messageForms("{n, plural, one {# a} other {# b}}", ["few", "many"]).map((f) => f.path[0].key)).toEqual(["one", "few", "many", "other"]);
+    expect(fmt(formsToMessage(messageForms("'{'x'}' {n, plural, one {#} other {#}}")), { n: 2 })).toBe("{x} 2");
+  });
+});

@@ -5,10 +5,15 @@
  * Work is kept in this browser's localStorage until downloaded.
  */
 
-import { formatMessage, messageArguments, messageTags, parseMessage } from "@shared/i18n-format";
+import {
+  formatMessage, formsToMessage, hasChoices, messageArguments, messageForms, messageTags, parseMessage, type MessageForm,
+} from "@shared/i18n-format";
 
 interface SourceEntry { message: string; context?: string; where: string[]; html?: boolean }
-interface TranslationEntry { message: string; source: string; status: "machine" | "reviewed"; by?: string; note?: string }
+interface TranslationEntry {
+  message: string; source: string; status: "machine" | "reviewed"; by?: string; note?: string;
+  review?: 1 | 2 | 3; reviewReason?: string;
+}
 interface LocalEntry { message: string; source: string; approved: boolean; note?: string }
 interface LocalState { reviewer: string; entries: Record<string, LocalEntry> }
 type Glossary = Record<string, Record<string, string>>;
@@ -99,26 +104,81 @@ function problems(id: string, message: string): string[] {
   return out;
 }
 
-/** Sample renderings so reviewers can see plural forms and placeholders filled in. */
-function previews(message: string): string[] {
-  let args: Set<string>;
+type Level = 1 | 2 | 3;
+/** How much attention a message needs; new or changed English always counts as careful. */
+function levelOf(id: string): Level {
+  const st = statusOf(id);
+  if (st === "missing" || st === "stale") return 3;
+  return tr[id]?.review ?? 2;
+}
+const LEVEL_LABEL: Record<Level, string> = { 1: "Quick check", 2: "Read it", 3: "Careful review" };
+
+/** Plural categories this language needs beyond what English uses (e.g. "few"). */
+function extraPluralKeys(): string[] {
   try {
-    args = messageArguments(message);
+    return new Intl.PluralRules(lang).resolvedOptions().pluralCategories.filter((c) => c !== "one" && c !== "other");
   } catch {
     return [];
   }
-  if (!args.size) return [];
-  const plural = /\{\s*(\w+)\s*,\s*plural/.exec(message)?.[1];
-  const counts = plural ? [1, 2, 5] : [3];
-  return counts.map((n) => {
-    const values: Record<string, string | number> = {};
-    for (const a of args) values[a] = a === plural || /count|total|checked|n$/i.test(a) ? n : `‹${a}›`;
-    try {
-      return formatMessage(message, values, lang);
-    } catch {
-      return "";
+}
+
+/** Example numbers for a plural category in this language, e.g. one → [1], other → [0, 2, 3]. */
+function examplesFor(key: string): number[] {
+  if (key.startsWith("=")) return [Number(key.slice(1))];
+  const rules = new Intl.PluralRules(lang);
+  const out: number[] = [];
+  for (let n = 0; n <= 200 && out.length < 3; n++) if (rules.select(n) === key) out.push(n);
+  return out;
+}
+
+function describePath(path: MessageForm["path"]): string {
+  return path.map((step) => {
+    if (step.type === "plural") {
+      if (step.key.startsWith("=")) return `when {${step.name}} is exactly ${step.key.slice(1)}`;
+      const ex = examplesFor(step.key);
+      const list = ex.length > 1 ? `${ex.join(", ")}, …` : String(ex[0] ?? "");
+      return step.key === "one" ? `when {${step.name}} is ${list} (singular)` : `when {${step.name}} is ${list}`;
     }
-  }).filter(Boolean);
+    return step.key === "other" ? `{${step.name}}: any other case` : `when {${step.name}} is “${step.key}”`;
+  }).join(" and ");
+}
+
+/** Values that pick this form, for its preview. */
+function sampleValues(source: string, path: MessageForm["path"]): Record<string, string | number> {
+  const values: Record<string, string | number> = {};
+  try {
+    for (const a of messageArguments(source)) values[a] = `‹${a}›`;
+  } catch {
+    // Unparseable: the preview is skipped anyway.
+  }
+  for (const step of path) values[step.name] = step.type === "plural" ? (examplesFor(step.key).find((n) => n !== 0) ?? examplesFor(step.key)[0] ?? 0) : step.key === "other" ? "…" : step.key;
+  return values;
+}
+
+const formKey = (f: MessageForm): string => f.path.map((p) => `${p.name}:${p.key}`).join("|");
+
+/** The translation split into the same forms as the English, or null if it can't be lined up. */
+function alignedForms(english: string, translation: string): { en: MessageForm[]; tr: MessageForm[] } | null {
+  try {
+    const extra = extraPluralKeys();
+    const enForms = messageForms(english, extra);
+    const trForms = new Map(messageForms(translation || english, extra).map((f) => [formKey(f), f]));
+    const aligned = enForms.map((f) => trForms.get(formKey(f)));
+    if (aligned.some((f) => !f) || trForms.size !== enForms.length) return null;
+    return { en: enForms, tr: aligned as MessageForm[] };
+  } catch {
+    return null;
+  }
+}
+
+/** Same wording, even if the plural is written differently. */
+function sameMessage(a: string, b: string): boolean {
+  if (a === b) return true;
+  try {
+    return JSON.stringify(messageForms(a)) === JSON.stringify(messageForms(b));
+  } catch {
+    return false;
+  }
 }
 
 const area = (id: string): string => id.split(".")[0];
@@ -127,7 +187,9 @@ function matchesFilter(id: string): boolean {
   const filter = filterSelect.value;
   const st = statusOf(id);
   const local = localOf(id);
-  if (filter === "todo" && (st === "reviewed" || local?.approved)) return false;
+  const open = st !== "reviewed" && !local?.approved;
+  if (filter === "todo" && !open) return false;
+  if ((filter === "level3" || filter === "level2" || filter === "level1") && (!open || levelOf(id) !== Number(filter.slice(-1)))) return false;
   if (filter === "stale" && st !== "stale" && st !== "missing") return false;
   if (filter === "mine" && !local) return false;
   if (filter === "reviewed" && st !== "reviewed") return false;
@@ -158,24 +220,20 @@ function renderCard(id: string): HTMLElement {
   const src = en[id];
   const existing = tr[id];
   const st = statusOf(id);
-  const card = el("article", "card");
+  const level = levelOf(id);
+  const card = el("article", `card card-level-${level}`);
   card.dataset.id = id;
 
   const head = el("div", "card-head");
-  head.append(el("code", "card-id", id));
-  const badge = el("span", `badge badge-${st}`, STATUS_LABEL[st]);
-  head.append(badge);
+  head.append(el("span", `badge badge-level-${level}`, LEVEL_LABEL[level]));
+  if (st !== "machine") head.append(el("span", `badge badge-${st}`, STATUS_LABEL[st]));
   const mine = el("span", "badge badge-mine", "");
-  head.append(mine);
+  head.append(mine, el("code", "card-id", id));
   card.append(head);
+  if (existing?.reviewReason && st === "machine") card.append(el("p", "card-reason", `Why: ${existing.reviewReason}`));
 
-  const meta = el("div", "card-meta", `Used in ${src.where.join(", ")}`);
-  card.append(meta);
+  card.append(el("div", "card-meta", `Used in ${src.where.join(", ")}`));
   if (src.context) card.append(el("p", "card-context", src.context));
-
-  const enBlock = el("div", "card-en");
-  enBlock.append(el("span", "label", "English"), el("div", "text", src.message));
-  card.append(enBlock);
   if (st === "stale" && existing) {
     const old = el("div", "card-old");
     old.append(el("span", "label", "Previous English"), el("div", "text", existing.source));
@@ -183,20 +241,11 @@ function renderCard(id: string): HTMLElement {
   }
   if (existing?.note) card.append(el("p", "card-note", existing.note));
 
-  const label = el("label", "label", LANGUAGES[lang]);
-  const area = el("textarea", "card-input");
-  area.id = `t-${id}`;
-  label.htmlFor = area.id;
-  area.rows = 1;
-  area.spellcheck = true;
-  area.lang = lang;
   const local = localOf(id);
-  area.value = local?.message ?? existing?.message ?? "";
-  card.append(label, area);
-
-  const preview = el("div", "card-preview");
+  let message = local?.message ?? existing?.message ?? "";
+  const editor = el("div", "card-editor");
   const issues = el("ul", "card-issues");
-  card.append(preview, issues);
+  card.append(editor, issues);
 
   const noteInput = el("input", "card-note-input");
   noteInput.placeholder = "Optional comment for the maintainers";
@@ -208,21 +257,20 @@ function renderCard(id: string): HTMLElement {
   approve.type = "button";
   const revert = el("button", "btn btn-ghost", "Undo my changes");
   revert.type = "button";
-  actions.append(approve, revert);
+  const modeToggle = el("button", "btn btn-link", "");
+  modeToggle.type = "button";
+  actions.append(approve, revert, modeToggle);
   card.append(actions);
 
+  // Messages with plural or variant forms are edited one complete sentence at a
+  // time; "Edit as code" shows the raw message format instead.
+  const choices = hasChoices(src.message);
+  let asCode = !choices;
+
   const refresh = (): void => {
-    autoSize(area);
     const l = localOf(id);
-    const message = area.value;
     const found = problems(id, message);
     issues.replaceChildren(...found.map((p) => el("li", "", p)));
-    preview.replaceChildren();
-    const samples = found.length ? [] : previews(message);
-    if (samples.length) {
-      preview.append(el("span", "label", "Preview"));
-      for (const s of samples) preview.append(el("div", "sample", s));
-    }
     approve.textContent = l?.approved ? "✓ Approved" : "Approve";
     approve.classList.toggle("is-approved", !!l?.approved);
     approve.disabled = found.length > 0;
@@ -233,9 +281,8 @@ function renderCard(id: string): HTMLElement {
   };
 
   const record = (approved: boolean): void => {
-    const message = area.value;
     const note = noteInput.value.trim();
-    const unchanged = message === (existing?.message ?? "") && !note && !approved;
+    const unchanged = sameMessage(message, existing?.message ?? "") && !note && !approved;
     if (unchanged) delete state.entries[id];
     else state.entries[id] = { message, source: src.message, approved, ...(note ? { note } : {}) };
     saveState();
@@ -243,7 +290,97 @@ function renderCard(id: string): HTMLElement {
     updateProgress();
   };
 
-  area.addEventListener("input", () => record(false));
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (problems(id, message).length) return;
+      record(true);
+      focusNext(card);
+    }
+  };
+
+  const textArea = (value: string, label: string): HTMLTextAreaElement => {
+    const area = el("textarea", "card-input");
+    area.rows = 1;
+    area.spellcheck = true;
+    area.lang = lang;
+    area.value = value;
+    area.setAttribute("aria-label", label);
+    area.addEventListener("keydown", onKey);
+    return area;
+  };
+
+  const preview = (source: string, values: Record<string, string | number>): string => {
+    try {
+      return formatMessage(source, values, lang);
+    } catch {
+      return "";
+    }
+  };
+
+  const drawCode = (): void => {
+    const enBlock = el("div", "card-en");
+    enBlock.append(el("span", "label", "English"), el("div", "text", src.message));
+    const area = textArea(message, LANGUAGES[lang]);
+    const label = el("span", "label", LANGUAGES[lang]);
+    const pv = el("div", "card-preview");
+    const showPreview = (): void => {
+      pv.replaceChildren();
+      if (problems(id, message).length) return;
+      const samples = choices
+        ? messageForms(message, extraPluralKeys()).map((f) => preview(message, sampleValues(message, f.path)))
+        : messageArguments(message).size ? [preview(message, sampleValues(message, []))] : [];
+      if (samples.length) pv.append(el("span", "label", "Preview"), ...samples.filter(Boolean).map((t) => el("div", "sample", t)));
+    };
+    area.addEventListener("input", () => { message = area.value; autoSize(area); showPreview(); record(false); });
+    editor.replaceChildren(enBlock, label, area, pv);
+    showPreview();
+  };
+
+  const drawForms = (): boolean => {
+    const forms = alignedForms(src.message, message);
+    if (!forms) return false;
+    const intro = el("p", "card-forms-intro",
+      "This text changes with a number or setting. Each box is one complete version; placeholders such as {count} are filled in by ORE.");
+    const previewFns: (() => void)[] = [];
+    const rows = forms.en.map((enForm, i) => {
+      const row = el("div", "form-row");
+      row.append(el("div", "form-when", describePath(enForm.path)));
+      const pair = el("div", "form-pair");
+      const enCol = el("div", "form-en");
+      enCol.append(el("span", "label", "English"), el("div", "text", enForm.text));
+      const trCol = el("div", "form-tr");
+      const area = textArea(forms.tr[i].text, `${LANGUAGES[lang]}, ${describePath(enForm.path)}`);
+      const pv = el("div", "sample");
+      const showPreview = (): void => {
+        pv.textContent = problems(id, message).length ? "" : `→ ${preview(message, sampleValues(message, enForm.path))}`;
+      };
+      area.addEventListener("input", () => {
+        forms.tr[i] = { path: enForm.path, text: area.value };
+        message = formsToMessage(forms.tr);
+        autoSize(area);
+        record(false);
+        for (const fn of previewFns) fn();
+      });
+      trCol.append(el("span", "label", LANGUAGES[lang]), area, pv);
+      pair.append(enCol, trCol);
+      row.append(pair);
+      previewFns.push(showPreview);
+      return row;
+    });
+    editor.replaceChildren(intro, ...rows);
+    for (const fn of previewFns) fn();
+    return true;
+  };
+
+  const draw = (): void => {
+    if (!asCode && !drawForms()) asCode = true;
+    if (asCode) drawCode();
+    modeToggle.hidden = !choices;
+    modeToggle.textContent = asCode ? "Edit as separate sentences" : "Edit as code";
+    editor.querySelectorAll<HTMLTextAreaElement>("textarea").forEach(autoSize);
+  };
+
   noteInput.addEventListener("input", () => record(localOf(id)?.approved ?? false));
   approve.addEventListener("click", () => {
     record(!(localOf(id)?.approved));
@@ -251,20 +388,15 @@ function renderCard(id: string): HTMLElement {
   });
   revert.addEventListener("click", () => {
     delete state.entries[id];
-    area.value = existing?.message ?? "";
+    message = existing?.message ?? "";
     noteInput.value = "";
     saveState();
+    draw();
     refresh();
     updateProgress();
   });
-  area.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      if (problems(id, area.value).length) return;
-      record(true);
-      focusNext(card);
-    }
-  });
+  modeToggle.addEventListener("click", () => { asCode = !asCode; draw(); });
+  draw();
   refresh();
   return card;
 }
@@ -288,12 +420,66 @@ function focusNext(card: HTMLElement): void {
 const PAGE = 60;
 let shown = PAGE;
 
+/** Compact row for routine messages: read both, approve many at once, open one to edit. */
+function renderQuickRow(id: string): HTMLElement {
+  const row = el("div", "quick-row");
+  row.dataset.id = id;
+  const local = localOf(id);
+  row.append(el("div", "quick-en", en[id].message), el("div", "quick-tr", local?.message ?? tr[id]?.message ?? ""));
+  const edit = el("button", "btn btn-link", "Edit");
+  edit.type = "button";
+  edit.addEventListener("click", () => {
+    const card = renderCard(id);
+    row.replaceWith(card);
+    card.querySelectorAll<HTMLTextAreaElement>("textarea").forEach(autoSize);
+    card.querySelector("textarea")?.focus();
+  });
+  row.append(edit);
+  return row;
+}
+
+function filterCounts(): void {
+  const open = Object.keys(en).filter((id) => statusOf(id) !== "reviewed" && !localOf(id)?.approved);
+  const n = (l: Level) => open.filter((id) => levelOf(id) === l).length;
+  const labels: Record<string, string> = {
+    todo: `Still to review, careful first (${open.length})`,
+    level3: `Careful review (${n(3)})`,
+    level2: `Read it (${n(2)})`,
+    level1: `Quick check — approve in bulk (${n(1)})`,
+  };
+  for (const opt of filterSelect.options) if (labels[opt.value]) opt.textContent = labels[opt.value];
+}
+
 function render(): void {
-  const ids = Object.keys(en).filter(matchesFilter);
-  countEl.textContent = `${ids.length} message${ids.length === 1 ? "" : "s"}`;
-  listEl.replaceChildren(...ids.slice(0, shown).map(renderCard));
+  filterCounts();
+  let ids = Object.keys(en).filter(matchesFilter);
+  if (filterSelect.value === "todo") ids = ids.sort((a, b) => levelOf(b) - levelOf(a));
+  countEl.textContent = `${ids.length} message${ids.length === 1 ? "" : "s"} shown`;
+  const quick = filterSelect.value === "level1";
+  const items: HTMLElement[] = [];
+  if (quick && ids.length) {
+    const bar = el("div", "quick-bar");
+    bar.append(el("p", "", "Routine labels the triage model found clearly correct. Skim the list, edit anything that reads wrong, then approve the rest together."));
+    const all = el("button", "btn btn-approve", `Approve all ${ids.length} shown`);
+    all.type = "button";
+    all.addEventListener("click", () => {
+      if (!confirm(`Approve ${ids.length} translations as shown?`)) return;
+      for (const id of ids) {
+        const message = localOf(id)?.message ?? tr[id]?.message;
+        if (message == null || problems(id, message).length) continue;
+        state.entries[id] = { ...(localOf(id) ?? {}), message, source: en[id].message, approved: true };
+      }
+      saveState();
+      updateProgress();
+      render();
+    });
+    bar.append(all);
+    items.push(bar);
+  }
+  items.push(...ids.slice(0, quick ? Infinity : shown).map(quick ? renderQuickRow : renderCard));
+  listEl.replaceChildren(...items);
   listEl.querySelectorAll<HTMLTextAreaElement>(".card-input").forEach(autoSize);
-  if (ids.length > shown) {
+  if (!quick && ids.length > shown) {
     const more = el("button", "btn btn-more", `Show ${Math.min(PAGE, ids.length - shown)} more`);
     more.type = "button";
     more.addEventListener("click", () => { shown += PAGE; render(); });
@@ -307,6 +493,7 @@ function updateProgress(): void {
   const done = ids.filter((id) => statusOf(id) === "reviewed" || localOf(id)?.approved).length;
   const mine = Object.keys(state.entries).filter((id) => en[id] && localOf(id)).length;
   progressEl.textContent = `${done} of ${ids.length} reviewed · ${mine} change${mine === 1 ? "" : "s"} by you not yet sent`;
+  filterCounts();
 }
 
 function renderGlossary(): void {

@@ -8,7 +8,7 @@
 
 export type MessageValues = Record<string, string | number>;
 
-type Node =
+export type Node =
   | { kind: "text"; text: string }
   | { kind: "arg"; name: string }
   | { kind: "pound" }
@@ -153,7 +153,92 @@ export function messageArguments(source: string): Set<string> {
   return names;
 }
 
-/** HTML tag names used in a message, counted, for markup parity checks. */
+/**
+ * Distinct HTML tags (opening and closing) used in a message, for markup
+ * parity checks. Distinct rather than counted, because writing a plural as full
+ * sentences repeats the same tags in each branch.
+ */
 export function messageTags(source: string): string[] {
-  return [...source.matchAll(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi)].map((m) => m[0].startsWith("</") ? `/${m[1].toLowerCase()}` : m[1].toLowerCase()).sort();
+  const tags = [...source.matchAll(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi)].map((m) => m[0].startsWith("</") ? `/${m[1].toLowerCase()}` : m[1].toLowerCase());
+  return [...new Set(tags)].sort();
+}
+
+/**
+ * One complete variant of a message with all plural/select choices made, e.g.
+ * the "count = one" sentence. `#` is written as `{name}` so each form reads as
+ * a normal sentence; `formatMessage` prints both the same way.
+ */
+export interface MessageForm {
+  /** Choices leading to this form, outermost first. */
+  path: { name: string; type: "plural" | "select"; key: string }[];
+  /** The sentence for this form: text and simple `{arg}` placeholders only. */
+  text: string;
+}
+
+const quoteText = (text: string): string => text.replace(/'/g, "''").replace(/[{}#]/g, (c) => `'${c}'`);
+
+function serializeNodes(nodes: Node[]): string {
+  return nodes.map((n) => {
+    if (n.kind === "text") return quoteText(n.text);
+    if (n.kind === "arg") return `{${n.name}}`;
+    if (n.kind === "pound") return "#";
+    return `{${n.name}, ${n.kind}, ${Object.entries(n.options).map(([k, v]) => `${k} {${serializeNodes(v)}}`).join(" ")}}`;
+  }).join("");
+}
+
+function replacePound(nodes: Node[], name: string): Node[] {
+  return nodes.map((n) => {
+    if (n.kind === "pound") return { kind: "arg", name } as Node;
+    if (n.kind === "plural") return n; // an inner plural has its own #
+    if (n.kind === "select") {
+      return { ...n, options: Object.fromEntries(Object.entries(n.options).map(([k, v]) => [k, replacePound(v, name)])) };
+    }
+    return n;
+  });
+}
+
+/**
+ * Split a message into its complete sentences, one per combination of
+ * plural/select choices. Text around a plural moves into every branch, so
+ * "Show {n, plural, one {# more} other {# more}}" becomes two full sentences.
+ * `extraPluralKeys` adds plural categories a target language needs.
+ */
+export function messageForms(source: string, extraPluralKeys: string[] = []): MessageForm[] {
+  const walk = (nodes: Node[], path: MessageForm["path"]): MessageForm[] => {
+    const i = nodes.findIndex((n) => n.kind === "plural" || n.kind === "select");
+    if (i < 0) return [{ path, text: serializeNodes(nodes) }];
+    const choice = nodes[i] as Extract<Node, { kind: "plural" | "select" }>;
+    const keys = Object.keys(choice.options);
+    if (choice.kind === "plural") {
+      for (const k of extraPluralKeys) if (!keys.includes(k)) keys.splice(keys.indexOf("other"), 0, k);
+    }
+    return keys.flatMap((key) => {
+      let branch = choice.options[key] ?? choice.options.other;
+      if (choice.kind === "plural") branch = replacePound(branch, choice.name);
+      return walk([...nodes.slice(0, i), ...branch, ...nodes.slice(i + 1)], [...path, { name: choice.name, type: choice.kind, key }]);
+    });
+  };
+  return walk(parseMessage(source), []);
+}
+
+/** Rebuild an ICU message from its forms (inverse of messageForms). */
+export function formsToMessage(forms: MessageForm[]): string {
+  const build = (items: MessageForm[], depth: number): string => {
+    if (items.length === 1 && items[0].path.length === depth) return items[0].text;
+    const { name, type } = items[0].path[depth];
+    const keys: string[] = [];
+    for (const f of items) if (!keys.includes(f.path[depth].key)) keys.push(f.path[depth].key);
+    if (!keys.includes("other")) keys.push("other");
+    const branch = (key: string) => {
+      const sub = items.filter((f) => f.path[depth].key === key);
+      return sub.length ? build(sub, depth + 1) : "";
+    };
+    return `{${name}, ${type}, ${keys.map((k) => `${k} {${branch(k)}}`).join(" ")}}`;
+  };
+  return build(forms, 0);
+}
+
+/** Whether a message has plural or select choices. */
+export function hasChoices(source: string): boolean {
+  return parseMessage(source).some((n) => n.kind === "plural" || n.kind === "select");
 }
