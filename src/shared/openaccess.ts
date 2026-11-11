@@ -7,6 +7,7 @@ import { BlobCache } from "./blob-cache";
 import { debugWarn } from "./debug";
 import { webUrl } from "./web-url";
 import { RequestGate } from "./request-gate";
+import { t } from "./i18n";
 
 export interface OpenAccessLocation {
     /** Free full-text URL — the PDF when the location offers one. */
@@ -40,17 +41,42 @@ interface UnpaywallLocation {
     repository_institution?: string | null;
 }
 
+// Locations are cached, so they store these fixed English markers and the
+// display text is chosen when a location is shown (locationLabel/locationVersion).
 const VERSION_LABELS: Record<string, string> = {
     publishedVersion: "published",
     acceptedVersion: "accepted",
     submittedVersion: "submitted",
 };
 
+export const OA_FALLBACK_LABEL = "Open-access version";
+const PUBLISHER_LABEL = "Publisher";
+
+/** Display text for a location's `label`: the stored markers are translated, names and hosts kept. */
+export function locationLabel(label: string): string {
+    // i18n: a free copy whose host is unknown, listed under the Open Access row
+    if (label === OA_FALLBACK_LABEL) return t("pill.oa.location.fallback", "Open-access version");
+    // i18n: a free copy on the publisher's own site, listed under the Open Access row
+    if (label === PUBLISHER_LABEL) return t("pill.oa.location.publisher", "Publisher");
+    return label;
+}
+
+/** Display text for a location's stored `version` marker. */
+export function locationVersion(version: string | null): string | null {
+    // i18n: which version of a paper a free copy is (the published version of record); keep short
+    if (version === "published") return t("pill.oa.version.published", "published");
+    // i18n: which version of a paper a free copy is (the accepted author manuscript); keep short
+    if (version === "accepted") return t("pill.oa.version.accepted", "accepted");
+    // i18n: which version of a paper a free copy is (the submitted preprint); keep short
+    if (version === "submitted") return t("pill.oa.version.submitted", "submitted");
+    return version;
+}
+
 function hostLabel(url: string): string {
     try {
         return new URL(url).hostname.replace(/^www\./, "");
     } catch {
-        return "Open-access version";
+        return OA_FALLBACK_LABEL;
     }
 }
 
@@ -60,7 +86,7 @@ function toLocation(raw: UnpaywallLocation): OpenAccessLocation | null {
     const institution = raw.repository_institution?.trim();
     return {
         url,
-        label: institution || (raw.host_type === "publisher" ? "Publisher" : hostLabel(url)),
+        label: institution || (raw.host_type === "publisher" ? PUBLISHER_LABEL : hostLabel(url)),
         version: raw.version ? VERSION_LABELS[raw.version] ?? null : null,
         isPdf: url === raw.url_for_pdf,
     };

@@ -1,11 +1,11 @@
 import {debugLog, debugWarn} from "./debug";
 import {isPageTourOpen} from "./page-tour";
 import {safeSendMessage, type FeedbackPromptResponse, type FeedbackPromptStep} from "./messages";
+import {t} from "./i18n";
 
 export const FEEDBACK_URL = "https://forms.gle/pRppkMZfs6kf1ht6A";
 
 const FEEDBACK_HOST_ID = "flora-feedback-prompt";
-const FEEDBACK_MESSAGE = "A minute of feedback on what works and what doesn't helps us improve ORE.";
 const MIN_PAGES_BEFORE_ASKING = 3;
 const ASK_CHANCE = 0.25;
 const MIN_DELAY_MS = 8_000;
@@ -38,7 +38,7 @@ function buildPrompt(close: () => void): {host: HTMLElement; announce: () => voi
     badge.textContent = "FORRT ORE";
     const dismiss = document.createElement("button");
     dismiss.type = "button";
-    dismiss.setAttribute("aria-label", "Close");
+    dismiss.setAttribute("aria-label", t("notice.feedback.close", "Close"));
     dismiss.textContent = "×";
     dismiss.style.cssText =
         "all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:24px;height:24px;" +
@@ -49,7 +49,7 @@ function buildPrompt(close: () => void): {host: HTMLElement; announce: () => voi
     const title = document.createElement("div");
     title.id = "flora-feedback-title";
     title.style.cssText = "padding:14px 16px 0;color:#202124;font-size:15px;font-weight:700;line-height:1.3;";
-    title.textContent = "How is ORE working for you?";
+    title.textContent = t("notice.feedback.title", "How is ORE working for you?");
 
     const body = document.createElement("div");
     body.setAttribute("role", "status");
@@ -59,7 +59,7 @@ function buildPrompt(close: () => void): {host: HTMLElement; announce: () => voi
     actions.style.cssText = "display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:0 16px 16px;";
     const later = document.createElement("button");
     later.type = "button";
-    later.textContent = "No thanks";
+    later.textContent = t("notice.feedback.decline", "No thanks");
     later.style.cssText =
         "all:unset;cursor:pointer;font-size:13px;font-weight:600;color:#5f6368;padding:7px 12px;border-radius:6px;";
     later.addEventListener("click", close);
@@ -67,7 +67,7 @@ function buildPrompt(close: () => void): {host: HTMLElement; announce: () => voi
     give.href = FEEDBACK_URL;
     give.target = "_blank";
     give.rel = "noopener noreferrer";
-    give.textContent = "Give feedback";
+    give.textContent = t("notice.feedback.accept", "Give feedback");
     give.style.cssText =
         "all:unset;cursor:pointer;font-size:13px;font-weight:600;color:#fff;padding:7px 14px;border-radius:6px;" +
         "background:linear-gradient(135deg,#853953,#612D53);box-shadow:0 1px 3px rgba(97,45,83,0.35);";
@@ -78,7 +78,7 @@ function buildPrompt(close: () => void): {host: HTMLElement; announce: () => voi
     actions.append(later, give);
 
     host.append(header, title, body, actions);
-    return {host, announce: () => { body.textContent = FEEDBACK_MESSAGE; }};
+    return {host, announce: () => { body.textContent = t("notice.feedback.message", "A minute of feedback on what works and what doesn't helps us improve ORE."); }};
 }
 
 function showPrompt(): void {

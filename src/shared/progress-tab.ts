@@ -1,5 +1,6 @@
 import {positionTabOnRightEdge} from "./tab-position";
 import {onPubPeerVerdict, pubPeerVerdict} from "./pubpeer-api";
+import {t} from "./i18n";
 
 export const PROGRESS_TAB_ID = "flora-progress-tab";
 
@@ -54,16 +55,14 @@ let panelTab: HTMLElement | null = null;
 let nothingFoundDois: string[] | null = null;
 let clearDois: string[] | null = null;
 
-function nothingFoundBody(dois: string[]): string {
-    const pubPeerClear = dois.every((doi) => pubPeerVerdict(doi) === "clear");
-    const checked = pubPeerClear
-        ? "no retractions, concerns, replications, reproductions or PubPeer comments"
-        : "no retractions, concerns, replications or reproductions";
-    return `Checked ${dois.length} ${dois.length === 1 ? "paper" : "papers"}: ${checked}.`;
-}
-
 function clearSummary(dois: string[]): string {
-    return `${dois.length === 1 ? "No flags for this paper" : "No flags on this page"} — ${nothingFoundBody(dois)}`;
+    const count = dois.length;
+    if (dois.every((doi) => pubPeerVerdict(doi) === "clear")) {
+        // i18n: tooltip on the green side tab after a page check found nothing
+        return t("progress.tab.clearSummaryPubPeer", "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications, reproductions or PubPeer comments.} other {No flags on this page — Checked # papers: no retractions, concerns, replications, reproductions or PubPeer comments.}}", {count});
+    }
+    // i18n: tooltip on the green side tab after a page check found nothing (PubPeer still pending or not clear)
+    return t("progress.tab.clearSummary", "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications or reproductions.} other {No flags on this page — Checked # papers: no retractions, concerns, replications or reproductions.}}", {count});
 }
 
 let followingVerdicts = false;
@@ -168,7 +167,9 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
     edge.style.bottom = `${percent}%`;
     edge.style.display = percent > 0 && percent < 100 ? "" : "none";
 
-    const spoken = percent > 0 ? `FORRT ORE is checking this page, ${percent}% done` : "FORRT ORE is checking this page";
+    const spoken = percent > 0
+        ? t("progress.tab.checkingPercent", "FORRT ORE is checking this page, {percent}% done", {percent})
+        : t("progress.tab.checking", "FORRT ORE is checking this page");
     tab.title = label;
     tab.dataset.floraTabSpoken = spoken;
     tab.setAttribute("aria-label", busyName(tab));
@@ -229,7 +230,7 @@ function markClear(tab: HTMLElement, dois: string[], standaloneTab: boolean): vo
     if (standaloneTab) {
         tab.style.cursor = "default";
         tab.setAttribute("role", "img");
-        tab.setAttribute("aria-label", `FORRT ORE: ${summary}`);
+        tab.setAttribute("aria-label", t("progress.tab.clearAria", "FORRT ORE: {summary}", {summary}));
     }
     if (!tab.querySelector("[data-flora-tab-clear-icon]")) {
         const icon = document.createElement("span");

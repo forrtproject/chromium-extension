@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import { INSTALL_URL, outcomeTags, validDoiUrl, type ReportEntry, type ReportPayload, type ReportReference } from "./report";
 import { plainTitle } from "./plain-title";
 import { webUrl } from "./web-url";
+import { t, uiLocale } from "./i18n";
 
 type Rgb = [number, number, number];
 
@@ -43,10 +44,6 @@ export function reportPdfFilename(payload: ReportPayload): string {
   const title = pdfText(plainTitle(payload.title)).replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
   const short = title.length > 80 ? `${title.slice(0, 80).trimEnd()}…` : title;
   return `ORE report – ${short || "article"}.pdf`;
-}
-
-function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n} ${n === 1 ? one : many}`;
 }
 
 function outcomeColours(outcome: string): {fill: Rgb; text: Rgb} {
@@ -100,7 +97,7 @@ function masthead(l: Layout): void {
   l.font("bold", 11, [255, 255, 255]);
   l.doc.text("FORRT ORE", MARGIN, 25);
   l.font("normal", 11, [255, 255, 255]);
-  l.doc.text("Meta Report", MARGIN + l.doc.getTextWidth("FORRT ORE ") + 6, 25);
+  l.doc.text(pdfText(t("report.title", "Meta Report")), MARGIN + l.doc.getTextWidth("FORRT ORE ") + 6, 25);
   l.y = 64;
 }
 
@@ -135,10 +132,13 @@ function notice(l: Layout, payload: ReportPayload): void {
   l.doc.setFillColor(...edge);
   l.doc.rect(MARGIN, l.y, 4, 30, "F");
   l.font("bold", 10.5, ink);
-  l.doc.text(retracted ? "This article has been retracted." : "This article has an expression of concern.", MARGIN + 14, l.y + 19);
+  const headline = retracted
+    ? t("report.notice.retracted", "This article has been retracted.")
+    : t("report.notice.concern", "This article has an expression of concern.");
+  l.doc.text(pdfText(headline), MARGIN + 14, l.y + 19);
   if (url) {
     l.font("normal", 10, ink);
-    const label = "Read the notice";
+    const label = pdfText(t("report.pdf.readNotice", "Read the notice"));
     const width = l.doc.getTextWidth(label);
     l.doc.textWithLink(label, PAGE_W - MARGIN - 12 - width, l.y + 19, {url});
   }
@@ -147,10 +147,18 @@ function notice(l: Layout, payload: ReportPayload): void {
 
 function stats(l: Layout, payload: ReportPayload): void {
   const items = [
-    payload.replications.length ? {n: payload.replications.length, label: payload.replications.length === 1 ? "Replication" : "Replications"} : null,
-    payload.reproductions.length ? {n: payload.reproductions.length, label: payload.reproductions.length === 1 ? "Reproduction" : "Reproductions"} : null,
-    payload.originals.length ? {n: payload.originals.length, label: payload.originals.length === 1 ? "Original study" : "Original studies"} : null,
-    payload.pubpeer?.comments ? {n: payload.pubpeer.comments, label: payload.pubpeer.comments === 1 ? "PubPeer comment" : "PubPeer comments"} : null,
+    payload.replications.length
+      ? {n: payload.replications.length, label: t("report.stat.replications", "{count, plural, one {Replication} other {Replications}}", {count: payload.replications.length})}
+      : null,
+    payload.reproductions.length
+      ? {n: payload.reproductions.length, label: t("report.stat.reproductions", "{count, plural, one {Reproduction} other {Reproductions}}", {count: payload.reproductions.length})}
+      : null,
+    payload.originals.length
+      ? {n: payload.originals.length, label: t("report.stat.originals", "{count, plural, one {Original study} other {Original studies}}", {count: payload.originals.length})}
+      : null,
+    payload.pubpeer?.comments
+      ? {n: payload.pubpeer.comments, label: t("report.stat.pubpeerComments", "{count, plural, one {PubPeer comment} other {PubPeer comments}}", {count: payload.pubpeer.comments})}
+      : null,
   ].filter((s): s is {n: number; label: string} => s !== null);
   if (items.length === 0) return;
   const gap = 10;
@@ -165,7 +173,7 @@ function stats(l: Layout, payload: ReportPayload): void {
     l.font("bold", 18, MAROON);
     l.doc.text(String(item.n), x + width / 2, l.y + 24, {align: "center"});
     l.font("normal", 8.5, [97, 45, 83]);
-    l.doc.text(item.label, x + width / 2, l.y + 38, {align: "center"});
+    l.doc.text(pdfText(item.label), x + width / 2, l.y + 38, {align: "center"});
   });
   l.y += 66;
 }
@@ -175,7 +183,7 @@ function sectionHeading(l: Layout, title: string, count: number): void {
   l.rule();
   l.y += 18;
   l.font("bold", 9, MUTED);
-  const label = title.toUpperCase();
+  const label = pdfText(title.toLocaleUpperCase(uiLocale()));
   l.doc.text(label, MARGIN, l.y);
   l.font("bold", 9, MAROON);
   l.doc.text(String(count), MARGIN + l.doc.getTextWidth(`${label} `) + 2, l.y);
@@ -237,12 +245,19 @@ function entry(l: Layout, item: ReportEntry): void {
 
 function referenceTags(reference: ReportReference): string[] {
   const tags: string[] = [];
-  if (reference.replications) tags.push(plural(reference.replications, "replication"));
-  if (reference.reproductions) tags.push(plural(reference.reproductions, "reproduction"));
-  if (reference.inAtlas) tags.push("In the Atlas");
-  if (reference.notice === "retraction") tags.push("Retracted");
-  if (reference.notice === "concern") tags.push("Concern");
-  if (reference.comments) tags.push(plural(reference.comments, "PubPeer comment"));
+  if (reference.replications) {
+    tags.push(t("report.tag.replications", "{count, plural, one {# replication} other {# replications}}", {count: reference.replications}));
+  }
+  if (reference.reproductions) {
+    tags.push(t("report.tag.reproductions", "{count, plural, one {# reproduction} other {# reproductions}}", {count: reference.reproductions}));
+  }
+  if (reference.inAtlas) tags.push(t("report.tag.inAtlas", "In the Atlas"));
+  if (reference.notice === "retraction") tags.push(t("report.tag.retracted", "Retracted"));
+  // i18n: tag on a reference with an expression of concern; keep short
+  if (reference.notice === "concern") tags.push(t("report.tag.concern", "Concern"));
+  if (reference.comments) {
+    tags.push(t("report.tag.pubpeerComments", "{count, plural, one {# PubPeer comment} other {# PubPeer comments}}", {count: reference.comments}));
+  }
   return tags;
 }
 
@@ -259,11 +274,11 @@ function colophon(l: Layout, payload: ReportPayload): void {
   l.ensure(56);
   l.rule();
   l.y += 16;
-  const date = new Date(payload.generated).toLocaleDateString(undefined, {dateStyle: "long"});
+  const date = new Date(payload.generated).toLocaleDateString(uiLocale(), {dateStyle: "long"});
   l.font("normal", 8.5, MUTED);
   l.paragraph(
-    `Compiled by FORRT ORE on ${date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer. ` +
-    "Replication evidence is a starting point for judgement, not a verdict.",
+    `${t("report.pdf.compiled", "Compiled by FORRT ORE on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.", {date})} ` +
+    t("report.colophon.caveat", "Replication evidence is a starting point for judgement, not a verdict."),
     8.5,
   );
   l.font("normal", 8.5, MAROON);
@@ -275,21 +290,21 @@ function pageNumbers(l: Layout): void {
   for (let page = 1; page <= pages; page++) {
     l.doc.setPage(page);
     l.font("normal", 8, MUTED);
-    l.doc.text(`FORRT ORE Meta Report · page ${page} of ${pages}`, PAGE_W / 2, PAGE_H - 28, {align: "center"});
+    l.doc.text(pdfText(t("report.pdf.pageFooter", "FORRT ORE Meta Report · page {page} of {pages}", {page, pages})), PAGE_W / 2, PAGE_H - 28, {align: "center"});
   }
 }
 
 export function buildReportPdf(payload: ReportPayload): ArrayBuffer {
   const l = new Layout();
-  l.doc.setProperties({title: pdfText(`${plainTitle(payload.title)} — FORRT ORE Meta Report`), creator: "FORRT ORE"});
+  l.doc.setProperties({title: pdfText(t("report.pdf.docTitle", "{title} — FORRT ORE Meta Report", {title: plainTitle(payload.title)})), creator: "FORRT ORE"});
   masthead(l);
   heading(l, payload);
   notice(l, payload);
   stats(l, payload);
   const sections: Array<[string, ReportEntry[]]> = [
-    ["Replications", payload.replications],
-    ["Reproductions", payload.reproductions],
-    ["Original papers", payload.originals],
+    [t("report.section.replications", "Replications"), payload.replications],
+    [t("report.section.reproductions", "Reproductions"), payload.reproductions],
+    [t("report.section.originals", "Original papers"), payload.originals],
   ];
   for (const [title, entries] of sections) {
     if (entries.length === 0) continue;
@@ -298,7 +313,7 @@ export function buildReportPdf(payload: ReportPayload): ArrayBuffer {
   }
   const flagged = payload.references.filter((r) => referenceTags(r).length > 0);
   if (flagged.length > 0) {
-    sectionHeading(l, "Flagged references", flagged.length);
+    sectionHeading(l, t("report.section.flaggedRefs", "Flagged references"), flagged.length);
     for (const item of flagged) reference(l, item);
   }
   colophon(l, payload);

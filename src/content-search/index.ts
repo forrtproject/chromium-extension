@@ -17,6 +17,7 @@ import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-s
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 import {cancelPageTourStart, closePageTour, startPageTourOnceIdle} from "@shared/page-tour";
 import {searchScriptOwns} from "@shared/search-sites";
+import {initI18n} from "@shared/i18n";
 
 const SITE_STYLE_ID = "flora-search-site-style";
 
@@ -83,7 +84,8 @@ const pageStartup = (async () => {
             return;
         }
 
-        const pause = await getDomainPause([location.hostname]);
+        // Load the interface language alongside the pause check, before any UI renders.
+        const [pause] = await Promise.all([getDomainPause([location.hostname]), initI18n()]);
         if (pause.blocked || pause.snoozedUntil !== null) {
             debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}`);
             if (pause.blocked) reportBlocked();

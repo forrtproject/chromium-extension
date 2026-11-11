@@ -20,6 +20,7 @@ import type {
 import type {OpenAccessStatus} from "@shared/openaccess";
 import type {PubPeerFeedback} from "@shared/pubpeer-api";
 import {TOUR_REQUEST_KEY} from "@shared/tour-sample";
+import {t} from "@shared/i18n";
 
 const POWER_POSING = "10.1177/0956797610383437" as DoiString;
 const EGO_DEPLETION = "10.1037/0022-3514.74.5.1252" as DoiString;
@@ -142,8 +143,12 @@ function jsonResponse(body: unknown): Response {
  * off its PubPeer lookup while it is being constructed, not when it is shown.
  */
 export function installOfflineFixtures(): void {
+    const realFetch = globalThis.fetch?.bind(globalThis);
     globalThis.fetch = (input: RequestInfo | URL): Promise<Response> => {
         const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+
+        // The extension's own files, such as the language catalogs, are local.
+        if (realFetch && url.startsWith("chrome-extension:")) return realFetch(input);
 
         if (url.includes("pubpeer.com")) {
             const feedbacks = Object.keys(PUBPEER_FIXTURES)
@@ -357,9 +362,8 @@ function legendIcon(name: string): HTMLElement {
 function scanIndicator(): HTMLElement {
     const el = document.createElement("div");
     el.className = "demo-scan";
-    el.innerHTML =
-        `<span class="demo-scan-spinner"></span>` +
-        `<span>ORE is looking up the papers on this page…</span>`;
+    el.innerHTML = `<span class="demo-scan-spinner"></span><span></span>`;
+    el.lastElementChild!.textContent = t("walkthrough.demo.scanning", "ORE is looking up the papers on this page…");
     return el;
 }
 

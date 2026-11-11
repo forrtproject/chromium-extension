@@ -1,0 +1,21 @@
+{
+  "Expression of Concern": { "de": "Expression of Concern", "note": "Publisher term; keep English (lower-case 'expression of concern' in running text: 'Expression of Concern')." },
+  "FORRT Replication Database": { "de": "FORRT Replication Database", "note": "Name of the data source; keep English." },
+  "Meta Report": { "de": "Meta-Bericht", "note": "ORE's summary report for a page." },
+  "open access": { "de": "Open Access", "note": "'open-access copy' → 'Open-Access-Version'." },
+  "original study": { "de": "Originalstudie" },
+  "pill": { "de": "Markierung", "note": "The small labels ORE adds next to papers. Use 'Markierung' consistently." },
+  "preprint": { "de": "Preprint" },
+  "PubPeer comment": { "de": "PubPeer-Kommentar" },
+  "reference": { "de": "Literaturangabe", "note": "An entry in a paper's reference list; 'references' (section) → 'Literaturverzeichnis'." },
+  "Registered Report": { "de": "Registered Report", "note": "Publication format; keep English, plural 'Registered Reports'." },
+  "replication": { "de": "Replikation", "note": "'replication study' → 'Replikationsstudie'." },
+  "reproduction": { "de": "Reproduktion" },
+  "retracted": { "de": "zurückgezogen", "note": "Of a paper: 'Retracted' (label) → 'Zurückgezogen'." },
+  "retraction": { "de": "Zurückziehung", "note": "Retraction notice → 'Rückzugsmitteilung'." },
+  "Retraction Watch": { "de": "Retraction Watch", "note": "Name; keep." },
+  "search results": { "de": "Suchergebnisse" },
+  "settings": { "de": "Einstellungen" },
+  "snooze": { "de": "pausieren", "note": "Temporarily turn ORE off on a site: 'Snooze on this site' → 'Auf dieser Website pausieren'." },
+  "site": { "de": "Website" }
+}

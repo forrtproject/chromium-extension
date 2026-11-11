@@ -11,6 +11,7 @@ import { RetractionResponse, noticePresentation } from "@shared/doi-retraction";
 import { outcomeTags, reportUrl, type ReportEntry, type ReportPayload } from "@shared/report";
 import { writeClipboard } from "@shared/clipboard";
 import { showToast } from "@shared/toast";
+import { t, tHtml, uiLocale } from "@shared/i18n";
 import { hideWorkIndicator, showWorkIndicator } from "@shared/progress-toast";
 import { ensureFocusStyle, FLORA_OWNED_SELECTOR, FLORA_UI_SELECTOR } from "@shared/flora-ui";
 import { atlasDoiUrl, bindAtlasLink } from "@shared/flora-atlas";
@@ -22,7 +23,7 @@ import { lookupRegisteredReports, registeredReportDetail, RR_ACCENT, type Regist
 
 // The work/progress toast lives in shared so the Scholar content script can
 // drive it without importing this module's article-page rendering.
-export { beginWorkIndicator, count, endWorkIndicator, isWorkCancelled, reportWorkStage } from "@shared/progress-toast";
+export { beginWorkIndicator, endWorkIndicator, isWorkCancelled, reportWorkStage } from "@shared/progress-toast";
 
 const REMIND_PILL_STYLE =
   "all:unset;cursor:pointer;font-size:11px;font-family:inherit;font-weight:500;" +
@@ -98,8 +99,8 @@ export async function renderSetupPrompt(): Promise<void> {
     ">
       <div style="background:linear-gradient(135deg,#853953,#612D53);padding:10px 14px;display:flex;align-items:center;gap:8px;">
         <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
-        <span style="color:#fff;font-size:12px;font-weight:500;flex:1;">Optional email setup</span>
-        <span class="flora-setup-close" role="button" tabindex="0" aria-label="Close" style="
+        <span style="color:#fff;font-size:12px;font-weight:500;flex:1;">${escapeHtml(t("page.setup.title", "Optional email setup"))}</span>
+        <span class="flora-setup-close" role="button" tabindex="0" aria-label="${escapeHtml(t("page.common.close", "Close"))}" style="
           cursor:pointer;color:rgba(255,255,255,0.7);font-size:18px;line-height:1;
           width:24px;height:24px;display:flex;align-items:center;justify-content:center;
           border-radius:50%;
@@ -107,23 +108,21 @@ export async function renderSetupPrompt(): Promise<void> {
       </div>
       <div style="padding:12px 14px;">
         <p style="margin:0 0 6px;font-size:13px;color:#3c4043;line-height:1.45;">
-          Add an email to enable title matching and open-access lookups.
-          DOI-based replication, retraction and PubPeer checks work without it.
-          Settings explains how Crossref, OpenAlex, Unpaywall and NCBI receive the email.
+          ${escapeHtml(t("page.setup.body", "Add an email to enable title matching and open-access lookups. DOI-based replication, retraction and PubPeer checks work without it. Settings explains how Crossref, OpenAlex, Unpaywall and NCBI receive the email."))}
         </p>
         <button class="flora-setup-open" style="
           all:unset;cursor:pointer;display:block;width:100%;text-align:center;
           padding:8px 0;font-size:13px;font-weight:600;color:#fff;
           background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;
-        ">Open settings</button>
+        ">${escapeHtml(t("page.setup.openSettings", "Open settings"))}</button>
         <div style="margin-top:10px;border-top:1px solid #e8e8e8;padding-top:8px;">
-          <div style="font-size:11px;color:#9a9a9a;margin-bottom:5px;">Remind me later</div>
+          <div style="font-size:11px;color:#9a9a9a;margin-bottom:5px;">${escapeHtml(t("page.setup.remindLater", "Remind me later"))}</div>
           <div style="display:flex;flex-wrap:wrap;gap:4px;" class="flora-remind-options">
-            <button data-ms="600000" style="${REMIND_PILL_STYLE}">10 min</button>
-            <button data-ms="3600000" style="${REMIND_PILL_STYLE}">1 hour</button>
-            <button data-ms="18000000" style="${REMIND_PILL_STYLE}">5 hours</button>
-            <button data-ms="86400000" style="${REMIND_PILL_STYLE}">1 day</button>
-            <button data-ms="604800000" style="${REMIND_PILL_STYLE}">1 week</button>
+            <button data-ms="600000" style="${REMIND_PILL_STYLE}">${escapeHtml(t("page.setup.remindMinutes", "{count} min", { count: 10 }))}</button>
+            <button data-ms="3600000" style="${REMIND_PILL_STYLE}">${escapeHtml(t("page.setup.remindHours", "{count, plural, one {# hour} other {# hours}}", { count: 1 }))}</button>
+            <button data-ms="18000000" style="${REMIND_PILL_STYLE}">${escapeHtml(t("page.setup.remindHours", "{count, plural, one {# hour} other {# hours}}", { count: 5 }))}</button>
+            <button data-ms="86400000" style="${REMIND_PILL_STYLE}">${escapeHtml(t("page.setup.remindDays", "{count, plural, one {# day} other {# days}}", { count: 1 }))}</button>
+            <button data-ms="604800000" style="${REMIND_PILL_STYLE}">${escapeHtml(t("page.setup.remindWeeks", "{count, plural, one {# week} other {# weeks}}", { count: 1 }))}</button>
           </div>
         </div>
       </div>
@@ -198,12 +197,12 @@ export interface SheetsModalCallbacks {
 /** A retraction outranks a concern, which outranks a replication count. */
 function sheetsHeadline(retracted: number, concerned: number): string {
   if (retracted > 0) {
-    return `${retracted} retracted paper${retracted !== 1 ? "s" : ""} in this sheet`;
+    return t("page.sheets.headlineRetracted", "{count, plural, one {# retracted paper} other {# retracted papers}} in this sheet", { count: retracted });
   }
   if (concerned > 0) {
-    return `${concerned} paper${concerned !== 1 ? "s" : ""} with an expression of concern`;
+    return t("page.sheets.headlineConcern", "{count, plural, one {# paper} other {# papers}} with an expression of concern", { count: concerned });
   }
-  return "Replication data found";
+  return t("page.sheets.headlineReplications", "Replication data found");
 }
 
 /** Row lookup for the Sheets card: where each DOI sits in the current tab. */
@@ -221,7 +220,7 @@ function noticeSection(notices: RetractionResponse[], rows?: SheetsRowLookup): s
     const goTo = row && rows ? `
           <a data-flora-sheet-row="gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" href="#gid=${encodeURIComponent(rows.gid)}&amp;range=A${row}" style="
             all:unset;cursor:pointer;flex-shrink:0;font-size:11px;font-weight:600;color:#1a73e8;
-          ">Go to row ${row}</a>` : "";
+          ">${escapeHtml(t("page.sheets.goToRow", "Go to row {row}", { row }))}</a>` : "";
     return `
       <div data-flora-notice-row style="
         padding:6px 8px;border-radius:6px;background:${pillBackground};
@@ -239,14 +238,14 @@ function noticeSection(notices: RetractionResponse[], rows?: SheetsRowLookup): s
           ">${escapeHtml(notice.originDoi)}</span>
           <a href="https://doi.org/${encodeURIComponent(notice.doi)}" target="_blank" rel="noopener" style="
             all:unset;cursor:pointer;flex-shrink:0;font-size:11px;color:${pillText};
-          ">Notice ↗</a>${goTo}
+          ">${escapeHtml(t("page.sheets.notice", "Notice ↗"))}</a>${goTo}
       </div>`;
   }).join("");
 
   return `
       <div data-flora-notices style="margin-bottom:14px;">
         <div style="font-size:11px;font-weight:600;color:#5f6368;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;">
-          Withdrawn or questioned
+          ${escapeHtml(t("page.sheets.noticesHeading", "Withdrawn or questioned"))}
         </div>
         ${rowsHtml}
       </div>`;
@@ -291,8 +290,8 @@ export function renderSheetsModal(
   existing?.remove();
 
   const summary = hasReplicationData
-    ? `Found replication &amp; reproduction data for <strong data-flora-doi-count style="color:#202124;">${doiCount} DOI${doiCount !== 1 ? "s" : ""}</strong> in this spreadsheet.`
-    : "Checked the DOIs in this spreadsheet against the Retraction Watch database.";
+    ? tHtml("page.sheets.summaryFound", "Found replication &amp; reproduction data for <strong>{count, plural, one {# DOI} other {# DOIs}}</strong> in this spreadsheet.", { count: doiCount })
+    : escapeHtml(t("page.sheets.summaryChecked", "Checked the DOIs in this spreadsheet against the Retraction Watch database."));
 
   const statCards = hasReplicationData ? `
         <div style="display:flex;gap:10px;margin-bottom:4px;">
@@ -301,14 +300,14 @@ export function renderSheetsModal(
             padding:12px;text-align:center;
           ">
             <div data-flora-repl-count style="font-size:22px;font-weight:600;color:#853953;line-height:1;">${totalRepl}</div>
-            <div data-flora-repl-label style="font-size:11px;color:#612D53;margin-top:4px;font-weight:500;">Replication${totalRepl !== 1 ? "s" : ""}</div>
+            <div data-flora-repl-label style="font-size:11px;color:#612D53;margin-top:4px;font-weight:500;">${escapeHtml(t("page.sheets.replicationsLabel", "{count, plural, one {Replication} other {Replications}}", { count: totalRepl }))}</div>
           </div>
           <div style="
             flex:1;background:#f9f0f4;border:1px solid #d4a5b8;border-radius:8px;
             padding:12px;text-align:center;
           ">
             <div data-flora-repro-count style="font-size:22px;font-weight:600;color:#853953;line-height:1;">${totalRepro}</div>
-            <div data-flora-repro-label style="font-size:11px;color:#612D53;margin-top:4px;font-weight:500;">Reproduction${totalRepro !== 1 ? "s" : ""}</div>
+            <div data-flora-repro-label style="font-size:11px;color:#612D53;margin-top:4px;font-weight:500;">${escapeHtml(t("page.sheets.reproductionsLabel", "{count, plural, one {Reproduction} other {Reproductions}}", { count: totalRepro }))}</div>
           </div>
         </div>` : "";
 
@@ -316,7 +315,7 @@ export function renderSheetsModal(
         <a data-flora-details-link target="_blank" rel="noopener" style="
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">Open in FLoRA Atlas</a>` : "";
+        ">${escapeHtml(t("page.common.openInAtlas", "Open in FLoRA Atlas"))}</a>` : "";
 
   const host = document.createElement("div");
   host.id = SHEETS_MODAL_ID;
@@ -335,9 +334,9 @@ export function renderSheetsModal(
           padding:4px 10px;border-radius:6px;letter-spacing:0.3px;
         ">FORRT ORE</span>
         <span id="flora-modal-title" data-flora-modal-title style="color:#fff;font-size:13px;font-weight:500;flex:1;">
-          ${sheetsHeadline(retracted, concerned)}
+          ${escapeHtml(sheetsHeadline(retracted, concerned))}
         </span>
-        <span class="flora-modal-close" role="button" tabindex="0" aria-label="Close" style="
+        <span class="flora-modal-close" role="button" tabindex="0" aria-label="${escapeHtml(t("page.common.close", "Close"))}" style="
           cursor:pointer;color:rgba(255,255,255,0.7);font-size:20px;line-height:1;
           width:28px;height:28px;display:flex;align-items:center;justify-content:center;
           border-radius:50%;transition:background 0.15s;
@@ -345,21 +344,21 @@ export function renderSheetsModal(
       </div>
 
       <div style="padding:16px;">
-        <div style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">${summary}</div>
+        <div data-flora-summary style="font-size:13px;color:#3c4043;margin-bottom:14px;line-height:1.5;">${summary}</div>
         ${noticeSection(notices, rows)}
         ${statCards}
       </div>
 
       <div style="padding:10px 16px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;">
-        <button class="flora-modal-snooze" title="Hide this card for ${SHEETS_SNOOZE_MINUTES} minutes" style="
+        <button class="flora-modal-snooze" title="${escapeHtml(t("page.sheets.snoozeTitle", "Hide this card for {count, plural, one {# minute} other {# minutes}}", { count: SHEETS_SNOOZE_MINUTES }))}" style="
           all:unset;cursor:pointer;padding:7px 8px;font-size:13px;font-weight:500;line-height:1;
           color:#5f6368;border-radius:6px;transition:color 0.15s;white-space:nowrap;
           display:flex;align-items:center;justify-content:center;gap:6px;margin-right:auto;
-        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Snooze ${SHEETS_SNOOZE_MINUTES} min</button>
+        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${escapeHtml(t("page.sheets.snooze", "Snooze {count} min", { count: SHEETS_SNOOZE_MINUTES }))}</button>
         <button class="flora-modal-dismiss" style="
           all:unset;cursor:pointer;padding:7px 12px;font-size:13px;font-weight:500;
           color:#5f6368;border-radius:6px;transition:background 0.15s;white-space:nowrap;
-        ">Hide for this sheet</button>
+        ">${escapeHtml(t("page.sheets.hide", "Hide for this sheet"))}</button>
         ${detailsLink}
       </div>
     </div>
@@ -370,6 +369,12 @@ export function renderSheetsModal(
         to { opacity:1; transform:translateY(0); }
       }
     </style>`;
+
+  const countEl = host.querySelector<HTMLElement>("[data-flora-summary] strong");
+  if (countEl) {
+    countEl.setAttribute("data-flora-doi-count", "");
+    countEl.style.color = "#202124";
+  }
 
   document.body.appendChild(host);
 
@@ -696,10 +701,12 @@ function buildRegisteredReportBanner(report: RegisteredReport): HTMLAnchorElemen
   dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${RR_ACCENT};flex-shrink:0;`;
   const text = document.createElement("span");
   text.style.cssText = `flex:1;font-size:12px;font-weight:600;color:${RR_ACCENT};line-height:1.4;`;
-  text.textContent = `Registered Report — ${detail.subtitle}`;
+  // i18n: {detail} describes the registered report, e.g. its stage
+  text.textContent = t("page.rr.banner", "Registered Report — {detail}", { detail: detail.subtitle });
   const action = document.createElement("span");
   action.style.cssText = `flex-shrink:0;font-size:11px;font-weight:600;color:${RR_ACCENT};`;
-  action.textContent = `${detail.actionLabel} ↗`;
+  // i18n: {action} is a link label such as "View protocol"; ↗ marks an external link
+  action.textContent = t("page.rr.action", "{action} ↗", { action: detail.actionLabel });
   banner.append(dot, text, action);
   return banner;
 }
@@ -710,14 +717,47 @@ function buildRegisteredReportTag(report: RegisteredReport): HTMLAnchorElement {
   tag.href = detail.href;
   tag.target = "_blank";
   tag.rel = "noopener noreferrer";
-  tag.title = `Registered Report — ${detail.subtitle}`;
+  tag.title = t("page.rr.banner", "Registered Report — {detail}", { detail: detail.subtitle });
   tag.setAttribute("data-flora-rr-tag", "");
   tag.style.cssText =
     `flex-shrink:0;font-size:10px;font-weight:600;color:${RR_ACCENT};` +
     "background:#f0fdfa;border:1px solid #99f6e4;padding:1px 7px;border-radius:10px;" +
     "white-space:nowrap;text-decoration:none;cursor:pointer;";
-  tag.textContent = report.stage ? `Registered Report · Stage ${report.stage}` : "Registered Report";
+  tag.textContent = report.stage
+    ? t("page.rr.tagStage", "Registered Report · Stage {stage}", { stage: report.stage })
+    : t("page.rr.tag", "Registered Report");
   return tag;
+}
+
+function entrySectionLabel(kind: "replication" | "reproduction" | "original", count: number): string {
+  switch (kind) {
+    case "replication":
+      // i18n: panel section heading, shown in capitals; {count} is the number of entries
+      return t("page.panel.replicationsHeading", "{count, plural, one {Replication} other {Replications}} ({count})", { count });
+    case "reproduction":
+      // i18n: panel section heading, shown in capitals; {count} is the number of entries
+      return t("page.panel.reproductionsHeading", "{count, plural, one {Reproduction} other {Reproductions}} ({count})", { count });
+    case "original":
+      // i18n: panel section heading, shown in capitals; {count} is the number of entries
+      return t("page.panel.originalsHeading", "{count, plural, one {Original Paper} other {Original Papers}} ({count})", { count });
+  }
+}
+
+function entryToggleLabel(kind: "replication" | "reproduction" | "original", expanded: boolean, count: number): string {
+  switch (kind) {
+    case "replication":
+      return expanded
+        ? t("page.panel.fewerReplications", "Show fewer replications")
+        : t("page.panel.moreReplications", "{count, plural, one {Show # more replication} other {Show # more replications}}", { count });
+    case "reproduction":
+      return expanded
+        ? t("page.panel.fewerReproductions", "Show fewer reproductions")
+        : t("page.panel.moreReproductions", "{count, plural, one {Show # more reproduction} other {Show # more reproductions}}", { count });
+    case "original":
+      return expanded
+        ? t("page.panel.fewerOriginals", "Show fewer original papers")
+        : t("page.panel.moreOriginals", "{count, plural, one {Show # more original paper} other {Show # more original papers}}", { count });
+  }
 }
 
 function toReportEntry(entry: {
@@ -752,7 +792,12 @@ function saveFile(bytes: Uint8Array<ArrayBuffer>, filename: string, mime: string
 
 function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
   let busy = false;
-  const button = headerAction(DOWNLOAD_ICON, "Download", "Download this report as a PDF", () => {
+  const button = headerAction(
+    DOWNLOAD_ICON,
+    // i18n: panel header button label, keep short
+    t("page.panel.download", "Download"),
+    t("page.panel.downloadTitle", "Download this report as a PDF"),
+    () => {
     if (busy) return;
     busy = true;
     button.setAttribute("aria-busy", "true");
@@ -763,7 +808,7 @@ function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
       })
       .catch((err) => {
         debugWarn("Report: PDF download failed —", err);
-        showToast("Couldn't create the PDF", { tone: "error" });
+        showToast(t("page.panel.pdfFailed", "Couldn't create the PDF"), { tone: "error" });
       })
       .finally(() => {
         busy = false;
@@ -774,16 +819,19 @@ function buildSaveButton(payload: () => ReportPayload): HTMLButtonElement {
 }
 
 function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
-  return headerAction(SHARE_ICON, "Copy link", "Copy a link to this report", () => {
+  // i18n: panel header button label, keep short
+  return headerAction(SHARE_ICON, t("page.panel.copyLink", "Copy link"), t("page.panel.copyLinkTitle", "Copy a link to this report"), () => {
     void reportUrl(payload())
       .then((url) => writeClipboard(url))
       .then((copied) => {
         showToast(
-          copied ? "Report link copied — the report travels inside the link" : "Couldn't copy the link",
+          copied
+            ? t("page.panel.linkCopied", "Report link copied — the report travels inside the link")
+            : t("page.panel.linkCopyFailed", "Couldn't copy the link"),
           { tone: copied ? "success" : "error" }
         );
       })
-      .catch(() => showToast("Couldn't build the report link", { tone: "error" }));
+      .catch(() => showToast(t("page.panel.linkBuildFailed", "Couldn't build the report link"), { tone: "error" }));
   });
 }
 
@@ -878,7 +926,8 @@ export function renderSidePanel(
     plainTitle(primary?.title) ||
     plainTitle(articleTitle) ||
     plainTitle(getPageArticleTitle()) ||
-    "Article";
+    // i18n: fallback panel title when the article's title is unknown
+    t("page.panel.articleFallback", "Article");
 
   const signature = panelSignature(
     primary, references, articleDois, pageState, refFeedbackByDoi, retractionByDoi, articleTitleText
@@ -915,7 +964,7 @@ export function renderSidePanel(
 
   // Tab trigger — always visible on right edge
   const tab = document.createElement("button");
-  tab.setAttribute("aria-label", "Open the FORRT ORE panel");
+  tab.setAttribute("aria-label", t("page.panel.openTab", "Open the FORRT ORE panel"));
   tab.setAttribute("data-flora-panel-tab", "");
   // all:unset resets animation, so animation is declared explicitly after it.
   // 'right' is animated by flora-tab-enter; openPanel/closePanel clear the animation
@@ -982,7 +1031,7 @@ export function renderSidePanel(
     "display:flex;align-items:center;gap:10px;flex-shrink:0;";
   header.innerHTML = `
     <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
-    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;">Meta Report</span>`;
+    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;">${escapeHtml(t("page.panel.heading", "Meta Report"))}</span>`;
 
   const buildPayload = (): ReportPayload => ({
     v: 1,
@@ -1016,7 +1065,8 @@ export function renderSidePanel(
   header.appendChild(buildShareButton(buildPayload));
 
   const closeBtn = document.createElement("button");
-  closeBtn.setAttribute("aria-label", "Close panel");
+  closeBtn.setAttribute("aria-label", t("page.panel.close", "Close panel"));
+  closeBtn.setAttribute("data-flora-panel-close", "");
   closeBtn.style.cssText =
     "all:unset;cursor:pointer;color:rgba(255,255,255,0.8);font-size:20px;line-height:1;" +
     "width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;";
@@ -1046,7 +1096,7 @@ export function renderSidePanel(
     titleLink.href = articleFloraUrl;
     titleLink.target = "_blank";
     titleLink.rel = "noopener";
-    titleLink.title = "Open in FLoRA";
+    titleLink.title = t("page.panel.openInFlora", "Open in FLoRA");
     titleLink.style.cssText =
       "display:inline-flex;align-items:flex-start;gap:4px;color:#853953;font-weight:600;" +
       "font-size:18px;text-decoration:none;line-height:1.4;word-break:break-word;flex:1;min-width:0;";
@@ -1116,8 +1166,8 @@ export function renderSidePanel(
   if (articleNotice) {
     const np = noticePresentation(articleNotice.kind);
     const titleText = articleNotice.kind === "concern"
-      ? "View the expression-of-concern notice"
-      : "View the retraction notice";
+      ? t("page.notice.viewConcern", "View the expression-of-concern notice")
+      : t("page.notice.viewRetraction", "View the retraction notice");
     const noticeBanner = document.createElement("a");
     noticeBanner.href = `https://doi.org/${articleNotice.doi}`;
     noticeBanner.target = "_blank";
@@ -1147,7 +1197,7 @@ export function renderSidePanel(
       journal?: string | null; year?: number | null; url?: string | null;
       outcome?: string | null;
     }>,
-    sectionTitle: string,
+    kind: "replication" | "reproduction" | "original",
     showOaPlaceholder = false
   ): Map<string, HTMLElement> => {
     const oaPlaceholders = new Map<string, HTMLElement>();
@@ -1158,7 +1208,7 @@ export function renderSidePanel(
     sectionLabel.style.cssText =
       "font-size:14px;font-weight:600;color:#5f6368;text-transform:uppercase;padding:0px 16px 10px 12px;" +
       "letter-spacing:0.5px;margin-bottom:6px;border-bottom:1px solid #e8e8e8;padding:10px 16px;";
-    sectionLabel.textContent = `${sectionTitle} (${entries.length})`;
+    sectionLabel.textContent = entrySectionLabel(kind, entries.length);
     section.appendChild(sectionLabel);
 
     const COLLAPSED_COUNT = 5;
@@ -1167,7 +1217,8 @@ export function renderSidePanel(
       const item = document.createElement("div");
       item.style.cssText = "padding:6px 0;border-bottom:1px solid #f0f0f0;padding:10px 16px;";
       const entryUrl = entry.url ?? (entry.doi ? `https://doi.org/${entry.doi}` : null);
-      const titleText = plainTitle(entry.title) || entry.doi || "Unknown";
+      // i18n: fallback for an entry without a title or DOI
+      const titleText = plainTitle(entry.title) || entry.doi || t("page.panel.untitled", "Unknown");
       const titleRow = document.createElement("div");
       titleRow.style.cssText = "display:flex;align-items:flex-start;gap:8px;";
       if (entryUrl && /^https?:\/\//i.test(entryUrl)) {
@@ -1246,12 +1297,9 @@ export function renderSidePanel(
       toggle.addEventListener("mouseenter", () => { toggle.style.background = "#f9f0f4"; });
       toggle.addEventListener("mouseleave", () => { toggle.style.background = ""; });
 
-      const noun = sectionTitle.replace(/s$/i, "").toLowerCase();
       let expanded = false;
       const setLabel = (): void => {
-        toggle.textContent = expanded
-          ? `Show fewer ${noun}s`
-          : `Show ${hidden.length} more ${noun}${hidden.length === 1 ? "" : "s"}`;
+        toggle.textContent = entryToggleLabel(kind, expanded, hidden.length);
       };
       setLabel();
       toggle.addEventListener("click", () => {
@@ -1272,11 +1320,11 @@ export function renderSidePanel(
   // show what replicated/reproduced this paper.
   const oaPlaceholders = articleIsReplication
     ? new Map<string, HTMLElement>()
-    : renderEntrySection(allReplicationEntries, `Replication${allReplicationEntries.length !== 1 ? "s" : ""}`, true);
+    : renderEntrySection(allReplicationEntries, "replication", true);
   if (!articleIsReplication) {
-    renderEntrySection(allReproductionEntries, `Reproduction${allReproductionEntries.length !== 1 ? "s" : ""}`);
+    renderEntrySection(allReproductionEntries, "reproduction");
   }
-  renderEntrySection(allOriginalEntries, `Original Paper${allOriginalEntries.length !== 1 ? "s" : ""}`);
+  renderEntrySection(allOriginalEntries, "original");
 
   // Include the main article in the Unpaywall lookup. Skip if its DOI already
   // belongs to a replication entry so that entry's placeholder isn't clobbered.
@@ -1297,7 +1345,7 @@ export function renderSidePanel(
         icon.href = oaUrl;
         icon.target = "_blank";
         icon.rel = "noopener noreferrer";
-        icon.title = "Free PDF available via Unpaywall";
+        icon.title = t("page.panel.freePdf", "Free PDF available via Unpaywall");
         // Both the article title and the reference/replication entries get a
         // circular OA badge so the status reads as a deliberate element; the
         // title's is larger to match its prominence.
@@ -1366,18 +1414,20 @@ export function renderSidePanel(
       };
       if (n_replications_total > 0) {
         tagsRow.appendChild(makeTag(
-          `${n_replications_total} Replication${n_replications_total === 1 ? "" : "s"}`,
+          // i18n: small tag on a reference row, keep short
+          t("page.refs.replicationsTag", "{count, plural, one {# Replication} other {# Replications}}", { count: n_replications_total }),
           "#e0f2fe", "#0369a1", "#7dd3fc"
         ));
       }
       if (n_reproductions_total > 0) {
         tagsRow.appendChild(makeTag(
-          `${n_reproductions_total} Reproduction${n_reproductions_total === 1 ? "" : "s"}`,
+          // i18n: small tag on a reference row, keep short
+          t("page.refs.reproductionsTag", "{count, plural, one {# Reproduction} other {# Reproductions}}", { count: n_reproductions_total }),
           "#ede9fe", "#6d28d9", "#c4b5fd"
         ));
       }
       if (n_originals_total > 0) {
-        tagsRow.appendChild(makeTag("View in Atlas", "#fef9c3", "#854d0e", "#fde047"));
+        tagsRow.appendChild(makeTag(t("page.refs.viewInAtlas", "View in Atlas"), "#fef9c3", "#854d0e", "#fde047"));
       }
     }
 
@@ -1390,8 +1440,8 @@ export function renderSidePanel(
       noticeTag.target = "_blank";
       noticeTag.rel = "noopener noreferrer";
       noticeTag.title = isRetraction
-        ? "View the retraction notice"
-        : "View the expression-of-concern notice";
+        ? t("page.notice.viewRetraction", "View the retraction notice")
+        : t("page.notice.viewConcern", "View the expression-of-concern notice");
       noticeTag.style.cssText =
         "flex-shrink:0;font-size:10px;font-weight:600;" +
         (isRetraction
@@ -1403,14 +1453,15 @@ export function renderSidePanel(
     }
 
     if (feedback && feedback.total_comments > 0) {
-      const commentText = `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"}`;
+      // i18n: PubPeer comment count on a reference row, keep short
+      const commentText = t("page.refs.comments", "{count, plural, one {# comment} other {# comments}}", { count: feedback.total_comments });
       // PubPeer-branded pill: speech-bubble mark + count in PubPeer's colours
       // (#446058 teal on a light-teal background).
       const commentTag = document.createElement("a");
       commentTag.href = feedback.url;
       commentTag.target = "_blank";
       commentTag.rel = "noopener noreferrer";
-      commentTag.title = "View on PubPeer";
+      commentTag.title = t("page.refs.viewOnPubPeer", "View on PubPeer");
       commentTag.style.cssText =
         "flex-shrink:0;display:inline-flex;align-items:center;gap:4px;" +
         "font-size:10px;font-weight:600;color:#446058;" +
@@ -1428,7 +1479,7 @@ export function renderSidePanel(
         `<line x1="86.303" y1="22.907" x2="86.303" y2="70.177"/>` +
         `<line x1="18.027" y1="124.955" x2="80.772" y2="21.267"/>` +
         `<line x1="76.136" y1="80.344" x2="45.023" y2="80.344"/></svg>` +
-        `<span>${commentText}</span>`;
+        `<span>${escapeHtml(commentText)}</span>`;
       tagsRow.appendChild(commentTag);
     }
 
@@ -1440,11 +1491,7 @@ export function renderSidePanel(
   };
 
   // Render a collapsible reference-row section (first 5 visible, toggle reveals rest).
-  const renderRefSection = (
-    headingText: string,
-    refs: { doi: DoiString; title: string }[],
-    noun: string
-  ): void => {
+  const renderRefSection = (refs: { doi: DoiString; title: string }[]): void => {
     if (refs.length === 0) return;
     const section = document.createElement("div");
     section.style.cssText = "border-top:1px solid #e8e8e8;";
@@ -1453,7 +1500,8 @@ export function renderSidePanel(
     label.style.cssText =
       "font-size:14px;font-weight:600;color:#5f6368;text-transform:uppercase;" +
       "letter-spacing:0.5px;border-bottom:1px solid #e8e8e8;padding:10px 16px;";
-    label.textContent = `${headingText} with Tags (${refs.length})`;
+    // i18n: section heading shown in capitals; "tags" are the small labels on each reference
+    label.textContent = t("page.refs.heading", "References with Tags ({count})", { count: refs.length });
     section.appendChild(label);
 
     const list = document.createElement("ul");
@@ -1494,8 +1542,8 @@ export function renderSidePanel(
       let expanded = false;
       const setLabel = (): void => {
         toggle.textContent = expanded
-          ? `Show fewer ${noun}s`
-          : `Show ${hidden.length} more ${noun}${hidden.length === 1 ? "" : "s"}`;
+          ? t("page.refs.showFewer", "Show fewer references")
+          : t("page.refs.showMore", "{count, plural, one {Show # more reference} other {Show # more references}}", { count: hidden.length });
       };
       setLabel();
       toggle.addEventListener("click", () => {
@@ -1515,7 +1563,7 @@ export function renderSidePanel(
   // promoted to a section at the top of the panel so they're prominent — they
   // still appear in the full References list below as well.
   // Full reference list — every flagged reference.
-  renderRefSection("References", references, "reference");
+  renderRefSection(references);
 
   const rrDois = [...articleDois.slice(0, 1), ...rrTagRows.keys()];
   if (rrDois.length > 0) {
@@ -1548,7 +1596,7 @@ export function renderSidePanel(
     commentsHeader.style.cssText =
       "padding:12px 16px;font-size:14px;color:#5f6368;line-height:1.6;" +
       "flex-shrink:0;margin:0;font-weight:600;background:#f5f8fa;text-transform:uppercase;";
-    commentsHeader.textContent = "Comments";
+    commentsHeader.textContent = t("page.comments.heading", "Comments");
     scrollBody.appendChild(commentsHeader);
 
     const threadUrl = primary.url;
@@ -1583,13 +1631,13 @@ export function renderSidePanel(
       if (onRetry) {
         const retry = document.createElement("button");
         retry.type = "button";
-        retry.textContent = "Retry";
+        retry.textContent = t("page.common.retry", "Retry");
         retry.style.cssText = "cursor:pointer;padding:6px 14px;font-size:12px;font-weight:500;" +
           "color:#853953;border:1px solid #853953;border-radius:6px;background:white;";
         retry.addEventListener("click", onRetry);
         status.appendChild(retry);
       }
-      if (withLink) status.appendChild(threadLink("View comments on PubPeer ↗"));
+      if (withLink) status.appendChild(threadLink(t("page.comments.viewOnPubPeer", "View comments on PubPeer ↗")));
       commentsBody.replaceChildren(status);
     };
 
@@ -1598,13 +1646,13 @@ export function renderSidePanel(
       if (!loadedComments) return;
       const visible = loadedComments.filter((c) => !isHiddenCommenter(c.user, hidden));
       if (loadedComments.length === 0) {
-        showCommentsStatus("These comments can only be read on PubPeer.", true);
+        showCommentsStatus(t("page.comments.onlyOnPubPeer", "These comments can only be read on PubPeer."), true);
       } else if (visible.length === 0) {
-        showCommentsStatus("Every comment here is from a commenter you've hidden in Settings.", true);
+        showCommentsStatus(t("page.comments.allHidden", "Every comment here is from a commenter you've hidden in Settings."), true);
       } else {
         const footer = document.createElement("div");
         footer.style.cssText = "display:flex;justify-content:center;padding:4px 16px 16px;";
-        footer.appendChild(threadLink("Reply on PubPeer ↗"));
+        footer.appendChild(threadLink(t("page.comments.reply", "Reply on PubPeer ↗")));
         commentsBody.replaceChildren(renderCommentList(visible), footer);
       }
     };
@@ -1614,16 +1662,16 @@ export function renderSidePanel(
       if (commentsRequested) return;
       commentsRequested = true;
       if (!isPubPeerThreadUrl(threadUrl)) {
-        showCommentsStatus("These comments can only be read on PubPeer.", true);
+        showCommentsStatus(t("page.comments.onlyOnPubPeer", "These comments can only be read on PubPeer."), true);
         return;
       }
-      showCommentsStatus("Loading comments…", false);
+      showCommentsStatus(t("page.comments.loading", "Loading comments…"), false);
       void Promise.all([requestPubPeerComments(threadUrl, threadCommentCount), getHiddenCommenters()])
         .then(([comments, hidden]) => {
           if (!host.isConnected) return;
           if (!comments) {
             commentsRequested = false;
-            showCommentsStatus("PubPeer comments couldn't be loaded here.", true, () => loadThreadComments?.());
+            showCommentsStatus(t("page.comments.loadFailed", "PubPeer comments couldn't be loaded here."), true, () => loadThreadComments?.());
             return;
           }
           loadedComments = comments;
@@ -1641,7 +1689,7 @@ export function renderSidePanel(
       "padding:12px 16px;font-size:14px;color:#5f6368;line-height:1.6;" +
       "flex-shrink:0;margin:0;font-weight:600;background:#f5f8fa;text-transform:uppercase;" +
       "border-top:1px solid #e8e8e8;";
-    commentsHeader.textContent = "Comments";
+    commentsHeader.textContent = t("page.comments.heading", "Comments");
     scrollBody.appendChild(commentsHeader);
 
     const emptyState = document.createElement("div");
@@ -1652,31 +1700,31 @@ export function renderSidePanel(
       `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" ` +
       `fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">` +
       `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>` +
-      `<span style="font-size:13px;font-weight:500;color:#5f6368;">No PubPeer comments yet</span>` +
-      `<span style="font-size:12px;line-height:1.5;">This article hasn't been discussed on PubPeer.</span>`;
+      `<span style="font-size:13px;font-weight:500;color:#5f6368;">${escapeHtml(t("page.comments.noneTitle", "No PubPeer comments yet"))}</span>` +
+      `<span style="font-size:12px;line-height:1.5;">${escapeHtml(t("page.comments.noneText", "This article hasn't been discussed on PubPeer."))}</span>`;
 
     if (onRetryPubPeer) {
       const labels = emptyState.querySelectorAll("span");
-      labels[0].textContent = "PubPeer unavailable";
-      labels[1].textContent = "Discussion status could not be checked. Other available findings are shown above.";
+      labels[0].textContent = t("page.comments.unavailableTitle", "PubPeer unavailable");
+      labels[1].textContent = t("page.comments.unavailableText", "Discussion status could not be checked. Other available findings are shown above.");
       const retry = document.createElement("button");
       retry.type = "button";
-      retry.textContent = "Retry";
+      retry.textContent = t("page.common.retry", "Retry");
       retry.style.cssText = "cursor:pointer;margin-top:8px;padding:6px 14px;font-size:12px;font-weight:500;" +
         "color:#853953;border:1px solid #853953;border-radius:6px;background:white;";
       retry.addEventListener("click", async () => {
         const hadFocus = document.activeElement === retry;
         retry.disabled = true;
-        retry.textContent = "Retrying…";
+        retry.textContent = t("page.common.retrying", "Retrying…");
         try { await onRetryPubPeer(); }
         finally {
           retry.disabled = false;
-          retry.textContent = "Retry";
+          retry.textContent = t("page.common.retry", "Retry");
           // Replacement removes the focused button; do not steal focus if the
           // user moved elsewhere while the lookup was running.
           const currentPanel = document.getElementById(PUBPEER_PANEL_ID);
           if (hadFocus && currentPanel && document.activeElement === document.body) {
-            const target = retry.isConnected ? retry : currentPanel.querySelector<HTMLElement>('[aria-label="Close panel"]');
+            const target = retry.isConnected ? retry : currentPanel.querySelector<HTMLElement>("[data-flora-panel-close]");
             target?.focus({ preventScroll: true });
           }
         }
@@ -1689,7 +1737,7 @@ export function renderSidePanel(
         : "https://pubpeer.com/";
       startDiscussion.target = "_blank";
       startDiscussion.rel = "noopener";
-      startDiscussion.textContent = "Start a discussion on PubPeer";
+      startDiscussion.textContent = t("page.comments.startDiscussion", "Start a discussion on PubPeer");
       startDiscussion.style.cssText =
         "all:unset;cursor:pointer;margin-top:8px;padding:6px 14px;font-size:12px;font-weight:500;" +
         "color:#853953;border:1px solid #853953;border-radius:6px;transition:background 0.15s;";
@@ -1715,7 +1763,7 @@ export function renderSidePanel(
     openLink.style.cssText =
       "all:unset;cursor:pointer;padding:6px 16px;font-size:12px;font-weight:500;" +
       "color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;";
-    openLink.textContent = "Open in FLoRA Atlas";
+    openLink.textContent = t("page.common.openInAtlas", "Open in FLoRA Atlas");
     footer.appendChild(openLink);
     panel.appendChild(footer);
   }
@@ -1731,7 +1779,7 @@ export function renderSidePanel(
     panel.style.transform = "translateX(0)";
     tab.style.right = `${PANEL_WIDTH}px`;
     arrow.style.transform = "rotate(180deg)";
-    setTabLabel(tab, "Close FLoRA panel");
+    setTabLabel(tab, t("page.panel.closeTab", "Close FLoRA panel"));
     setPanelZIndex("2147483646");
     loadThreadComments?.();
   };
@@ -1743,7 +1791,7 @@ export function renderSidePanel(
     panel.style.transform = "translateX(100%)";
     tab.style.right = "0";
     arrow.style.transform = "rotate(0deg)";
-    setTabLabel(tab, "Open the FORRT ORE panel");
+    setTabLabel(tab, t("page.panel.openTab", "Open the FORRT ORE panel"));
     setPanelZIndex("2147483647");
   };
 

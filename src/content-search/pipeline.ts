@@ -23,6 +23,7 @@ import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
 import {reportCodeError} from "@shared/error-report";
 import {hasReplication} from "../content-general/reference-states";
 import {isSetupComplete} from "@shared/settings";
+import {t, uiLocale} from "@shared/i18n";
 import {deferredOpenAccess} from "@shared/openaccess";
 import {abortWorkForNavigation, activeWorkSignal, isAbortError, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
@@ -31,7 +32,6 @@ import {
     beginWorkIndicator,
     waitForWorkToFinish,
     isWorkIndicatorIdle,
-    count,
     endWorkIndicator,
     isWorkCancelled,
     reportWorkStage,
@@ -240,7 +240,8 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     const {label} = adapter;
     const generation = searchNavigationGeneration;
     const navigated = () => generation !== searchNavigationGeneration;
-    reportWorkStage("scan", `Reading ${count(rows.length, `${label} result`)}…`);
+    // i18n: progress label; {site} is a search site name such as Scholar or PubMed
+    reportWorkStage("scan", t("search.stage.reading", "Reading {count, plural, one {# {site} result} other {# {site} results}}…", {count: rows.length, site: label}));
 
     const resolved: ResolvedRow[] = [];
     let hasUnansweredTitles = false;
@@ -275,7 +276,8 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     // Phase 2: the site's own ids → DOIs, one batched call.
     const withSiteId = pending.filter((r) => r.siteId);
     if (withSiteId.length > 0 && adapter.resolveSiteIds) {
-        reportWorkStage("validate", `Resolving ${count(withSiteId.length, `${label} record`)} to DOIs…`);
+        // i18n: progress label; {site} is a search site name such as Scopus or PubMed
+        reportWorkStage("validate", t("search.stage.resolving", "Resolving {count, plural, one {# {site} record} other {# {site} records}} to DOIs…", {count: withSiteId.length, site: label}));
         setWorkItems(withSiteId.map((r) => workItem(r.siteId!, r.title, rowByline(r))));
         let bySiteId = new Map<string, DoiString | null>();
         try {
@@ -286,14 +288,16 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         if (navigated()) return;
         for (const info of withSiteId) {
             const doi = bySiteId.get(info.siteId!) ?? null;
-            updateWorkItem(info.siteId!, doi ? "done" : "failed", doi ?? "no DOI on record");
+            // i18n: short status beside a paper in the progress panel (the site had no DOI for it)
+            updateWorkItem(info.siteId!, doi ? "done" : "failed", doi ?? t("search.item.noDoiOnRecord", "no DOI on record"));
         }
         if (isWorkCancelled()) return;
         pending = pending.filter((info) => {
             const doi = info.siteId ? bySiteId.get(info.siteId) : undefined;
             if (!doi) return true;
             debugLog(`${label} resolve [site-id] "${info.title}" → ${doi} (${info.siteId})`);
-            place(info, doi, "extracted", false, `Taken from ${label}'s own record of this work`);
+            // i18n: tooltip on a DOI; {site} is a search site name such as Scopus or PubMed
+            place(info, doi, "extracted", false, t("search.provenance.siteRecord", "Taken from {site}'s own record of this work", {site: label}));
             return false;
         });
     }
@@ -303,7 +307,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     const doisToValidate = withDoi.map((r) => r.doi!);
     let validated = new Map<DoiString, boolean>();
     if (doisToValidate.length > 0) {
-        reportWorkStage("validate", `Checking ${count(doisToValidate.length, "DOI")} resolve…`);
+        reportWorkStage("validate", t("search.stage.checkingDois", "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…", {count: doisToValidate.length}));
         setWorkItems(withDoi.map((r) => workItem(r.doi!, r.title, r.doi!)));
         try {
             validated = await validateDOIs(doisToValidate);
@@ -338,7 +342,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         let augmented = new Map<string, DoiString | null>();
         let augmentFailed = false;
         if (requests.length > 0) {
-            reportWorkStage("augment", `Augmenting ${count(requests.length, "result")} without a DOI…`);
+            reportWorkStage("augment", t("search.stage.augmenting", "Augmenting {count, plural, one {# result} other {# results}} without a DOI…", {count: requests.length}));
             setWorkItems(titled.map((r) => workItem(r.title, r.title, rowByline(r))));
             try {
                 augmented = await augmentDOIsViaWorker(requests);
@@ -359,8 +363,10 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
             for (const info of titled) {
                 const doi = augmented.get(info.title) ?? null;
                 if (doi) updateWorkItem(info.title, "done", doi);
-                else if (augmented.has(info.title)) updateWorkItem(info.title, "failed", "no DOI found");
-                else if (augmentFailed && !isWorkCancelled()) updateWorkItem(info.title, "failed", "lookup failed");
+                // i18n: short status beside a paper in the progress panel
+                else if (augmented.has(info.title)) updateWorkItem(info.title, "failed", t("search.item.noDoiFound", "no DOI found"));
+                // i18n: short status beside a paper in the progress panel
+                else if (augmentFailed && !isWorkCancelled()) updateWorkItem(info.title, "failed", t("search.item.lookupFailed", "lookup failed"));
                 else updateWorkItem(info.title, "skipped");
             }
             if (isWorkCancelled()) return;
@@ -444,7 +450,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
 
     const uniqueDois = [...new Set(resolved.map((r) => r.doi))];
     debugLog(`${label}: Sending lookup for`, uniqueDois.length, "unique DOIs:", uniqueDois);
-    reportWorkStage("lookup", `Found ${count(uniqueDois.length, "unique DOI")} — looking them up…`);
+    reportWorkStage("lookup", t("search.stage.lookingUp", "Found {count, plural, one {# unique DOI} other {# unique DOIs}} — looking them up…", {count: uniqueDois.length}));
     const titleByDoi = new Map<DoiString, string>();
     for (const {doi, title} of resolved) {
         if (!titleByDoi.has(doi)) titleByDoi.set(doi, title);
@@ -491,7 +497,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         // lookupState for a later pass, but nothing goes on the page.
         if (searchHidden || isWorkCancelled()) return;
 
-        reportWorkStage("report", `Marking up ${count(badgedCount, "result")}…`);
+        reportWorkStage("report", t("search.stage.markingUp", "Marking up {count, plural, one {# result} other {# results}}…", {count: badgedCount}));
         debugLog(`${label}: Rendered`, badgedCount, "badge(s)");
     } catch (err) {
         if (navigated()) return;
@@ -554,9 +560,10 @@ onOutagesChanged(() => {
     }, 50);
 });
 
-/** "a", "a and b", "a, b and c" */
+/** "a", "a and b", "a, b and c" — no serial comma in English, matching the original wording. */
 function listOf(items: string[]): string {
-    return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+    if (uiLocale() === "en") return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+    return new Intl.ListFormat(uiLocale(), {type: "conjunction"}).format(items);
 }
 
 /** A single retry keeps either failure from hiding the other provider's recovery action. */
@@ -577,21 +584,25 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
     }
     // Popover order: open access, PubPeer; then DOI matching and retractions.
     const what: string[] = [];
-    if (outages.has("oa")) what.push("open access");
+    // i18n: items of a list such as "Open access, PubPeer and retraction checks are unavailable."
+    if (outages.has("oa")) what.push(t("search.retry.openAccess", "open access"));
     if (outages.has("pubpeer")) what.push("PubPeer");
-    if (titleFailed) what.push("DOI matching");
-    if (noticesFailed) what.push("retraction checks");
-    const list = listOf(what);
+    if (titleFailed) what.push(t("search.retry.doiMatching", "DOI matching"));
+    if (noticesFailed) what.push(t("search.retry.retractionChecks", "retraction checks"));
+    // The verb agrees with the list: plural for several items or for "retraction checks" alone.
+    const grammaticalNumber = what.length > 1 || (what.length === 1 && noticesFailed) ? "plural" : "singular";
+    // i18n: {list} is one or more of "open access", "PubPeer", "DOI matching", "retraction checks", already joined
+    const sentence = t("search.retry.unavailable", "{number, select, plural {{list} are unavailable.} other {{list} is unavailable.}}", {number: grammaticalNumber, list: listOf(what)});
     searchRetryMessage = what.length === 1 && titleFailed
-        ? "DOI matching is unavailable for some results."
-        : `${list[0].toUpperCase()}${list.slice(1)} ${what.length > 1 || what[0] === "retraction checks" ? "are" : "is"} unavailable.`;
+        ? t("search.retry.doiMatchingSome", "DOI matching is unavailable for some results.")
+        : `${sentence.charAt(0).toLocaleUpperCase(uiLocale())}${sentence.slice(1)}`;
     if (searchRetryToast?.isConnected && searchRetryToast.getAttribute("data-flora-toast-message") === searchRetryMessage) {
         noteScanUpdated();
         return;
     }
     searchRetryToast = showToast(searchRetryMessage, {
-        title: "Some ORE checks didn't load", tone: "info", duration: 0, dismissOnAction: false,
-        action: {label: "Retry", onClick: () => {
+        title: t("search.retry.title", "Some ORE checks didn't load"), tone: "info", duration: 0, dismissOnAction: false,
+        action: {label: t("search.retry.action", "Retry"), onClick: () => {
             if (pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration) {
                 if (generation === searchNavigationGeneration) dismissSearchRetry();
                 return;

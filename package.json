@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsx esbuild.config.ts",
-    "build:release": "tsx esbuild.config.ts --release",
-    "watch": "tsx esbuild.config.ts --watch",
+    "build": "tsx esbuild.config.ts && tsx scripts/i18n/cli.ts build",
+    "build:release": "tsx esbuild.config.ts --release && tsx scripts/i18n/cli.ts build",
+    "i18n": "tsx scripts/i18n/cli.ts",
+    "watch": "tsx scripts/i18n/cli.ts build && tsx esbuild.config.ts --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:visual": "tsx tests/visual/run.ts",

@@ -12,34 +12,44 @@ import { buildDebugReport, issueUrl, stashIssueReport } from "../shared/debug-re
 import { getSettings, saveSettings } from "../shared/settings";
 import { openTourSample } from "../shared/tour-sample";
 import type { PageFindings, PageStateResponse, ResultFindings } from "../shared/messages";
+import { initI18n, localizeDocument, t } from "../shared/i18n";
 
 const TOUR_CHECKING_DELAY_MS = 300;
 const FINDINGS_POLL_MS = 1000;
 const FINDINGS_SLOW_POLL_MS = 5000;
 const FINDINGS_FAST_POLLS = 30;
 
-const TOUR_HELP = {
-  checking: {
-    title: "Still checking this page",
-    text: "The tour starts as soon as ORE has finished.",
-  },
-  "no-pills": {
-    title: "No pills on this page",
-    text: "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
-  },
-  "not-running": {
-    title: "ORE isn't running on this tab",
-    text: "The tab was probably open before ORE was installed or updated. Reload it, or try a sample article.",
-  },
-  unavailable: {
-    title: "ORE can't run on browser pages",
-    text: "Try the tour on a sample article (opens in a new tab).",
-  },
-  paused: {
-    title: "ORE is off on this page",
-    text: "It's hidden, snoozed or turned off here. Turn it back on above, or try a sample article.",
-  },
-} as const;
+type TourHelpKind = "checking" | "no-pills" | "not-running" | "unavailable" | "paused";
+
+function tourHelpCopy(kind: TourHelpKind): { title: string; text: string } {
+  switch (kind) {
+    case "checking":
+      return {
+        title: t("popup.tourHelp.checkingTitle", "Still checking this page"),
+        text: t("popup.tourHelp.checkingText", "The tour starts as soon as ORE has finished."),
+      };
+    case "no-pills":
+      return {
+        title: t("popup.tourHelp.noPillsTitle", "No pills on this page"),
+        text: t("popup.tourHelp.noPillsText", "The tour points out ORE's pills. Try it on a sample article (opens in a new tab)."),
+      };
+    case "not-running":
+      return {
+        title: t("popup.tourHelp.notRunningTitle", "ORE isn't running on this tab"),
+        text: t("popup.tourHelp.notRunningText", "The tab was probably open before ORE was installed or updated. Reload it, or try a sample article."),
+      };
+    case "unavailable":
+      return {
+        title: t("popup.tourHelp.unavailableTitle", "ORE can't run on browser pages"),
+        text: t("popup.tourHelp.unavailableText", "Try the tour on a sample article (opens in a new tab)."),
+      };
+    case "paused":
+      return {
+        title: t("popup.tourHelp.pausedTitle", "ORE is off on this page"),
+        text: t("popup.tourHelp.pausedText", "It's hidden, snoozed or turned off here. Turn it back on above, or try a sample article."),
+      };
+  }
+}
 
 const domainEl = document.getElementById("current-domain")!;
 const blockBtn = document.getElementById("block-btn")!;
@@ -77,7 +87,6 @@ const versionEl = document.getElementById("popup-version")!;
 
 const extensionVersion = chrome.runtime.getManifest().version;
 versionEl.textContent = `v${extensionVersion}`;
-versionEl.title = `Extension version ${extensionVersion}`;
 document.getElementById("testing-banner")!.hidden = !isTestingBuild();
 
 let currentDomain = "";
@@ -105,7 +114,9 @@ function showStatus(msg: string, type: "success" | "error"): void {
 }
 
 function updateBlockUI(): void {
-  blockLabel.textContent = blocked ? "Turn on for this site" : "Turn off on this site";
+  blockLabel.textContent = blocked
+    ? t("popup.block.turnOn", "Turn on for this site")
+    : t("popup.block.turnOff", "Turn off on this site");
   blockSub.hidden = blocked;
   blockBtn.classList.toggle("is-blocked", blocked);
   renderFindings();
@@ -117,42 +128,53 @@ function updateSnoozeUI(): void {
   resumeBtn.hidden = !paused;
   snoozeBtn.hidden = paused;
   if (paused) {
-    snoozeNote.textContent = `Paused until ${formatSnoozeEnd(snoozedUntil!)}`;
+    snoozeNote.textContent = t("popup.snooze.pausedUntil", "Paused until {time}", { time: formatSnoozeEnd(snoozedUntil!) });
     closeSnoozeOptions();
   }
   renderFindings();
 }
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 type Part = { text: string; tone?: "retracted" | "concern" };
 
 function articleParts(f: PageFindings): Part[] {
   const a = f.article!;
   const parts: Part[] = [];
-  if (a.retracted) parts.push({ text: "Retracted", tone: "retracted" });
-  if (a.concern) parts.push({ text: "Expression of concern", tone: "concern" });
-  if (a.replications) parts.push({ text: plural(a.replications, "replication study", "replication studies") });
-  if (a.reproductions) parts.push({ text: plural(a.reproductions, "reproduction", "reproductions") });
-  if (a.originals) parts.push({ text: `Replicates ${plural(a.originals, "original study", "original studies")}` });
-  if (a.pubpeerComments) parts.push({ text: plural(a.pubpeerComments, "PubPeer comment", "PubPeer comments") });
-  if (f.checking && parts.length === 0) return [{ text: "Checking…" }];
-  if (a.incomplete) parts.push({ text: "some checks unavailable" });
-  else if (parts.length === 0) parts.push({ text: "No replications, retractions or PubPeer comments found" });
+  if (a.retracted) parts.push({ text: t("popup.findings.retracted", "Retracted"), tone: "retracted" });
+  if (a.concern) parts.push({ text: t("popup.findings.concern", "Expression of concern"), tone: "concern" });
+  if (a.replications) {
+    parts.push({ text: t("popup.findings.replications", "{count, plural, one {# replication study} other {# replication studies}}", { count: a.replications }) });
+  }
+  if (a.reproductions) {
+    parts.push({ text: t("popup.findings.reproductions", "{count, plural, one {# reproduction} other {# reproductions}}", { count: a.reproductions }) });
+  }
+  if (a.originals) {
+    parts.push({ text: t("popup.findings.originals", "Replicates {count, plural, one {# original study} other {# original studies}}", { count: a.originals }) });
+  }
+  if (a.pubpeerComments) {
+    parts.push({ text: t("popup.findings.pubpeerComments", "{count, plural, one {# PubPeer comment} other {# PubPeer comments}}", { count: a.pubpeerComments }) });
+  }
+  if (f.checking && parts.length === 0) return [{ text: t("popup.findings.checking", "Checking…") }];
+  if (a.incomplete) parts.push({ text: t("popup.findings.someUnavailable", "some checks unavailable") });
+  else if (parts.length === 0) parts.push({ text: t("popup.findings.articleNone", "No replications, retractions or PubPeer comments found") });
   return parts;
 }
 
 function otherParts(f: PageFindings): Part[] {
   const o = f.others;
   const parts: Part[] = [
-    { text: o.checked < o.papers ? `Checking… ${o.checked} of ${o.papers}` : `${o.papers} checked` },
+    {
+      text: o.checked < o.papers
+        ? t("popup.findings.checkingProgress", "Checking… {checked} of {total}", { checked: o.checked, total: o.papers })
+        : t("popup.findings.checked", "{count} checked", { count: o.papers }),
+    },
   ];
-  if (o.retracted) parts.push({ text: `${o.retracted} retracted`, tone: "retracted" });
-  if (o.concern) parts.push({ text: `${o.concern} with an expression of concern`, tone: "concern" });
-  if (o.replications) parts.push({ text: `${o.replications} with replication studies` });
-  if (o.pubpeer) parts.push({ text: `${o.pubpeer} discussed on PubPeer` });
-  if (o.unavailable) parts.push({ text: `${o.unavailable} not fully checked` });
-  else if (parts.length === 1 && o.checked >= o.papers && !f.checking) parts.push({ text: "no findings" });
+  // i18n: Counts of papers (references) on the page, shown after "References:".
+  if (o.retracted) parts.push({ text: t("popup.findings.othersRetracted", "{count} retracted", { count: o.retracted }), tone: "retracted" });
+  if (o.concern) parts.push({ text: t("popup.findings.othersConcern", "{count} with an expression of concern", { count: o.concern }), tone: "concern" });
+  if (o.replications) parts.push({ text: t("popup.findings.othersReplications", "{count} with replication studies", { count: o.replications }) });
+  if (o.pubpeer) parts.push({ text: t("popup.findings.othersPubpeer", "{count} discussed on PubPeer", { count: o.pubpeer }) });
+  if (o.unavailable) parts.push({ text: t("popup.findings.othersUnavailable", "{count} not fully checked", { count: o.unavailable }) });
+  else if (parts.length === 1 && o.checked >= o.papers && !f.checking) parts.push({ text: t("popup.findings.none", "no findings") });
   return parts;
 }
 
@@ -183,15 +205,22 @@ function renderFindings(): void {
   if (!currentDomain || blocked || snoozedUntil !== null || hidden) return;
   if (results) {
     if (results.papers === 0) return;
-    const parts: Part[] = [{ text: results.checking ? `Checking ${results.papers}…` : `${results.papers} checked` }];
-    if (results.flagged) parts.push({ text: `${results.flagged} with findings` });
-    if (results.incomplete) parts.push({ text: "some checks unavailable" });
-    else if (!results.flagged && !results.checking) parts.push({ text: "no findings" });
-    appendScope("Search results", parts);
+    const parts: Part[] = [{
+      text: results.checking
+        ? t("popup.findings.checkingCount", "Checking {count}…", { count: results.papers })
+        : t("popup.findings.checked", "{count} checked", { count: results.papers }),
+    }];
+    if (results.flagged) parts.push({ text: t("popup.findings.withFindings", "{count} with findings", { count: results.flagged }) });
+    if (results.incomplete) parts.push({ text: t("popup.findings.someUnavailable", "some checks unavailable") });
+    else if (!results.flagged && !results.checking) parts.push({ text: t("popup.findings.none", "no findings") });
+    appendScope(t("popup.findings.scopeSearch", "Search results"), parts);
   } else if (findings) {
-    if (findings.article) appendScope("This article", articleParts(findings));
+    if (findings.article) appendScope(t("popup.findings.scopeArticle", "This article"), articleParts(findings));
     if (findings.others.papers > 0) {
-      appendScope(findings.article ? "References" : "On this page", otherParts(findings));
+      appendScope(
+        findings.article ? t("popup.findings.scopeReferences", "References") : t("popup.findings.scopePage", "On this page"),
+        otherParts(findings),
+      );
     }
     if (findingsList.childElementCount === 0) return;
     openReportBtn.hidden = !findings.panel;
@@ -262,14 +291,14 @@ function buildSnoozeOptions(): void {
         updateHideUI();
       }
       reportSnoozeState(snoozedUntil);
-      showStatus(`Snoozed until ${formatSnoozeEnd(snoozedUntil)}`, "success");
+      showStatus(t("popup.snooze.snoozedUntil", "Snoozed until {time}", { time: formatSnoozeEnd(snoozedUntil) }), "success");
     });
     snoozeOptions.appendChild(button);
   }
 }
 
 function updateHideUI(): void {
-  hideLabel.textContent = hidden ? "Show on this page" : "Hide on this page";
+  hideLabel.textContent = hidden ? t("popup.hide.show", "Show on this page") : t("popup.hide.hide", "Hide on this page");
   hideSub.hidden = hidden;
   hideBtn.classList.toggle("is-hidden", hidden);
   renderFindings();
@@ -278,13 +307,16 @@ function updateHideUI(): void {
 function updateDebugUI(): void {
   debugToggle.checked = debugOn;
   debugHint.textContent = debugOn
-    ? "On. Reload the page to see ORE's progress and record a detailed log."
-    : "Shows ORE's progress on each page and adds a detailed log to issue reports.";
+    ? t("popup.debug.hintOn", "On. Reload the page to see ORE's progress and record a detailed log.")
+    : t("popup.debug.hintOff", "Shows ORE's progress on each page and adds a detailed log to issue reports.");
   logCopyRow.hidden = !debugOn;
   debugStateChip.hidden = !debugOn;
 }
 
 async function init(): Promise<void> {
+  await initI18n();
+  localizeDocument();
+  versionEl.title = t("popup.version", "Extension version {version}", { version: extensionVersion });
   buildSnoozeOptions();
   debugOn = await isDebugEnabledAsync();
   const settings = await getSettings();
@@ -297,7 +329,7 @@ async function init(): Promise<void> {
     ? await chrome.tabs.get(Number(requested)).catch(() => undefined)
     : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (!tab?.url) {
-    domainEl.textContent = "No active page";
+    domainEl.textContent = t("popup.domain.none", "No active page");
     snoozeBtn.style.display = "none";
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";
@@ -311,7 +343,7 @@ async function init(): Promise<void> {
   try {
     const url = new URL(tab.url);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      domainEl.textContent = "Internal page";
+      domainEl.textContent = t("popup.domain.internal", "Internal page");
       snoozeBtn.style.display = "none";
       blockBtn.style.display = "none";
       hideBtn.style.display = "none";
@@ -321,7 +353,7 @@ async function init(): Promise<void> {
     currentDomain = url.hostname;
     domainEl.textContent = currentDomain;
   } catch {
-    domainEl.textContent = "Internal page";
+    domainEl.textContent = t("popup.domain.internal", "Internal page");
     snoozeBtn.style.display = "none";
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";
@@ -400,7 +432,7 @@ resumeBtn.addEventListener("click", async () => {
   snoozedUntil = null;
   updateSnoozeUI();
   reportSnoozeState(null);
-  showStatus(`Resumed on ${currentDomain} — reload to apply`, "success");
+  showStatus(t("popup.status.resumed", "Resumed on {domain} — reload to apply", { domain: currentDomain }), "success");
 });
 
 // Toggle FLoRA UI visibility on the current page (session only)
@@ -413,12 +445,12 @@ hideBtn.addEventListener("click", async () => {
     await chrome.tabs.sendMessage(activeTabId, { type: messageType });
     hidden = !hidden;
     updateHideUI();
-    showStatus(hidden ? "Hidden until page refresh" : "ORE restored", "success");
+    showStatus(hidden ? t("popup.status.hidden", "Hidden until page refresh") : t("popup.status.restored", "ORE restored"), "success");
     // Showing ORE again brings back its panel and findings; ask for them afresh.
     if (!hidden) void refreshPageState();
   } catch (err) {
     debugWarn("Popup: hide/show message failed —", err);
-    showStatus("Nothing from ORE on this page", "error");
+    showStatus(t("popup.status.nothingOnPage", "Nothing from ORE on this page"), "error");
   }
 });
 
@@ -428,7 +460,9 @@ debugToggle.addEventListener("change", () => {
   setDebug(debugOn);
   updateDebugUI();
   showStatus(
-    debugOn ? "Debug mode on — reload the page to see ORE's progress" : "Debug mode off",
+    debugOn
+      ? t("popup.status.debugOn", "Debug mode on — reload the page to see ORE's progress")
+      : t("popup.status.debugOff", "Debug mode off"),
     "success"
   );
 });
@@ -490,15 +524,16 @@ reportBtn.addEventListener("click", async () => {
   chrome.tabs.create({ url: link.url });
 
   if (!attached) {
-    showStatus("Couldn't attach the log — grab it from Settings", "error");
+    showStatus(t("popup.status.logNotAttached", "Couldn't attach the log — grab it from Settings"), "error");
     return;
   }
   window.close();
 });
 
-function showTourHelp(kind: keyof typeof TOUR_HELP): void {
-  tourHelpTitle.textContent = TOUR_HELP[kind].title;
-  tourHelpText.textContent = TOUR_HELP[kind].text;
+function showTourHelp(kind: TourHelpKind): void {
+  const copy = tourHelpCopy(kind);
+  tourHelpTitle.textContent = copy.title;
+  tourHelpText.textContent = copy.text;
   tourSampleBtn.hidden = kind === "checking";
   tourReloadBtn.hidden = kind !== "not-running";
   tourHelp.hidden = false;
@@ -551,7 +586,7 @@ tourSampleBtn.addEventListener("click", async () => {
   } catch (err) {
     debugError("Popup: could not open the sample article —", err);
     closeTourHelp();
-    showStatus("Couldn't open the sample article", "error");
+    showStatus(t("popup.status.sampleFailed", "Couldn't open the sample article"), "error");
   }
 });
 
@@ -577,7 +612,7 @@ openReportBtn.addEventListener("click", async () => {
   } catch (err) {
     debugWarn("Popup: open report message failed —", err);
   }
-  showStatus("Couldn't open the report on this page", "error");
+  showStatus(t("popup.status.reportFailed", "Couldn't open the report on this page"), "error");
 });
 
 // Open walkthrough
@@ -594,6 +629,6 @@ optionsBtn.addEventListener("click", () => {
 
 const ready = init().catch((err) => {
   debugError("Popup: init failed —", err);
-  domainEl.textContent = "Couldn't read this tab";
-  showStatus("ORE couldn't start — see Settings to report it", "error");
+  domainEl.textContent = t("popup.domain.unreadable", "Couldn't read this tab");
+  showStatus(t("popup.status.startFailed", "ORE couldn't start — see Settings to report it"), "error");
 });

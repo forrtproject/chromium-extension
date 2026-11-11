@@ -1,4 +1,5 @@
 import type { PubPeerComment } from "@shared/pubpeer-comments";
+import { t } from "@shared/i18n";
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " " };
 
@@ -193,7 +194,11 @@ export function renderCommentMarkdown(markdown: string): DocumentFragment {
 }
 
 function responseBadge(comment: PubPeerComment): HTMLSpanElement | null {
-  const label = comment.isAuthorResponse ? "Author response" : comment.isEditorResponse ? "Editor response" : null;
+  const label = comment.isAuthorResponse
+    // i18n: badge on a PubPeer comment written by the paper's author
+    ? t("pubpeer.comment.authorResponse", "Author response")
+    // i18n: badge on a PubPeer comment written by the journal's editor
+    : comment.isEditorResponse ? t("pubpeer.comment.editorResponse", "Editor response") : null;
   if (!label) return null;
   const badge = document.createElement("span");
   badge.textContent = label;
@@ -203,7 +208,7 @@ function responseBadge(comment: PubPeerComment): HTMLSpanElement | null {
 
 export function renderCommentList(comments: readonly PubPeerComment[]): HTMLOListElement {
   const list = document.createElement("ol");
-  list.setAttribute("aria-label", "PubPeer comments");
+  list.setAttribute("aria-label", t("pubpeer.comments.listLabel", "PubPeer comments"));
   list.style.cssText = "list-style:none;margin:0;padding:8px 12px;display:flex;flex-direction:column;gap:8px;";
   for (const comment of comments) {
     const item = document.createElement("li");
@@ -221,7 +226,8 @@ export function renderCommentList(comments: readonly PubPeerComment[]): HTMLOLis
       meta.appendChild(number);
     }
     const user = document.createElement("strong");
-    user.textContent = comment.user || "Anonymous";
+    // i18n: shown in place of a PubPeer commenter's name when none is given
+    user.textContent = comment.user || t("pubpeer.comment.anonymous", "Anonymous");
     user.style.cssText = "font-weight:600;color:#202124;";
     meta.appendChild(user);
     const badge = responseBadge(comment);

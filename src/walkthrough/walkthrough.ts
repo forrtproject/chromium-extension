@@ -3,6 +3,7 @@ import {mountSiteCategoryPicker} from "../shared/site-category-picker";
 import {openTourSample} from "../shared/tour-sample";
 import {debugError} from "../shared/debug";
 import {mountSetupChoices} from "./setup-choices";
+import {initI18n, localizeDocument, t} from "../shared/i18n";
 
 const TOTAL = 9;
 const SETUP_STEP = 7;
@@ -30,7 +31,9 @@ function activate(n: number): void {
   const prev = document.getElementById("prev-btn") as HTMLButtonElement;
   const next = document.getElementById("next-btn") as HTMLButtonElement;
   prev.disabled = current === 0;
-  next.textContent = current === TOTAL - 1 ? "Finish" : "Next →";
+  next.textContent = current === TOTAL - 1
+    ? t("walkthrough.nav.finish", "Finish")
+    : t("walkthrough.nav.next", "Next →");
 
   const skip = document.getElementById("skip-btn");
   if (skip) skip.hidden = current >= SETUP_STEP;
@@ -48,7 +51,26 @@ function showSuccess(): void {
   document.querySelector<HTMLElement>(".wt-nav")!.hidden = true;
 }
 
+function numberSteps(): void {
+  for (let n = 0; n < TOTAL; n++) {
+    const label = document.querySelector<HTMLElement>(`#step-${n} .wt-step-num`);
+    // i18n: progress label on each walkthrough screen, e.g. "3 of 9"
+    if (label) label.textContent = t("walkthrough.stepCount", "{current} of {total}", {current: n + 1, total: TOTAL});
+  }
+}
+
+// The language setting lives in chrome.storage.sync and the catalog is an
+// extension file; the offline fixtures leave both reachable.
+const i18nReady = initI18n();
 installOfflineFixtures();
+
+function render(): void {
+  localizeDocument();
+  numberSteps();
+  ({emailIsValid} = mountSetupChoices());
+  mountSiteCategoryPicker(document.getElementById("wt-site-categories")!);
+  activate(0);
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("prev-btn")?.addEventListener("click", () => activate(current - 1));
@@ -66,8 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("skip-btn")?.addEventListener("click", () => activate(SETUP_STEP));
 
-  ({emailIsValid} = mountSetupChoices());
-
   const sampleError = document.getElementById("tour-sample-error");
   document.getElementById("tour-sample-btn")?.addEventListener("click", () => {
     if (sampleError) sampleError.hidden = true;
@@ -76,8 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sampleError) sampleError.hidden = false;
     });
   });
-
-  mountSiteCategoryPicker(document.getElementById("wt-site-categories")!);
 
   document.addEventListener("keydown", (e) => {
     if (finished) return;
@@ -88,5 +106,5 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "ArrowLeft") activate(current - 1);
   });
 
-  activate(0);
+  i18nReady.then(render).catch((err) => debugError("Walkthrough: could not start —", err));
 });

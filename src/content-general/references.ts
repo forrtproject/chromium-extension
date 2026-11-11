@@ -24,7 +24,8 @@ import {PILL_ROW_CLASS, pillRow} from "@shared/pill-row";
 import {LOOSE_PILL_ATTR} from "./loose-dois";
 import {deferredOpenAccess} from "@shared/openaccess";
 import type {PubPeerFeedback} from "@shared/pubpeer-api";
-import {count, reportWorkStage} from "@shared/progress-toast";
+import {reportWorkStage} from "@shared/progress-toast";
+import {t} from "@shared/i18n";
 import {debugLog, debugWarn} from "@shared/debug";
 import type {DoiString, LookupState} from "@shared/types";
 import {
@@ -200,7 +201,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
 
     if (augmentTargets.length > 0 || pmcTargets.length > 0) {
         const pending = augmentTargets.length + pmcTargets.length;
-        reportWorkStage("augment", `Augmenting ${count(pending, "reference")} without a DOI…`);
+        reportWorkStage("augment", t("page.progress.augmentingRefs", "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…", {count: pending}));
     }
 
     const empty = new Map<string, DoiString | null>();
@@ -254,7 +255,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         .map((r) => r.doi))];
     let validated = new Map<DoiString, boolean>();
     if (toValidate.length > 0) {
-        reportWorkStage("validate", `Checking ${count(toValidate.length, "DOI")} resolve…`);
+        reportWorkStage("validate", t("page.progress.validating", "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…", {count: toValidate.length}));
         try {
             validated = await validateDOIs(toValidate);
         } catch (err) {
@@ -296,7 +297,7 @@ export function renderResolvedReferences(
             doi,
             color: PILL_COLOR,
             isAugmented: mode === "augment",
-            provenanceLabel: mode === "pmc" ? "Matched by PMC ID" : undefined,
+            provenanceLabel: mode === "pmc" ? t("page.refs.matchedByPmc", "Matched by PMC ID") : undefined,
             oaStatus: deferredOpenAccess(doi),
             pubpeer: pubpeer.get(doi),
             retraction: retractionByDoi.get(doi) ?? null,

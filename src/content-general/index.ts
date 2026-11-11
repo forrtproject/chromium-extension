@@ -25,7 +25,6 @@ import {
 } from "@shared/messages";
 import {
     beginWorkIndicator,
-    count,
     endWorkIndicator,
     isWorkCancelled,
     reportWorkStage,
@@ -59,6 +58,7 @@ import {isSearchHost, searchScriptOwns} from "@shared/search-sites";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showUpdatedToast, watchForExtensionUpdate} from "@shared/update-notice";
 import {showToast, dismissToast} from "@shared/toast";
+import {initI18n, t, uiLocale} from "@shared/i18n";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {fetchSheetCsv, parseSheetsUrl, sheetRowsByDoi, sheetTabKey} from "./sheets";
@@ -92,35 +92,69 @@ const unavailableLookupDois = new Set<DoiString>();
 let retryRetractions: (() => Promise<void>) | null = null;
 let unavailableToast: HTMLElement | null = null;
 let retractionRetryQueued: {page: string; generation: number; sheetGeneration: number} | null = null;
-const UNAVAILABLE_TITLE = "Some ORE checks didn't load";
+const unavailableTitle = (): string => t("page.unavailable.title", "Some ORE checks didn't load");
 
-/** "a", "a and b", "a, b and c" */
+type UnavailableCheck = "oa" | "pubpeer" | "replications" | "retractions";
+
+/** Message when exactly one check is unavailable. */
+function oneUnavailable(check: UnavailableCheck): string {
+    switch (check) {
+        case "oa": return t("page.unavailable.oa", "Open access is unavailable.");
+        case "pubpeer": return t("page.unavailable.pubpeer", "PubPeer is unavailable.");
+        case "replications": return t("page.unavailable.replications", "Replication data is unavailable.");
+        case "retractions": return t("page.unavailable.retractions", "Retraction checks are unavailable.");
+    }
+}
+
+/** A check's name as an item in the list of several unavailable checks. */
+function unavailableItem(check: UnavailableCheck): string {
+    switch (check) {
+        // i18n: list item in "{list} are unavailable."; lowercase mid-sentence
+        case "oa": return t("page.unavailable.itemOa", "open access");
+        // i18n: list item in "{list} are unavailable."
+        case "pubpeer": return t("page.unavailable.itemPubpeer", "PubPeer");
+        // i18n: list item in "{list} are unavailable."; lowercase mid-sentence
+        case "replications": return t("page.unavailable.itemReplications", "replication data");
+        // i18n: list item in "{list} are unavailable."; lowercase mid-sentence
+        case "retractions": return t("page.unavailable.itemRetractions", "retraction checks");
+    }
+}
+
+/** "a and b", "a, b and c" */
 function listOf(items: string[]): string {
-    return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+    // i18n: joins the last item of a list; {first} may itself be a comma-separated list
+    return t("page.list.and", "{first} and {last}", {first: items.slice(0, -1).join(", "), last: items.at(-1)!});
+}
+
+function unavailableMessage(checks: UnavailableCheck[]): string {
+    if (checks.length === 1) return oneUnavailable(checks[0]);
+    const list = listOf(checks.map(unavailableItem));
+    // i18n: {list} names two or more checks, e.g. "open access and PubPeer"; the first letter is capitalised automatically
+    const sentence = t("page.unavailable.several", "{list} are unavailable.", {list});
+    return sentence.charAt(0).toLocaleUpperCase(uiLocale()) + sentence.slice(1);
 }
 
 /** One notice, with one Retry, for whichever checks could not run on this page. */
 function showUnavailable(): void {
     const outages = outageSources();
-    const what: string[] = [];
+    const what: UnavailableCheck[] = [];
     // Popover order: open access, PubPeer, replications; then retractions.
-    if (outages.has("oa")) what.push("open access");
-    if (outages.has("pubpeer")) what.push("PubPeer");
-    if (unavailableLookupDois.size > 0) what.push("replication data");
-    if (unavailableRetractionDois.size > 0) what.push("retraction checks");
+    if (outages.has("oa")) what.push("oa");
+    if (outages.has("pubpeer")) what.push("pubpeer");
+    if (unavailableLookupDois.size > 0) what.push("replications");
+    if (unavailableRetractionDois.size > 0) what.push("retractions");
     if (what.length === 0 || floraHidden) {
         // Other provider alerts reuse this host; do not dismiss their newer message.
-        if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === UNAVAILABLE_TITLE) unavailableToast.remove();
+        if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === unavailableTitle()) unavailableToast.remove();
         unavailableToast = null;
         return;
     }
-    const list = listOf(what);
-    const message = `${list[0].toUpperCase()}${list.slice(1)} ${what.length > 1 || what[0] === "retraction checks" ? "are" : "is"} unavailable.`;
-    if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === UNAVAILABLE_TITLE
+    const message = unavailableMessage(what);
+    if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === unavailableTitle()
         && unavailableToast.getAttribute("data-flora-toast-message") === message) return;
     unavailableToast = showToast(message, {
-        title: UNAVAILABLE_TITLE, tone: "info", duration: 0, dismissOnAction: false,
-        action: {label: "Retry", onClick: retryUnavailable},
+        title: unavailableTitle(), tone: "info", duration: 0, dismissOnAction: false,
+        action: {label: t("page.common.retry", "Retry"), onClick: retryUnavailable},
     });
 }
 
@@ -454,7 +488,7 @@ async function primaryDoiFastPath(): Promise<void> {
     try {
         // "scan", not "lookup": the bar only moves forward, and the full page
         // pass runs alongside this one.
-        reportWorkStage("scan", "Looking up this article…");
+        reportWorkStage("scan", t("page.progress.lookingUpArticle", "Looking up this article…"));
         const request: LookupRequest = {type: "FLORA_LOOKUP", dois: [primary]};
         const response = await safeSendMessage<LookupResponse>(request);
         if (generation !== pageGeneration) return;
@@ -716,7 +750,7 @@ async function runScanPass(): Promise<void> {
         || (isExcel && gridRevision !== excelContentRevision());
     // Fresh DOM scan pass — resets the per-pass findReferenceContainers memo.
     beginDomScanPass();
-    reportWorkStage("scan", "Scanning this page for DOIs…");
+    reportWorkStage("scan", t("page.progress.scanning", "Scanning this page for DOIs…"));
 
     // Resolve reference-list DOIs in parallel with the FORRT lookup below.
     const refsPromise = isSheets ? Promise.resolve([]) : resolveReferenceDois();
@@ -768,7 +802,7 @@ async function runScanPass(): Promise<void> {
         debugLog(classified.articleDois, "article DOIs,", classified.referenceDois, "reference DOIs,", classified.otherDois, "other DOIs");
     }
     debugLog(isSheets ? "Sheets:" : "General:", "Extracted DOIs:", dois.length, dois);
-    reportWorkStage("scan", `Found ${count(dois.length, "DOI")} on this page`);
+    reportWorkStage("scan", t("page.progress.foundDois", "Found {count, plural, one {# DOI} other {# DOIs}} on this page", {count: dois.length}));
 
     // Validate extracted DOIs via doi.org — remove invalid ones
     const validateHere = !isSheets || dois.length <= MAX_SPREADSHEET_VALIDATIONS;
@@ -778,7 +812,7 @@ async function runScanPass(): Promise<void> {
     if (hasDoiChange && dois.length > 0 && validateHere) {
         beginWorkIndicator();
         try {
-            reportWorkStage("validate", `Checking ${count(dois.length, "DOI")} resolve…`);
+            reportWorkStage("validate", t("page.progress.validating", "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…", {count: dois.length}));
             const validation = await validateDOIs(dois);
             if (pageChanged()) {
                 seenDois.clear();
@@ -819,7 +853,7 @@ async function runScanPass(): Promise<void> {
     // so the pass does not wait for it: finishReferences() pills those
     // references when their DOIs arrive.
     if (hasDoiChange && dois.length > 0) {
-        reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
+        reportWorkStage("notices", t("page.progress.retractionsDois", "Checking {count, plural, one {# DOI} other {# DOIs}} for retractions…", {count: dois.length}));
         const notices = await checkPageRetractions(dois);
         if (pageChanged()) {
             seenDois.clear();
@@ -895,7 +929,7 @@ async function runScanPass(): Promise<void> {
         // that isn't happening.
         let response: LookupResponse | undefined;
         try {
-            reportWorkStage("lookup", `Looking up ${count(newDois.length, "DOI")} in FLoRA…`);
+            reportWorkStage("lookup", t("page.progress.lookupDois", "Looking up {count, plural, one {# DOI} other {# DOIs}} in FLoRA…", {count: newDois.length}));
             response = await safeSendMessage<LookupResponse>(request);
         } catch (err) {
             if (pageChanged()) return;
@@ -955,9 +989,9 @@ async function runScanPass(): Promise<void> {
         if (floraHidden || isWorkCancelled()) return;
 
         try {
-            if (isSheets) reportWorkStage("report", "Generating report…");
-            else if (extractPrimaryDOI(document) || isDocumentEditor()) reportWorkStage("lookup", "Marking up the page…");
-            else reportWorkStage("report", "Marking up the page…");
+            if (isSheets) reportWorkStage("report", t("page.progress.generatingReport", "Generating report…"));
+            else if (extractPrimaryDOI(document) || isDocumentEditor()) reportWorkStage("lookup", t("page.progress.markingUp", "Marking up the page…"));
+            else reportWorkStage("report", t("page.progress.markingUp", "Marking up the page…"));
             // Collect matched DOIs for display
             // On Sheets, skip the "still in DOM" re-check — the canvas DOM is unreliable
             const currentDois = isSheets ? null : new Set(dois);
@@ -1005,7 +1039,7 @@ async function runScanPass(): Promise<void> {
                 if (refsPending > 0) {
                     // Verdict waits for the references still being resolved.
                     pendingNothingToFlag = {dois, flagged};
-                    reportWorkStage("augment", "Resolving references without a DOI…");
+                    reportWorkStage("augment", t("page.progress.resolvingRefs", "Resolving references without a DOI…"));
                 } else {
                     reportNothingToFlag(dois, flagged);
                 }
@@ -1028,7 +1062,7 @@ async function runScanPass(): Promise<void> {
 async function lookUpReferenceStates(dois: DoiString[], abandoned: () => boolean): Promise<boolean> {
     const looked = await lookUpMissingReferenceStates(pageState, dois.filter((doi) => !invalidDois.has(doi)), {
         send: (missing) => {
-            reportWorkStage("lookup", `Looking up ${count(missing.length, "reference")} in FLoRA…`);
+            reportWorkStage("lookup", t("page.progress.lookupRefs", "Looking up {count, plural, one {# reference} other {# references}} in FLoRA…", {count: missing.length}));
             return safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: missing});
         },
         onLoading: () => repaintBadges(),
@@ -1068,7 +1102,7 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
             let notices: RetractionResponse[] = [];
             if (resolvedRefs.length > 0) {
                 try {
-                    reportWorkStage("notices", `Checking ${count(resolvedRefs.length, "reference")} for retractions…`);
+                    reportWorkStage("notices", t("page.progress.retractionsRefs", "Checking {count, plural, one {# reference} other {# references}} for retractions…", {count: resolvedRefs.length}));
                     const checked = await checkPageRetractions([...new Set(resolvedRefs.map((r) => r.doi))]);
                     if (stale()) return [];
                     // No verdict for these references: hand their markers back for a later pass.
@@ -1088,7 +1122,7 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
                         releaseReferenceEntries(resolvedRefs);
                         return [];
                     }
-                    reportWorkStage("notices", `Marking up ${count(resolvedRefs.length, "reference")}…`);
+                    reportWorkStage("notices", t("page.progress.markingUpRefs", "Marking up {count, plural, one {# reference} other {# references}}…", {count: resolvedRefs.length}));
                     renderResolvedReferences(resolvedRefs, new Map(redacts.map((r) => [r.originDoi, r] as const)), pageState, knownPubPeer);
                     if (!isSheets) repaintBadges();
                 } catch (err) {
@@ -1411,7 +1445,7 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
                     return {feedbacks, unavailable};
                 });
         const unavailableReferences = new Set<string>();
-        reportWorkStage("lookup", `Checking PubPeer for ${count(referenceDois.length + (primaryDoi ? 1 : 0), "paper")}…`);
+        reportWorkStage("lookup", t("page.progress.pubpeer", "Checking PubPeer for {count, plural, one {# paper} other {# papers}}…", {count: referenceDois.length + (primaryDoi ? 1 : 0)}));
         const [article, refFeedbackByDoi, articleTitle] = await Promise.all([
             articlePromise,
             lookupPubPeerForDois(referenceDois, unavailableReferences, signal),
@@ -1444,7 +1478,7 @@ async function checkPubPeer(refsPromise: Promise<unknown> | null): Promise<void>
         }));
 
         if (signal?.aborted || floraHidden || isWorkCancelled() || navigated()) return;
-        reportWorkStage("report", "Generating report…");
+        reportWorkStage("report", t("page.progress.generatingReport", "Generating report…"));
         lastRenderedPageStateVersion = pageStateVersion;
         renderSidePanel(article.feedbacks, panelRefs, pageState, doiContext, refFeedbackByDoi, redacts, articleTitle,
             articlePubPeerUnavailable ? async () => {
@@ -1484,9 +1518,7 @@ const sheetsModalCallbacks: SheetsModalCallbacks = {
     },
 };
 
-const SHEET_UNAVAILABLE = "The full sheet couldn't be loaded.";
-const EXCEL_VISIBLE_ONLY =
-    "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.";
+const sheetUnavailable = (): string => t("page.sheets.unavailable", "The full sheet couldn't be loaded.");
 
 /** Fetch the active tab in full, falling back to visible cells if export fails. */
 async function fetchSheetDois(): Promise<void> {
@@ -1498,7 +1530,7 @@ async function fetchSheetDois(): Promise<void> {
         current.spreadsheetId !== parsed.spreadsheetId || current.gid !== parsed.gid) return;
 
     const alert = document.getElementById("flora-alert-toast");
-    if (alert?.textContent?.includes(SHEET_UNAVAILABLE)) alert.remove();
+    if (alert?.textContent?.includes(sheetUnavailable())) alert.remove();
     const myGen = sheetFetchGen;
     const isCurrent = () => myGen === sheetFetchGen &&
         sheetTabKey(parsed) === sheetTabKey(parseSheetsUrl(location.href));
@@ -1508,7 +1540,7 @@ async function fetchSheetDois(): Promise<void> {
     beginWorkIndicator({stages: ["scan"]});
     try {
         try {
-            reportWorkStage("scan", "Exporting this sheet tab…");
+            reportWorkStage("scan", t("page.progress.exportingSheet", "Exporting this sheet tab…"));
             const {csv, fullTab} = await fetchSheetCsv(parsed);
             if (!isCurrent()) return;
             sheetCsvDois = extractDOIsFromText(csv);
@@ -1528,12 +1560,12 @@ async function fetchSheetDois(): Promise<void> {
     }
     if (!isCurrent() || isWorkCancelled()) return;
     if (unavailable) {
-        showToast(SHEET_UNAVAILABLE, {
-            title: "ORE checked only the visible cells", tone: "info", duration: 0,
-            action: {label: "Retry", onClick: () => { resumeAutomaticWork(); return fetchSheetDois(); }},
+        showToast(sheetUnavailable(), {
+            title: t("page.sheets.visibleOnly", "ORE checked only the visible cells"), tone: "info", duration: 0,
+            action: {label: t("page.common.retry", "Retry"), onClick: () => { resumeAutomaticWork(); return fetchSheetDois(); }},
         });
     } else if (sheetCsvDois.length === 0 && extractDOIs(document).length === 0) {
-        showToast("No DOIs found in this sheet tab.");
+        showToast(t("page.sheets.noDois", "No DOIs found in this sheet tab."));
     }
 }
 
@@ -1559,7 +1591,7 @@ async function startOnPage(): Promise<void> {
                 if (document.hidden || floraHidden || !canStartAutomaticWork()) return;
                 if (!toldAboutScrolling) {
                     toldAboutScrolling = true;
-                    showToast(EXCEL_VISIBLE_ONLY);
+                    showToast(t("page.excel.visibleOnly", "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest."));
                 }
                 void scanWholePage().catch(err => debugError("Excel: scan failed —", err));
             });
@@ -1675,7 +1707,7 @@ const pageStartup = (async () => {
         return;
     }
 
-    const pause = await getDomainPause(pauseHosts());
+    const [pause] = await Promise.all([getDomainPause(pauseHosts()), initI18n()]);
     if (pause.blocked || pause.snoozedUntil !== null) {
         debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}:`, pauseHosts().join(", "));
         if (pause.blocked) reportBlocked();

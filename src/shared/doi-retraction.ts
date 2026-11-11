@@ -6,6 +6,7 @@ import type {DoiString, NoticeKind, RetractionResponse} from "@shared/types";
 import {safeSendMessage, type RetractionCheckResponse} from "@shared/messages";
 import {activeWorkSignal} from "@shared/work-cancellation";
 import {debugError, debugLog} from "@shared/debug";
+import {t} from "@shared/i18n";
 
 export const FLORA_RET_CHECK_KEY = "flora-ret-checked";
 
@@ -63,8 +64,9 @@ export interface NoticePresentation {
 export function noticePresentation(kind: NoticeKind): NoticePresentation {
     if (kind === "concern") {
         return {
-            label: "Concern",
-            bannerCopy: "This article has an expression of concern.",
+            // i18n: label on a small pill/tag marking an article with an expression of concern; one short word
+            label: t("pill.notice.concernLabel", "Concern"),
+            bannerCopy: t("pill.notice.concernBanner", "This article has an expression of concern."),
             pillWidth: 92,
             pillBackground: "#fff7ed",
             pillStroke: "#ea580c",
@@ -80,8 +82,9 @@ export function noticePresentation(kind: NoticeKind): NoticePresentation {
         };
     }
     return {
-        label: "Retracted",
-        bannerCopy: "This article has been retracted.",
+        // i18n: label on a small pill/tag marking a retracted article; one short word
+        label: t("pill.notice.retractedLabel", "Retracted"),
+        bannerCopy: t("pill.notice.retractedBanner", "This article has been retracted."),
         pillWidth: 106,
         pillBackground: "#FFF5F6",
         pillStroke: "#D82E3D",
@@ -255,7 +258,9 @@ export function injectRetractionInfo(
     wrapper.style.cssText = PILL_WRAPPER_STYLE;
 
     const presentation = noticePresentation(info.kind);
-    const W = presentation.pillWidth;
+    // Widen the fixed-size SVG pill for a longer (translated) label; the
+    // English labels fit their designed widths exactly.
+    const W = Math.max(presentation.pillWidth, Math.round(43 + presentation.label.length * 7));
     const H = 22;
     const iconSize = 16;
     const tmp = document.createElement("div");

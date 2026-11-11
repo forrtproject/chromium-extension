@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Translate FORRT ORE</title>
+    <meta name="description" content="Review and improve the translations of the FORRT Open Research Extension." />
+    <link rel="icon" href="../img/forrt-logo.svg" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Domine:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="review.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="top-inner">
+        <a class="brand" href="../">
+          <img src="../img/forrt-logo.svg" alt="" />
+          <span><strong>FORRT ORE</strong> translations</span>
+        </a>
+        <div class="top-actions">
+          <button id="load" class="btn btn-ghost" type="button">Load a file</button>
+          <input id="load-file" type="file" accept="application/json,.json" hidden />
+          <button id="download" class="btn btn-primary" type="button">Download my review</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="intro">
+        <h1>Help translate the Open Research Extension</h1>
+        <p>
+          Each card shows one piece of text from the extension: the English original and a draft translation, most of them
+          made by machine. Fix anything that is wrong or awkward, then press <strong>Approve</strong> (or
+          <kbd>Ctrl</kbd>/<kbd>⌘</kbd>&nbsp;+&nbsp;<kbd>Enter</kbd>). Your work is saved in this browser as you go, so you can stop and come back.
+        </p>
+        <details>
+          <summary>How to send us your review, and what the symbols mean</summary>
+          <ol>
+            <li>Press <strong>Download my review</strong>. This saves a small <code>.json</code> file with only your changes and approvals.</li>
+            <li>
+              Send the file to the ORE team: attach it to a
+              <a href="https://github.com/forrtproject/chromium-extension/issues/new?title=Translation%20review" target="_blank" rel="noopener">GitHub issue</a>
+              (drag it into the comment box) or email it to your FORRT contact.
+            </li>
+            <li>To continue on another computer, use <strong>Load a file</strong> with the file you downloaded.</li>
+          </ol>
+          <p>
+            Words in curly brackets such as <code>{count}</code> or <code>{domain}</code> are filled in by the extension; keep them exactly as
+            they are. Text like <code>{count, plural, one {# paper} other {# papers}}</code> chooses a form by number: translate only
+            the words inside the inner brackets, and keep <code>#</code> where the number goes. Keep tags such as
+            <code>&lt;strong&gt;…&lt;/strong&gt;</code> around the matching words. The preview under each card shows the result.
+          </p>
+          <p>Address users formally (“Sie”). Keep names such as FORRT, ORE, PubPeer and Retraction Watch unchanged.</p>
+        </details>
+        <details id="glossary">
+          <summary>Glossary</summary>
+          <div class="glossary-body"></div>
+        </details>
+      </section>
+
+      <section class="controls" aria-label="Filters">
+        <label>Language <select id="lang"></select></label>
+        <label>Your name <input id="reviewer" type="text" autocomplete="name" placeholder="Shown in the project history" /></label>
+        <label>
+          Show
+          <select id="filter">
+            <option value="todo">Still to review</option>
+            <option value="stale">New or changed English</option>
+            <option value="mine">My changes</option>
+            <option value="reviewed">Already reviewed</option>
+            <option value="all">Everything</option>
+          </select>
+        </label>
+        <label>Part <select id="area"><option value="">All parts</option></select></label>
+        <label class="grow">Search <input id="search" type="search" placeholder="Find English or translated text" /></label>
+      </section>
+      <p class="status"><span id="progress"></span> · <span id="count"></span></p>
+
+      <div id="list" aria-live="polite"></div>
+    </main>
+
+    <script src="review.js"></script>
+  </body>
+</html>

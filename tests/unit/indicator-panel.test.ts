@@ -3,8 +3,8 @@ import {
   createIndicatorPanel,
   updateIndicatorPillBadges,
   INDICATOR_PILL_CLASS,
-  PAGE_PROVENANCE,
-  SEARCH_PROVENANCE,
+  pageProvenance,
+  searchProvenance,
 } from "../../src/shared/indicator-pill";
 import { isExternalMutation } from "../../src/shared/flora-ui";
 import type { DoiString, LookupState } from "../../src/shared/types";
@@ -127,10 +127,10 @@ describe("createIndicatorPanel", () => {
         .querySelector<HTMLElement>("[data-flora-doi-text]")!;
 
     expect(doiText(false).style.textDecoration).not.toContain("underline");
-    expect(doiText(false).title).toBe(PAGE_PROVENANCE);
+    expect(doiText(false).title).toBe(pageProvenance());
     expect(doiText(true).style.textDecoration).toContain("underline");
-    expect(doiText(true).title).toBe(SEARCH_PROVENANCE);
-    expect(createIndicatorPanel({ doi: DOI }).textContent).not.toContain(PAGE_PROVENANCE);
+    expect(doiText(true).title).toBe(searchProvenance());
+    expect(createIndicatorPanel({ doi: DOI }).textContent).not.toContain(pageProvenance());
   });
 
   it("keeps row status text on one line, including on rows swapped in later", () => {

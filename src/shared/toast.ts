@@ -10,6 +10,7 @@
 
 import {ensureFocusStyle} from "./flora-ui";
 import {WORK_TOAST_ID, floatingBottom} from "./progress-toast";
+import {t} from "./i18n";
 
 const TOAST_ID = "flora-action-toast";
 const ALERT_TOAST_ID = "flora-alert-toast";
@@ -230,8 +231,8 @@ export function showToast(message: string, options: ToastOptions = {}): HTMLElem
         const close = document.createElement("button");
         close.type = "button";
         close.textContent = "\u00d7";
-        close.title = "Dismiss";
-        close.setAttribute("aria-label", "Dismiss");
+        close.title = t("progress.toast.dismiss", "Dismiss");
+        close.setAttribute("aria-label", t("progress.toast.dismiss", "Dismiss"));
         close.setAttribute("data-flora-toast-close", "");
         close.style.cssText = CLOSE_STYLE + (info ? "color:#64748b;" : "");
         close.addEventListener("click", () => {
