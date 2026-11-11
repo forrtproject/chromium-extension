@@ -3826,11 +3826,10 @@
     "status": "machine"
   },
   "walkthrough.report.atlas.text": {
-    "by": "codex-review",
-    "message": "Eine frei zugängliche Datenbank der FORRT-Community mit Studien aus den Sozial- und Verhaltenswissenschaften, die frühere Befunde zu replizieren versuchten, und deren Ergebnissen. Jede Replikationszahl in ORE stammt von dort und verlinkt auf die Belege.",
-    "note": "„Repeated earlier findings“ schließt auch erfolglose Replikationsversuche ein; daher nicht als erfolgreiche Bestätigung formuliert.",
-    "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that repeated earlier findings, and what they found. Every replication count in ORE comes from it and links to the evidence.",
-    "status": "machine"
+    "message": "Eine frei zugängliche Datenbank der FORRT-Community mit Studien aus den Sozial- und Verhaltenswissenschaften, die frühere Befunde zu replizieren oder zu reproduzieren versuchten, unabhängig vom Ergebnis, sowie mit deren Befunden. Jede Replikationszahl in ORE stammt von dort und verlinkt auf die Belege.",
+    "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5"
   },
   "walkthrough.report.atlas.title": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3857,18 +3856,16 @@
     "status": "machine"
   },
   "walkthrough.report.share.text": {
-    "by": "codex-review",
-    "message": "<strong>Drucken</strong> erstellt eine druckbare Seite. <strong>Link kopieren</strong> teilt den gesamten Bericht im Link selbst, sodass nichts hochgeladen wird.",
-    "note": "Englischer Quelltext nennt „Print“, die aktuelle Berichtsschaltfläche heißt jedoch „Download“ und lädt laut src/content-general/injector.ts ein PDF herunter.",
-    "source": "<strong>Print</strong> makes a printable page. <strong>Copy link</strong> shares the whole report in the link itself, so nothing is uploaded.",
-    "status": "machine"
+    "message": "<strong>Herunterladen</strong> speichert den Bericht als PDF. <strong>Link kopieren</strong> teilt den gesamten Bericht im Link selbst, sodass nichts hochgeladen wird.",
+    "source": "<strong>Download</strong> saves the report as a PDF. <strong>Copy link</strong> shares the whole report in the link itself, so nothing is uploaded.",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5"
   },
   "walkthrough.report.share.title": {
-    "by": "codex-review",
-    "message": "Drucken oder teilen",
-    "note": "Englischer Quelltext nennt Drucken; der aktuelle Bericht bietet stattdessen einen PDF-Download an.",
-    "source": "Print or share it",
-    "status": "machine"
+    "message": "Herunterladen oder teilen",
+    "source": "Download or share it",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5"
   },
   "walkthrough.report.title": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4003,11 +4000,10 @@
     "status": "machine"
   },
   "walkthrough.sheets.check": {
-    "by": "codex-review",
-    "message": "In Google Sheets oder Excel Online eine Tabelle mit DOIs öffnen, etwa eine Leseliste oder die Studien für ein Review. ORE prüft jede DOI darin, auch in noch nicht sichtbaren Zeilen, und zeigt die Ergebnisse in einem Popup.",
-    "note": "Englischer Quelltext verspricht auch für Excel eine vollständige Prüfung. Laut src/content-general/index.ts prüft Excel nur sichtbare Zeilen; vollständiger Export gilt für Google Sheets.",
-    "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. ORE checks every DOI in it, including rows you have not scrolled to, and reports in a popup.",
-    "status": "machine"
+    "message": "In Google Sheets oder Excel Online eine Tabelle mit DOIs öffnen, etwa eine Leseliste oder die Studien für ein Review. In Google Sheets prüft ORE jede DOI im Tabellenblatt, auch in Zeilen, zu denen noch nicht gescrollt wurde. Excel Online stellt nur die Zeilen auf dem Bildschirm dar, daher prüft ORE nur diese; zum Abdecken der übrigen weiter scrollen. Die Ergebnisse erscheinen in einem Popup.",
+    "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5"
   },
   "walkthrough.sheets.docs.text": {
     "by": "codex-review",
@@ -4160,11 +4156,10 @@
     "status": "machine"
   },
   "walkthrough.welcome.sheets.text": {
-    "by": "codex-review",
-    "message": "Eine Liste von DOIs in Google Sheets oder Excel Online wird vollständig geprüft. Literaturangaben in Google Docs und Word Online werden beim Schreiben markiert.",
-    "note": "Englischer Quelltext verspricht auch für Excel eine vollständige Prüfung. Laut src/content-general/index.ts prüft Excel nur sichtbare Zeilen; vollständiger Export gilt für Google Sheets.",
-    "source": "A list of DOIs in Google Sheets or Excel Online, checked in full. References in Google Docs and Word Online are marked as you write.",
-    "status": "machine"
+    "message": "Eine Liste von DOIs in Google Sheets wird vollständig geprüft, in Excel Online beim Scrollen. Literaturangaben in Google Docs und Word Online werden beim Schreiben markiert.",
+    "source": "A list of DOIs in Google Sheets, checked in full, or in Excel Online, checked as you scroll. References in Google Docs and Word Online are marked as you write.",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5"
   },
   "walkthrough.welcome.sheets.title": {
     "by": "anthropic/claude-sonnet-5.5",
