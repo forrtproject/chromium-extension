@@ -97,7 +97,14 @@ async function main(): Promise<void> {
 
   languageSelect.addEventListener("change", async () => {
     const language = languageSelect.value as LanguagePreference;
-    await saveSettings({ language });
+    try {
+      await saveSettings({ language });
+    } catch (err) {
+      debugError("Settings: language save failed —", err);
+      languageSelect.value = (await getSettings()).language;
+      alert(t("settings.language.saveFailed", "Couldn't save the language. Try again."));
+      return;
+    }
     // Re-render the whole page in the new language.
     location.reload();
   });

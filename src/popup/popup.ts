@@ -395,8 +395,8 @@ blockBtn.addEventListener("click", async () => {
     blocked = await isDomainBlocked(currentDomain);
     reportSnoozeState(snoozedUntil);
     showStatus(blocked
-        ? `${currentDomain} is still turned off by a blocked parent domain or site category — edit it in Settings`
-        : `Unblocked ${currentDomain} — reload to apply`, blocked ? "error" : "success");
+        ? t("popup.status.stillBlocked", "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings", { domain: currentDomain })
+        : t("popup.status.unblocked", "Unblocked {domain} — reload to apply", { domain: currentDomain }), blocked ? "error" : "success");
   } else {
     if (!domains.includes(currentDomain)) {
       domains.push(currentDomain);
@@ -410,7 +410,9 @@ blockBtn.addEventListener("click", async () => {
       updateHideUI();
     }
     showStatus(
-      cleared ? `Blocked ${currentDomain}` : `Blocked ${currentDomain} — reload to apply`,
+      cleared
+        ? t("popup.status.blocked", "Blocked {domain}", { domain: currentDomain })
+        : t("popup.status.blockedReload", "Blocked {domain} — reload to apply", { domain: currentDomain }),
       "success"
     );
   }

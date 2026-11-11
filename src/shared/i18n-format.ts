@@ -103,6 +103,7 @@ export function parseMessage(source: string): Node[] {
 
   const nodes = parseNodes(false, false);
   if (pos < source.length) fail("trailing input");
+  if (cache.size > 2000) cache.clear(); // the review page parses every keystroke
   cache.set(source, nodes);
   return nodes;
 }
@@ -154,12 +155,13 @@ export function messageArguments(source: string): Set<string> {
 }
 
 /**
- * Distinct HTML tags (opening and closing) used in a message, for markup
- * parity checks. Distinct rather than counted, because writing a plural as full
- * sentences repeats the same tags in each branch.
+ * Distinct HTML tags in a message, including their attributes, for markup
+ * parity checks: a translation may move tags but not add, drop or alter them,
+ * so it cannot change a link or add an event handler. Distinct rather than
+ * counted, because writing a plural as full sentences repeats the same tags.
  */
 export function messageTags(source: string): string[] {
-  const tags = [...source.matchAll(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi)].map((m) => m[0].startsWith("</") ? `/${m[1].toLowerCase()}` : m[1].toLowerCase());
+  const tags = [...source.matchAll(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi)].map((m) => m[0].replace(/\s+/g, " ").replace(/^<\s*(\/?)([a-z0-9]+)/i, (_x, slash: string, name: string) => `<${slash}${name.toLowerCase()}`));
   return [...new Set(tags)].sort();
 }
 
@@ -241,4 +243,47 @@ export function formsToMessage(forms: MessageForm[]): string {
 /** Whether a message has plural or select choices. */
 export function hasChoices(source: string): boolean {
   return parseMessage(source).some((n) => n.kind === "plural" || n.kind === "select");
+}
+
+/**
+ * Problems that make a translation unsafe or wrong to ship, in plain words for
+ * reviewers: broken syntax, changed markup, missing plural or variant cases,
+ * and placeholders missing from a case. A case may leave out its own number
+ * where the form already implies it ("one", "=1").
+ */
+export function translationIssues(english: string, translation: string, locale: string): string[] {
+  if (!translation.trim()) return ["The translation is empty."];
+  try {
+    parseMessage(translation);
+  } catch (err) {
+    return [`Format error: ${(err as Error).message.replace(/ in ".*$/, "")}. Check the { } brackets.`];
+  }
+  const issues: string[] = [];
+  const wantTags = messageTags(english), gotTags = messageTags(translation);
+  if (wantTags.join() !== gotTags.join()) {
+    issues.push(`Keep the same HTML tags as the English, attributes included: ${wantTags.join(" ") || "none"}.`);
+  }
+  const extra = new Intl.PluralRules(locale).resolvedOptions().pluralCategories.filter((c) => c !== "one" && c !== "other");
+  const key = (f: MessageForm): string => f.path.map((p) => `${p.name}:${p.type}:${p.key}`).join("|");
+  const enForms = messageForms(english, extra);
+  const trForms = new Map(messageForms(translation, extra).map((f) => [key(f), f]));
+  const missingCases = enForms.filter((f) => !trForms.has(key(f)));
+  if (missingCases.length || trForms.size !== enForms.length) {
+    issues.push("The cases for numbers or variants don't match the English. Keep every case (e.g. one/other) and the names in { }.");
+    return issues;
+  }
+  const argsOf = (text: string): Set<string> => messageArguments(text);
+  const wantAll = argsOf(english), gotAll = argsOf(translation);
+  const unknown = [...gotAll].filter((a) => !wantAll.has(a));
+  if (unknown.length) issues.push(`Unknown placeholder: ${unknown.map((a) => `{${a}}`).join(", ")}. Keep the names from the English.`);
+  for (const form of enForms) {
+    const got = argsOf(trForms.get(key(form))!.text);
+    const implied = new Set(form.path.filter((p) => p.type === "plural" && (p.key === "one" || p.key.startsWith("="))).map((p) => p.name));
+    const missing = [...argsOf(form.text)].filter((a) => !got.has(a) && !implied.has(a));
+    if (missing.length) {
+      const where = form.path.length ? ` in the case ${form.path.map((p) => `${p.name} = ${p.key}`).join(", ")}` : "";
+      issues.push(`Missing placeholder${where}: ${missing.map((a) => `{${a}}`).join(", ")}.`);
+    }
+  }
+  return issues;
 }

@@ -61,7 +61,7 @@ function cmdCheck(): number {
   let failed = cmdExtract(true);
   const en = loadEn();
   for (const lang of TARGETS) {
-    const problems = translationProblems(en, readJson<TranslationCatalog>(localeFile(lang), {}));
+    const problems = translationProblems(en, readJson<TranslationCatalog>(localeFile(lang), {}), lang);
     for (const p of problems) console.error(`error: ${lang}: ${p}`);
     if (problems.length) failed = 1;
     const s = status(en, readJson<TranslationCatalog>(localeFile(lang), {}));
@@ -79,7 +79,7 @@ function cmdBuild(): number {
   writeFileSync(join(reviewData, "glossary.json"), `${JSON.stringify(readJson(GLOSSARY_FILE, {}))}\n`);
   for (const lang of TARGETS) {
     const tr = readJson<TranslationCatalog>(localeFile(lang), {});
-    const bad = new Set(translationProblems(en, tr).map((p) => p.split(":")[0]));
+    const bad = new Set(translationProblems(en, tr, lang).map((p) => p.split(":")[0]));
     const ship = shippableCatalog(en, tr);
     for (const id of bad) delete ship[id];
     writeFileSync(join(ROOT, `dist/locales/${lang}.json`), JSON.stringify(ship));
@@ -115,14 +115,15 @@ function cmdImport(file: string | undefined): number {
         ? { ...tr[id] } // only a comment was added
         : { message: r.message, source: r.source, status: "machine", by: `suggested by ${reviewer}` };
     if (r.note) candidate.note = r.note; else delete candidate.note;
-    const problems = translationProblems(en, { [id]: candidate });
+    const problems = translationProblems(en, { [id]: candidate }, review.locale);
     if (problems.length) { rejected++; console.warn(`skip ${problems[0]}`); continue; }
     tr[id] = candidate;
     applied++;
   }
   writeSortedJson(path, tr);
   console.log(`${review.locale}: applied ${applied}, skipped ${outdated} outdated, ${rejected} with errors`);
-  return 0;
+  // Non-zero so a partly applied review is noticed; outdated entries are expected after English edits.
+  return rejected ? 1 : 0;
 }
 
 async function main(): Promise<number> {
@@ -153,7 +154,9 @@ async function main(): Promise<number> {
     case "translate": {
       if (!arg || !(TARGETS as readonly string[]).includes(arg)) { console.error(`usage: translate <${TARGETS.join("|")}> [--model id] [--limit n] [--dry-run]`); return 2; }
       const opt = (name: string) => { const i = rest.indexOf(name); return i >= 0 ? rest[i + 1] : undefined; };
-      return translateMissing(arg, { model: opt("--model"), limit: Number(opt("--limit") ?? Infinity), dryRun: rest.includes("--dry-run") });
+      const limit = Number(opt("--limit") ?? Infinity);
+      if (!(limit === Infinity || (Number.isInteger(limit) && limit > 0))) { console.error("--limit must be a positive whole number"); return 2; }
+      return translateMissing(arg, { model: opt("--model"), limit, dryRun: rest.includes("--dry-run") });
     }
     default:
       console.error("usage: npm run i18n -- extract|check|status|translate|import|build");

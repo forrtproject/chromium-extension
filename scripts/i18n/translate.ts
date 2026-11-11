@@ -102,7 +102,7 @@ export async function translateMissing(lang: string, opts: Options): Promise<num
         by: model,
         ...(prev?.status === "reviewed" ? { note: `Previously reviewed: ${prev.message}` } : {}),
       };
-      const problems = typeof message === "string" ? translationProblems(en, { [id]: candidate }) : ["no reply"];
+      const problems = typeof message === "string" ? translationProblems(en, { [id]: candidate }, lang) : ["no reply"];
       if (problems.length) {
         if (!retried.has(id)) { retried.add(id); queue.push(id); }
         else { failed++; console.warn(`gave up on ${id}: ${problems[0]}`); }

@@ -84,8 +84,10 @@ const pageStartup = (async () => {
             return;
         }
 
-        // Load the interface language alongside the pause check, before any UI renders.
-        const [pause] = await Promise.all([getDomainPause([location.hostname]), initI18n()]);
+        // Load the interface language before any UI renders, then read the pause
+        // state, so a resume during the catalog load is not missed.
+        await initI18n();
+        const pause = await getDomainPause([location.hostname]);
         if (pause.blocked || pause.snoozedUntil !== null) {
             debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}`);
             if (pause.blocked) reportBlocked();

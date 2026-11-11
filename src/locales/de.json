@@ -2051,6 +2051,21 @@
     "status": "machine",
     "review": 1
   },
+  "popup.status.blocked": {
+    "message": "{domain} blockiert",
+    "source": "Blocked {domain}",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5",
+    "review": 1
+  },
+  "popup.status.blockedReload": {
+    "message": "{domain} blockiert – zum Anwenden Seite neu laden",
+    "source": "Blocked {domain} — reload to apply",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5",
+    "review": 3,
+    "reviewReason": "Reload instruction must clearly convey how to apply the change."
+  },
   "popup.status.debugOff": {
     "by": "anthropic/claude-sonnet-5.5",
     "message": "Debug-Modus aus",
@@ -2125,6 +2140,22 @@
     "status": "machine",
     "review": 3,
     "reviewReason": "Reporting instruction uses awkward phrasing and unclear navigation."
+  },
+  "popup.status.stillBlocked": {
+    "message": "{domain} bleibt weiterhin deaktiviert, da eine übergeordnete Domain oder eine Website-Kategorie blockiert ist – Bearbeitung in den Einstellungen",
+    "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5",
+    "review": 3,
+    "reviewReason": "Ambiguous editing target; nominalized instruction may obscure the required action."
+  },
+  "popup.status.unblocked": {
+    "message": "{domain} freigegeben – zum Anwenden Seite neu laden",
+    "source": "Unblocked {domain} — reload to apply",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5",
+    "review": 3,
+    "reviewReason": "Reload instruction must clearly convey how to apply the change."
   },
   "popup.subtitle": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3611,6 +3642,13 @@
     "message": "Sprache",
     "source": "Language",
     "status": "machine",
+    "review": 1
+  },
+  "settings.language.saveFailed": {
+    "message": "Die Sprache konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "source": "Couldn't save the language. Try again.",
+    "status": "machine",
+    "by": "anthropic/claude-sonnet-5.5",
     "review": 1
   },
   "settings.language.title": {

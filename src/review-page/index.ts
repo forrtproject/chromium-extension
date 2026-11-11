@@ -6,7 +6,7 @@
  */
 
 import {
-  formatMessage, formsToMessage, hasChoices, messageArguments, messageForms, messageTags, parseMessage, type MessageForm,
+  formatMessage, formsToMessage, hasChoices, messageArguments, messageForms, translationIssues, type MessageForm,
 } from "@shared/i18n-format";
 
 interface SourceEntry { message: string; context?: string; where: string[]; html?: boolean }
@@ -32,7 +32,7 @@ const countEl = $<HTMLElement>("#count");
 const glossaryEl = $<HTMLElement>("#glossary");
 
 let lang = new URLSearchParams(location.search).get("lang") ?? "de";
-if (!LANGUAGES[lang]) lang = "de";
+if (!Object.hasOwn(LANGUAGES, lang)) lang = "de";
 let en: Record<string, SourceEntry> = {};
 let tr: Record<string, TranslationEntry> = {};
 let glossary: Glossary = {};
@@ -62,13 +62,10 @@ function saveState(): void {
   }, 200);
 }
 
-async function fetchJson<T>(path: string, fallback: T): Promise<T> {
-  try {
-    const res = await fetch(path, { cache: "no-cache" });
-    return res.ok ? ((await res.json()) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+async function fetchJson<T>(path: string): Promise<T> {
+  const res = await fetch(path, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  return (await res.json()) as T;
 }
 
 type Status = "missing" | "stale" | "machine" | "reviewed";
@@ -86,22 +83,7 @@ function localOf(id: string): LocalEntry | undefined {
 }
 
 function problems(id: string, message: string): string[] {
-  if (!message.trim()) return ["The translation is empty."];
-  const src = en[id].message;
-  try {
-    parseMessage(message);
-  } catch (err) {
-    return [`Format error: ${(err as Error).message.replace(/ in ".*$/, "")}. Check the { } brackets.`];
-  }
-  const out: string[] = [];
-  const want = [...messageArguments(src)].sort();
-  const got = [...messageArguments(message)].sort();
-  const missing = want.filter((a) => !got.includes(a));
-  const extra = got.filter((a) => !want.includes(a));
-  if (missing.length) out.push(`Missing placeholder: ${missing.map((a) => `{${a}}`).join(", ")}`);
-  if (extra.length) out.push(`Unknown placeholder: ${extra.map((a) => `{${a}}`).join(", ")} — keep the names from the English`);
-  if (messageTags(src).join() !== messageTags(message).join()) out.push("Keep the same HTML tags as the English (e.g. <strong>…</strong>).");
-  return out;
+  return translationIssues(en[id].message, message, lang);
 }
 
 type Level = 1 | 2 | 3;
@@ -187,12 +169,13 @@ function matchesFilter(id: string): boolean {
   const filter = filterSelect.value;
   const st = statusOf(id);
   const local = localOf(id);
-  const open = st !== "reviewed" && !local?.approved;
+  // An unapproved edit reopens a reviewed message.
+  const open = local ? !local.approved : st !== "reviewed";
   if (filter === "todo" && !open) return false;
+  if (filter === "reviewed" && (st !== "reviewed" || (local && !local.approved))) return false;
   if ((filter === "level3" || filter === "level2" || filter === "level1") && (!open || levelOf(id) !== Number(filter.slice(-1)))) return false;
   if (filter === "stale" && st !== "stale" && st !== "missing") return false;
   if (filter === "mine" && !local) return false;
-  if (filter === "reviewed" && st !== "reviewed") return false;
   if (areaSelect.value && area(id) !== areaSelect.value) return false;
   const q = searchInput.value.trim().toLowerCase();
   if (q) {
@@ -249,6 +232,7 @@ function renderCard(id: string): HTMLElement {
 
   const noteInput = el("input", "card-note-input");
   noteInput.placeholder = "Optional comment for the maintainers";
+  noteInput.setAttribute("aria-label", "Optional comment for the maintainers");
   noteInput.value = local?.note ?? "";
   card.append(noteInput);
 
@@ -439,7 +423,7 @@ function renderQuickRow(id: string): HTMLElement {
 }
 
 function filterCounts(): void {
-  const open = Object.keys(en).filter((id) => statusOf(id) !== "reviewed" && !localOf(id)?.approved);
+  const open = Object.keys(en).filter((id) => { const l = localOf(id); return l ? !l.approved : statusOf(id) !== "reviewed"; });
   const n = (l: Level) => open.filter((id) => levelOf(id) === l).length;
   const labels: Record<string, string> = {
     todo: `Still to review, careful first (${open.length})`,
@@ -490,7 +474,7 @@ function render(): void {
 
 function updateProgress(): void {
   const ids = Object.keys(en);
-  const done = ids.filter((id) => statusOf(id) === "reviewed" || localOf(id)?.approved).length;
+  const done = ids.filter((id) => { const l = localOf(id); return l ? l.approved : statusOf(id) === "reviewed"; }).length;
   const mine = Object.keys(state.entries).filter((id) => en[id] && localOf(id)).length;
   progressEl.textContent = `${done} of ${ids.length} reviewed · ${mine} change${mine === 1 ? "" : "s"} by you not yet sent`;
   filterCounts();
@@ -512,11 +496,15 @@ function renderGlossary(): void {
 }
 
 function download(): void {
-  const entries = Object.fromEntries(Object.entries(state.entries).filter(([id]) => en[id]));
+  const entries = Object.fromEntries(Object.entries(state.entries).filter(([id]) => en[id] && localOf(id)));
+  const outdated = Object.keys(state.entries).filter((id) => !en[id] || !localOf(id)).length;
   if (!Object.keys(entries).length) {
-    alert("You haven't changed or approved anything yet.");
+    alert(outdated
+      ? `Your ${outdated} saved change${outdated === 1 ? " is" : "s are"} for English text that has since changed, so there is nothing current to send.`
+      : "You haven't changed or approved anything yet.");
     return;
   }
+  if (outdated && !confirm(`${outdated} of your saved change${outdated === 1 ? " was" : "s were"} made to English text that has since changed and will be left out. Download the rest?`)) return;
   const file = {
     format: "ore-translation-review",
     locale: lang,
@@ -558,11 +546,22 @@ async function start(): Promise<void> {
     langSelect.append(opt);
   }
   langSelect.value = lang;
-  [en, tr, glossary] = await Promise.all([
-    fetchJson<Record<string, SourceEntry>>("data/en.json", {}),
-    fetchJson<Record<string, TranslationEntry>>(`data/${lang}.json`, {}),
-    fetchJson<Glossary>("data/glossary.json", {}),
-  ]);
+  try {
+    [en, tr, glossary] = await Promise.all([
+      fetchJson<Record<string, SourceEntry>>("data/en.json"),
+      fetchJson<Record<string, TranslationEntry>>(`data/${lang}.json`),
+      fetchJson<Glossary>("data/glossary.json").catch(() => ({})),
+    ]);
+  } catch (err) {
+    const box = el("div", "empty");
+    box.append(el("p", "", `The texts could not be loaded (${(err as Error).message}). Check the connection and try again.`));
+    const retry = el("button", "btn btn-primary", "Try again");
+    retry.type = "button";
+    retry.addEventListener("click", () => location.reload());
+    box.append(retry);
+    listEl.replaceChildren(box);
+    return;
+  }
   loadState();
   reviewerInput.value = state.reviewer;
   for (const a of [...new Set(Object.keys(en).map(area))].sort()) {

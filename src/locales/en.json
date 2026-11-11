@@ -1717,6 +1717,18 @@
       "src/popup/popup.ts"
     ]
   },
+  "popup.status.blocked": {
+    "message": "Blocked {domain}",
+    "where": [
+      "src/popup/popup.ts"
+    ]
+  },
+  "popup.status.blockedReload": {
+    "message": "Blocked {domain} — reload to apply",
+    "where": [
+      "src/popup/popup.ts"
+    ]
+  },
   "popup.status.debugOff": {
     "message": "Debug mode off",
     "where": [
@@ -1773,6 +1785,18 @@
   },
   "popup.status.startFailed": {
     "message": "ORE couldn't start — see Settings to report it",
+    "where": [
+      "src/popup/popup.ts"
+    ]
+  },
+  "popup.status.stillBlocked": {
+    "message": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
+    "where": [
+      "src/popup/popup.ts"
+    ]
+  },
+  "popup.status.unblocked": {
+    "message": "Unblocked {domain} — reload to apply",
     "where": [
       "src/popup/popup.ts"
     ]
@@ -3031,6 +3055,12 @@
     "message": "Language",
     "where": [
       "src/options/index.html"
+    ]
+  },
+  "settings.language.saveFailed": {
+    "message": "Couldn't save the language. Try again.",
+    "where": [
+      "src/options/options.ts"
     ]
   },
   "settings.language.title": {

@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from "
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { JSDOM } from "jsdom";
-import { messageArguments, messageTags, parseMessage } from "../../src/shared/i18n-format";
+import { parseMessage, translationIssues } from "../../src/shared/i18n-format";
 
 /** Project root; the scripts and tests run from there. */
 export const ROOT = process.cwd();
@@ -108,8 +108,11 @@ export function extract(): ExtractResult {
     const lines = text.split("\n");
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, true);
     const visit = (node: ts.Node, inFunction: boolean): void => {
+      // Instance property initializers run per construction; static ones and
+      // static blocks run while the module loads, before initI18n().
       const fnLike =
-        ts.isFunctionLike(node) || ts.isClassStaticBlockDeclaration(node) || ts.isPropertyDeclaration(node);
+        ts.isFunctionLike(node) ||
+        (ts.isPropertyDeclaration(node) && !node.modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword));
       if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && (node.expression.text === "t" || node.expression.text === "tHtml")) {
         const line = sf.getLineAndCharacterOfPosition(node.getStart()).line;
         const where = `${rel}:${line + 1}`;
@@ -167,24 +170,12 @@ export function writeIfChanged(file: string, data: Record<string, unknown>): boo
 }
 
 /** Problems that make a translation unusable or unsafe to ship. */
-export function translationProblems(en: SourceCatalog, tr: TranslationCatalog): string[] {
+export function translationProblems(en: SourceCatalog, tr: TranslationCatalog, locale = "de"): string[] {
   const problems: string[] = [];
   for (const [id, entry] of Object.entries(tr)) {
     const src = en[id];
     if (!src) continue;
-    try {
-      parseMessage(entry.message);
-    } catch (err) {
-      problems.push(`${id}: ${(err as Error).message}`);
-      continue;
-    }
-    const want = [...messageArguments(src.message)].sort().join(",");
-    const got = [...messageArguments(entry.message)].sort().join(",");
-    if (want !== got) problems.push(`${id}: placeholders {${got}} should be {${want}}`);
-    if (messageTags(src.message).join() !== messageTags(entry.message).join()) {
-      problems.push(`${id}: markup ${messageTags(entry.message).join(" ")} should match ${messageTags(src.message).join(" ")}`);
-    }
+    for (const issue of translationIssues(src.message, entry.message, locale)) problems.push(`${id}: ${issue}`);
   }
   return problems;
 }
-

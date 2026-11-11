@@ -22,7 +22,7 @@ describe("message format", () => {
 
   it("reports arguments and tags for parity checks", () => {
     expect([...messageArguments("{a} and {n, plural, one {#} other {{b}}}")].sort()).toEqual(["a", "b", "n"]);
-    expect(messageTags('<strong>Hi</strong> <a href="x">y</a>')).toEqual(["/a", "/strong", "a", "strong"]);
+    expect(messageTags('<strong>Hi</strong> <a  href="x">y</a>')).toEqual(['</a>', '</strong>', '<a href="x">', '<strong>']);
   });
 });
 
@@ -97,5 +97,28 @@ describe("message forms", () => {
     const { messageForms, formsToMessage, formatMessage: fmt } = await import("../../src/shared/i18n-format");
     expect(messageForms("{n, plural, one {# a} other {# b}}", ["few", "many"]).map((f) => f.path[0].key)).toEqual(["one", "few", "many", "other"]);
     expect(fmt(formsToMessage(messageForms("'{'x'}' {n, plural, one {#} other {#}}")), { n: 2 })).toBe("{x} 2");
+  });
+});
+
+describe("translation checks", () => {
+  it("escapes values inside translated markup", () => {
+    setLocaleForTesting("de", { "test.html": "<strong>{name}</strong> fertig" });
+    expect(tHtml("test.html", "<strong>{name}</strong> done", { name: "<img src=x onerror=alert(1)>" }))
+      .toBe("<strong>&lt;img src=x onerror=alert(1)&gt;</strong> fertig");
+  });
+
+  it("ignores a translation whose markup differs from the English", () => {
+    setLocaleForTesting("de", { "test.link": '<a href="https://evil.example">Hier</a>' });
+    expect(tHtml("test.link", '<a href="https://forrt.org">Here</a>')).toBe('<a href="https://forrt.org">Here</a>');
+  });
+
+  it("flags changed attributes, missing cases and dropped placeholders", async () => {
+    const { translationIssues } = await import("../../src/shared/i18n-format");
+    expect(translationIssues('<a href="x">a</a>', '<a href="y">b</a>', "de")).toHaveLength(1);
+    expect(translationIssues('<a href="x">a</a>', '<a href="x">b</a>', "de")).toEqual([]);
+    expect(translationIssues("{n, plural, one {# a} other {# b}}", "{n, plural, other {# b}}", "de")).toHaveLength(1);
+    expect(translationIssues("Show {n, plural, one {# more} other {# more}}", "{n, plural, one {# weitere} other {weitere}}", "de")[0]).toMatch(/Missing placeholder.*n = other/);
+    // The singular may leave out its own number.
+    expect(translationIssues("{n, plural, one {# more paper} other {# more papers}}", "{n, plural, one {Ein weiterer Artikel} other {# weitere Artikel}}", "de")).toEqual([]);
   });
 });

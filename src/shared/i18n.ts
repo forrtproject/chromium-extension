@@ -19,7 +19,7 @@
  * A comment starting `// i18n:` directly above a call is shown to translators.
  */
 
-import { formatMessage, type MessageValues } from "./i18n-format";
+import { formatMessage, messageTags, type MessageValues } from "./i18n-format";
 
 export type { MessageValues };
 
@@ -111,16 +111,24 @@ export function initI18n(): Promise<void> {
   return initPromise;
 }
 
+let applying = 0;
+
 async function applyPreference(pref: LanguagePreference | undefined): Promise<void> {
   const target = resolveLocale(pref, browserLanguage());
+  const run = ++applying;
   if (target === locale && (target === "en" || Object.keys(catalog).length)) return;
+  let next: Record<string, string> = {};
+  let nextLocale: Locale = "en";
   try {
-    catalog = await loadCatalog(target);
-    locale = target;
+    next = await loadCatalog(target);
+    nextLocale = target;
   } catch {
-    catalog = {};
-    locale = "en";
+    // Fall back to English.
   }
+  // A newer language change may have finished first; keep its result.
+  if (run !== applying) return;
+  catalog = next;
+  locale = nextLocale;
   if (typeof document !== "undefined" && isExtensionContext()) document.documentElement.lang = locale;
 }
 
@@ -131,9 +139,13 @@ export function setLocaleForTesting(next: Locale, messages: Record<string, strin
   initPromise = Promise.resolve();
 }
 
+/** Translated markup must use exactly the English tags and attributes (also enforced by the catalog check). */
+const sameMarkup = (english: string, translated: string): boolean =>
+  !english.includes("<") && !translated.includes("<") ? true : messageTags(english).join() === messageTags(translated).join();
+
 function render(id: string, english: string, values?: MessageValues): string {
   const translated = catalog[id];
-  if (translated != null) {
+  if (translated != null && sameMarkup(english, translated)) {
     try {
       return formatMessage(translated, values, locale);
     } catch {
@@ -171,7 +183,7 @@ export function localizeDocument(root: ParentNode = document): void {
   if (locale === "en") return;
   for (const el of root.querySelectorAll<HTMLElement>("[data-i18n]")) {
     const translated = catalog[el.dataset.i18n!];
-    if (translated != null) el.innerHTML = translated;
+    if (translated != null && sameMarkup(el.innerHTML, translated)) el.innerHTML = translated;
   }
   for (const el of root.querySelectorAll<HTMLElement>("[data-i18n-attr]")) {
     for (const pair of el.dataset.i18nAttr!.split(";")) {

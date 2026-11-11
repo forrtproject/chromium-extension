@@ -91,6 +91,8 @@ const unavailableRetractionDois = new Set<DoiString>();
 const unavailableLookupDois = new Set<DoiString>();
 let retryRetractions: (() => Promise<void>) | null = null;
 let unavailableToast: HTMLElement | null = null;
+/** Title the unavailable toast was shown with; the host is shared with other alerts, which change it. */
+let unavailableToastTitle = "";
 let retractionRetryQueued: {page: string; generation: number; sheetGeneration: number} | null = null;
 const unavailableTitle = (): string => t("page.unavailable.title", "Some ORE checks didn't load");
 
@@ -145,15 +147,17 @@ function showUnavailable(): void {
     if (unavailableRetractionDois.size > 0) what.push("retractions");
     if (what.length === 0 || floraHidden) {
         // Other provider alerts reuse this host; do not dismiss their newer message.
-        if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === unavailableTitle()) unavailableToast.remove();
+        if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === unavailableToastTitle) unavailableToast.remove();
         unavailableToast = null;
         return;
     }
     const message = unavailableMessage(what);
-    if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === unavailableTitle()
+    // Compare with the title it was shown with, not a freshly translated one: the language may have changed since.
+    if (unavailableToast?.isConnected && unavailableToast.getAttribute("data-flora-toast-title") === unavailableToastTitle
         && unavailableToast.getAttribute("data-flora-toast-message") === message) return;
+    unavailableToastTitle = unavailableTitle();
     unavailableToast = showToast(message, {
-        title: unavailableTitle(), tone: "info", duration: 0, dismissOnAction: false,
+        title: unavailableToastTitle, tone: "info", duration: 0, dismissOnAction: false,
         action: {label: t("page.common.retry", "Retry"), onClick: retryUnavailable},
     });
 }

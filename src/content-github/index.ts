@@ -12,6 +12,7 @@ import { safeSendMessage, type TakeReportResponse } from "@shared/messages";
 import { insertReportIntoIssueBody, isIssueFormUrl } from "@shared/debug-report";
 import { debugLog } from "@shared/debug";
 import { showToast } from "@shared/toast";
+import { initI18n } from "@shared/i18n";
 
 /**
  * Ordered from most to least specific. GitHub has had more than one issue form
@@ -195,7 +196,8 @@ async function attachScreenshot(dataUrl: string): Promise<boolean> {
 async function fillIssueForm(): Promise<void> {
   if (!isIssueFormUrl(location.href)) return;
 
-  const field = await waitForBodyField();
+  // The toast's Dismiss button follows the interface language.
+  const [field] = await Promise.all([waitForBodyField(), initI18n()]);
   if (!field) {
     // Never fail silently here: the URL may already carry a trimmed log, but
     // the user asked for the full one and deserves to know where it is.
