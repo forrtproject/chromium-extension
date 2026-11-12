@@ -65,7 +65,7 @@ describe("side panel stability", () => {
         render([feedback({url: "https://pubpeer.com/publications/DIFFERENT", total_comments: 9})]);
 
         expect(comments()).not.toBe(first);
-        document.querySelector<HTMLElement>('[aria-label="Open the FORRT ORE panel"]')!.click();
+        document.querySelector<HTMLElement>('[aria-label="Open the ORE report"]')!.click();
         await vi.waitFor(() => expect(comments()?.querySelector("a")?.href).toContain("DIFFERENT"));
     });
 

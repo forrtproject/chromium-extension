@@ -56,14 +56,14 @@ let clearDois: string[] | null = null;
 
 function nothingFoundBody(dois: string[]): string {
     const pubPeerClear = dois.every((doi) => pubPeerVerdict(doi) === "clear");
-    const checked = pubPeerClear
-        ? "no retractions, concerns, replications, reproductions or PubPeer comments"
-        : "no retractions, concerns, replications or reproductions";
-    return `Checked ${dois.length} ${dois.length === 1 ? "paper" : "papers"}: ${checked}.`;
+    const found = pubPeerClear
+        ? "no retractions, expressions of concern, replications, reproductions or PubPeer comments"
+        : "no retractions, expressions of concern, replications or reproductions";
+    return `checked ${dois.length} ${dois.length === 1 ? "paper" : "papers"} and found ${found}.`;
 }
 
 function clearSummary(dois: string[]): string {
-    return `${dois.length === 1 ? "No flags for this paper" : "No flags on this page"} — ${nothingFoundBody(dois)}`;
+    return `No findings: ${nothingFoundBody(dois)}`;
 }
 
 let followingVerdicts = false;
@@ -128,7 +128,7 @@ function removeStandalone(): void {
 function busyName(tab: HTMLElement): string {
     const spoken = tab.dataset.floraTabSpoken ?? "";
     const action = tab.dataset.floraTabLabel;
-    return reportSettled && tab !== standalone() && action ? `${spoken}. ${action}` : spoken;
+    return reportSettled && tab !== standalone() && action ? `${spoken.replace(/…$/, "")}. ${action}` : spoken;
 }
 
 function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
@@ -168,7 +168,7 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
     edge.style.bottom = `${percent}%`;
     edge.style.display = percent > 0 && percent < 100 ? "" : "none";
 
-    const spoken = percent > 0 ? `FORRT ORE is checking this page, ${percent}% done` : "FORRT ORE is checking this page";
+    const spoken = percent > 0 ? `FORRT ORE is checking this page, ${percent}% done` : "FORRT ORE is checking this page…";
     tab.title = label;
     tab.dataset.floraTabSpoken = spoken;
     tab.setAttribute("aria-label", busyName(tab));

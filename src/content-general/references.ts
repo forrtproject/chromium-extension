@@ -96,6 +96,14 @@ function releaseReferenceEntry(entry: ReferenceEntry): void {
     entry.element.removeAttribute(REFERENCE_ENTRY_ATTR);
 }
 
+/** References whose DOI is still being looked up (by title or PMC id), for progress messages. */
+let awaitingDoi = 0;
+/** Bumped on navigation, so lookups from the previous page stop counting. */
+let awaitingGeneration = 0;
+export function referencesAwaitingDoi(): number {
+    return awaitingDoi;
+}
+
 export function releaseReferenceEntries(resolved: ResolvedReference[]): void {
     for (const r of resolved) releaseReferenceEntry(r.entry);
 }
@@ -103,6 +111,10 @@ export function releaseReferenceEntries(resolved: ResolvedReference[]): void {
 export function resetReferenceMarkers(root: ParentNode = document): void {
     for (const el of root.querySelectorAll(`[${REFERENCE_ENTRY_ATTR}]`)) {
         el.removeAttribute(REFERENCE_ENTRY_ATTR);
+    }
+    if (root === document) {
+        awaitingDoi = 0;
+        awaitingGeneration++;
     }
 }
 
@@ -198,12 +210,12 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         + ` augmenting ${augmentTargets.length}`
     );
 
-    if (augmentTargets.length > 0 || pmcTargets.length > 0) {
-        const pending = augmentTargets.length + pmcTargets.length;
-        reportWorkStage("augment", `Augmenting ${count(pending, "reference")} without a DOI…`);
-    }
+    const lookups = augmentTargets.length + pmcTargets.length;
+    if (lookups > 0) reportWorkStage("augment", `Finding DOIs for ${count(lookups, "paper")}…`);
 
     const empty = new Map<string, DoiString | null>();
+    awaitingDoi += lookups;
+    const generation = awaitingGeneration;
     const [augmentSettled, pmcSettled] = await Promise.allSettled([
         augmentTargets.length > 0
             ? augmentDOIsViaWorker(augmentTargets.map((p) => ({
@@ -215,7 +227,9 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         pmcTargets.length > 0
             ? resolvePmcIdsViaWorker(pmcTargets.map((p) => p.pmcid))
             : Promise.resolve(empty),
-    ]);
+    ]).finally(() => {
+        if (generation === awaitingGeneration) awaitingDoi -= lookups;
+    });
     if (augmentSettled.status === "rejected") {
         debugWarn(`References: augmentation failed for ${augmentTargets.length} entr(ies) —`, augmentSettled.reason);
     }
@@ -254,7 +268,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         .map((r) => r.doi))];
     let validated = new Map<DoiString, boolean>();
     if (toValidate.length > 0) {
-        reportWorkStage("validate", `Checking ${count(toValidate.length, "DOI")} resolve…`);
+        reportWorkStage("validate", `Validating ${count(toValidate.length, "DOI link")}…`);
         try {
             validated = await validateDOIs(toValidate);
         } catch (err) {

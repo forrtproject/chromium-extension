@@ -21,23 +21,23 @@ const FINDINGS_FAST_POLLS = 30;
 const TOUR_HELP = {
   checking: {
     title: "Still checking this page",
-    text: "The tour starts as soon as ORE has finished.",
+    text: "The tour starts when ORE finishes checking this page.",
   },
   "no-pills": {
     title: "No pills on this page",
-    text: "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
+    text: "The tour points out ORE's pills. Try it on a sample article.",
   },
   "not-running": {
     title: "ORE isn't running on this tab",
     text: "The tab was probably open before ORE was installed or updated. Reload it, or try a sample article.",
   },
   unavailable: {
-    title: "ORE can't run on browser pages",
-    text: "Try the tour on a sample article (opens in a new tab).",
+    title: "ORE only runs on websites",
+    text: "Open a sample article to take the tour.",
   },
   paused: {
     title: "ORE is off on this page",
-    text: "It's hidden, snoozed or turned off here. Turn it back on above, or try a sample article.",
+    text: "It's hidden, paused or turned off here. Turn it back on above, or try a sample article.",
   },
 } as const;
 
@@ -145,7 +145,7 @@ function articleParts(f: PageFindings): Part[] {
 function otherParts(f: PageFindings): Part[] {
   const o = f.others;
   const parts: Part[] = [
-    { text: o.checked < o.papers ? `Checking… ${o.checked} of ${o.papers}` : `${o.papers} checked` },
+    { text: o.checked < o.papers ? `Checking ${o.checked} of ${o.papers} ${o.papers === 1 ? "paper" : "papers"}…` : `${o.papers} checked` },
   ];
   if (o.retracted) parts.push({ text: `${o.retracted} retracted`, tone: "retracted" });
   if (o.concern) parts.push({ text: `${o.concern} with an expression of concern`, tone: "concern" });
@@ -183,7 +183,7 @@ function renderFindings(): void {
   if (!currentDomain || blocked || snoozedUntil !== null || hidden) return;
   if (results) {
     if (results.papers === 0) return;
-    const parts: Part[] = [{ text: results.checking ? `Checking ${results.papers}…` : `${results.papers} checked` }];
+    const parts: Part[] = [{ text: results.checking ? `Checking ${results.papers} ${results.papers === 1 ? "paper" : "papers"}…` : `${results.papers} checked` }];
     if (results.flagged) parts.push({ text: `${results.flagged} with findings` });
     if (results.incomplete) parts.push({ text: "some checks unavailable" });
     else if (!results.flagged && !results.checking) parts.push({ text: "no findings" });
@@ -262,7 +262,7 @@ function buildSnoozeOptions(): void {
         updateHideUI();
       }
       reportSnoozeState(snoozedUntil);
-      showStatus(`Snoozed until ${formatSnoozeEnd(snoozedUntil)}`, "success");
+      showStatus(`Paused until ${formatSnoozeEnd(snoozedUntil)}`, "success");
     });
     snoozeOptions.appendChild(button);
   }
@@ -311,7 +311,7 @@ async function init(): Promise<void> {
   try {
     const url = new URL(tab.url);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      domainEl.textContent = "Internal page";
+      domainEl.textContent = "Not a website";
       snoozeBtn.style.display = "none";
       blockBtn.style.display = "none";
       hideBtn.style.display = "none";
@@ -321,7 +321,7 @@ async function init(): Promise<void> {
     currentDomain = url.hostname;
     domainEl.textContent = currentDomain;
   } catch {
-    domainEl.textContent = "Internal page";
+    domainEl.textContent = "Not a website";
     snoozeBtn.style.display = "none";
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";
@@ -364,7 +364,7 @@ blockBtn.addEventListener("click", async () => {
     reportSnoozeState(snoozedUntil);
     showStatus(blocked
         ? `${currentDomain} is still turned off by a blocked parent domain or site category — edit it in Settings`
-        : `Unblocked ${currentDomain} — reload to apply`, blocked ? "error" : "success");
+        : `Turned back on for ${currentDomain} — reload to apply`, blocked ? "error" : "success");
   } else {
     if (!domains.includes(currentDomain)) {
       domains.push(currentDomain);
@@ -378,7 +378,7 @@ blockBtn.addEventListener("click", async () => {
       updateHideUI();
     }
     showStatus(
-      cleared ? `Blocked ${currentDomain}` : `Blocked ${currentDomain} — reload to apply`,
+      cleared ? `Turned off on ${currentDomain}` : `Turned off on ${currentDomain} — reload to apply`,
       "success"
     );
   }

@@ -112,7 +112,7 @@ describe("the popup's findings summary", () => {
   it("stays hidden on internal pages", async () => {
     answer({hidden: false, findings: findings()});
     await openPopup("chrome://extensions");
-    expect(document.getElementById("current-domain")!.textContent).toBe("Internal page");
+    expect(document.getElementById("current-domain")!.textContent).toBe("Not a website");
     await new Promise((r) => setTimeout(r, 20));
     expect(summary().hidden).toBe(true);
   });
@@ -144,7 +144,7 @@ describe("the popup's findings summary", () => {
     try {
       answer({hidden: false, results: {papers: 4, flagged: 0, incomplete: false, checking: true}});
       await openPopup("https://scholar.google.com/scholar?q=x");
-      await vi.waitFor(() => expect(summary().textContent).toContain("Checking 4…"));
+      await vi.waitFor(() => expect(summary().textContent).toContain("Checking 4 papers…"));
       expect(summary().textContent).not.toContain("no findings");
       answer({hidden: false, results: {papers: 4, flagged: 0, incomplete: false, checking: false}});
       await vi.advanceTimersByTimeAsync(1000);

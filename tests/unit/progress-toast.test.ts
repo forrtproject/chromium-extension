@@ -227,7 +227,7 @@ describe("progress toast", () => {
         expect(done.querySelector("[data-flora-work-duration]")?.textContent).toBe("2.3 s");
         expect(toast()!.querySelector('[data-flora-work-stage="validate"] [aria-label="Skipped"]')).not.toBeNull();
         expect(toast()!.querySelector('[data-flora-work-stage="validate"]')?.textContent).toContain(
-            "Check DOIs resolve"
+            "Validate DOI links"
         );
     });
 

@@ -40,7 +40,7 @@ describe("the toolbar shows a snoozed site differently from an inactive one", ()
         await deliver({type: "FLORA_ACTIVE_STATE", active: false, snoozedUntil: until.getTime()}, 7);
 
         expect(badge.at(-1)).toEqual({tabId: 7, text: "Zz"});
-        expect(title.at(-1)!.title).toContain("snoozed here until");
+        expect(title.at(-1)!.title).toContain("paused here until");
         expect(badgeColour.at(-1), "the badge wears ORE's own maroon").toBe("#853953");
         expect(icon.at(-1)!.path, "a snoozed site is not running, so the icon stays gray")
             .toEqual({16: "/dist/icons/gray-16.png", 32: "/dist/icons/gray-32.png"});
@@ -86,7 +86,7 @@ describe("the toolbar shows a snoozed site differently from an inactive one", ()
 
         expect(icon.at(-1)!.path, "the disabled mark rides on the icon itself")
             .toEqual({16: "/dist/icons/blocked-16.png", 32: "/dist/icons/blocked-32.png"});
-        expect(title.at(-1)!.title).toBe("FORRT ORE — turned off on this domain");
+        expect(title.at(-1)!.title).toBe("FORRT ORE — turned off on this site");
         expect(badge.at(-1), "the icon already says it, so no text badge on top")
             .toEqual({tabId: 21, text: ""});
     });

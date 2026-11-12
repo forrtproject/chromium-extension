@@ -171,7 +171,7 @@ describe("the popup's resume button", () => {
       .parseFromString(html, "text/html").body.innerHTML;
     await import("../../src/popup/popup");
     await vi.waitFor(() =>
-      expect(document.getElementById("current-domain")!.textContent).toBe("Internal page")
+      expect(document.getElementById("current-domain")!.textContent).toBe("Not a website")
     );
 
     expect(document.getElementById("snooze-btn")!.style.display,

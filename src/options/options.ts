@@ -295,7 +295,7 @@ async function blockDomain(): Promise<void> {
     !domain ||
     !/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)+$/.test(domain)
   ) {
-    showDomainStatus("Invalid domain format.", "error");
+    showDomainStatus("Enter a domain such as journals.example.org.", "error");
     return;
   }
 

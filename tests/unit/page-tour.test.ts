@@ -38,7 +38,7 @@ async function articlePage({notice = false} = {}): Promise<void> {
     loose.setAttribute(LOOSE_PILL_ATTR, "");
     const panel = document.createElement("div");
     panel.id = "flora-pubpeer-panel";
-    panel.innerHTML = `<button data-flora-panel-tab aria-label="Open the FORRT ORE panel"></button>`;
+    panel.innerHTML = `<button data-flora-panel-tab aria-label="Open the ORE report"></button>`;
     document.body.append(title, entry, loose, panel);
 }
 
@@ -74,7 +74,7 @@ describe("the on-page tour of an article", () => {
         document.querySelector("[data-flora-title-pill]")!.remove();
         const {articleTourStops} = await import("../../src/shared/page-tour");
         const stops = articleTourStops();
-        expect(stops[0].title).toBe("Every paper in the reference list gets a pill");
+        expect(stops[0].title).toBe("Identified papers in the reference list get a pill");
         expect(stops[0].text).toBe("A reference without a pill is one ORE could not identify. ORE adds the same pill to each DOI mentioned in the text.");
     });
 
