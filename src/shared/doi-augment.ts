@@ -70,9 +70,8 @@ async function getContact(): Promise<Contact> {
 
 /** Fetch from OpenAlex through its gate, recording the budget each response reports. */
 function openalexFetch<T>(url: string, contact: Contact, signal: AbortSignal | null | undefined, read: (response: Response) => Promise<T>): Promise<T> {
-    const keyed = !!contact.openalexKey;
     return openalexGate.fetch(withOpenAlexKey(url, contact.openalexKey), {signal: signal ?? null}, async (response) => {
-        noteOpenAlexResponse(response, keyed);
+        noteOpenAlexResponse(response, contact.openalexKey);
         return read(response);
     });
 }
@@ -571,15 +570,19 @@ export async function augmentDOIsDetailed(
     // down to its reserve, Crossref answers alone. Then use the page metadata
     // to pick the single best candidate. Cache writes are accumulated and
     // flushed once at the end.
-    const keyed = !!contact.openalexKey;
     const updates: Array<[string, CachedDoiResult]> = [];
     const lookupPromises = [...uncachedByKey.entries()].map(async ([key, group], index) => {
         const request = group[0];
         const order: AugmentPlatform[] = index % 2 === 0 ? ["crossref", "openalex"] : ["openalex", "crossref"];
         const outcomes: Partial<Record<AugmentPlatform, PromiseSettledResult<DoiCandidate[]>>> = {};
+        // Set when the budget kept OpenAlex out although it would have been asked.
+        let openalexSkipped = false;
         for (const platform of order) {
             signal?.throwIfAborted();
-            if (platform === "openalex" && !(await reserveTitleSearch(keyed))) continue;
+            if (platform === "openalex" && !(await reserveTitleSearch(contact.openalexKey))) {
+                openalexSkipped = true;
+                continue;
+            }
             const [outcome] = await Promise.allSettled([
                 platform === "crossref"
                     ? queryCrossref(request, contact, signal)
@@ -628,7 +631,10 @@ export async function augmentDOIsDetailed(
             crossrefResult.status === "fulfilled" || openalexResult.status === "fulfilled";
         for (const r of group) results.set(r.title, {doi, source, answered});
 
-        if (answered) {
+        if (answered && doi === null && openalexSkipped) {
+            // OpenAlex might still find it: don't cache the miss for 30 days.
+            debugLog(`Augment: "${request.title.slice(0, 80)}" — no match on Crossref, OpenAlex held back by its budget; not caching the miss`);
+        } else if (answered) {
             updates.push([key, {found: doi !== null, doi}]);
         } else {
             debugWarn(
@@ -688,7 +694,7 @@ export async function fetchTitleByDoi(doi: string, signal: AbortSignal | null | 
 
     if (signal?.aborted && !title) return null;
     // A single-work lookup costs no credits, but fails once the budget is spent.
-    if (!title && await openAlexAvailable(!!contact.openalexKey)) {
+    if (!title && await openAlexAvailable(contact.openalexKey)) {
         try {
             title = await openalexFetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`, contact, signal, async (response) => {
                 openalexAnswered = response.ok || response.status === 404;
@@ -709,7 +715,7 @@ export async function fetchTitleByDoi(doi: string, signal: AbortSignal | null | 
 
 /** Set while OpenAlex's budget is down to its reserve and Crossref matches titles alone. */
 export async function currentOpenAlexTitleLimit(): Promise<OpenAlexLimit | null> {
-    return openAlexTitleLimit(!!(await getContact()).openalexKey);
+    return openAlexTitleLimit((await getContact()).openalexKey);
 }
 
 /** Test-only: drop in-memory cache state so each case starts fresh. */

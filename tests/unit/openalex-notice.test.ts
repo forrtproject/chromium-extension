@@ -25,7 +25,7 @@ it("tells the reader once per budget that title matching uses Crossref alone", a
     const resetAt = Date.now() + 3_600_000;
     vi.mocked(chrome.runtime.sendMessage).mockResolvedValue(reply({resetAt, keyed: false}) as any);
     await augmentDOIsViaWorker(["Paper"]);
-    await vi.waitFor(() => expect(toastText()).toContain("OpenAlex limit reached"));
+    await vi.waitFor(() => expect(toastText()).toContain("OpenAlex allowance low"));
     expect(toastText()).toContain("Crossref alone");
     expect(toastText()).toContain("Settings");
 
@@ -48,5 +48,31 @@ it("says nothing while OpenAlex has budget, and waits for a Retry to be dealt wi
     await augmentDOIsViaWorker(["Paper"]);
     await new Promise((r) => setTimeout(r, 20));
     expect(toastText()).toContain("Retry");
-    expect(toastText()).not.toContain("OpenAlex limit");
+    expect(toastText()).not.toContain("OpenAlex allowance");
+
+    document.body.innerHTML = "";
+    await augmentDOIsViaWorker(["Paper"]);
+    await vi.waitFor(() => expect(toastText()).toContain("OpenAlex allowance low"));
+});
+
+it("remembers across pages, and words a key's notice without Settings", async () => {
+    const resetAt = Date.now() + 3_600_000;
+    let {augmentDOIsViaWorker} = await setup();
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue(reply({resetAt, keyed: false}) as any);
+    await augmentDOIsViaWorker(["Paper"]);
+    await vi.waitFor(() => expect(toastText()).toContain("OpenAlex allowance low"));
+
+    // A new page (fresh module) for the same budget stays quiet.
+    vi.resetModules();
+    document.body.innerHTML = "";
+    ({augmentDOIsViaWorker} = await setup());
+    await augmentDOIsViaWorker(["Paper"]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(toastText()).not.toContain("OpenAlex");
+
+    // A key's own budget is a different notice.
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue(reply({resetAt, keyed: true}) as any);
+    await augmentDOIsViaWorker(["Paper"]);
+    await vi.waitFor(() => expect(toastText()).toContain("Your OpenAlex key's daily allowance"));
+    expect(toastText()).not.toContain("Settings");
 });

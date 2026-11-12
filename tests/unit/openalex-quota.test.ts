@@ -38,40 +38,55 @@ beforeEach(() => {
 
 describe("OpenAlex budget", () => {
     it("sends one title search while the budget is unknown", async () => {
-        expect(await reserveTitleSearch(false)).toBe(true);
-        expect(await reserveTitleSearch(false)).toBe(false);
+        expect(await reserveTitleSearch("")).toBe(true);
+        expect(await reserveTitleSearch("")).toBe(false);
         releaseTitleSearch();
-        expect(await reserveTitleSearch(false)).toBe(true);
+        expect(await reserveTitleSearch("")).toBe(true);
     });
 
     it("keeps the reserve for id lookups, counting searches still in flight", async () => {
-        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 20), false);
-        expect(await reserveTitleSearch(false)).toBe(true);
-        expect(await reserveTitleSearch(false)).toBe(true);
-        expect(await reserveTitleSearch(false)).toBe(false);
-        expect(await openAlexTitleLimit(false)).toBeNull();
-        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 5), false);
-        expect(await openAlexTitleLimit(false)).toMatchObject({keyed: false});
-        expect(await openAlexAvailable(false)).toBe(true);
+        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 20), "");
+        expect(await reserveTitleSearch("")).toBe(true);
+        expect(await reserveTitleSearch("")).toBe(true);
+        expect(await reserveTitleSearch("")).toBe(false);
+        expect(await openAlexTitleLimit("")).toBeNull();
+        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 5), "");
+        expect(await openAlexTitleLimit("")).toMatchObject({keyed: false});
+        expect(await openAlexAvailable("")).toBe(true);
     });
 
     it("treats a daily 429 as used up until the reset, and a key's budget separately", async () => {
-        noteOpenAlexResponse(budget(0, 7200, 429), false);
-        expect(await openAlexAvailable(false)).toBe(false);
-        expect(await reserveTitleSearch(false)).toBe(false);
+        noteOpenAlexResponse(budget(0, 7200, 429), "");
+        expect(await openAlexAvailable("")).toBe(false);
+        expect(await reserveTitleSearch("")).toBe(false);
         // A newly added key has its own budget.
-        expect(await openAlexAvailable(true)).toBe(true);
-        expect(await openAlexTitleLimit(true)).toBeNull();
+        expect(await openAlexAvailable("KEY-A")).toBe(true);
+        expect(await openAlexTitleLimit("KEY-A")).toBeNull();
+        noteOpenAlexResponse(budget(0, 7200, 429), "KEY-A");
+        expect(await openAlexAvailable("KEY-A")).toBe(false);
+        // Replacing a spent key starts afresh.
+        expect(await openAlexAvailable("KEY-B")).toBe(true);
+    });
+
+    it("treats a short Retry-After as a burst limit even with daily headers", async () => {
+        noteOpenAlexResponse(new Response(null, {status: 429, headers: {"retry-after": "1", "x-ratelimit-remaining": "400", "x-ratelimit-reset": "7200"}}), "");
+        expect(await openAlexAvailable("")).toBe(true);
+    });
+
+    it("ignores an older, higher balance that arrives late", async () => {
+        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 5), "");
+        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 15), "");
+        expect(await reserveTitleSearch("")).toBe(false);
     });
 
     it("ignores a short per-second 429", async () => {
-        noteOpenAlexResponse(new Response(null, {status: 429, headers: {"retry-after": "1"}}), false);
-        expect(await openAlexAvailable(false)).toBe(true);
+        noteOpenAlexResponse(new Response(null, {status: 429, headers: {"retry-after": "1"}}), "");
+        expect(await openAlexAvailable("")).toBe(true);
     });
 
     it("forgets the budget once it has reset", async () => {
-        noteOpenAlexResponse(budget(0, 0, 429), false);
-        expect(await openAlexAvailable(false)).toBe(true);
+        noteOpenAlexResponse(budget(0, 0, 429), "");
+        expect(await openAlexAvailable("")).toBe(true);
     });
 
     it("adds the key to requests and keeps it out of debug reports", () => {
@@ -102,7 +117,7 @@ describe("title matching with the OpenAlex budget", () => {
     });
 
     it("matches with Crossref alone once OpenAlex is down to its reserve, and reports it", async () => {
-        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 5), false);
+        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 5), "");
         let openalexHits = 0;
         server.use(
             http.get("https://api.openalex.org/works", () => {
@@ -121,8 +136,20 @@ describe("title matching with the OpenAlex budget", () => {
         expect(await currentOpenAlexTitleLimit()).toMatchObject({keyed: false});
     });
 
+    it("does not cache a Crossref miss while OpenAlex is held back", async () => {
+        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 5), "");
+        let crossrefHits = 0;
+        server.use(http.get("https://api.crossref.org/works", () => {
+            crossrefHits++;
+            return HttpResponse.json({message: {items: []}});
+        }));
+        expect((await augmentDOIs(["An Obscure Paper Crossref Lacks"])).get("An Obscure Paper Crossref Lacks")).toBeNull();
+        await augmentDOIs(["An Obscure Paper Crossref Lacks"]);
+        expect(crossrefHits).toBe(2);
+    });
+
     it("skips OpenAlex for a DOI's title once the budget is used up", async () => {
-        noteOpenAlexResponse(budget(0, 7200, 429), false);
+        noteOpenAlexResponse(budget(0, 7200, 429), "");
         let openalexHits = 0;
         server.use(
             http.get("https://api.crossref.org/works/*", () => new HttpResponse(null, {status: 503})),

@@ -29,7 +29,7 @@ async function fetchWorks(ids: string[], signal?: AbortSignal): Promise<Array<{i
         "per-page": String(MAX_IDS_PER_REQUEST),
     });
     const response = await fetchWithDeadline(withOpenAlexKey(`${OPENALEX_WORKS}?${params.toString()}`, key), {signal});
-    noteOpenAlexResponse(response, !!key);
+    noteOpenAlexResponse(response, key);
     if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
     const data = (await response.json()) as {results?: Array<{id?: string; doi?: string | null}>};
     return data.results ?? [];

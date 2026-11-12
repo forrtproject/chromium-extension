@@ -26,8 +26,8 @@ interface QuotaState {
     remaining: number;
     /** Epoch ms when the budget refills. */
     resetAt: number;
-    /** Whether the budget belongs to an API key (else the shared keyless one). */
-    keyed: boolean;
+    /** Whose budget: "shared" (no key) or a fingerprint of the API key. */
+    budget: string;
 }
 
 export interface OpenAlexLimit {
@@ -36,6 +36,14 @@ export interface OpenAlexLimit {
 }
 
 const SESSION_KEY = "flora_openalex_quota";
+
+/** Identify a budget without storing the key itself: "shared", or an FNV-1a hash of the key. */
+function budgetOf(key: string): string {
+    if (!key) return "shared";
+    let h = 0x811c9dc5;
+    for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 0x01000193);
+    return `key:${(h >>> 0).toString(36)}`;
+}
 let state: QuotaState | null = null;
 let loaded: Promise<void> | null = null;
 
@@ -44,7 +52,7 @@ function load(): Promise<void> {
         try {
             const raw = (await chrome.storage.session.get(SESSION_KEY))[SESSION_KEY] as QuotaState | undefined;
             // A response noted while loading is newer than the stored state.
-            if (!state && raw && typeof raw.remaining === "number" && typeof raw.resetAt === "number") state = raw;
+            if (!state && raw && typeof raw.remaining === "number" && typeof raw.resetAt === "number" && typeof raw.budget === "string") state = raw;
         } catch {
             // No session storage (tests, content scripts): keep the in-memory state.
         }
@@ -85,31 +93,38 @@ function untilMidnightUtc(now: number): number {
 }
 
 /** Record the budget an OpenAlex response reports. Call for every response, including errors. */
-export function noteOpenAlexResponse(response: Response, keyed: boolean): void {
+export function noteOpenAlexResponse(response: Response, key: string): void {
     const now = Date.now();
+    const budget = budgetOf(key);
     const remaining = header(response, "x-ratelimit-remaining");
     const resetSeconds = header(response, "x-ratelimit-reset");
     if (response.status === 429) {
-        const wait = resetSeconds != null ? resetSeconds * 1000 : retryAfterMs(response) ?? untilMidnightUtc(now);
-        // A short Retry-After is a per-second burst limit, not the daily budget.
+        const retry = retryAfterMs(response);
+        // A short Retry-After with credits left is the per-second burst limit, not the daily budget.
+        if (retry != null && retry < 60_000 && remaining !== 0) return;
+        const wait = resetSeconds != null ? resetSeconds * 1000 : retry ?? untilMidnightUtc(now);
         if (remaining == null && wait < 60_000) return;
-        state = {remaining: 0, resetAt: now + wait, keyed};
-        debugWarn(`OpenAlex: ${keyed ? "the API key's" : "this network's free"} daily budget is used up until ${new Date(state.resetAt).toISOString()}`);
+        state = {remaining: 0, resetAt: now + wait, budget};
+        debugWarn(`OpenAlex: ${key ? "the API key's" : "this network's free"} daily budget is used up until ${new Date(state.resetAt).toISOString()}`);
         persist();
         return;
     }
     if (remaining == null) return;
     const before = state;
-    state = {remaining, resetAt: now + (resetSeconds ?? untilMidnightUtc(now) / 1000) * 1000, keyed};
+    const resetAt = now + (resetSeconds ?? untilMidnightUtc(now) / 1000) * 1000;
+    // Answers to parallel requests can arrive out of order; within one budget
+    // period the balance only falls, so an older, higher figure is ignored.
+    const samePeriod = before && before.budget === budget && now < before.resetAt && Math.abs(before.resetAt - resetAt) < 10 * 60_000;
+    state = {remaining: samePeriod ? Math.min(before.remaining, remaining) : remaining, resetAt, budget};
     if (before && before.remaining >= OPENALEX_RESERVE_CREDITS + OPENALEX_TITLE_SEARCH_CREDITS && !titleSearchFits(state)) {
         debugLog(`OpenAlex: ${remaining} credits left — keeping them for openalex.org lookups; title matching continues with Crossref only`);
     }
     persist();
 }
 
-function current(keyed: boolean): QuotaState | null {
-    // A budget seen without a key says nothing about a newly added key, and vice versa.
-    if (!state || state.keyed !== keyed || Date.now() >= state.resetAt) return null;
+function current(key: string): QuotaState | null {
+    // One budget says nothing about another: no key, or a different key.
+    if (!state || state.budget !== budgetOf(key) || Date.now() >= state.resetAt) return null;
     return state;
 }
 
@@ -126,9 +141,9 @@ let pending = 0;
  * answer can report it before others spend it. Call `releaseTitleSearch` when
  * the request settles.
  */
-export async function reserveTitleSearch(keyed: boolean): Promise<boolean> {
+export async function reserveTitleSearch(key: string): Promise<boolean> {
     await load();
-    const s = current(keyed);
+    const s = current(key);
     const fits = s
         ? s.remaining - (pending + 1) * OPENALEX_TITLE_SEARCH_CREDITS >= OPENALEX_RESERVE_CREDITS
         : pending === 0;
@@ -141,17 +156,17 @@ export function releaseTitleSearch(): void {
 }
 
 /** Whether any OpenAlex request can succeed now (the budget is not used up). */
-export async function openAlexAvailable(keyed: boolean): Promise<boolean> {
+export async function openAlexAvailable(key: string): Promise<boolean> {
     await load();
-    const s = current(keyed);
+    const s = current(key);
     return !s || s.remaining > 0;
 }
 
 /** When title matching is running on Crossref alone because of the budget: until when, and whose budget. */
-export async function openAlexTitleLimit(keyed: boolean): Promise<OpenAlexLimit | null> {
+export async function openAlexTitleLimit(key: string): Promise<OpenAlexLimit | null> {
     await load();
-    const s = current(keyed);
-    return s && !titleSearchFits(s) ? {resetAt: s.resetAt, keyed: s.keyed} : null;
+    const s = current(key);
+    return s && !titleSearchFits(s) ? {resetAt: s.resetAt, keyed: !!key} : null;
 }
 
 /** Add the user's OpenAlex API key, when there is one, to a request URL's query. */
