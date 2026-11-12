@@ -78,7 +78,11 @@ it("remembers across pages, and words a key's notice without Settings", async ()
 });
 
 it("tells once per page without storage, though reset times differ slightly", async () => {
-    vi.mocked(chrome.storage.local.get).mockRejectedValue(new Error("no storage"));
+    // Only the notice's own key fails; other readers of storage keep working.
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key: any) => {
+        if (key === "flora_openalex_notice") throw new Error("no storage");
+        return {};
+    });
     const {augmentDOIsViaWorker} = await setup();
     const resetAt = Date.now() + 3_600_000;
     vi.mocked(chrome.runtime.sendMessage).mockResolvedValue(reply({resetAt, keyed: false}) as any);
