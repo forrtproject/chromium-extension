@@ -5,17 +5,22 @@ import {getSettings} from "./settings";
 import {BlobCache} from "./blob-cache";
 import {debugLog, debugWarn} from "./debug";
 import {RequestGate} from "./request-gate";
+import {noteOpenAlexResponse, openAlexAvailable, openAlexTitleLimit, releaseTitleSearch, reserveTitleSearch, withOpenAlexKey, type OpenAlexLimit} from "./openalex-quota";
 
 const OPENALEX_BASE = "https://api.openalex.org/works";
 const CROSSREF_BASE = "https://api.crossref.org/works";
 
 // A reference list can hold dozens of titles without a DOI; fired all at once,
-// both platforms answer 429 within the second. Crossref's polite pool allows
-// 3 concurrent requests at 3/s; OpenAlex allows 10/s but charges a title
-// search 10 credits against a free budget of 1000/day per client, and answers
-// 429 with a Retry-After of "midnight UTC" once that is spent.
-const crossrefGate = new RequestGate("Crossref", 3, 400);
+// both platforms answer 429 within the second. Crossref allows 3 concurrent
+// title searches at 3/s with a contact email (its "polite" pool) and 1 at 1/s
+// without. OpenAlex allows 10/s but charges a title search 10 credits against a
+// daily budget (see openalex-quota.ts) and answers 429 once that is spent.
+const crossrefPoliteGate = new RequestGate("Crossref", 3, 400);
+const crossrefPublicGate = new RequestGate("Crossref (no email)", 1, 1_100);
 const openalexGate = new RequestGate("OpenAlex", 3, 100);
+
+const crossrefGate = (email: string): RequestGate => (email ? crossrefPoliteGate : crossrefPublicGate);
+const mailtoParam = (email: string): string => (email ? `&mailto=${encodeURIComponent(email)}` : "");
 const MATCH_THRESHOLD_TSR = 88; // token_set_ratio threshold (0–100)
 // token_set_ratio scores 100 whenever one title's tokens are a subset of the
 // other's, so a 3-word title matches a 7-word one perfectly. Coverage is the
@@ -53,9 +58,23 @@ interface DoiCandidate {
     urls?: string[];
 }
 
-async function getUserEmail(): Promise<string> {
-    const {email} = await getSettings();
-    return email;
+interface Contact {
+    email: string;
+    openalexKey: string;
+}
+
+async function getContact(): Promise<Contact> {
+    const settings = await getSettings();
+    return {email: (settings.email ?? "").trim(), openalexKey: (settings.openalexKey ?? "").trim()};
+}
+
+/** Fetch from OpenAlex through its gate, recording the budget each response reports. */
+function openalexFetch<T>(url: string, contact: Contact, signal: AbortSignal | null | undefined, read: (response: Response) => Promise<T>): Promise<T> {
+    const keyed = !!contact.openalexKey;
+    return openalexGate.fetch(withOpenAlexKey(url, contact.openalexKey), {signal: signal ?? null}, async (response) => {
+        noteOpenAlexResponse(response, keyed);
+        return read(response);
+    });
 }
 
 /**
@@ -361,12 +380,12 @@ function logQueryOutcome(
  * Query Crossref for a title, returning every candidate that clears the title
  * threshold (with author/year/URL metadata for later tie-breaking).
  */
-async function queryCrossref(request: DoiAugmentRequest, email: string, signal?: AbortSignal): Promise<DoiCandidate[]> {
+async function queryCrossref(request: DoiAugmentRequest, contact: Contact, signal?: AbortSignal): Promise<DoiCandidate[]> {
     const {title} = request;
     const cleaned = cleanTitleForSearch(title);
-    const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link&mailto=${encodeURIComponent(email)}`;
+    const url = `${CROSSREF_BASE}?query.title=${encodeURIComponent(cleaned)}&rows=5&select=DOI,title,author,issued,published-print,published-online,published,URL,link${mailtoParam(contact.email)}`;
     debugLog(`Augment [crossref] query: "${cleaned}"`);
-    const data = await crossrefGate.fetch<{
+    const data = await crossrefGate(contact.email).fetch<{
         message?: {
             items?: Array<{
                 DOI?: string;
@@ -420,13 +439,14 @@ async function queryCrossref(request: DoiAugmentRequest, email: string, signal?:
  * Query OpenAlex for a title, returning every candidate that clears the title
  * threshold (with author/year/URL metadata for later tie-breaking).
  */
-async function queryOpenAlex(request: DoiAugmentRequest, email: string, signal?: AbortSignal): Promise<DoiCandidate[]> {
+async function queryOpenAlex(request: DoiAugmentRequest, contact: Contact, signal?: AbortSignal): Promise<DoiCandidate[]> {
     const {title} = request;
     const cleaned = cleanTitleForSearch(title);
-    const url = `${OPENALEX_BASE}?filter=title.search:${encodeURIComponent(cleaned)}&select=id,doi,title,publication_year,authorships,primary_location,locations&per_page=5&mailto=${encodeURIComponent(email)}`;
+    // OpenAlex ignores a contact email since it moved to API keys, so none is sent.
+    const url = `${OPENALEX_BASE}?filter=title.search:${encodeURIComponent(cleaned)}&select=id,doi,title,publication_year,authorships,primary_location,locations&per_page=5`;
 
     debugLog(`Augment [openalex] query: "${cleaned}"`);
-    const data = await openalexGate.fetch<{
+    const data = await openalexFetch<{
         results?: Array<{
             doi?: string;
             title?: string;
@@ -435,7 +455,7 @@ async function queryOpenAlex(request: DoiAugmentRequest, email: string, signal?:
             primary_location?: {landing_page_url?: string | null; pdf_url?: string | null} | null;
             locations?: Array<{landing_page_url?: string | null; pdf_url?: string | null}>;
         }>;
-    }>(url, {signal}, async (response) => {
+    }>(url, contact, signal, async (response) => {
         if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
         return response.json();
     });
@@ -538,29 +558,20 @@ export async function augmentDOIsDetailed(
 
     if (uncachedByKey.size === 0) return results;
 
-    // No email means we can't query the APIs at all. Resolve every uncached
-    // title to null but DO NOT write the cache: a cached no-match would
-    // suppress these titles for the cache TTL (30 days) even after the user
-    // configures their email.
-    const email = await getUserEmail();
-    if (!email) {
-        debugWarn(
-            `Augment: no contact email configured — skipping ${uncachedByKey.size} title(s);`
-            + " neither Crossref nor OpenAlex will be queried"
-        );
-        for (const group of uncachedByKey.values()) {
-            for (const request of group) results.set(request.title, {doi: null, source: null, answered: false});
-        }
-        return results;
-    }
+    // Without an email Crossref serves title searches one at a time (its
+    // public pool), so matching is slower but still runs.
+    const contact = await getContact();
+    if (!contact.email) debugLog(`Augment: no contact email — Crossref title searches run one at a time (${uncachedByKey.size} title(s))`);
 
     // Query each distinct title on one platform first — titles alternate
     // between Crossref and OpenAlex so the load (and OpenAlex's daily credit
     // budget) is split — and ask the other only when the first fails, finds
     // nothing, or returns several DOIs (a preprint/journal pair, say) whose
-    // tie the second platform's metadata may break. Then use the page
-    // metadata to pick the single best candidate. Cache writes are
-    // accumulated and flushed once at the end.
+    // tie the second platform's metadata may break. Once OpenAlex's budget is
+    // down to its reserve, Crossref answers alone. Then use the page metadata
+    // to pick the single best candidate. Cache writes are accumulated and
+    // flushed once at the end.
+    const keyed = !!contact.openalexKey;
     const updates: Array<[string, CachedDoiResult]> = [];
     const lookupPromises = [...uncachedByKey.entries()].map(async ([key, group], index) => {
         const request = group[0];
@@ -568,8 +579,11 @@ export async function augmentDOIsDetailed(
         const outcomes: Partial<Record<AugmentPlatform, PromiseSettledResult<DoiCandidate[]>>> = {};
         for (const platform of order) {
             signal?.throwIfAborted();
+            if (platform === "openalex" && !(await reserveTitleSearch(keyed))) continue;
             const [outcome] = await Promise.allSettled([
-                platform === "crossref" ? queryCrossref(request, email, signal) : queryOpenAlex(request, email, signal),
+                platform === "crossref"
+                    ? queryCrossref(request, contact, signal)
+                    : queryOpenAlex(request, contact, signal).finally(releaseTitleSearch),
             ]);
             outcomes[platform] = outcome;
             if (outcome.status === "fulfilled" && new Set(outcome.value.map((c) => c.doi)).size === 1) break;
@@ -657,11 +671,12 @@ export async function fetchTitleByDoi(doi: string, signal: AbortSignal | null | 
     let title: string | null = null;
     let crossrefAnswered = false;
     let openalexAnswered = false;
+    let contact: Contact = {email: "", openalexKey: ""};
 
     try {
-        const email = await getUserEmail();
-        const mailto = email ? `?mailto=${encodeURIComponent(email)}` : "";
-        title = await crossrefGate.fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`, {signal: signal ?? null}, async (response) => {
+        contact = await getContact();
+        const mailto = contact.email ? `?mailto=${encodeURIComponent(contact.email)}` : "";
+        title = await crossrefGate(contact.email).fetch(`${CROSSREF_BASE}/${encodedDoi}${mailto}`, {signal: signal ?? null}, async (response) => {
             crossrefAnswered = response.ok || response.status === 404;
             if (!response.ok) return null;
             const data = (await response.json()) as { message?: { title?: string[] } };
@@ -672,9 +687,10 @@ export async function fetchTitleByDoi(doi: string, signal: AbortSignal | null | 
     }
 
     if (signal?.aborted && !title) return null;
-    if (!title) {
+    // A single-work lookup costs no credits, but fails once the budget is spent.
+    if (!title && await openAlexAvailable(!!contact.openalexKey)) {
         try {
-            title = await openalexGate.fetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`, {signal: signal ?? null}, async (response) => {
+            title = await openalexFetch(`${OPENALEX_BASE}/doi:${encodedDoi}?select=title`, contact, signal, async (response) => {
                 openalexAnswered = response.ok || response.status === 404;
                 if (!response.ok) return null;
                 const data = (await response.json()) as { title?: string };
@@ -689,6 +705,11 @@ export async function fetchTitleByDoi(doi: string, signal: AbortSignal | null | 
         void TITLE_CACHE.set(doi, {title});
     }
     return title;
+}
+
+/** Set while OpenAlex's budget is down to its reserve and Crossref matches titles alone. */
+export async function currentOpenAlexTitleLimit(): Promise<OpenAlexLimit | null> {
+    return openAlexTitleLimit(!!(await getContact()).openalexKey);
 }
 
 /** Test-only: drop in-memory cache state so each case starts fresh. */

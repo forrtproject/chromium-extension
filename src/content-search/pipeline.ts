@@ -22,7 +22,6 @@ import {pubPeerLookupsPending, pubPeerVerdict} from "@shared/pubpeer-api";
 import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
 import {reportCodeError} from "@shared/error-report";
 import {hasReplication} from "../content-general/reference-states";
-import {isSetupComplete} from "@shared/settings";
 import {deferredOpenAccess} from "@shared/openaccess";
 import {abortWorkForNavigation, activeWorkSignal, isAbortError, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
@@ -564,9 +563,8 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
     lastSearchRetryContext = {adapter, root};
     const passUrl = pageUrl(location.href);
     const generation = searchNavigationGeneration;
-    const titleMatchingEnabled = await isSetupComplete();
     if (searchHidden || isWorkCancelled() || searchRequiresReload || retryingSearchChecks || pageUrl(location.href) !== passUrl || generation !== searchNavigationGeneration) return;
-    const titleFailed = titleMatchingEnabled && [...root.querySelectorAll<HTMLElement>(adapter.resultRow)]
+    const titleFailed = [...root.querySelectorAll<HTMLElement>(adapter.resultRow)]
         .some(row => unansweredRows.has(row));
     const noticesFailed = pageUrl(retractionPage.href) === passUrl && unavailableRetractionDois.size > 0;
     const outages = outageSources();

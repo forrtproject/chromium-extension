@@ -274,6 +274,7 @@ export async function collectDebugReport(
     // The address itself is never included — only whether one is configured,
     // which is what distinguishes "setup incomplete" from a real bug.
     `Contact email configured: ${settings.email.trim() ? "yes" : "no"}`,
+    `OpenAlex key configured: ${(settings.openalexKey ?? "").trim() ? "yes" : "no"}`,
     `Citation style: ${settings.citationStyle}`,
     `Cache limit: ${settings.cacheQuotaMb === 0 ? "unlimited" : `${effectiveCacheQuotaMb(settings.cacheQuotaMb)} MB`}`,
     `Blocked domains: ${blockedDomains.length}`,

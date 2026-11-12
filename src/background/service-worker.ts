@@ -12,7 +12,7 @@ import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/typ
 import type {RegisteredReport, RegisteredReportMap} from "@shared/registered-reports";
 import {LookupResponse, RetractionCheckResponse, RegisteredReportCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
 import {isLookupRequest, isRetractionCheckRequest, isRegisteredReportCheckRequest, isSheetFetchRequest, isAugmentRequest, isPmcResolveRequest, isOpenAlexResolveRequest, isSemanticScholarResolveRequest, isDebugEntriesRequest, isStashReportRequest, isTakeReportRequest, isCreateSetRequest, isScanStateMessage, isReferenceDataRequest, type TakeReportResponse, type ReferenceDataResponse, type ReferenceDataStatus} from "@shared/messages";
-import {augmentDOIsDetailed, type AugmentSource} from "@shared/doi-augment";
+import {augmentDOIsDetailed, currentOpenAlexTitleLimit, type AugmentSource} from "@shared/doi-augment";
 import {resolvePmcIds, type NcbiIdType} from "@shared/pmc-resolve";
 import {resolveOpenAlexIds} from "@shared/openalex-resolve";
 import {resolveSemanticScholarIds} from "@shared/semanticscholar-resolve";
@@ -637,7 +637,8 @@ async function handleAugment(
         sources[title] = outcome.source;
         if (!outcome.answered) unanswered.push(title);
     }
-    return { type: "FLORA_AUGMENT_RESULT", results, sources, unanswered };
+    const openalexLimit = await currentOpenAlexTitleLimit();
+    return { type: "FLORA_AUGMENT_RESULT", results, sources, unanswered, ...(openalexLimit ? {openalexLimit} : {}) };
 }
 
 async function handleOpenAlexResolve(ids: string[], signal?: AbortSignal): Promise<OpenAlexResolveResponse> {

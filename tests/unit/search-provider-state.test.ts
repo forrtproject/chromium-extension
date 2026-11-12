@@ -119,7 +119,8 @@ it("defers a settings retry while hidden, then processes those rows when shown",
     })};
     const {processSearchResults, retryUnansweredSearchResults, setSearchHidden} = await import("../../src/content-search/pipeline");
     await processSearchResults(titleAdapter, document);
-    expect(document.getElementById("flora-alert-toast")).toBeNull();
+    // Title matching runs without an email too, so an unanswered title offers Retry.
+    expect(document.getElementById("flora-alert-toast")?.textContent).toContain("DOI matching");
     setSearchHidden(true);
     await retryUnansweredSearchResults(titleAdapter, document);
     expect(augment).toHaveBeenCalledOnce();
