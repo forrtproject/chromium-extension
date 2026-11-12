@@ -66,6 +66,10 @@ describe("OpenAlex budget", () => {
         expect(await openAlexAvailable("KEY-A")).toBe(false);
         // Replacing a spent key starts afresh.
         expect(await openAlexAvailable("KEY-B")).toBe(true);
+        // A late answer for the old key leaves the new key's budget alone.
+        noteOpenAlexResponse(budget(OPENALEX_RESERVE_CREDITS + 5), "KEY-B");
+        noteOpenAlexResponse(budget(9000), "KEY-A");
+        expect(await reserveTitleSearch("KEY-B")).toBe(false);
     });
 
     it("treats a short Retry-After as a burst limit even with daily headers", async () => {

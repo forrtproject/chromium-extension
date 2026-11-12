@@ -44,15 +44,18 @@ function budgetOf(key: string): string {
     for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 0x01000193);
     return `key:${(h >>> 0).toString(36)}`;
 }
-let state: QuotaState | null = null;
+/** One entry per budget, so a late answer for a replaced key never touches the current one. */
+let states: Record<string, QuotaState> = {};
 let loaded: Promise<void> | null = null;
 
 function load(): Promise<void> {
     loaded ??= (async () => {
         try {
-            const raw = (await chrome.storage.session.get(SESSION_KEY))[SESSION_KEY] as QuotaState | undefined;
-            // A response noted while loading is newer than the stored state.
-            if (!state && raw && typeof raw.remaining === "number" && typeof raw.resetAt === "number" && typeof raw.budget === "string") state = raw;
+            const raw = (await chrome.storage.session.get(SESSION_KEY))[SESSION_KEY] as Record<string, QuotaState> | undefined;
+            for (const [budget, s] of Object.entries(raw && typeof raw === "object" ? raw : {})) {
+                // A response noted while loading is newer than the stored state.
+                if (!states[budget] && typeof s?.remaining === "number" && typeof s.resetAt === "number") states[budget] = {...s, budget};
+            }
         } catch {
             // No session storage (tests, content scripts): keep the in-memory state.
         }
@@ -62,7 +65,7 @@ function load(): Promise<void> {
 
 function persist(): void {
     try {
-        void chrome.storage.session.set({[SESSION_KEY]: state}).catch(() => {});
+        void chrome.storage.session.set({[SESSION_KEY]: states}).catch(() => {});
     } catch {
         // See load().
     }
@@ -104,19 +107,20 @@ export function noteOpenAlexResponse(response: Response, key: string): void {
         if (retry != null && retry < 60_000 && remaining !== 0) return;
         const wait = resetSeconds != null ? resetSeconds * 1000 : retry ?? untilMidnightUtc(now);
         if (remaining == null && wait < 60_000) return;
-        state = {remaining: 0, resetAt: now + wait, budget};
-        debugWarn(`OpenAlex: ${key ? "the API key's" : "this network's free"} daily budget is used up until ${new Date(state.resetAt).toISOString()}`);
+        states[budget] = {remaining: 0, resetAt: now + wait, budget};
+        debugWarn(`OpenAlex: ${key ? "the API key's" : "this network's free"} daily budget is used up until ${new Date(now + wait).toISOString()}`);
         persist();
         return;
     }
     if (remaining == null) return;
-    const before = state;
+    const before = states[budget];
     const resetAt = now + (resetSeconds ?? untilMidnightUtc(now) / 1000) * 1000;
     // Answers to parallel requests can arrive out of order; within one budget
     // period the balance only falls, so an older, higher figure is ignored.
-    const samePeriod = before && before.budget === budget && now < before.resetAt && Math.abs(before.resetAt - resetAt) < 10 * 60_000;
-    state = {remaining: samePeriod ? Math.min(before.remaining, remaining) : remaining, resetAt, budget};
-    if (before && before.remaining >= OPENALEX_RESERVE_CREDITS + OPENALEX_TITLE_SEARCH_CREDITS && !titleSearchFits(state)) {
+    const samePeriod = before && now < before.resetAt && Math.abs(before.resetAt - resetAt) < 10 * 60_000;
+    const next: QuotaState = {remaining: samePeriod ? Math.min(before.remaining, remaining) : remaining, resetAt, budget};
+    states[budget] = next;
+    if (before && before.remaining >= OPENALEX_RESERVE_CREDITS + OPENALEX_TITLE_SEARCH_CREDITS && !titleSearchFits(next)) {
         debugLog(`OpenAlex: ${remaining} credits left — keeping them for openalex.org lookups; title matching continues with Crossref only`);
     }
     persist();
@@ -124,8 +128,8 @@ export function noteOpenAlexResponse(response: Response, key: string): void {
 
 function current(key: string): QuotaState | null {
     // One budget says nothing about another: no key, or a different key.
-    if (!state || state.budget !== budgetOf(key) || Date.now() >= state.resetAt) return null;
-    return state;
+    const s = states[budgetOf(key)];
+    return s && Date.now() < s.resetAt ? s : null;
 }
 
 function titleSearchFits(s: QuotaState): boolean {
@@ -177,7 +181,7 @@ export function withOpenAlexKey(url: string, key: string): string {
 
 /** Test-only: forget the recorded budget. */
 export function _resetOpenAlexQuotaForTesting(): void {
-    state = null;
+    states = {};
     loaded = null;
     pending = 0;
 }

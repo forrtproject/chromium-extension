@@ -43,13 +43,14 @@ async function showOpenAlexLimitNotice(limit: OpenAlexLimit): Promise<void> {
     }
     // Don't push a Retry the reader still needs off the screen; the next lookup tries again.
     if (alertToastShowing()) return;
+    // Marked as told with nothing awaited before the toast renders, so a
+    // Retry alert can't slip in between and leave the notice marked but unseen.
     shown = noticeId(limit);
     try {
-        await chrome.storage.local.set({[NOTICE_KEY]: shown});
+        void chrome.storage.local.set({[NOTICE_KEY]: shown}).catch(() => {});
     } catch {
         // See alreadyTold().
     }
-    if (alertToastShowing()) return;
     const until = new Date(limit.resetAt).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
     debugLog(`OpenAlex notice: budget low until ${until} (${limit.keyed ? "API key" : "shared, no key"})`);
     if (limit.keyed) {
