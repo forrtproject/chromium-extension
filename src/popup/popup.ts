@@ -21,11 +21,11 @@ const FINDINGS_FAST_POLLS = 30;
 const TOUR_HELP = {
   checking: {
     title: "Still checking this page",
-    text: "The tour starts as soon as ORE has finished.",
+    text: "The tour starts when ORE finishes checking this page.",
   },
   "no-pills": {
     title: "No pills on this page",
-    text: "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
+    text: "The tour points out ORE's pills. Try it on a sample article.",
   },
   "not-running": {
     title: "ORE isn't running on this tab",
@@ -33,11 +33,11 @@ const TOUR_HELP = {
   },
   unavailable: {
     title: "ORE can't run on browser pages",
-    text: "Try the tour on a sample article (opens in a new tab).",
+    text: "Open a sample article to take the tour.",
   },
   paused: {
     title: "ORE is off on this page",
-    text: "It's hidden, snoozed or turned off here. Turn it back on above, or try a sample article.",
+    text: "It's hidden, paused or turned off here. Turn it back on above, or try a sample article.",
   },
 } as const;
 
@@ -262,7 +262,7 @@ function buildSnoozeOptions(): void {
         updateHideUI();
       }
       reportSnoozeState(snoozedUntil);
-      showStatus(`Snoozed until ${formatSnoozeEnd(snoozedUntil)}`, "success");
+      showStatus(`Paused until ${formatSnoozeEnd(snoozedUntil)}`, "success");
     });
     snoozeOptions.appendChild(button);
   }
@@ -364,7 +364,7 @@ blockBtn.addEventListener("click", async () => {
     reportSnoozeState(snoozedUntil);
     showStatus(blocked
         ? `${currentDomain} is still turned off by a blocked parent domain or site category — edit it in Settings`
-        : `Unblocked ${currentDomain} — reload to apply`, blocked ? "error" : "success");
+        : `Turned back on for ${currentDomain} — reload to apply`, blocked ? "error" : "success");
   } else {
     if (!domains.includes(currentDomain)) {
       domains.push(currentDomain);
@@ -378,7 +378,7 @@ blockBtn.addEventListener("click", async () => {
       updateHideUI();
     }
     showStatus(
-      cleared ? `Blocked ${currentDomain}` : `Blocked ${currentDomain} — reload to apply`,
+      cleared ? `Turned off on ${currentDomain}` : `Turned off on ${currentDomain} — reload to apply`,
       "success"
     );
   }

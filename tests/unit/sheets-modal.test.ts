@@ -50,10 +50,10 @@ describe("renderSheetsModal", () => {
   it("names its controls by what they do", () => {
     renderSheetsModal([withStats(3, 2)], []);
     const snooze = modal()!.querySelector<HTMLElement>(".flora-modal-snooze")!;
-    expect(snooze.textContent!.trim()).toBe("Snooze 10 min");
+    expect(snooze.textContent!.trim()).toBe("Pause 10 min");
     expect(snooze.querySelector("svg")).not.toBeNull();
     expect(modal()!.querySelector(".flora-modal-dismiss")!.textContent).toBe("Hide for this sheet");
-    expect(modal()!.querySelector("[data-flora-details-link]")!.textContent).toBe("Open in FLoRA Atlas");
+    expect(modal()!.querySelector("[data-flora-details-link]")!.textContent).toBe("Open in FLoRA Replication Atlas");
     expect(snooze.parentElement!.style.flexWrap).toBe("wrap");
   });
 

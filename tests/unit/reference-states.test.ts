@@ -110,7 +110,7 @@ describe("lookUpMissingReferenceStates", () => {
             onLoading: () => {},
             abandoned: () => false,
         });
-        expect(pageState.get(BY_TITLE)).toEqual({ status: "error", message: "FORRT unavailable" });
+        expect(pageState.get(BY_TITLE)).toEqual({ status: "error", message: "FLoRA unavailable" });
     });
 
     it("removes only its own loading entries when abandoned", async () => {

@@ -54,7 +54,7 @@ it("retains a failed hidden lookup and refreshes its unavailable state when show
     await pending;
     expect(badges).not.toHaveBeenCalled();
     setSearchHidden(false);
-    expect(badges.mock.lastCall![1].get(DOI)).toEqual({status: "error", message: "FORRT unavailable"});
+    expect(badges.mock.lastCall![1].get(DOI)).toEqual({status: "error", message: "FLoRA unavailable"});
 });
 
 it("removes orphaned panels and requests page reload when the extension context disappears", async () => {

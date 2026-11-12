@@ -177,7 +177,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
         box.checked = isOn(site);
         box.addEventListener("change", () => {
           void setSitesEnabled(siteDomains(site), box.checked).then((saved) => {
-            if (saved) onChange?.(`ORE ${box.checked ? "turned on" : "turned off"} on ${site.domain}.`);
+            if (saved) onChange?.(box.checked ? `ORE is now on for ${site.domain}.` : `ORE turned off on ${site.domain}.`);
           });
         });
         const label = document.createElement("span");

@@ -56,14 +56,14 @@ let clearDois: string[] | null = null;
 
 function nothingFoundBody(dois: string[]): string {
     const pubPeerClear = dois.every((doi) => pubPeerVerdict(doi) === "clear");
-    const checked = pubPeerClear
-        ? "no retractions, concerns, replications, reproductions or PubPeer comments"
-        : "no retractions, concerns, replications or reproductions";
-    return `Checked ${dois.length} ${dois.length === 1 ? "paper" : "papers"}: ${checked}.`;
+    const found = pubPeerClear
+        ? "no retractions, expressions of concern, replications, reproductions or PubPeer comments"
+        : "no retractions, expressions of concern, replications or reproductions";
+    return `checked ${dois.length} ${dois.length === 1 ? "paper" : "papers"} and found ${found}.`;
 }
 
 function clearSummary(dois: string[]): string {
-    return `${dois.length === 1 ? "No flags for this paper" : "No flags on this page"} — ${nothingFoundBody(dois)}`;
+    return `No findings: ${nothingFoundBody(dois)}`;
 }
 
 let followingVerdicts = false;

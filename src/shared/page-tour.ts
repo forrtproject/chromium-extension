@@ -64,7 +64,7 @@ function popoverStop(wrapper: HTMLElement): TourStop | null {
     return {
         target: popover,
         title: "Point at a pill to see the details",
-        text: "Each row is a link: copy the reference, find an open-access version, read the PubPeer discussion, or see replications. Click a pill to keep this open.",
+        text: "Rows show the checks; available results link to their source. Copy the reference, find open-access text, read PubPeer comments, or see replications. Click a pill to keep this open.",
         enter: () => pinIndicatorPopover(wrapper, true),
         leave: () => pinIndicatorPopover(wrapper, false),
     };
@@ -87,7 +87,7 @@ export function articleTourStops(): TourStop[] {
     if (sample === titlePill && titlePill) {
         stops.push({target: titlePill, title: "Findings for this article", text: alsoText || "Point at it to see what ORE found."});
     } else if (sample === referencePill && referencePill) {
-        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${NO_PILL_TEXT} ${alsoText}`.trim()});
+        stops.push({target: referencePill, title: "Identified papers in the reference list get a pill", text: `${NO_PILL_TEXT} ${alsoText}`.trim()});
     } else if (sample) {
         stops.push({target: sample, title: "A pill marks a paper ORE recognised", text: alsoText || "Point at it to see what ORE found."});
     }
@@ -100,7 +100,7 @@ export function articleTourStops(): TourStop[] {
         stops.push({
             target: tab,
             title: "Everything in one place",
-            text: "This tab opens the full report on the article and its references.",
+            text: "This tab opens the ORE report on the article and its references.",
         });
     }
     return stops;
@@ -114,7 +114,7 @@ export function searchTourStops(): TourStop[] {
         stops.push({
             target: pill,
             title: panel ? "ORE adds this panel to each result" : "ORE adds this pill to each result",
-            text: "Each row is one check: the paper's DOI, an open-access version, discussion on PubPeer, and replications. Every row is also a link.",
+            text: "Each row shows one check: the paper's DOI, an open-access version, PubPeer discussion, or replications. Available results link to their source.",
         });
     }
     const matched = firstShown(`${PILL}[data-flora-augmented]`);

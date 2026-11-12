@@ -446,7 +446,7 @@ function resolveBadgeSignal(
             rowTitle: "Replications",
             rowSubtitle: `${replicationsCount} replication${replicationsCount === 1 ? "" : "s"} recorded`,
             rowSubtitleShort: `${replicationsCount}`,
-            actionLabel: "View in Atlas",
+            actionLabel: "Open in FLoRA Replication Atlas",
         };
     }
     if (reproductionsCount && reproductionsCount > 0) {
@@ -460,7 +460,7 @@ function resolveBadgeSignal(
             rowTitle: "Reproductions",
             rowSubtitle: `${reproductionsCount} reproduction${reproductionsCount === 1 ? "" : "s"} recorded`,
             rowSubtitleShort: `${reproductionsCount}`,
-            actionLabel: "View in Atlas",
+            actionLabel: "Open in FLoRA Replication Atlas",
         };
     }
     return {
@@ -468,7 +468,7 @@ function resolveBadgeSignal(
         segmentLabel: "Reps",
         segmentIcon: PILL_REPEAT_SVG,
         accent: "#8b949e",
-        rowTitle: "Replication / Reproduction data",
+        rowTitle: "Replications & reproductions",
         rowSubtitle: "No replication or reproduction data found",
         rowSubtitleShort: "None",
     };
@@ -652,7 +652,7 @@ function oaSubtitle(state: OaState, available: boolean): string {
     if (state === "no-email") return "Add your email in Settings to check open access";
     if (state === null) return "Unavailable";
     if (state.notIndexed) return "Not indexed by Unpaywall";
-    return available ? "Free full text available" : "Not confirmed open access";
+    return available ? "Free full text available" : "Open access not confirmed";
 }
 
 function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLElement {
@@ -670,7 +670,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
             onAction: state === "no-email" ? openFloraOptions : state === null || state === "cancelled" ? retry : undefined,
             subtitleShort: state === null ? "Unavailable" : state === "cancelled" ? "Not checked" : state === "pending" ? "…" : oa?.notIndexed ? "Not indexed" : available ? "Free" : "—",
             href: locations[0]?.url,
-            actionLabel: state === "no-email" ? "Settings" : state === null || state === "cancelled" ? "Retry" : "View PDF",
+            actionLabel: state === "no-email" ? "Settings" : state === null || state === "cancelled" ? "Retry" : "View full text",
             attr: "data-flora-oa-row",
             compact,
         });
@@ -696,7 +696,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
         subtitle: `${locations.length} open-access versions`,
         subtitleShort: `${locations.length} versions`,
         href: locations[0].url,
-        actionLabel: "View PDF",
+        actionLabel: "View full text",
         attr: "data-flora-oa-primary",
         compact,
     });
@@ -1253,8 +1253,10 @@ function pillAriaLabel(
     }
     const studies = (replications ?? 0) + (reproductions ?? 0);
     if (studies > 0) parts.push(`${studies} replication or reproduction ${studies === 1 ? "study" : "studies"}`);
-    const summary = parts.length > 0 ? parts.join(", ") : "no flags yet";
-    return `Open research details for ${doi}: ${summary}. Press Enter for more.`;
+    // One closing phrase for every pill, flagged or not.
+    return parts.length > 0
+        ? `Paper details for ${doi}: ${parts.join(", ")}. Press Enter to open.`
+        : `Paper details for ${doi}. Press Enter to open.`;
 }
 
 const markerUpdates = new WeakMap<HTMLElement, (state: LookupState | undefined, notice: RetractionResponse | null) => void>();
@@ -1538,7 +1540,7 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
         }
     });
 
-    const popover = slot ? null : createPopover(color, `Open research details for ${doi}`);
+    const popover = slot ? null : createPopover(color, `Paper details for ${doi}`);
     const rowsHost: HTMLElement | ShadowRoot = slot?.rowsHost ?? popover!.shadowRoot!;
     if (slot) rowsHosts.set(wrapper, slot.rowsHost);
     let rowsBuilt = false;
@@ -1827,7 +1829,7 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
         `${total} papers in this reference: ${papers.map((p) => p.doi).join(", ")}. Press Enter for details.`);
     face.style.cssText = "display:inline-block;line-height:0;cursor:pointer;border-radius:9999px;";
 
-    const popover = createPopover(color, `Open research details for ${total} papers`);
+    const popover = createPopover(color, `Details for ${total} papers`);
     popover.style.width = "300px";
     popover.style.maxWidth = "calc(100vw - 8px)";
     popover.style.padding = "0";
@@ -2051,7 +2053,7 @@ export function updateIndicatorPillBadges(
         const signal = resolveBadgeSignal(doi, replicationsCount, reproductionsCount);
 
         if (state?.status === "error" || state?.status === "loading") {
-            signal.rowSubtitle = state.status === "loading" ? "Checking FORRT…" : "FORRT unavailable";
+            signal.rowSubtitle = state.status === "loading" ? "Checking FLoRA…" : "FLoRA unavailable";
         }
         const strip = badgeSegment?.closest<HTMLElement>(`[${SEGMENT_STRIP_ATTR}]`) ?? null;
         const accent = strip?.getAttribute(SEGMENT_ACCENT_ATTR) ?? undefined;
@@ -2086,11 +2088,11 @@ export function updateIndicatorPillBadges(
                 let resolved: LookupState;
                 try {
                     const response = await safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: [doi]});
-                    if (!response || response.errors?.[doi]) throw new Error("FORRT unavailable");
+                    if (!response || response.errors?.[doi]) throw new Error("FLoRA unavailable");
                     const result = response.results[doi];
                     resolved = result ? {status: "matched", result, source: "extracted"} : {status: "no-match"};
                 } catch {
-                    resolved = {status: "error", message: "FORRT unavailable"};
+                    resolved = {status: "error", message: "FLoRA unavailable"};
                 }
                 // The page this retry belongs to is gone; its state and pills are another page's now.
                 if (hooks.generation() !== startedOn) return;

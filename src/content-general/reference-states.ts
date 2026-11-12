@@ -131,7 +131,7 @@ export async function lookUpMissingReferenceStates(
     for (const doi of missing) {
         const result = response?.results[doi];
         pageState.set(doi, !response || response.errors[doi]
-            ? {status: "error", message: "FORRT unavailable"}
+            ? {status: "error", message: "FLoRA unavailable"}
             : result ? {status: "matched", result, source: "augmented"} : {status: "no-match"});
     }
     return missing;

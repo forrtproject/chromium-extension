@@ -73,9 +73,9 @@ describe("pending lookups are not shown as negatives", () => {
 
         oa.resolve({isOa: false, url: null});
         await vi.waitFor(() =>
-            expect(rowText(pill, "data-flora-oa-row")).toContain("Not confirmed open access")
+            expect(rowText(pill, "data-flora-oa-row")).toContain("Open access not confirmed")
         );
-        expect(oaTooltip(pill)).toContain("Not confirmed open access");
+        expect(oaTooltip(pill)).toContain("Open access not confirmed");
         expect(oaTooltip(pill)).not.toContain("Unavailable");
     });
 
@@ -164,7 +164,7 @@ describe("open access without a contact email", () => {
         await vi.waitFor(() => {
             const text = rowText(pill, "data-flora-oa-row");
             expect(text).toContain("Add your email in Settings");
-            expect(text).not.toContain("Not confirmed open access");
+            expect(text).not.toContain("Open access not confirmed");
             expect(oaTooltip(pill)).toContain("Add your email in Settings");
         });
     });

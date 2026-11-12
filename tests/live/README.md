@@ -27,7 +27,7 @@ The list is sorted by how many FReD DOIs each website hosts. Entries added by ha
 
 Results go to `tests/live/output/`:
 
-- `report.html` and `report.pdf`: one row per publisher, plus screenshots of the article, its reference list and the open Meta Report
+- `report.html` and `report.pdf`: one row per publisher, plus screenshots of the article, its reference list and the open ORE report
 - `results.json`: the same data, machine-readable
 - `snapshots/<id>.html`: the page's HTML after ORE ran, for building offline test fixtures
 
