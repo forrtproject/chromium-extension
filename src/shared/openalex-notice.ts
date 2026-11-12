@@ -14,15 +14,17 @@ const noticeId = (limit: OpenAlexLimit): string => `${limit.keyed ? "key" : "sha
 let shown: string | null = null;
 let waitingForTab = false;
 
+/** Whether a recorded notice id is for this budget. Reset times differ by milliseconds between responses. */
+function sameBudget(told: unknown, limit: OpenAlexLimit): boolean {
+    if (typeof told !== "string") return false;
+    const [who, at] = told.split(":");
+    return who === noticeId(limit).split(":")[0] && Math.abs(Number(at) - limit.resetAt) < 10 * 60_000;
+}
+
 async function alreadyTold(limit: OpenAlexLimit): Promise<boolean> {
-    const id = noticeId(limit);
-    if (shown === id) return true;
+    if (sameBudget(shown, limit)) return true;
     try {
-        const stored = (await chrome.storage.local.get(NOTICE_KEY))[NOTICE_KEY];
-        if (typeof stored !== "string") return false;
-        // Reset times differ by milliseconds between responses for one budget.
-        const [who, at] = stored.split(":");
-        return who === id.split(":")[0] && Math.abs(Number(at) - limit.resetAt) < 10 * 60_000;
+        return sameBudget((await chrome.storage.local.get(NOTICE_KEY))[NOTICE_KEY], limit);
     } catch {
         return false; // Without storage, tell once per page.
     }

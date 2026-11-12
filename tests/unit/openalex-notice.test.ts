@@ -76,3 +76,17 @@ it("remembers across pages, and words a key's notice without Settings", async ()
     await vi.waitFor(() => expect(toastText()).toContain("Your OpenAlex key's daily allowance"));
     expect(toastText()).not.toContain("Settings");
 });
+
+it("tells once per page without storage, though reset times differ slightly", async () => {
+    vi.mocked(chrome.storage.local.get).mockRejectedValue(new Error("no storage"));
+    const {augmentDOIsViaWorker} = await setup();
+    const resetAt = Date.now() + 3_600_000;
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue(reply({resetAt, keyed: false}) as any);
+    await augmentDOIsViaWorker(["Paper"]);
+    await vi.waitFor(() => expect(toastText()).toContain("OpenAlex allowance low"));
+    document.body.innerHTML = "";
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue(reply({resetAt: resetAt + 40, keyed: false}) as any);
+    await augmentDOIsViaWorker(["Paper"]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(toastText()).not.toContain("OpenAlex");
+});
