@@ -454,7 +454,7 @@ async function primaryDoiFastPath(): Promise<void> {
     try {
         // "scan", not "lookup": the bar only moves forward, and the full page
         // pass runs alongside this one.
-        reportWorkStage("scan", "Looking up this article…");
+        reportWorkStage("scan", "Reading the page…");
         const request: LookupRequest = {type: "FLORA_LOOKUP", dois: [primary]};
         const response = await safeSendMessage<LookupResponse>(request);
         if (generation !== pageGeneration) return;
@@ -716,7 +716,7 @@ async function runScanPass(): Promise<void> {
         || (isExcel && gridRevision !== excelContentRevision());
     // Fresh DOM scan pass — resets the per-pass findReferenceContainers memo.
     beginDomScanPass();
-    reportWorkStage("scan", "Scanning this page for DOIs…");
+    reportWorkStage("scan", "Reading the page…");
 
     // Resolve reference-list DOIs in parallel with the FORRT lookup below.
     const refsPromise = isSheets ? Promise.resolve([]) : resolveReferenceDois();
@@ -768,7 +768,6 @@ async function runScanPass(): Promise<void> {
         debugLog(classified.articleDois, "article DOIs,", classified.referenceDois, "reference DOIs,", classified.otherDois, "other DOIs");
     }
     debugLog(isSheets ? "Sheets:" : "General:", "Extracted DOIs:", dois.length, dois);
-    reportWorkStage("scan", `Found ${count(dois.length, "DOI")} on this page`);
 
     // Validate extracted DOIs via doi.org — remove invalid ones
     const validateHere = !isSheets || dois.length <= MAX_SPREADSHEET_VALIDATIONS;
@@ -819,7 +818,7 @@ async function runScanPass(): Promise<void> {
     // so the pass does not wait for it: finishReferences() pills those
     // references when their DOIs arrive.
     if (hasDoiChange && dois.length > 0) {
-        reportWorkStage("notices", `Checking ${count(dois.length, "DOI")} for retractions…`);
+        reportWorkStage("notices", `Checking ${count(dois.length, "paper")} for retractions…`);
         const notices = await checkPageRetractions(dois);
         if (pageChanged()) {
             seenDois.clear();
@@ -895,7 +894,7 @@ async function runScanPass(): Promise<void> {
         // that isn't happening.
         let response: LookupResponse | undefined;
         try {
-            reportWorkStage("lookup", `Looking up ${count(newDois.length, "DOI")} in FLoRA…`);
+            reportWorkStage("lookup", `Looking up ${count(newDois.length, "paper")} in FLoRA…`);
             response = await safeSendMessage<LookupResponse>(request);
         } catch (err) {
             if (pageChanged()) return;
@@ -1007,7 +1006,7 @@ async function runScanPass(): Promise<void> {
                     pendingNothingToFlag = {dois, flagged};
                     // Past the DOI search the reference step reports its own stage.
                     const awaiting = referencesAwaitingDoi();
-                    if (awaiting > 0) reportWorkStage("augment", `Finding DOIs for ${count(awaiting, "reference")}…`);
+                    if (awaiting > 0) reportWorkStage("augment", `Finding DOIs for ${count(awaiting, "paper")}…`);
                 } else {
                     reportNothingToFlag(dois, flagged);
                 }
@@ -1030,7 +1029,7 @@ async function runScanPass(): Promise<void> {
 async function lookUpReferenceStates(dois: DoiString[], abandoned: () => boolean): Promise<boolean> {
     const looked = await lookUpMissingReferenceStates(pageState, dois.filter((doi) => !invalidDois.has(doi)), {
         send: (missing) => {
-            reportWorkStage("lookup", `Looking up ${count(missing.length, "reference")} in FLoRA…`);
+            reportWorkStage("lookup", `Looking up ${count(missing.length, "paper")} in FLoRA…`);
             return safeSendMessage<LookupResponse>({type: "FLORA_LOOKUP", dois: missing});
         },
         onLoading: () => repaintBadges(),
@@ -1070,7 +1069,7 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
             let notices: RetractionResponse[] = [];
             if (resolvedRefs.length > 0) {
                 try {
-                    reportWorkStage("notices", `Checking ${count(resolvedRefs.length, "reference")} for retractions…`);
+                    reportWorkStage("notices", `Checking ${count(resolvedRefs.length, "paper")} for retractions…`);
                     const checked = await checkPageRetractions([...new Set(resolvedRefs.map((r) => r.doi))]);
                     if (stale()) return [];
                     // No verdict for these references: hand their markers back for a later pass.
@@ -1090,7 +1089,7 @@ function finishReferences(refsPromise: Promise<ResolvedReference[]>): Promise<Re
                         releaseReferenceEntries(resolvedRefs);
                         return [];
                     }
-                    reportWorkStage("notices", `Adding pills to ${count(resolvedRefs.length, "reference")}…`);
+                    reportWorkStage("notices", `Adding pills to ${count(resolvedRefs.length, "paper")}…`);
                     renderResolvedReferences(resolvedRefs, new Map(redacts.map((r) => [r.originDoi, r] as const)), pageState, knownPubPeer);
                     if (!isSheets) repaintBadges();
                 } catch (err) {

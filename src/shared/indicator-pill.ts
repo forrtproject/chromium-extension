@@ -468,7 +468,7 @@ function resolveBadgeSignal(
         segmentLabel: "Reps",
         segmentIcon: PILL_REPEAT_SVG,
         accent: "#8b949e",
-        rowTitle: "Replications & reproductions",
+        rowTitle: "Reproductions & replications",
         rowSubtitle: "No replication or reproduction data found",
         rowSubtitleShort: "None",
     };

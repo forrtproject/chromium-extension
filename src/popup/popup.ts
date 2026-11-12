@@ -32,7 +32,7 @@ const TOUR_HELP = {
     text: "The tab was probably open before ORE was installed or updated. Reload it, or try a sample article.",
   },
   unavailable: {
-    title: "ORE can't run on browser pages",
+    title: "ORE only runs on websites",
     text: "Open a sample article to take the tour.",
   },
   paused: {
@@ -145,7 +145,7 @@ function articleParts(f: PageFindings): Part[] {
 function otherParts(f: PageFindings): Part[] {
   const o = f.others;
   const parts: Part[] = [
-    { text: o.checked < o.papers ? `Checking… ${o.checked} of ${o.papers}` : `${o.papers} checked` },
+    { text: o.checked < o.papers ? `Checking ${o.checked} of ${o.papers} papers…` : `${o.papers} checked` },
   ];
   if (o.retracted) parts.push({ text: `${o.retracted} retracted`, tone: "retracted" });
   if (o.concern) parts.push({ text: `${o.concern} with an expression of concern`, tone: "concern" });
@@ -183,7 +183,7 @@ function renderFindings(): void {
   if (!currentDomain || blocked || snoozedUntil !== null || hidden) return;
   if (results) {
     if (results.papers === 0) return;
-    const parts: Part[] = [{ text: results.checking ? `Checking ${results.papers}…` : `${results.papers} checked` }];
+    const parts: Part[] = [{ text: results.checking ? `Checking ${results.papers} ${results.papers === 1 ? "paper" : "papers"}…` : `${results.papers} checked` }];
     if (results.flagged) parts.push({ text: `${results.flagged} with findings` });
     if (results.incomplete) parts.push({ text: "some checks unavailable" });
     else if (!results.flagged && !results.checking) parts.push({ text: "no findings" });
@@ -311,7 +311,7 @@ async function init(): Promise<void> {
   try {
     const url = new URL(tab.url);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      domainEl.textContent = "Internal page";
+      domainEl.textContent = "Not a website";
       snoozeBtn.style.display = "none";
       blockBtn.style.display = "none";
       hideBtn.style.display = "none";
@@ -321,7 +321,7 @@ async function init(): Promise<void> {
     currentDomain = url.hostname;
     domainEl.textContent = currentDomain;
   } catch {
-    domainEl.textContent = "Internal page";
+    domainEl.textContent = "Not a website";
     snoozeBtn.style.display = "none";
     blockBtn.style.display = "none";
     hideBtn.style.display = "none";

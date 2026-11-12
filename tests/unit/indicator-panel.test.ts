@@ -49,7 +49,7 @@ describe("createIndicatorPanel", () => {
     const states = new Map<DoiString, LookupState>([[DOI, {status: "error", message: "offline"}]]);
     updateIndicatorPillBadges(document, states, () => [], "panels", undefined, SAME_PAGE);
     const row = panel.querySelector("[data-flora-badge-row]")?.textContent ?? "";
-    expect(row).toContain("Replications & reproductions");
+    expect(row).toContain("Reproductions & replications");
     expect(row).toContain("FLoRA unavailable");
     expect(row).not.toMatch(/^\s*FORRT\b/);
     const state = matchedState(3).get(DOI)!;
@@ -68,7 +68,7 @@ describe("createIndicatorPanel", () => {
     const states = new Map<DoiString, LookupState>([[DOI, {status: "loading"}]]);
     updateIndicatorPillBadges(document, states, () => [], "panels", undefined, SAME_PAGE);
     const row = panel.querySelector("[data-flora-badge-row]")?.textContent ?? "";
-    expect(row).toContain("Replications & reproductions");
+    expect(row).toContain("Reproductions & replications");
     expect(row).toContain("Checking FLoRA…");
   });
 
@@ -210,7 +210,7 @@ describe("createIndicatorPanel", () => {
     // Compact rows carry the count beside the heading rather than a sentence.
     // With nothing found the heading names both things that were looked for.
     expect(panel.querySelector("[data-flora-badge-row]")!.textContent)
-      .toContain("Replications & reproductions");
+      .toContain("Reproductions & replications");
     expect(panel.querySelector("[data-flora-badge-row] [data-flora-row-sub]")!.textContent)
       .toBe("None");
 

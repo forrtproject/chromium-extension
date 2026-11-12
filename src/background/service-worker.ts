@@ -144,7 +144,7 @@ function setTabScanState(tabId: number, state: ScanState): void {
     leaveErrorState(tabId);
     if (state.phase === "scanning") {
         paintTab(tabId, ICONS.inactive,
-            state.papers > 0 ? `FORRT ORE — checking ${papersText(state.papers)}…` : "FORRT ORE — checking this page…",
+            state.papers > 0 ? `FORRT ORE is checking ${papersText(state.papers)}…` : "FORRT ORE is checking this page…",
             "…", BADGE_COLOURS.scanning);
         return;
     }

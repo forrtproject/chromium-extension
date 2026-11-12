@@ -168,7 +168,7 @@ function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
     edge.style.bottom = `${percent}%`;
     edge.style.display = percent > 0 && percent < 100 ? "" : "none";
 
-    const spoken = percent > 0 ? `FORRT ORE is checking this page, ${percent}% done` : "FORRT ORE is checking this page";
+    const spoken = percent > 0 ? `FORRT ORE is checking this page, ${percent}% done` : "FORRT ORE is checking this page…";
     tab.title = label;
     tab.dataset.floraTabSpoken = spoken;
     tab.setAttribute("aria-label", busyName(tab));

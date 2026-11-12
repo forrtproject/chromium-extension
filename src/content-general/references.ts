@@ -205,7 +205,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
     );
 
     const lookups = augmentTargets.length + pmcTargets.length;
-    if (lookups > 0) reportWorkStage("augment", `Finding DOIs for ${count(lookups, "reference")}…`);
+    if (lookups > 0) reportWorkStage("augment", `Finding DOIs for ${count(lookups, "paper")}…`);
 
     const empty = new Map<string, DoiString | null>();
     awaitingDoi += lookups;

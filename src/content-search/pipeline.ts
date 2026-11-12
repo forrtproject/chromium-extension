@@ -275,7 +275,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
     // Phase 2: the site's own ids → DOIs, one batched call.
     const withSiteId = pending.filter((r) => r.siteId);
     if (withSiteId.length > 0 && adapter.resolveSiteIds) {
-        reportWorkStage("validate", `Finding DOIs for ${count(withSiteId.length, `${label} record`)}…`);
+        reportWorkStage("validate", `Finding DOIs for ${count(withSiteId.length, "paper")}…`);
         setWorkItems(withSiteId.map((r) => workItem(r.siteId!, r.title, rowByline(r))));
         let bySiteId = new Map<string, DoiString | null>();
         try {
@@ -338,7 +338,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
         let augmented = new Map<string, DoiString | null>();
         let augmentFailed = false;
         if (requests.length > 0) {
-            reportWorkStage("augment", `Finding DOIs for ${count(requests.length, "result")}…`);
+            reportWorkStage("augment", `Finding DOIs for ${count(requests.length, "paper")}…`);
             setWorkItems(titled.map((r) => workItem(r.title, r.title, rowByline(r))));
             try {
                 augmented = await augmentDOIsViaWorker(requests);
@@ -444,7 +444,7 @@ async function runPass(adapter: SearchSiteAdapter, rows: NodeListOf<HTMLElement>
 
     const uniqueDois = [...new Set(resolved.map((r) => r.doi))];
     debugLog(`${label}: Sending lookup for`, uniqueDois.length, "unique DOIs:", uniqueDois);
-    reportWorkStage("lookup", `Found ${count(uniqueDois.length, "distinct DOI")} — looking them up…`);
+    reportWorkStage("lookup", `Looking up ${count(uniqueDois.length, "paper")} in FLoRA…`);
     const titleByDoi = new Map<DoiString, string>();
     for (const {doi, title} of resolved) {
         if (!titleByDoi.has(doi)) titleByDoi.set(doi, title);
