@@ -153,9 +153,12 @@
               <div class="dh-label">Title matching</div>
               <h2 class="dh-title" id="openalex-heading">OpenAlex key (optional)</h2>
               <p class="dh-callout-text">
-                ORE also matches titles with OpenAlex. Without a key, everyone
+                ORE matches titles with OpenAlex as well as Crossref: it finds
+                some papers Crossref misses, helps pick the right version when
+                there are several, and shares the load. Without a key, everyone
                 on your network shares one small free daily allowance; when it
-                runs low, ORE matches titles with Crossref alone and tells you.
+                runs low, ORE matches titles with Crossref alone, which is
+                slower and finds fewer papers, and tells you.
                 A free key from
                 <a href="https://openalex.org/settings/api" target="_blank" rel="noopener">openalex.org</a>
                 gives you your own allowance. Chrome sync stores it; it is sent
