@@ -93,6 +93,19 @@ describe("OpenAlex budget", () => {
         expect(await openAlexAvailable("")).toBe(true);
     });
 
+    it("keeps other budgets a restarted worker stored when it notes a response first", async () => {
+        const later = Date.now() + 3_600_000;
+        vi.mocked(chrome.storage.session.get).mockResolvedValueOnce({flora_openalex_quota: {shared: {remaining: 0, resetAt: later, budget: "shared"}}} as any);
+        const set = vi.mocked(chrome.storage.session.set);
+        set.mockClear();
+        noteOpenAlexResponse(budget(9000), "KEY-A");
+        await vi.waitFor(() => expect(set).toHaveBeenCalled());
+        const saved = (set.mock.calls.at(-1)![0] as any).flora_openalex_quota;
+        expect(Object.keys(saved).sort()).toEqual(expect.arrayContaining(["shared"]));
+        expect(Object.keys(saved)).toHaveLength(2);
+        expect(await openAlexAvailable("")).toBe(false);
+    });
+
     it("adds the key to requests and keeps it out of debug reports", () => {
         expect(withOpenAlexKey("https://api.openalex.org/works?filter=x", "")).toBe("https://api.openalex.org/works?filter=x");
         const url = withOpenAlexKey("https://api.openalex.org/works?filter=x", "SECRET1");

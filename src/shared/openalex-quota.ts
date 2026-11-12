@@ -65,7 +65,8 @@ function load(): Promise<void> {
 
 function persist(): void {
     try {
-        void chrome.storage.session.set({[SESSION_KEY]: states}).catch(() => {});
+        // Merge what an earlier worker stored first, so its other budgets survive.
+        void load().then(() => chrome.storage.session.set({[SESSION_KEY]: states})).catch(() => {});
     } catch {
         // See load().
     }
