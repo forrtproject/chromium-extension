@@ -454,7 +454,7 @@ async function primaryDoiFastPath(): Promise<void> {
     try {
         // "scan", not "lookup": the bar only moves forward, and the full page
         // pass runs alongside this one.
-        reportWorkStage("scan", "Reading the page…");
+        reportWorkStage("scan", "Looking up this paper in FLoRA…");
         const request: LookupRequest = {type: "FLORA_LOOKUP", dois: [primary]};
         const response = await safeSendMessage<LookupResponse>(request);
         if (generation !== pageGeneration) return;

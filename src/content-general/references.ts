@@ -98,6 +98,8 @@ function releaseReferenceEntry(entry: ReferenceEntry): void {
 
 /** References whose DOI is still being looked up (by title or PMC id), for progress messages. */
 let awaitingDoi = 0;
+/** Bumped on navigation, so lookups from the previous page stop counting. */
+let awaitingGeneration = 0;
 export function referencesAwaitingDoi(): number {
     return awaitingDoi;
 }
@@ -109,6 +111,10 @@ export function releaseReferenceEntries(resolved: ResolvedReference[]): void {
 export function resetReferenceMarkers(root: ParentNode = document): void {
     for (const el of root.querySelectorAll(`[${REFERENCE_ENTRY_ATTR}]`)) {
         el.removeAttribute(REFERENCE_ENTRY_ATTR);
+    }
+    if (root === document) {
+        awaitingDoi = 0;
+        awaitingGeneration++;
     }
 }
 
@@ -209,6 +215,7 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
 
     const empty = new Map<string, DoiString | null>();
     awaitingDoi += lookups;
+    const generation = awaitingGeneration;
     const [augmentSettled, pmcSettled] = await Promise.allSettled([
         augmentTargets.length > 0
             ? augmentDOIsViaWorker(augmentTargets.map((p) => ({
@@ -220,7 +227,9 @@ export async function resolveReferenceDois(): Promise<ResolvedReference[]> {
         pmcTargets.length > 0
             ? resolvePmcIdsViaWorker(pmcTargets.map((p) => p.pmcid))
             : Promise.resolve(empty),
-    ]).finally(() => { awaitingDoi -= lookups; });
+    ]).finally(() => {
+        if (generation === awaitingGeneration) awaitingDoi -= lookups;
+    });
     if (augmentSettled.status === "rejected") {
         debugWarn(`References: augmentation failed for ${augmentTargets.length} entr(ies) —`, augmentSettled.reason);
     }

@@ -145,7 +145,7 @@ function articleParts(f: PageFindings): Part[] {
 function otherParts(f: PageFindings): Part[] {
   const o = f.others;
   const parts: Part[] = [
-    { text: o.checked < o.papers ? `Checking ${o.checked} of ${o.papers} papers…` : `${o.papers} checked` },
+    { text: o.checked < o.papers ? `Checking ${o.checked} of ${o.papers} ${o.papers === 1 ? "paper" : "papers"}…` : `${o.papers} checked` },
   ];
   if (o.retracted) parts.push({ text: `${o.retracted} retracted`, tone: "retracted" });
   if (o.concern) parts.push({ text: `${o.concern} with an expression of concern`, tone: "concern" });

@@ -73,8 +73,8 @@ const STAGE_LABEL: Record<WorkStage, string> = {
     validate: "Validate DOI links",
     augment: "Find DOIs for references without one",
     notices: "Check for retractions",
-    lookup: "Look up in FLoRA, Retraction Watch and PubPeer",
-    report: "Add pills",
+    lookup: "Look up in FLoRA and PubPeer",
+    report: "Show results",
 };
 
 const SKIPPED_GLYPH = "⊘";
@@ -362,12 +362,12 @@ function buildPauseRow(): HTMLElement {
     const row = document.createElement("div");
     row.setAttribute("data-flora-work-pause-row", "");
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", "Pause ORE on this site");
+    row.setAttribute("aria-label", "ORE on this site");
     row.style.cssText = PAUSE_ROW_STYLE;
 
     const caption = document.createElement("span");
     caption.style.cssText = "color:rgba(255,255,255,0.75);font-size:11px;margin-right:2px;";
-    caption.textContent = "Pause ORE here:";
+    caption.textContent = "ORE on this site:";
 
     const hour = textButton("1 hour");
     hour.addEventListener("click", () => {

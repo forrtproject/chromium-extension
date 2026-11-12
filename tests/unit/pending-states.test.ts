@@ -56,7 +56,7 @@ describe("pending lookups are not shown as negatives", () => {
         });
 
         expect(rowText(pill, "data-flora-oa-row")).toContain("Checking");
-        expect(rowText(pill, "data-flora-oa-row")).not.toContain("Not confirmed");
+        expect(rowText(pill, "data-flora-oa-row")).not.toContain("Open access not confirmed");
         expect(oaTooltip(pill)).toContain("Checking");
     });
 

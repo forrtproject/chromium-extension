@@ -128,7 +128,7 @@ function removeStandalone(): void {
 function busyName(tab: HTMLElement): string {
     const spoken = tab.dataset.floraTabSpoken ?? "";
     const action = tab.dataset.floraTabLabel;
-    return reportSettled && tab !== standalone() && action ? `${spoken}. ${action}` : spoken;
+    return reportSettled && tab !== standalone() && action ? `${spoken.replace(/…$/, "")}. ${action}` : spoken;
 }
 
 function paintBusy(tab: HTMLElement, fraction: number, label: string): void {
