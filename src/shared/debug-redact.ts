@@ -6,9 +6,9 @@ export function redactDebugText(text: string): string {
     // the key is what reads the DOI list.
     .replace(/([0-9a-f]{8})\.[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, "$1.[redacted key]")
     .replace(/((?:#|%23)k(?:=|%3d))[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/gi, "$1[redacted key]")
-    .replace(/([?&](?:mailto|email)=)[^&#\s"'<>]*/gi, "$1[redacted]")
+    .replace(/([?&](?:mailto|email|api_key)=)[^&#\s"'<>]*/gi, "$1[redacted]")
     // Reports can contain URLs that were themselves encoded into another URL.
-    .replace(/((?:%3f|%26)(?:mailto|email)%3d)(?:(?!%26|%23)[^\s"'<>])*/gi, "$1[redacted]")
+    .replace(/((?:%3f|%26)(?:mailto|email|api_key)%3d)(?:(?!%26|%23)[^\s"'<>])*/gi, "$1[redacted]")
     // A standalone address token can use the whole legal local-part set,
     // including the `/ & * = ?` that also punctuate URLs. Requiring the match
     // to start the token keeps it off URLs, whose scheme breaks the set.

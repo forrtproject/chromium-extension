@@ -42,7 +42,7 @@ form.addEventListener("submit", async (e) => {
     statusMsg.textContent =
       email
         ? "Email saved. Reload open tabs to use it for lookups."
-        : "Email removed. Reload open tabs. Title matching and open-access lookups need an email; other checks still work.";
+        : "Email removed. Reload open tabs. Open-access lookups need an email, and title matching is slower without one; other checks work as before.";
     statusMsg.className = "status success";
     statusMsg.hidden = false;
     saveBtn.textContent = email ? "Save" : "Save contact email";
@@ -53,6 +53,37 @@ form.addEventListener("submit", async (e) => {
     statusMsg.hidden = false;
   } finally {
     saveBtn.disabled = false;
+  }
+});
+
+// ── OpenAlex key ────────────────────────────────────────────────────
+
+const openalexForm = document.getElementById("openalex-form") as HTMLFormElement;
+const openalexInput = document.getElementById("openalex-input") as HTMLInputElement;
+const openalexSave = document.getElementById("openalex-save") as HTMLButtonElement;
+const openalexStatus = document.getElementById("openalex-status") as HTMLParagraphElement;
+
+getSettings().then(({ openalexKey }) => {
+  openalexInput.value = openalexKey;
+});
+
+openalexForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const openalexKey = openalexInput.value.trim();
+  openalexSave.disabled = true;
+  try {
+    await saveSettings({ openalexKey });
+    openalexStatus.textContent = openalexKey
+      ? "Key saved. ORE uses it for OpenAlex lookups from now on."
+      : "Key removed. ORE uses the free allowance your network shares.";
+    openalexStatus.className = "status success";
+  } catch (err) {
+    debugError("Settings: saving the OpenAlex key failed —", err);
+    openalexStatus.textContent = "Failed to save — please try again.";
+    openalexStatus.className = "status error";
+  } finally {
+    openalexStatus.hidden = false;
+    openalexSave.disabled = false;
   }
 });
 

@@ -270,6 +270,11 @@ export function dismissToast(): void {
     document.getElementById(ALERT_TOAST_ID)?.remove();
 }
 
+/** Whether an alert (a toast with an action) is up, e.g. a Retry the reader still needs. */
+export function alertToastShowing(): boolean {
+    return !!document.getElementById(ALERT_TOAST_ID);
+}
+
 export function dismissAlertToast(): void {
     document.getElementById(ALERT_TOAST_ID)?.remove();
 }
