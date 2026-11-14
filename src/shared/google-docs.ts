@@ -1,5 +1,6 @@
 import { fetchGoogleDocsText, googleDocsExportUrl } from "./google-docs-source";
 import { debugLog } from "./debug";
+import { t } from "./i18n";
 import type { CanvasRun } from "../content-docs/canvas";
 import { DOCS_TEXT_EVENT, DOCS_REQUEST_EVENT } from "../content-docs/canvas";
 import type { DoiString } from "./types";
@@ -142,8 +143,8 @@ function showExportStatus(unavailable: boolean): void {
         document.body.append(status);
     }
     status.textContent = exportText !== undefined
-        ? 'ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.'
-        : 'ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.';
+        ? t("editor.docs.refreshUnavailable", "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.")
+        : t("editor.docs.scanUnavailable", "ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.");
 }
 async function refreshGoogleDocsText(onChange: () => void): Promise<void> {
     const key = googleDocsExportUrl(location.href);

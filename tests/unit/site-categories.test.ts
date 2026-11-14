@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {SITE_CATEGORIES, siteDomains} from "../../src/shared/site-categories";
+import {SITE_CATEGORIES, siteCategoryLabel, siteDomains} from "../../src/shared/site-categories";
 
 let syncStore: Record<string, unknown> = {};
 let localStore: Record<string, unknown> = {};
@@ -143,6 +143,11 @@ describe("sites switched off by category", () => {
         await expect(isDomainBlocked("www.google.com")).resolves.toBe(true);
         await expect(isDomainBlocked("scholar.google.com")).resolves.toBe(false);
         await expect(isDomainBlocked("docs.google.com")).resolves.toBe(false);
+    });
+
+    it("has a translatable name for every category, matching its English label", () => {
+        for (const category of SITE_CATEGORIES) expect(siteCategoryLabel(category)).toBe(category.label);
+        expect(siteCategoryLabel({id: "custom", label: "Your sites", sites: []})).toBe("Your sites");
     });
 
     it("lists every site once, under one category", () => {

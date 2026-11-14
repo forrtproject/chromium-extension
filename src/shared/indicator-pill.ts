@@ -1,5 +1,5 @@
 import {safeSendMessage, type LookupResponse} from "@shared/messages";
-import {fetchOpenAccess} from "@shared/openaccess";
+import {fetchOpenAccess, locationLabel, locationVersion, OA_FALLBACK_LABEL} from "@shared/openaccess";
 import {noteOutage, outageEpoch} from "@shared/outages";
 import {isAbortError} from "@shared/work-cancellation";
 import {webUrl} from "@shared/web-url";
@@ -31,6 +31,7 @@ import {MARKER_EDGE_GAP} from "@shared/editor-marker";
 import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {PILL_ROW_CLASS} from "@shared/pill-row";
+import {t} from "@shared/i18n";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -53,9 +54,15 @@ export function removeIndicatorPills(root: ParentNode = document, scope: Indicat
     }
 }
 
-export const PAGE_PROVENANCE = "Found on this page";
-export const SEARCH_PROVENANCE =
-    "Matched by search — looked up by title, first author and year. Check it is the right paper.";
+export function pageProvenance(): string {
+    // i18n: tooltip on the DOI: the DOI was printed on the page itself
+    return t("pill.provenance.page", "Found on this page");
+}
+
+export function searchProvenance(): string {
+    // i18n: tooltip on a DOI that ORE found by searching bibliographic databases for a reference
+    return t("pill.provenance.search", "Matched by search — looked up by title, first author and year. Check it is the right paper.");
+}
 
 export const PUBPEER_HUB_SVG =
     `<svg width="11" height="15" viewBox="0 0 98.5 146.5" fill="none" stroke="currentColor" ` +
@@ -354,7 +361,7 @@ function buildDoiSegment(isAugmented: boolean, provenanceLabel?: string, color =
         attr: "data-flora-doi-segment",
         iconHtml: PILL_LINK_SVG,
         label: "DOI",
-        title: provenanceLabel ?? (isAugmented ? SEARCH_PROVENANCE : PAGE_PROVENANCE),
+        title: provenanceLabel ?? (isAugmented ? searchProvenance() : pageProvenance()),
         exists: true,
         count: stackPosition,
         decoration: isAugmented
@@ -368,8 +375,11 @@ function buildOaSegment(state: OaState, color = "#853953"): HTMLElement {
     return buildSegment({
         attr: "data-flora-oa-segment",
         iconHtml: OA_UNLOCK_SVG.replace('width="12" height="12"', 'width="11" height="11"'),
-        label: "OA",
-        title: state === "pending" ? "Checking for an open-access version…" : `Open Access — ${oaSubtitle(state, available)}`,
+        // i18n: pill segment label, abbreviation of "Open Access"; the pill has room for 2–4 characters
+        label: t("pill.segment.oa", "OA"),
+        title: state === "pending"
+            ? t("pill.oa.checkingTooltip", "Checking for an open-access version…")
+            : `${t("pill.oa.title", "Open Access")} — ${oaSubtitle(state, available)}`,
         exists: available,
         pending: state === "pending",
     }, color);
@@ -384,9 +394,11 @@ function buildPubPeerSegment(
     color = "#853953"
 ): HTMLElement {
     const available = !!feedback && feedback.total_comments > 0;
-    const title = answered === "pending" ? "Checking PubPeer…" : answered === "cancelled" ? "PubPeer not checked" : available && feedback
-        ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"} on PubPeer`
-        : answered ? "No PubPeer discussion found" : "PubPeer status unavailable";
+    const title = answered === "pending"
+        ? t("pill.pubpeer.checkingTooltip", "Checking PubPeer…")
+        : answered === "cancelled" ? t("pill.pubpeer.notCheckedTooltip", "PubPeer not checked") : available && feedback
+            ? t("pill.pubpeer.commentsTooltip", "{count, plural, one {# comment} other {# comments}} on PubPeer", {count: feedback.total_comments})
+            : answered ? t("pill.pubpeer.noneTooltip", "No PubPeer discussion found") : t("pill.pubpeer.unavailableTooltip", "PubPeer status unavailable");
     return buildSegment({
         attr: "data-flora-pubpeer-segment",
         iconHtml: PUBPEER_HUB_SVG.replace('width="11" height="15"', 'width="8" height="11"'),
@@ -421,10 +433,11 @@ function resolveNoticeSignal(retraction: RetractionResponse): BadgeSignal {
         segmentIcon: PILL_ALERT_SVG,
         segmentFill: presentation.pillText,
         accent: presentation.pillStroke,
-        rowTitle: retraction.kind === "concern" ? "Expression of concern" : presentation.label,
+        rowTitle: retraction.kind === "concern" ? t("pill.notice.concernTitle", "Expression of concern") : presentation.label,
         rowSubtitle: presentation.bannerCopy,
         rowSubtitleShort: "",
-        actionLabel: "View notice",
+        // i18n: link to the retraction notice or expression of concern
+        actionLabel: t("pill.notice.view", "View notice"),
     };
 }
 
@@ -439,39 +452,50 @@ function resolveBadgeSignal(
         return {
             available: true,
             href: atlasDoiUrl([doi]),
-            segmentLabel: "Reps",
+            segmentLabel: repsLabel(),
             segmentIcon: PILL_REPEAT_SVG,
             segmentCount: replicationsCount,
             accent: "#0369a1",
-            rowTitle: "Replications",
-            rowSubtitle: `${replicationsCount} replication${replicationsCount === 1 ? "" : "s"} recorded`,
+            rowTitle: t("pill.reps.replicationsTitle", "Replications"),
+            rowSubtitle: t("pill.reps.replicationsRecorded", "{count, plural, one {# replication recorded} other {# replications recorded}}", {count: replicationsCount}),
             rowSubtitleShort: `${replicationsCount}`,
-            actionLabel: "View in Atlas",
+            actionLabel: viewInAtlasLabel(),
         };
     }
     if (reproductionsCount && reproductionsCount > 0) {
         return {
             available: true,
             href: atlasDoiUrl([doi]),
-            segmentLabel: "Reps",
+            segmentLabel: repsLabel(),
             segmentIcon: PILL_REPEAT_SVG,
             segmentCount: reproductionsCount,
             accent: "#6d28d9",
-            rowTitle: "Reproductions",
-            rowSubtitle: `${reproductionsCount} reproduction${reproductionsCount === 1 ? "" : "s"} recorded`,
+            rowTitle: t("pill.reps.reproductionsTitle", "Reproductions"),
+            rowSubtitle: t("pill.reps.reproductionsRecorded", "{count, plural, one {# reproduction recorded} other {# reproductions recorded}}", {count: reproductionsCount}),
             rowSubtitleShort: `${reproductionsCount}`,
-            actionLabel: "View in Atlas",
+            actionLabel: viewInAtlasLabel(),
         };
     }
     return {
         available: false,
-        segmentLabel: "Reps",
+        segmentLabel: repsLabel(),
         segmentIcon: PILL_REPEAT_SVG,
         accent: "#8b949e",
-        rowTitle: "Replication / Reproduction data",
-        rowSubtitle: "No replication or reproduction data found",
-        rowSubtitleShort: "None",
+        rowTitle: t("pill.reps.noneTitle", "Replication / Reproduction data"),
+        rowSubtitle: t("pill.reps.noneFound", "No replication or reproduction data found"),
+        // i18n: compact panel status beside a heading, keep very short
+        rowSubtitleShort: t("pill.row.noneShort", "None"),
     };
+}
+
+function repsLabel(): string {
+    // i18n: pill segment label, short for "replications / reproductions"; the pill has room for about 4–5 characters
+    return t("pill.segment.reps", "Reps");
+}
+
+function viewInAtlasLabel(): string {
+    // i18n: link to the paper's entry in the FLoRA Replication Atlas
+    return t("pill.reps.viewInAtlas", "View in Atlas");
 }
 
 function buildBadgeSegment(
@@ -557,7 +581,8 @@ function buildRow(opts: {
     const subtitle = opts.compact ? opts.subtitleShort ?? opts.subtitle : opts.subtitle;
     const action = opts.compact
         ? opts.actionLabelShort ?? "↗"
-        : `${opts.actionLabel ?? "View"} ↗`;
+        // i18n: generic link label in a popover row (opens the source)
+        : `${opts.actionLabel ?? t("pill.row.view", "View")} ↗`;
     row.innerHTML = `
     <span style="${rowIconWrapStyle(opts.accent, opts.available, opts.compact)}">${opts.iconHtml}</span>
     <span style="${opts.compact ? ROW_LABEL_WRAP_COMPACT : ROW_LABEL_WRAP}">
@@ -569,7 +594,7 @@ function buildRow(opts: {
     if (!useLink && opts.onAction) {
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = opts.actionLabel ?? "Settings";
+        button.textContent = opts.actionLabel ?? settingsLabel();
         button.style.cssText =
             `all:unset;cursor:pointer;${rowActionStyle(opts.accent, opts.compact)}`;
         button.addEventListener("click", (e) => {
@@ -616,7 +641,7 @@ function oaLocations(oa: OpenAccessStatus | null): OpenAccessLocation[] {
     if (!oa?.isOa) return [];
     if (oa.locations?.length) return oa.locations.filter((loc) => webUrl(loc.url));
     const url = webUrl(oa.url);
-    return url ? [{url, label: "Open-access version", version: null, isPdf: false}] : [];
+    return url ? [{url, label: OA_FALLBACK_LABEL, version: null, isPdf: false}] : [];
 }
 
 /** One free copy, as a line in the chooser under the Open Access row. */
@@ -631,11 +656,11 @@ function buildOaChoice(loc: OpenAccessLocation, compact: boolean): HTMLElement {
     item.addEventListener("mouseleave", () => { item.style.background = "transparent"; });
 
     const label = document.createElement("span");
-    label.textContent = loc.label;
+    label.textContent = locationLabel(loc.label);
     label.style.cssText = "flex:1;min-width:0;color:#1f2328;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
 
     const meta = document.createElement("span");
-    meta.textContent = [loc.isPdf ? "PDF" : null, loc.version].filter(Boolean).join(" · ");
+    meta.textContent = [loc.isPdf ? "PDF" : null, locationVersion(loc.version)].filter(Boolean).join(" · ");
     meta.style.cssText = "flex-shrink:0;color:#57606a;";
 
     item.appendChild(label);
@@ -646,13 +671,43 @@ function buildOaChoice(loc: OpenAccessLocation, compact: boolean): HTMLElement {
 /** "cancelled": the reader stopped the pass before the lookup landed. */
 type OaState = OpenAccessStatus | null | "pending" | "no-email" | "cancelled";
 
+function checkingLabel(): string {
+    // i18n: status of a lookup that is still running
+    return t("pill.status.checking", "Checking…");
+}
+
+function notCheckedLabel(): string {
+    // i18n: status of a lookup the reader cancelled; also used in the compact panel, keep short
+    return t("pill.status.notChecked", "Not checked");
+}
+
+function unavailableLabel(): string {
+    // i18n: status of a lookup whose service could not be reached; also used in the compact panel, keep short
+    return t("pill.status.unavailable", "Unavailable");
+}
+
+function retryLabel(): string {
+    // i18n: button that repeats a failed lookup
+    return t("pill.action.retry", "Retry");
+}
+
+function settingsLabel(): string {
+    // i18n: button that opens ORE's settings page
+    return t("pill.action.settings", "Settings");
+}
+
+function viewPdfLabel(): string {
+    // i18n: link that opens the free full text
+    return t("pill.oa.viewPdf", "View PDF");
+}
+
 function oaSubtitle(state: OaState, available: boolean): string {
-    if (state === "pending") return "Checking…";
-    if (state === "cancelled") return "Not checked";
-    if (state === "no-email") return "Add your email in Settings to check open access";
-    if (state === null) return "Unavailable";
-    if (state.notIndexed) return "Not indexed by Unpaywall";
-    return available ? "Free full text available" : "Not confirmed open access";
+    if (state === "pending") return checkingLabel();
+    if (state === "cancelled") return notCheckedLabel();
+    if (state === "no-email") return t("pill.oa.noEmail", "Add your email in Settings to check open access");
+    if (state === null) return unavailableLabel();
+    if (state.notIndexed) return t("pill.oa.notIndexed", "Not indexed by Unpaywall");
+    return available ? t("pill.oa.free", "Free full text available") : t("pill.oa.notConfirmed", "Not confirmed open access");
 }
 
 function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLElement {
@@ -665,12 +720,16 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
             iconHtml: OA_UNLOCK_SVG,
             accent: "#853953",
             available: available && locations.length === 1,
-            title: "Open Access",
+            title: t("pill.oa.title", "Open Access"),
             subtitle: oaSubtitle(state, available),
             onAction: state === "no-email" ? openFloraOptions : state === null || state === "cancelled" ? retry : undefined,
-            subtitleShort: state === null ? "Unavailable" : state === "cancelled" ? "Not checked" : state === "pending" ? "…" : oa?.notIndexed ? "Not indexed" : available ? "Free" : "—",
+            subtitleShort: state === null ? unavailableLabel() : state === "cancelled" ? notCheckedLabel() : state === "pending" ? "…" : oa?.notIndexed
+                // i18n: compact panel status: Unpaywall does not index this DOI; keep very short
+                ? t("pill.oa.notIndexedShort", "Not indexed")
+                // i18n: compact panel status: a free full text exists; keep very short
+                : available ? t("pill.oa.freeShort", "Free") : "—",
             href: locations[0]?.url,
-            actionLabel: state === "no-email" ? "Settings" : state === null || state === "cancelled" ? "Retry" : "View PDF",
+            actionLabel: state === "no-email" ? settingsLabel() : state === null || state === "cancelled" ? retryLabel() : viewPdfLabel(),
             attr: "data-flora-oa-row",
             compact,
         });
@@ -692,11 +751,12 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
         iconHtml: OA_UNLOCK_SVG,
         accent: "#853953",
         available: true,
-        title: "Open Access",
-        subtitle: `${locations.length} open-access versions`,
-        subtitleShort: `${locations.length} versions`,
+        title: t("pill.oa.title", "Open Access"),
+        subtitle: t("pill.oa.versions", "{count, plural, one {# open-access version} other {# open-access versions}}", {count: locations.length}),
+        // i18n: compact panel status: number of free copies; keep very short
+        subtitleShort: t("pill.oa.versionsShort", "{count, plural, one {# version} other {# versions}}", {count: locations.length}),
         href: locations[0].url,
-        actionLabel: "View PDF",
+        actionLabel: viewPdfLabel(),
         attr: "data-flora-oa-primary",
         compact,
     });
@@ -712,7 +772,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
     toggle.setAttribute("data-flora-oa-choices", "");
     toggle.setAttribute("role", "button");
     toggle.tabIndex = 0;
-    toggle.title = `Choose from ${locations.length} open-access versions`;
+    toggle.title = t("pill.oa.chooseVersion", "Choose from {count, plural, one {# open-access version} other {# open-access versions}}", {count: locations.length});
     toggle.style.cssText =
         rowActionStyle("#853953", compact)
         + `cursor:pointer;user-select:none;border-radius:5px;padding:${compact ? "1px 4px" : "3px 5px"};`;
@@ -755,20 +815,21 @@ function buildPubPeerRow(state: PubPeerState, compact = false, retry?: () => voi
     const available = !!feedback && feedback.total_comments > 0;
     const retryable = state === "unavailable" || state === "cancelled";
     const subtitle = state === "pending"
-        ? "Checking…"
-        : state === "cancelled" ? "Not checked" : state === "unavailable" ? "Unavailable" : available && feedback
-            ? `${feedback.total_comments} ${feedback.total_comments === 1 ? "comment" : "comments"}`
-            : "No discussion found";
+        ? checkingLabel()
+        : state === "cancelled" ? notCheckedLabel() : state === "unavailable" ? unavailableLabel() : available && feedback
+            ? t("pill.pubpeer.comments", "{count, plural, one {# comment} other {# comments}}", {count: feedback.total_comments})
+            : t("pill.pubpeer.none", "No discussion found");
     return buildRow({
         iconHtml: PUBPEER_HUB_SVG,
         accent: "#446058",
         available,
         title: "PubPeer",
         subtitle,
-        subtitleShort: state === "pending" ? "…" : state === "cancelled" ? "Not checked" : state === "unavailable" ? "Unavailable" : available && feedback ? `${feedback.total_comments}` : "—",
+        subtitleShort: state === "pending" ? "…" : state === "cancelled" ? notCheckedLabel() : state === "unavailable" ? unavailableLabel() : available && feedback ? `${feedback.total_comments}` : "—",
         href: feedback?.url,
         onAction: retryable ? retry : undefined,
-        actionLabel: retryable ? "Retry" : "View thread",
+        // i18n: link that opens the PubPeer discussion thread
+        actionLabel: retryable ? retryLabel() : t("pill.pubpeer.viewThread", "View thread"),
         attr: "data-flora-pubpeer-row",
         compact,
     });
@@ -799,12 +860,12 @@ function buildRegisteredReportRow(state: RegisteredReportState, compact = false,
         iconHtml: DOT_ICON(report ? RR_ACCENT : "#8b949e"),
         accent: RR_ACCENT,
         available: !!report,
-        title: "Registered Report",
-        subtitle: detail?.subtitle ?? (state === "pending" ? "Checking…" : state === "unavailable" ? "Unavailable" : "Not in the Registered Reports database"),
-        subtitleShort: detail?.subtitleShort ?? (state === "pending" ? "…" : state === "unavailable" ? "Unavailable" : "None"),
+        title: t("pill.rr.title", "Registered Report"),
+        subtitle: detail?.subtitle ?? (state === "pending" ? checkingLabel() : state === "unavailable" ? unavailableLabel() : t("pill.rr.notListed", "Not in the Registered Reports database")),
+        subtitleShort: detail?.subtitleShort ?? (state === "pending" ? "…" : state === "unavailable" ? unavailableLabel() : t("pill.row.noneShort", "None")),
         href: detail?.href,
         onAction: state === "unavailable" ? retry : undefined,
-        actionLabel: detail?.actionLabel ?? (state === "unavailable" ? "Retry" : undefined),
+        actionLabel: detail?.actionLabel ?? (state === "unavailable" ? retryLabel() : undefined),
         attr: RR_ROW_ATTR,
         compact,
     });
@@ -869,7 +930,7 @@ function buildDoiRow(
     const doiText = document.createElement("span");
     doiText.setAttribute("data-flora-doi-text", "");
     doiText.textContent = doi;
-    doiText.title = provenanceLabel ?? (isAugmented ? SEARCH_PROVENANCE : PAGE_PROVENANCE);
+    doiText.title = provenanceLabel ?? (isAugmented ? searchProvenance() : pageProvenance());
     doiText.style.cssText = `
     flex: 1;
     min-width: 0;
@@ -889,7 +950,7 @@ function buildDoiRow(
 
     const copyBtn = document.createElement("button");
     copyBtn.innerHTML = CLIPBOARD_SVG;
-    copyBtn.title = "Copy DOI";
+    copyBtn.title = copyDoiLabel();
     copyBtn.style.cssText = ICON_BTN_STYLE;
     let copySuccess = false;
     copyBtn.addEventListener("mouseenter", () => {
@@ -903,21 +964,21 @@ function buildDoiRow(
         copySuccess = true;
         copyBtn.innerHTML = CHECK_SVG;
         copyBtn.style.color = color;
-        copyBtn.title = "Copied";
+        copyBtn.title = copiedLabel();
         const restoreIcon = (): void => {
             copySuccess = false;
             copyBtn.innerHTML = CLIPBOARD_SVG;
             copyBtn.style.color = copyBtn.matches(":hover") ? color : "#656d76";
-            copyBtn.title = "Copy DOI";
+            copyBtn.title = copyDoiLabel();
         };
         void writeClipboard(doi).then((ok) => {
             if (ok) {
-                showToast(`DOI copied — ${doi}`);
+                showToast(t("pill.doi.copiedToast", "DOI copied — {doi}", {doi}));
                 setTimeout(restoreIcon, 1500);
             } else {
                 // The optimistic check would otherwise confirm a copy that
                 // never reached the clipboard.
-                showToast("Couldn't copy the DOI", {tone: "error"});
+                showToast(t("pill.doi.copyFailedToast", "Couldn't copy the DOI"), {tone: "error"});
                 restoreIcon();
             }
         });
@@ -930,7 +991,7 @@ function buildDoiRow(
     openLink.href = `https://doi.org/${doi}`;
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
-    openLink.title = "Open on doi.org";
+    openLink.title = t("pill.doi.openOnDoiOrg", "Open on doi.org");
     openLink.style.cssText = ICON_BTN_STYLE;
     openLink.addEventListener("mouseenter", () => {
         openLink.style.color = color;
@@ -956,12 +1017,25 @@ function buildDoiRow(
     const wrap = document.createElement("div");
     wrap.setAttribute("data-flora-doi-provenance", "");
     const matched = document.createElement("div");
-    matched.textContent = "Matched by title \u2014 check it is the right paper";
-    matched.title = provenanceLabel ?? SEARCH_PROVENANCE;
+    matched.textContent = t("pill.provenance.matchedByTitle", "Matched by title — check it is the right paper");
+    matched.title = provenanceLabel ?? searchProvenance();
     matched.style.cssText = `${rowSubStyle()}margin:-4px 0 3px 28px;`;
     wrap.appendChild(contentRow);
     wrap.appendChild(matched);
     return wrap;
+}
+
+function copyDoiLabel(): string {
+    return t("pill.doi.copy", "Copy DOI");
+}
+
+function copiedLabel(): string {
+    // i18n: tooltip after a successful copy to the clipboard
+    return t("pill.copied", "Copied");
+}
+
+function citationUnavailableLabel(): string {
+    return t("pill.cite.unavailable", "Citation unavailable");
 }
 
 /**
@@ -978,7 +1052,7 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
     btn.innerHTML = QUOTE_SVG;
     btn.style.cssText = ICON_BTN_STYLE;
 
-    let idleTitle = "Copy citation";
+    let idleTitle = t("pill.cite.copy", "Copy citation");
     let flashing = false;
     let loadToken = 0;
     let titleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1008,8 +1082,10 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
 
     const showStyle = (format: CitationFormat): void => {
         idleTitle = format.verbatim
-            ? `Copy this reference as ${format.label} — change the style in ORE's settings`
-            : `Copy this reference in ${format.label}, formatting included — change the style in ORE's settings`;
+            // i18n: {style} is a citation format name such as "BibTeX" or "RIS"
+            ? t("pill.cite.copyVerbatim", "Copy this reference as {style} — change the style in ORE's settings", {style: format.label})
+            // i18n: {style} is a citation style name such as "APA" or "Chicago"
+            : t("pill.cite.copyFormatted", "Copy this reference in {style}, formatting included — change the style in ORE's settings", {style: format.label});
         if (!flashing) btn.title = idleTitle;
     };
 
@@ -1029,18 +1105,19 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
         const format = await preferredCitationFormat();
         if (token !== loadToken) return;
         showStyle(format);
-        setTitle("Fetching…");
+        // i18n: tooltip while a citation is being downloaded
+        setTitle(t("pill.cite.fetching", "Fetching…"));
         // The fetch is a network round trip — say so, rather than leaving the
         // reader wondering whether the click registered.
-        showToast(`Fetching ${format.label} citation…`, {tone: "pending", duration: 0});
+        showToast(t("pill.cite.fetchingToast", "Fetching {style} citation…", {style: format.label}), {tone: "pending", duration: 0});
         const {citation, reachable} = await fetchCitationDetailed(doi, format.id);
         if (token !== loadToken) return;
         if (!citation) {
-            flash(QUOTE_SVG, reachable ? "Citation unavailable" : "Couldn't reach Crossref");
+            flash(QUOTE_SVG, reachable ? citationUnavailableLabel() : t("pill.cite.unreachable", "Couldn't reach Crossref"));
             showToast(
                 reachable
-                    ? `No ${format.label} citation available for this DOI`
-                    : "Couldn't reach Crossref — check your connection and try again",
+                    ? t("pill.cite.noneToast", "No {style} citation available for this DOI", {style: format.label})
+                    : t("pill.cite.unreachableToast", "Couldn't reach Crossref — check your connection and try again"),
                 {tone: "error"}
             );
             return;
@@ -1050,12 +1127,12 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
             : await writeClipboard(citation.text);
         if (token !== loadToken) return;
         if (!copied) {
-            flash(QUOTE_SVG, "Copy failed");
-            showToast("Couldn't copy the citation", {tone: "error"});
+            flash(QUOTE_SVG, t("pill.cite.copyFailed", "Copy failed"));
+            showToast(t("pill.cite.copyFailedToast", "Couldn't copy the citation"), {tone: "error"});
             return;
         }
-        flash(CHECK_SVG, "Copied");
-        showToast(`${format.label} citation copied`);
+        flash(CHECK_SVG, copiedLabel());
+        showToast(t("pill.cite.copiedToast", "{style} citation copied", {style: format.label}));
     };
 
     btn.addEventListener("click", (e) => {
@@ -1064,8 +1141,8 @@ function buildCiteButton(doi: string, color: string): HTMLElement {
         // anywhere in the chain (storage, settings) must still land on a
         // terminal toast rather than leave the spinner running forever.
         void copyCitation().catch(() => {
-            flash(QUOTE_SVG, "Citation unavailable");
-            showToast("Couldn't fetch the citation", {tone: "error"});
+            flash(QUOTE_SVG, citationUnavailableLabel());
+            showToast(t("pill.cite.fetchFailedToast", "Couldn't fetch the citation"), {tone: "error"});
         });
     });
 
@@ -1181,7 +1258,10 @@ function buildIndicatorRows(opts: IndicatorRowsOptions): HTMLElement {
         const row = buildPubPeerRow(lookups.pubpeer, compact, lookups.pubpeer === "pending" ? undefined : lookups.retryPubPeer);
         const subtitle = row.querySelector("[data-flora-row-sub]");
         if (subtitle && lookups.pubpeerRetryAfterMs !== null) {
-            subtitle.textContent = compact ? "Rate limited" : `Rate limited — try again in ${Math.ceil(lookups.pubpeerRetryAfterMs / 1000)} seconds`;
+            subtitle.textContent = compact
+                // i18n: compact panel status: PubPeer refused more requests for now; keep very short
+                ? t("pill.pubpeer.rateLimitedShort", "Rate limited")
+                : t("pill.pubpeer.rateLimited", "Rate limited — try again in {seconds, plural, one {# second} other {# seconds}}", {seconds: Math.ceil(lookups.pubpeerRetryAfterMs / 1000)});
         }
         return row;
     };
@@ -1247,14 +1327,22 @@ function pillAriaLabel(
     replications: number | null,
     reproductions: number | null,
 ): string {
-    const parts: string[] = [];
-    if (retraction) {
-        parts.push(retraction.kind === "concern" ? "expression of concern" : "retracted");
+    const notice = retraction?.kind === "concern" ? "concern" : "retraction";
+    const count = (replications ?? 0) + (reproductions ?? 0);
+    if (retraction && count > 0) {
+        // i18n: screen-reader label of the pill; {notice} is "retraction" or "concern"; {count} counts replication and reproduction studies
+        return t("pill.aria.noticeAndStudies", "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.", {doi, notice, count});
     }
-    const studies = (replications ?? 0) + (reproductions ?? 0);
-    if (studies > 0) parts.push(`${studies} replication or reproduction ${studies === 1 ? "study" : "studies"}`);
-    const summary = parts.length > 0 ? parts.join(", ") : "no flags yet";
-    return `Open research details for ${doi}: ${summary}. Press Enter for more.`;
+    if (retraction) {
+        // i18n: screen-reader label of the pill; {notice} is "retraction" or "concern"
+        return t("pill.aria.notice", "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.", {doi, notice});
+    }
+    if (count > 0) {
+        // i18n: screen-reader label of the pill; {count} counts replication and reproduction studies
+        return t("pill.aria.studies", "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.", {doi, count});
+    }
+    // i18n: screen-reader label of the pill when nothing notable is known (yet)
+    return t("pill.aria.noFlags", "Open research details for {doi}: no flags yet. Press Enter for more.", {doi});
 }
 
 const markerUpdates = new WeakMap<HTMLElement, (state: LookupState | undefined, notice: RetractionResponse | null) => void>();
@@ -1488,12 +1576,18 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
         hoverBorder = markerNotice ? NOTICE_COLOR : color;
         pill.style.borderColor = restingBorder;
         pill.style.borderStyle = !markerNotice && (pending || unavailable) ? "dashed" : "solid";
-        const summary = [markerNotice ? (markerNotice.kind === "concern" ? "Expression of concern" : "Retracted") : "",
-            markerStudies ? `${markerStudies} linked ${markerStudies === 1 ? "study" : "studies"} in the FLoRA Replication Atlas` : "",
-            markerComments ? `${markerComments} PubPeer comments` : "",
-            unavailable ? "Some checks unavailable" : pending ? "Checks in progress" : "",
-            status === "empty" ? "No replication evidence or PubPeer comments found" : ""].filter(Boolean).join(". ");
-        pill.title = `${summary}. Open paper details`;
+        // Each part is a complete sentence; the tooltip lists them in turn.
+        const summary = [
+            markerNotice ? (markerNotice.kind === "concern"
+                ? t("pill.marker.concern", "Expression of concern.")
+                : t("pill.marker.retracted", "Retracted.")) : "",
+            markerStudies ? t("pill.marker.studies", "{count, plural, one {# linked study} other {# linked studies}} in the FLoRA Replication Atlas.", {count: markerStudies}) : "",
+            markerComments ? t("pill.marker.comments", "{count, plural, one {# PubPeer comment} other {# PubPeer comments}}.", {count: markerComments}) : "",
+            unavailable ? t("pill.marker.someUnavailable", "Some checks unavailable.") : pending ? t("pill.marker.inProgress", "Checks in progress.") : "",
+            status === "empty" ? t("pill.marker.empty", "No replication evidence or PubPeer comments found.") : "",
+        ].filter(Boolean).join(" ");
+        // i18n: last line of the margin marker's tooltip; clicking opens the details popup
+        pill.title = `${summary} ${t("pill.marker.openDetails", "Open paper details")}`;
         pill.setAttribute("aria-label", `${doi}: ${pill.title}`);
     };
     if (markerMode) {
@@ -1538,7 +1632,8 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
         }
     });
 
-    const popover = slot ? null : createPopover(color, `Open research details for ${doi}`);
+    // i18n: accessible name of the details popup for one paper
+    const popover = slot ? null : createPopover(color, t("pill.popover.label", "Open research details for {doi}", {doi}));
     const rowsHost: HTMLElement | ShadowRoot = slot?.rowsHost ?? popover!.shadowRoot!;
     if (slot) rowsHosts.set(wrapper, slot.rowsHost);
     let rowsBuilt = false;
@@ -1823,11 +1918,14 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
     face.setAttribute("tabindex", "0");
     face.setAttribute("aria-haspopup", "dialog");
     face.setAttribute("aria-expanded", "false");
-    face.setAttribute("aria-label",
-        `${total} papers in this reference: ${papers.map((p) => p.doi).join(", ")}. Press Enter for details.`);
+    face.setAttribute("aria-label", t(
+        "pill.stack.ariaLabel",
+        "{count, plural, one {# paper} other {# papers}} in this reference: {dois}. Press Enter for details.",
+        {count: total, dois: papers.map((p) => p.doi).join(", ")},
+    ));
     face.style.cssText = "display:inline-block;line-height:0;cursor:pointer;border-radius:9999px;";
 
-    const popover = createPopover(color, `Open research details for ${total} papers`);
+    const popover = createPopover(color, t("pill.stack.popoverLabel", "Open research details for {count, plural, one {# paper} other {# papers}}", {count: total}));
     popover.style.width = "300px";
     popover.style.maxWidth = "calc(100vw - 8px)";
     popover.style.padding = "0";
@@ -1842,8 +1940,8 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
     label.style.cssText = "flex:1;min-width:0;font-size:11px;font-weight:600;color:#57606a;letter-spacing:0.02em;";
     const dots = document.createElement("span");
     dots.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-right:4px;";
-    const prev = pagerButton(PAGER_PREV_SVG, "Previous paper", color);
-    const next = pagerButton(PAGER_NEXT_SVG, "Next paper", color);
+    const prev = pagerButton(PAGER_PREV_SVG, t("pill.stack.previous", "Previous paper"), color);
+    const next = pagerButton(PAGER_NEXT_SVG, t("pill.stack.next", "Next paper"), color);
     header.append(label, dots, prev, next);
 
     const track = document.createElement("div");
@@ -1881,7 +1979,7 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
         if (animate && typeof pills[index].animate === "function") {
             pills[index].animate([{opacity: 0.4}, {opacity: 1}], {duration: 180, easing: "ease-out"});
         }
-        label.textContent = `Paper ${index + 1} of ${total}`;
+        label.textContent = t("pill.stack.position", "Paper {index} of {total}", {index: index + 1, total});
         dotEls.forEach((dot, i) => {
             const on = i === index;
             dot.style.cssText =
@@ -2051,7 +2149,9 @@ export function updateIndicatorPillBadges(
         const signal = resolveBadgeSignal(doi, replicationsCount, reproductionsCount);
 
         if (state?.status === "error" || state?.status === "loading") {
-            signal.rowSubtitle = state.status === "loading" ? "Checking FORRT…" : "FORRT unavailable";
+            signal.rowSubtitle = state.status === "loading"
+                ? t("pill.forrt.checking", "Checking FORRT…")
+                : t("pill.forrt.unavailable", "FORRT unavailable");
         }
         const strip = badgeSegment?.closest<HTMLElement>(`[${SEGMENT_STRIP_ATTR}]`) ?? null;
         const accent = strip?.getAttribute(SEGMENT_ACCENT_ATTR) ?? undefined;
@@ -2102,7 +2202,7 @@ export function updateIndicatorPillBadges(
                 iconHtml: DOT_ICON("#853953"), accent: "#853953", available: false,
                 // Keep the row's usual label; the subtitle says the lookup failed.
                 title: signal.rowTitle, subtitle: signal.rowSubtitle,
-                actionLabel: "Retry", onAction: pending ? undefined : () => { void retry(); },
+                actionLabel: retryLabel(), onAction: pending ? undefined : () => { void retry(); },
                 attr: "data-flora-badge-row", compact,
             })));
         } else if (badgeRow) {

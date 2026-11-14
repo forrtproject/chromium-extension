@@ -1,9 +1,9 @@
 import {CITATION_FORMATS, citationFormat} from "../shared/citation";
 import {debugError} from "../shared/debug";
 import {getSettings, saveSettings} from "../shared/settings";
+import {t} from "../shared/i18n";
 
-const SAVE_FAILED = "Couldn't save. Please try again.";
-const INVALID_EMAIL = "That doesn't look like an email address.";
+const saveFailed = (): string => t("walkthrough.setup.saveFailed", "Couldn't save. Please try again.");
 
 function showStatus(el: HTMLElement, message: string, isError = false): void {
   el.textContent = message;
@@ -34,7 +34,7 @@ export function mountSetupChoices(): {emailIsValid: () => boolean} {
     if (valid) emailInput.removeAttribute("aria-invalid");
     else {
       emailInput.setAttribute("aria-invalid", "true");
-      showStatus(emailStatus, INVALID_EMAIL, true);
+      showStatus(emailStatus, t("walkthrough.setup.email.invalid", "That doesn't look like an email address."), true);
     }
     return valid;
   };
@@ -50,11 +50,11 @@ export function mountSetupChoices(): {emailIsValid: () => boolean} {
       await saveSettings({email});
       savedEmail = email;
       showStatus(emailStatus, email
-        ? "Email saved. Reload open tabs to use it for lookups."
-        : "Email removed. Title matching and open-access lookups need an email; other checks still work.");
+        ? t("walkthrough.setup.email.saved", "Email saved. Reload open tabs to use it for lookups.")
+        : t("walkthrough.setup.email.removed", "Email removed. Title matching and open-access lookups need an email; other checks still work."));
     } catch (err) {
       debugError("Walkthrough: could not save the email —", err);
-      showStatus(emailStatus, SAVE_FAILED, true);
+      showStatus(emailStatus, saveFailed(), true);
     }
   };
 
@@ -73,10 +73,11 @@ export function mountSetupChoices(): {emailIsValid: () => boolean} {
     const format = citationFormat(citationSelect.value);
     try {
       await saveSettings({citationStyle: format.id});
-      showStatus(citationStatus, `Citation style set to ${format.label}.`);
+      // i18n: {style} is a citation style name such as "APA" or "Vancouver"
+      showStatus(citationStatus, t("walkthrough.setup.citation.saved", "Citation style set to {style}.", {style: format.label}));
     } catch (err) {
       debugError("Walkthrough: could not save the citation style —", err);
-      showStatus(citationStatus, SAVE_FAILED, true);
+      showStatus(citationStatus, saveFailed(), true);
     }
   });
 

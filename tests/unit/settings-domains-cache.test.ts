@@ -10,6 +10,7 @@ const FULL_SETTINGS = {
   offerLogCopyAfterPass: false,
   refreshDataOnStartup: false,
   attachScreenshot: false,
+  language: "auto",
 };
 
 describe("settings/domain storage caches", () => {

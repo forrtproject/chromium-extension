@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FORRT ORE — Setup</title>
+    <title data-i18n="settings.pageTitle">FORRT ORE — Setup</title>
     <link rel="stylesheet" href="fonts.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -21,7 +21,7 @@
           </div>
           <div class="topbar-name">
             <strong>FORRT ORE</strong>
-            <span>Open Research Extension</span>
+            <span data-i18n="settings.subtitle">Open Research Extension</span>
           </div>
         </a>
       </div>
@@ -31,6 +31,7 @@
           href="https://forrt.org/about/us/"
           target="_blank"
           rel="noopener"
+          data-i18n="settings.topbar.about"
           >About</a
         >
         <a
@@ -43,7 +44,7 @@
       </div>
     </nav>
 
-    <div id="testing-banner" class="testing-banner" role="note" hidden>
+    <div id="testing-banner" class="testing-banner" role="note" data-i18n="debug.testing.settingsBanner" hidden>
       <strong>Testing version.</strong> Things may change or break.
     </div>
 
@@ -51,22 +52,23 @@
     <div class="main-layout">
       <div class="right-panel">
         <div class="detail-wrap">
-          <nav class="section-nav" aria-label="Settings sections">
-            <a href="#sec-email">Email</a>
-            <a href="#sec-citation">Citations</a>
-            <a href="#sec-sites">Sites</a>
-            <a href="#sec-blocklist">Blocklist</a>
-            <a href="#sec-commenters">Commenters</a>
-            <a href="#sec-cache">Cache</a>
-            <a href="#sec-data">Reference data</a>
-            <a href="#sec-debug">Troubleshooting</a>
+          <nav class="section-nav" aria-label="Settings sections" data-i18n-attr="aria-label:settings.nav.label">
+            <a href="#sec-email" data-i18n="settings.nav.email">Email</a>
+            <a href="#sec-language" data-i18n="settings.nav.language">Language</a>
+            <a href="#sec-citation" data-i18n="settings.nav.citations">Citations</a>
+            <a href="#sec-sites" data-i18n="settings.nav.sites">Sites</a>
+            <a href="#sec-blocklist" data-i18n="settings.nav.blocklist">Blocklist</a>
+            <a href="#sec-commenters" data-i18n="settings.nav.commenters">Commenters</a>
+            <a href="#sec-cache" data-i18n="settings.nav.cache">Cache</a>
+            <a href="#sec-data" data-i18n="settings.nav.data">Reference data</a>
+            <a href="#sec-debug" data-i18n="settings.nav.debug">Troubleshooting</a>
           </nav>
           <div id="sec-email" class="detail-card">
             <!-- Header -->
             <div class="dh">
-              <div class="dh-label">Extension Setup</div>
-              <h1 class="dh-title">FORRT ORE &mdash; Open Research Extension</h1>
-              <div class="dh-authors">
+              <div class="dh-label" data-i18n="settings.email.eyebrow">Extension Setup</div>
+              <h1 class="dh-title" data-i18n="settings.email.title">FORRT ORE &mdash; Open Research Extension</h1>
+              <div class="dh-authors" data-i18n="settings.email.intro">
                 Choose how ORE shows evidence on the papers you read.
                 Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.
               </div>
@@ -88,21 +90,21 @@
                   </svg>
                 </div>
                 <div class="dh-callout-body">
-                  <div class="dh-callout-title">Why we ask for your email</div>
-                  <p class="dh-callout-text">
+                  <div class="dh-callout-title" data-i18n="settings.email.whyTitle">Why we ask for your email</div>
+                  <p class="dh-callout-text" data-i18n="settings.email.whyText">
                     Crossref, OpenAlex and Unpaywall ask for a contact address
                     with each lookup. Without one, ORE can't look for
                     open-access versions or match papers by title.
                   </p>
-                  <p class="dh-callout-text dh-callout-text--muted">
+                  <p class="dh-callout-text dh-callout-text--muted" data-i18n="settings.email.privacy">
                     Your email is sent only as a contact parameter to those
                     services and the NCBI identifier converter. Chrome sync
                     stores it; FORRT never receives it. Clear the field and
                     save to remove it.
                   </p>
                   <details class="dh-more">
-                    <summary>Why these services ask for it</summary>
-                    <p>
+                    <summary data-i18n="settings.email.servicesSummary">Why these services ask for it</summary>
+                    <p data-i18n="settings.email.servicesText">
                       <a href="https://api.crossref.org" target="_blank" rel="noopener">Crossref</a>
                       and
                       <a href="https://api.openalex.org" target="_blank" rel="noopener">OpenAlex</a>
@@ -120,7 +122,7 @@
             <form id="settings-form">
               <div class="action-bar">
                 <div class="ab-group">
-                  <label class="ab-label" for="email-input">Email</label>
+                  <label class="ab-label" for="email-input" data-i18n="settings.email.label">Email</label>
                   <input
                     id="email-input"
                     type="email"
@@ -142,7 +144,7 @@
                     >
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
-                    Save contact email
+                    <span data-i18n="settings.email.save">Save contact email</span>
                   </button>
                 </div>
               </div>
@@ -151,19 +153,38 @@
             <p id="status-msg" class="status status-block" hidden></p>
           </div>
 
+          <!-- ═══ LANGUAGE ═══ -->
+          <div id="sec-language" class="detail-card" style="margin-top: 1.25rem">
+            <div class="dh">
+              <div class="dh-label" data-i18n="settings.language.eyebrow">Interface</div>
+              <h2 class="dh-title" data-i18n="settings.language.title">Language</h2>
+              <div class="dh-authors" data-i18n="settings.language.intro">
+                The language of ORE's menus, pills and reports. Pages that are
+                already open switch when you reload them.
+              </div>
+            </div>
+
+            <div class="action-bar" style="align-items: flex-end;">
+              <div class="ab-group">
+                <label class="ab-label" for="language-select" data-i18n="settings.language.label">Language</label>
+                <select id="language-select" class="ab-input" style="width: 220px;"></select>
+              </div>
+            </div>
+          </div>
+
           <!-- ═══ CITATION STYLE ═══ -->
           <div id="sec-citation" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
-              <div class="dh-label">Copy Citation</div>
-              <h2 class="dh-title">Citation Style</h2>
-              <div class="dh-authors">
+              <div class="dh-label" data-i18n="settings.citation.eyebrow">Copy Citation</div>
+              <h2 class="dh-title" data-i18n="settings.citation.title">Citation Style</h2>
+              <div class="dh-authors" data-i18n="settings.citation.intro">
                 Pick the style the <strong>Citation</strong> row in each pill's
                 details copies. Formatting such as italics survives a paste
                 into Word or Google Docs.
               </div>
               <details class="dh-more">
-                <summary>Where citations come from</summary>
-                <p>
+                <summary data-i18n="settings.citation.sourceSummary">Where citations come from</summary>
+                <p data-i18n="settings.citation.sourceText">
                   Citations come from
                   <a href="https://api.crossref.org" target="_blank" rel="noopener">Crossref</a>,
                   with doi.org as a fallback, and are fetched only when you ask
@@ -174,7 +195,7 @@
 
             <div class="action-bar" style="align-items: flex-end;">
               <div class="ab-group">
-                <label class="ab-label" for="citation-style-select">Style</label>
+                <label class="ab-label" for="citation-style-select" data-i18n="settings.citation.label">Style</label>
                 <select id="citation-style-select" class="ab-input" style="width: 220px;"></select>
               </div>
             </div>
@@ -185,9 +206,9 @@
           <!-- ═══ SITE CATEGORIES ═══ -->
           <div id="sec-sites" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
-              <div class="dh-label">Where ORE Runs</div>
-              <h2 class="dh-title">Sites by Category</h2>
-              <div class="dh-authors">
+              <div class="dh-label" data-i18n="settings.sites.eyebrow">Where ORE Runs</div>
+              <h2 class="dh-title" data-i18n="settings.sites.title">Sites by Category</h2>
+              <div class="dh-authors" data-i18n="settings.sites.intro">
                 ORE runs on journals, publishers, preprint servers and
                 documents, and on any site not listed here. Shopping, video,
                 messaging and web search start switched off. Untick a category
@@ -204,9 +225,9 @@
           <!-- ═══ BLOCKED DOMAINS ═══ -->
           <div id="sec-blocklist" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
-              <div class="dh-label">Blocked Domains</div>
-              <h2 class="dh-title">Site Blocklist</h2>
-              <div class="dh-authors">
+              <div class="dh-label" data-i18n="settings.blocklist.eyebrow">Blocked Domains</div>
+              <h2 class="dh-title" data-i18n="settings.blocklist.title">Site Blocklist</h2>
+              <div class="dh-authors" data-i18n="settings.blocklist.intro">
                 ORE runs on all websites by default. Add domains here to
                 prevent it from scanning them.
               </div>
@@ -215,7 +236,7 @@
             <!-- Add blocked domain -->
             <div class="action-bar domain-add-bar">
               <div class="ab-group">
-                <label class="ab-label" for="domain-input">Domain</label>
+                <label class="ab-label" for="domain-input" data-i18n="settings.blocklist.label">Domain</label>
                 <input
                   id="domain-input"
                   type="text"
@@ -238,7 +259,7 @@
                   >
                     <path d="M12 5v14M5 12h14" />
                   </svg>
-                  Turn off for site
+                  <span data-i18n="settings.blocklist.add">Turn off for site</span>
                 </button>
               </div>
             </div>
@@ -252,9 +273,9 @@
           <!-- ═══ PUBPEER COMMENTERS ═══ -->
           <div id="sec-commenters" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
-              <div class="dh-label">PubPeer Comments</div>
-              <h2 class="dh-title">Muted Commenters</h2>
-              <div class="dh-authors">
+              <div class="dh-label" data-i18n="settings.commenters.eyebrow">PubPeer Comments</div>
+              <h2 class="dh-title" data-i18n="settings.commenters.title">Muted Commenters</h2>
+              <div class="dh-authors" data-i18n="settings.commenters.intro">
                 Comments by these display names are hidden in ORE's report.
                 FORRT is muted by default because the report already shows
                 FLoRA's replication data. Remove a name below to see its
@@ -265,7 +286,7 @@
             <!-- Add muted commenter -->
             <div class="action-bar domain-add-bar">
               <div class="ab-group">
-                <label class="ab-label" for="commenter-input">Commenter</label>
+                <label class="ab-label" for="commenter-input" data-i18n="settings.commenters.label">Commenter</label>
                 <input
                   id="commenter-input"
                   type="text"
@@ -288,7 +309,7 @@
                   >
                     <path d="M12 5v14M5 12h14" />
                   </svg>
-                  Mute
+                  <span data-i18n="settings.commenters.add">Mute</span>
                 </button>
               </div>
             </div>
@@ -302,12 +323,12 @@
           <!-- ═══ CACHE STORAGE ═══ -->
           <details id="sec-cache" class="detail-card tech-card" style="margin-top: 1.25rem">
             <summary class="dh tech-summary">
-              <span class="dh-label">Performance</span>
-              <h2 class="dh-title">Cache Storage Limit</h2>
-              <span class="tech-hint">How much lookup data ORE keeps on this computer</span>
+              <span class="dh-label" data-i18n="settings.cache.eyebrow">Performance</span>
+              <h2 class="dh-title" data-i18n="settings.cache.title">Cache Storage Limit</h2>
+              <span class="tech-hint" data-i18n="settings.cache.hint">How much lookup data ORE keeps on this computer</span>
             </summary>
             <div class="dh tech-body">
-              <div class="dh-authors">
+              <div class="dh-authors" data-i18n="settings.cache.intro">
                 ORE keeps lookup results on this computer so repeat visits load
                 faster. Minimum <strong>10</strong> MB; enter <strong>0</strong>
                 for no limit. Your settings, the diagnostic log and the
@@ -317,7 +338,7 @@
 
             <div class="action-bar" style="align-items: flex-end;">
               <div class="ab-group">
-                <label class="ab-label" for="cache-quota-input">Limit (MB)</label>
+                <label class="ab-label" for="cache-quota-input" data-i18n="settings.cache.label">Limit (MB)</label>
                 <input
                   id="cache-quota-input"
                   type="number"
@@ -334,7 +355,7 @@
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
-                  Save
+                  <span data-i18n="settings.cache.save">Save</span>
                 </button>
               </div>
             </div>
@@ -345,11 +366,11 @@
           <!-- ═══ REFERENCE DATA ═══ -->
           <details id="sec-data" class="detail-card tech-card" style="margin-top: 1.25rem">
             <summary class="dh tech-summary">
-              <span class="dh-label">Update Reference Data</span>
-              <h2 class="dh-title">Retractions &amp; Registered Reports</h2>
+              <span class="dh-label" data-i18n="settings.data.eyebrow">Update Reference Data</span>
+              <h2 class="dh-title" data-i18n="settings.data.title">Retractions &amp; Registered Reports</h2>
             </summary>
             <div class="dh tech-body">
-              <div class="dh-authors">
+              <div class="dh-authors" data-i18n="settings.data.intro">
                 ORE checks papers against a local copy of the
                 <a href="https://retractionwatch.com/" target="_blank" rel="noopener">Retraction Watch</a>
                 database and the
@@ -361,12 +382,12 @@
 
             <div id="data-status" class="data-status" aria-live="polite">
               <div class="data-row">
-                <span class="data-name">Retractions &amp; expressions of concern</span>
-                <span class="data-meta" id="data-retractions">Loading…</span>
+                <span class="data-name" data-i18n="settings.data.retractions">Retractions &amp; expressions of concern</span>
+                <span class="data-meta" id="data-retractions" data-i18n="settings.data.loading">Loading…</span>
               </div>
               <div class="data-row">
-                <span class="data-name">Registered Reports</span>
-                <span class="data-meta" id="data-registered-reports">Loading…</span>
+                <span class="data-name" data-i18n="settings.data.registeredReports">Registered Reports</span>
+                <span class="data-meta" id="data-registered-reports" data-i18n="settings.data.loading">Loading…</span>
               </div>
             </div>
 
@@ -376,12 +397,12 @@
                   <polyline points="23 4 23 10 17 10" />
                   <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                 </svg>
-                <span id="data-refresh-label">Refresh now</span>
+                <span id="data-refresh-label" data-i18n="settings.data.refresh">Refresh now</span>
               </button>
             </div>
 
             <label class="toggle-row">
-              <span class="toggle-row-text">Update automatically every time the browser opens</span>
+              <span class="toggle-row-text" data-i18n="settings.data.startupToggle">Update automatically every time the browser opens</span>
               <span class="toggle-switch">
                 <input type="checkbox" id="data-startup-toggle" />
                 <span class="toggle-track"></span>
@@ -394,9 +415,9 @@
           <!-- ═══ DEBUG MODE ═══ -->
           <div id="sec-debug" class="detail-card" style="margin-top: 1.25rem">
             <div class="dh">
-              <div class="dh-label">Troubleshooting</div>
-              <h2 class="dh-title">Debug Mode &amp; Issue Reports</h2>
-              <div class="dh-authors">
+              <div class="dh-label" data-i18n="settings.debug.eyebrow">Troubleshooting</div>
+              <h2 class="dh-title" data-i18n="settings.debug.title">Debug Mode &amp; Issue Reports</h2>
+              <div class="dh-authors" data-i18n="settings.debug.intro">
                 If something looks wrong, reproduce the problem, then report
                 it. ORE adds its log of warnings and errors to the GitHub
                 form, and you can read the log below before sending. Debug
@@ -411,14 +432,14 @@
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                <span id="debug-report-label">Report an issue with this log</span>
+                <span id="debug-report-label" data-i18n="settings.debug.report">Report an issue with this log</span>
               </button>
             </div>
 
             <p id="debug-status" class="status domain-status" hidden></p>
 
             <details class="tech-inline">
-              <summary>Debug mode and log details</summary>
+              <summary data-i18n="settings.debug.detailsSummary">Debug mode and log details</summary>
               <div class="dh-callout tech-callout" role="note">
                 <div class="dh-callout-icon" aria-hidden="true">
                   <svg
@@ -436,8 +457,8 @@
                   </svg>
                 </div>
                 <div class="dh-callout-body">
-                  <div class="dh-callout-title">What the log contains</div>
-                  <p class="dh-callout-text">
+                  <div class="dh-callout-title" data-i18n="settings.debug.logTitle">What the log contains</div>
+                  <p class="dh-callout-text" data-i18n="settings.debug.logText">
                     The log records what ORE looked up: DOIs found on the pages
                     you visit, API outcomes and any errors. A report names only
                     the site you report from; other pages appear as
@@ -448,14 +469,14 @@
                     open an issue with it &mdash; and nothing is submitted until
                     you press GitHub's own button.
                   </p>
-                  <p class="dh-callout-text dh-callout-text--muted">
+                  <p class="dh-callout-text dh-callout-text--muted" data-i18n="settings.debug.logPrivacy">
                     Your email address is never included. Read the report below
                     before you share it &mdash; a GitHub issue is public.
                   </p>
                 </div>
               </div>
             <label class="toggle-row">
-              <span class="toggle-row-text"
+              <span class="toggle-row-text" data-i18n="settings.debug.toggle"
                 >Debug mode &mdash; show ORE's progress on each page</span
               >
               <span class="toggle-switch">
@@ -470,7 +491,7 @@
                   <rect x="9" y="9" width="13" height="13" rx="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
-                Copy report
+                <span data-i18n="settings.debug.copy">Copy report</span>
               </button>
               <button type="button" id="debug-download-btn" class="ab-btn debug-log-control">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -478,25 +499,25 @@
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                Download
+                <span data-i18n="settings.debug.download">Download</span>
               </button>
               <button type="button" id="debug-refresh-btn" class="ab-btn debug-log-control">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="23 4 23 10 17 10" />
                   <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                 </svg>
-                Refresh
+                <span data-i18n="settings.debug.refresh">Refresh</span>
               </button>
               <button type="button" id="debug-clear-btn" class="ab-btn debug-log-control">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
-                Clear log
+                <span data-i18n="settings.debug.clear">Clear log</span>
               </button>
             </div>
 
-            <pre id="debug-preview" class="debug-preview" aria-label="Debug report preview"></pre>
+            <pre id="debug-preview" class="debug-preview" aria-label="Debug report preview" data-i18n-attr="aria-label:settings.debug.previewLabel"></pre>
             </details>
           </div>
         </div>
@@ -505,12 +526,12 @@
 
     <!-- ═══ FOOTER ═══ -->
     <div class="footer-bar">
-      <span
+      <span data-i18n="settings.footer.forrt"
         >FORRT &middot; Framework for Open and Reproducible Research
         Training</span
       >
       <div>
-        <a href="https://forrt.org/about/us/" target="_blank" rel="noopener"
+        <a href="https://forrt.org/about/us/" target="_blank" rel="noopener" data-i18n="settings.footer.about"
           >About</a
         >
         <a
@@ -523,6 +544,7 @@
           href="https://forrt.org/about/community/"
           target="_blank"
           rel="noopener"
+          data-i18n="settings.footer.contact"
           >Contact</a
         >
       </div>

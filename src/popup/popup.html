@@ -10,12 +10,12 @@
       <img src="forrt-logo.svg" alt="FORRT" class="popup-logo" />
       <div class="popup-title">
         <strong>FORRT ORE</strong>
-        <span>Open Research Extension</span>
+        <span data-i18n="popup.subtitle">Open Research Extension</span>
       </div>
-      <span class="popup-version" id="popup-version" aria-label="Extension version"></span>
+      <span class="popup-version" id="popup-version" aria-label="Extension version" data-i18n-attr="aria-label:popup.versionLabel"></span>
     </div>
 
-    <div id="testing-banner" class="testing-banner" role="note" hidden>
+    <div id="testing-banner" class="testing-banner" role="note" data-i18n="debug.testing.popupBanner" hidden>
       <strong>Testing version.</strong> Things may change or break.
     </div>
 
@@ -24,9 +24,9 @@
 
       <div id="snooze-note" class="popup-snooze-note" hidden></div>
 
-      <section id="page-findings" class="popup-findings" aria-label="Findings on this page" hidden>
+      <section id="page-findings" class="popup-findings" aria-label="Findings on this page" data-i18n-attr="aria-label:popup.findings.label" hidden>
         <div id="page-findings-list" aria-live="polite"></div>
-        <button id="open-report-btn" class="popup-open-report" type="button" hidden>Open report</button>
+        <button id="open-report-btn" class="popup-open-report" type="button" data-i18n="popup.openReport" hidden>Open report</button>
       </section>
 
       <button id="resume-btn" class="popup-btn popup-btn--resume" type="button" hidden>
@@ -34,7 +34,7 @@
           <circle cx="12" cy="12" r="10" />
           <path d="M10 8l6 4-6 4z" />
         </svg>
-        <span>Resume now</span>
+        <span data-i18n="popup.resume">Resume now</span>
       </button>
 
       <button id="snooze-btn" class="popup-btn popup-btn--snooze" type="button" aria-expanded="false" aria-controls="snooze-options">
@@ -42,10 +42,10 @@
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3 2" />
         </svg>
-        <span>Snooze on this site</span>
+        <span data-i18n="popup.snooze.button">Snooze on this site</span>
       </button>
 
-      <div id="snooze-options" class="popup-snooze-options" role="group" aria-label="Snooze for how long" hidden></div>
+      <div id="snooze-options" class="popup-snooze-options" role="group" aria-label="Snooze for how long" data-i18n-attr="aria-label:popup.snooze.choicesLabel" hidden></div>
 
       <button id="block-btn" class="popup-btn popup-btn--block" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -53,8 +53,8 @@
           <path d="M4.93 4.93l14.14 14.14" />
         </svg>
         <span class="popup-btn-text">
-          <span id="block-btn-label">Turn off on this site</span>
-          <span class="popup-btn-sub" id="block-btn-sub">Until you turn it back on</span>
+          <span id="block-btn-label" data-i18n="popup.block.turnOff">Turn off on this site</span>
+          <span class="popup-btn-sub" id="block-btn-sub" data-i18n="popup.block.sub">Until you turn it back on</span>
         </span>
       </button>
 
@@ -65,8 +65,8 @@
           <line x1="1" y1="1" x2="23" y2="23" />
         </svg>
         <span class="popup-btn-text">
-          <span id="hide-btn-label">Hide on this page</span>
-          <span class="popup-btn-sub" id="hide-btn-sub">Until you reload it</span>
+          <span id="hide-btn-label" data-i18n="popup.hide.hide">Hide on this page</span>
+          <span class="popup-btn-sub" id="hide-btn-sub" data-i18n="popup.hide.sub">Until you reload it</span>
         </span>
       </button>
 
@@ -78,12 +78,12 @@
           <line x1="12" y1="9" x2="12" y2="13" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
-        <span id="report-btn-label">Report an issue</span>
+        <span id="report-btn-label" data-i18n="popup.reportIssue">Report an issue</span>
       </button>
 
       <div id="screenshot-row" hidden>
         <label class="popup-toggle popup-toggle--sub" for="screenshot-toggle">
-          <span class="popup-toggle-label">Include a screenshot</span>
+          <span class="popup-toggle-label" data-i18n="popup.screenshot">Include a screenshot</span>
           <span class="toggle-switch">
             <input type="checkbox" id="screenshot-toggle" />
             <span class="toggle-track"></span>
@@ -101,8 +101,8 @@
             <rect x="7" y="6" width="10" height="14" rx="5" />
             <path d="M3 11h4M17 11h4M3 16h4M17 16h4" />
           </svg>
-          <span class="popup-toggle-label">Troubleshooting</span>
-          <span id="debug-state-chip" class="popup-debug-chip" hidden>Debug on</span>
+          <span class="popup-toggle-label" data-i18n="popup.troubleshooting">Troubleshooting</span>
+          <span id="debug-state-chip" class="popup-debug-chip" data-i18n="popup.debug.chip" hidden>Debug on</span>
         </summary>
         <label class="popup-toggle" for="debug-toggle">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -111,19 +111,19 @@
             <rect x="7" y="6" width="10" height="14" rx="5" />
             <path d="M3 11h4M17 11h4M3 16h4M17 16h4" />
           </svg>
-          <span class="popup-toggle-label">Debug mode</span>
+          <span class="popup-toggle-label" data-i18n="popup.debug.toggle">Debug mode</span>
           <span class="toggle-switch">
             <input type="checkbox" id="debug-toggle" />
             <span class="toggle-track"></span>
           </span>
         </label>
 
-        <p id="debug-hint" class="popup-hint">
+        <p id="debug-hint" class="popup-hint" data-i18n="popup.debug.hintOff">
           Shows ORE's progress on each page and adds a detailed log to issue reports.
         </p>
 
         <label class="popup-toggle popup-toggle--sub" for="log-copy-toggle" id="log-copy-row" hidden>
-          <span class="popup-toggle-label">Offer "Copy log" after each pass</span>
+          <span class="popup-toggle-label" data-i18n="popup.debug.offerCopyLog">Offer "Copy log" after each pass</span>
           <span class="toggle-switch">
             <input type="checkbox" id="log-copy-toggle" />
             <span class="toggle-track"></span>
@@ -133,20 +133,20 @@
 
       <div class="popup-divider"></div>
 
-      <nav class="popup-footer" aria-label="More">
-        <button id="page-tour-btn" class="popup-link" type="button">Tour this page</button>
+      <nav class="popup-footer" aria-label="More" data-i18n-attr="aria-label:popup.footerLabel">
+        <button id="page-tour-btn" class="popup-link" type="button" data-i18n="popup.tourPage">Tour this page</button>
         <span class="popup-footer-sep" aria-hidden="true"></span>
-        <button id="tour-btn" class="popup-link" type="button">How it works</button>
+        <button id="tour-btn" class="popup-link" type="button" data-i18n="popup.howItWorks">How it works</button>
         <span class="popup-footer-sep" aria-hidden="true"></span>
-        <button id="options-btn" class="popup-link" type="button">Settings</button>
+        <button id="options-btn" class="popup-link" type="button" data-i18n="popup.settings">Settings</button>
       </nav>
       <div id="tour-help" class="popup-tour-help" role="dialog" aria-modal="false" aria-labelledby="tour-help-title" aria-describedby="tour-help-text" hidden>
         <strong id="tour-help-title"></strong>
         <p id="tour-help-text"></p>
         <div class="popup-tour-help-actions">
-          <button id="tour-sample-btn" class="popup-tour-help-primary" type="button">Open a sample article</button>
-          <button id="tour-reload-btn" class="popup-link" type="button" hidden>Reload this page</button>
-          <button id="tour-dismiss-btn" class="popup-link" type="button">Not now</button>
+          <button id="tour-sample-btn" class="popup-tour-help-primary" type="button" data-i18n="popup.tourHelp.openSample">Open a sample article</button>
+          <button id="tour-reload-btn" class="popup-link" type="button" data-i18n="popup.tourHelp.reload" hidden>Reload this page</button>
+          <button id="tour-dismiss-btn" class="popup-link" type="button" data-i18n="popup.tourHelp.notNow">Not now</button>
         </div>
       </div>
     </div>

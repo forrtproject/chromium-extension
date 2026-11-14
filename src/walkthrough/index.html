@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FORRT ORE — How it Works</title>
+    <title data-i18n="walkthrough.pageTitle">FORRT ORE — How it Works</title>
     <link rel="stylesheet" href="fonts.css" />
     <link rel="stylesheet" href="walkthrough.css" />
   </head>
@@ -16,12 +16,12 @@
           </div>
           <div class="topbar-name">
             <strong>FORRT ORE</strong>
-            <span>Open Research Extension</span>
+            <span data-i18n="walkthrough.subtitle">Open Research Extension</span>
           </div>
         </a>
       </div>
       <div class="topbar-right">
-        <button class="topbar-link" id="skip-btn" type="button">Skip to setup</button>
+        <button class="topbar-link" id="skip-btn" type="button" data-i18n="walkthrough.nav.skipToSetup">Skip to setup</button>
       </div>
     </nav>
 
@@ -39,14 +39,14 @@
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome">
                 <span class="wt-step-num">1 of 9</span>
-                <h1 class="wt-title wt-title-lead">
+                <h1 class="wt-title wt-title-lead" data-i18n="walkthrough.welcome.title">
                   See what is known about a paper while you read
                 </h1>
-                <p class="wt-desc wt-desc-lead">
+                <p class="wt-desc wt-desc-lead" data-i18n="walkthrough.welcome.intro">
                   ORE checks each paper on a page for replications,
                   retractions, PubPeer discussion and open-access versions.
                 </p>
-                <p class="wt-desc wt-desc-lead">
+                <p class="wt-desc wt-desc-lead" data-i18n="walkthrough.welcome.doi">
                   ORE recognises a paper by its <strong>DOI</strong> — the
                   permanent ID printed on most research papers, such as
                   10.1177/0956797610383437. It works in three places.
@@ -61,12 +61,12 @@
                       </svg>
                     </div>
                     <div class="wt-place-body">
-                      <h3>Search results</h3>
-                      <p>
+                      <h3 data-i18n="walkthrough.welcome.search.title">Search results</h3>
+                      <p data-i18n="walkthrough.welcome.search.text">
                         Google Scholar, PubMed, Europe PMC, OpenAlex, Semantic
                         Scholar, Scopus and EBSCO: each result gets a panel.
                       </p>
-                      <span class="wt-place-steps">Screen 2</span>
+                      <span class="wt-place-steps" data-i18n="walkthrough.welcome.search.screens">Screen 2</span>
                     </div>
                   </div>
 
@@ -80,12 +80,12 @@
                       </svg>
                     </div>
                     <div class="wt-place-body">
-                      <h3>Articles and other pages</h3>
-                      <p>
+                      <h3 data-i18n="walkthrough.welcome.articles.title">Articles and other pages</h3>
+                      <p data-i18n="walkthrough.welcome.articles.text">
                         The article, every paper in its reference list, and any
                         DOI mentioned elsewhere on a page.
                       </p>
-                      <span class="wt-place-steps">Screens 3–6</span>
+                      <span class="wt-place-steps" data-i18n="walkthrough.welcome.articles.screens">Screens 3–6</span>
                     </div>
                   </div>
 
@@ -98,18 +98,18 @@
                       </svg>
                     </div>
                     <div class="wt-place-body">
-                      <h3>Spreadsheets and documents</h3>
-                      <p>
-                        A list of DOIs in Google Sheets or Excel Online, checked
-                        in full. References in Google Docs and Word Online are
-                        marked as you write.
+                      <h3 data-i18n="walkthrough.welcome.sheets.title">Spreadsheets and documents</h3>
+                      <p data-i18n="walkthrough.welcome.sheets.text">
+                        A list of DOIs in Google Sheets, checked in full, or in
+                        Excel Online, checked as you scroll. References in
+                        Google Docs and Word Online are marked as you write.
                       </p>
-                      <span class="wt-place-steps">Screen 7</span>
+                      <span class="wt-place-steps" data-i18n="walkthrough.welcome.sheets.screens">Screen 7</span>
                     </div>
                   </div>
                 </div>
 
-                <p class="wt-footnote">
+                <p class="wt-footnote" data-i18n="walkthrough.welcome.footnote">
                   What ORE shows is a starting point for your own judgement,
                   not a verdict on a paper.
                 </p>
@@ -129,12 +129,12 @@
                       <circle cx="11" cy="11" r="8" />
                       <path d="m21 21-4.35-4.35" />
                     </svg>
-                    Search results
+                    <span data-i18n="walkthrough.tag.search">Search results</span>
                   </span>
                   <span class="wt-step-num">2 of 9</span>
                 </div>
-                <h2 class="wt-title">Judge a result before you open it</h2>
-                <p class="wt-desc">
+                <h2 class="wt-title" data-i18n="walkthrough.search.title">Judge a result before you open it</h2>
+                <p class="wt-desc" data-i18n="walkthrough.search.panel">
                   On search sites, ORE adds a small panel beside each result to
                   help you skim the results. Click a row to open the paper, copy
                   its reference, find an open-access version, read the
@@ -142,7 +142,7 @@
                   &ldquo;Checking&hellip;&rdquo; is still running; it does not
                   mean nothing was found.
                 </p>
-                <p class="wt-desc">
+                <p class="wt-desc" data-i18n="walkthrough.search.titleMatch">
                   When a result doesn't show a DOI, ORE looks the title up in
                   Crossref and OpenAlex and picks the closest match by author
                   and year. A DOI found this way is <strong>underlined with
@@ -156,8 +156,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Copy a ready-made reference</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.search.copy.title">Copy a ready-made reference</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.search.copy.text">
                         The quote icon copies the reference in your chosen
                         citation style, formatting included, ready to paste
                         into Word or Google Docs.
@@ -173,8 +173,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Check a dotted DOI before you rely on it</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.search.dotted.title">Check a dotted DOI before you rely on it</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.search.dotted.text">
                         Two papers can have almost the same title. If the match
                         is wrong, everything else in the panel describes the
                         wrong paper. Open the DOI once to confirm.
@@ -261,18 +261,18 @@
                       <line x1="16" y1="13" x2="8" y2="13" />
                       <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
-                    Articles &amp; other pages
+                    <span data-i18n="walkthrough.tag.articles">Articles &amp; other pages</span>
                   </span>
                   <span class="wt-step-num">3 of 9</span>
                 </div>
-                <h2 class="wt-title">On an article page, two things appear</h2>
-                <p class="wt-desc">
+                <h2 class="wt-title" data-i18n="walkthrough.article.title">On an article page, two things appear</h2>
+                <p class="wt-desc" data-i18n="walkthrough.article.pill">
                   A small <strong>pill</strong> appears beside the article's
                   DOI, beside each paper in its reference list, and beside any
                   other DOI mentioned on the page. A reference that cites two
                   papers gets two pills.
                 </p>
-                <p class="wt-desc">
+                <p class="wt-desc" data-i18n="walkthrough.article.tab">
                   A <strong>tab</strong> on the right edge of the window opens
                   the Meta Report: everything ORE found, in one place. Drag it
                   up or down if it covers something.
@@ -287,8 +287,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">A pill means ORE recognised the paper</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.article.recognised.title">A pill means ORE recognised the paper</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.article.recognised.text">
                         No pill on a reference means ORE could not identify it,
                         so nothing was checked for it.
                       </div>
@@ -301,8 +301,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Turn it off where you don't want it</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.article.turnOff.title">Turn it off where you don't want it</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.article.turnOff.text">
                         Click the ORE button in your browser toolbar to hide it
                         on this page, snooze it on this site, or turn it off for
                         the site entirely.
@@ -348,7 +348,7 @@
                     </div>
                   </div>
                 </div>
-                <p class="demo-note">
+                <p class="demo-note" data-i18n="walkthrough.article.demoNote">
                   The pill is real; the article around it is a stand-in.
                 </p>
               </div>
@@ -368,18 +368,18 @@
                       <line x1="12" y1="16" x2="12" y2="12" />
                       <line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
-                    Reading the pill
+                    <span data-i18n="walkthrough.tag.pill">Reading the pill</span>
                   </span>
                   <span class="wt-step-num">4 of 9</span>
                 </div>
-                <h2 class="wt-title">Reading the pill</h2>
-                <p class="wt-desc">
+                <h2 class="wt-title" data-i18n="walkthrough.pill.title">Reading the pill</h2>
+                <p class="wt-desc" data-i18n="walkthrough.pill.parts">
                   Each part of the pill answers one question. A
                   <strong>coloured</strong> part means yes. A
                   <strong>faded</strong> part means nothing was found yet, or
                   the check could not be done; open the pill to see which.
                 </p>
-                <p class="wt-desc">
+                <p class="wt-desc" data-i18n="walkthrough.pill.open">
                   <strong>Point at the pill to open it.</strong> Each part
                   becomes a row with a link or action. Click to keep it open.
                 </p>
@@ -387,8 +387,8 @@
                   <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral" data-demo="icon-doi"></div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">DOI &mdash; which paper this is</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.pill.doi.title">DOI &mdash; which paper this is</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.pill.doi.text">
                         Copy the DOI or a formatted reference, or open the
                         paper. A dotted underline means it was matched by title.
                       </div>
@@ -397,8 +397,8 @@
                   <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral" data-demo="icon-oa"></div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">OA &mdash; an open-access version exists</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.pill.oa.title">OA &mdash; an open-access version exists</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.pill.oa.text">
                         Open Access: a legal open-access version is online, found
                         through Unpaywall. The row opens the best version; the
                         arrow beside it lists the others.
@@ -408,8 +408,8 @@
                   <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral" data-demo="icon-pubpeer"></div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">PubPeer &mdash; researchers are discussing it</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.pill.pubpeer.title">PubPeer &mdash; researchers are discussing it</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.pill.pubpeer.text">
                         PubPeer is a site where researchers comment on published
                         papers, often to point out problems. The number is the
                         comment count; the row opens the thread.
@@ -419,8 +419,8 @@
                   <div class="wt-callout">
                     <div class="wt-callout-icon icon-neutral" data-demo="icon-badge"></div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Reps &mdash; the study was repeated</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.pill.reps.title">Reps &mdash; the study was repeated</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.pill.reps.text">
                         A replication repeats the study with new data; a
                         reproduction reruns the original analysis. The number
                         counts replications, or reproductions when there are
@@ -435,22 +435,22 @@
                 <div class="demo-board">
                   <div class="demo-board-row">
                     <div class="demo-board-label">
-                      <strong>Closed</strong>
-                      <span>Everything found for this paper, at a glance</span>
+                      <strong data-i18n="walkthrough.pill.board.closed">Closed</strong>
+                      <span data-i18n="walkthrough.pill.board.closedText">Everything found for this paper, at a glance</span>
                     </div>
                     <div class="demo-board-art" data-demo="article-pill"></div>
                   </div>
                   <div class="demo-board-row">
                     <div class="demo-board-label">
-                      <strong>Nothing found</strong>
-                      <span>All faded: open it to check every lookup finished</span>
+                      <strong data-i18n="walkthrough.pill.board.nothing">Nothing found</strong>
+                      <span data-i18n="walkthrough.pill.board.nothingText">All faded: open it to check every lookup finished</span>
                     </div>
                     <div class="demo-board-art" data-demo="pill-no-signals"></div>
                   </div>
                   <div class="demo-board-row is-tall">
                     <div class="demo-board-label">
-                      <strong>Open</strong>
-                      <span>One row per part, each a link or an action</span>
+                      <strong data-i18n="walkthrough.pill.board.open">Open</strong>
+                      <span data-i18n="walkthrough.pill.board.openText">One row per part, each a link or an action</span>
                     </div>
                     <div class="demo-board-art" data-demo="pill-pinned"></div>
                   </div>
@@ -472,19 +472,19 @@
                       <line x1="12" y1="9" x2="12" y2="13" />
                       <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    Withdrawn &amp; questioned work
+                    <span data-i18n="walkthrough.tag.notices">Withdrawn &amp; questioned work</span>
                   </span>
                   <span class="wt-step-num">5 of 9</span>
                 </div>
-                <h2 class="wt-title">Retracted, or under question</h2>
-                <p class="wt-desc">
+                <h2 class="wt-title" data-i18n="walkthrough.notices.title">Retracted, or under question</h2>
+                <p class="wt-desc" data-i18n="walkthrough.notices.meaning">
                   A <strong>retraction</strong> means the paper has been
                   withdrawn, usually because of serious errors or misconduct.
                   An <strong>expression of concern</strong> means the journal
                   has flagged a problem that is not yet resolved; the paper
                   still stands.
                 </p>
-                <p class="wt-desc">
+                <p class="wt-desc" data-i18n="walkthrough.notices.where">
                   Either one adds a warning to the end of the pill and appears
                   in the Meta Report. Both link to the journal's notice, so you
                   can read the reason. The data comes from Retraction Watch.
@@ -498,8 +498,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Checked on your computer</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.notices.local.title">Checked on your computer</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.notices.local.text">
                         ORE keeps its own copy of the retraction list and
                         refreshes it weekly, so no server learns what you are
                         reading.
@@ -513,8 +513,8 @@
                 <div class="demo-board">
                   <div class="demo-board-row is-split">
                     <div class="demo-board-label">
-                      <strong>Retracted</strong>
-                      <span>Withdrawn from the record.</span>
+                      <strong data-i18n="walkthrough.notices.board.retracted">Retracted</strong>
+                      <span data-i18n="walkthrough.notices.board.retractedText">Withdrawn from the record.</span>
                     </div>
                     <div class="demo-board-art demo-stack">
                       <div data-demo="notice-pill-retraction"></div>
@@ -523,8 +523,8 @@
                   </div>
                   <div class="demo-board-row is-split">
                     <div class="demo-board-label">
-                      <strong>Expression of concern</strong>
-                      <span>Flagged, not yet resolved.</span>
+                      <strong data-i18n="walkthrough.notices.board.concern">Expression of concern</strong>
+                      <span data-i18n="walkthrough.notices.board.concernText">Flagged, not yet resolved.</span>
                     </div>
                     <div class="demo-board-art demo-stack">
                       <div data-demo="notice-pill-concern"></div>
@@ -550,22 +550,22 @@
                       <line x1="16" y1="13" x2="8" y2="13" />
                       <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
-                    Articles &amp; other pages
+                    <span data-i18n="walkthrough.tag.articles">Articles &amp; other pages</span>
                   </span>
                   <span class="wt-step-num">6 of 9</span>
                 </div>
-                <h2 class="wt-title">The Meta Report: everything in one place</h2>
-                <p class="wt-desc">
+                <h2 class="wt-title" data-i18n="walkthrough.report.title">The Meta Report: everything in one place</h2>
+                <p class="wt-desc" data-i18n="walkthrough.report.contents">
                   The side tab opens a report on the article you are reading:
                   its replications and what they found, any retraction or
                   concern, its PubPeer discussion, and which of its references
                   have something to report.
                 </p>
-                <p class="wt-desc">
+                <p class="wt-desc" data-i18n="walkthrough.report.original">
                   If the article is itself a replication, the report shows the
                   original study it repeated.
                 </p>
-                <p class="wt-desc">
+                <p class="wt-desc" data-i18n="walkthrough.report.caution">
                   Treat outcome labels as a starting point, not a verdict on
                   the original. They depend on how replication authors
                   describe their results. A failed replication does not by
@@ -583,21 +583,14 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">
-                        What the
-                        <a
-                          class="wt-link"
-                          href="https://forrt.org/flora-replication-atlas/"
-                          target="_blank"
-                          rel="noopener"
-                          >FLoRA Replication Atlas</a
-                        >
-                        is
+                      <div class="wt-callout-title" data-i18n="walkthrough.report.atlas.title">
+                        What the <a class="wt-link" href="https://forrt.org/flora-replication-atlas/" target="_blank" rel="noopener">FLoRA Replication Atlas</a> is
                       </div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-text" data-i18n="walkthrough.report.atlas.text">
                         A free database, run by the FORRT community, of studies
-                        in the social and behavioural sciences that repeated
-                        earlier findings, and what they found. Every replication
+                        in the social and behavioural sciences that tried to
+                        replicate or reproduce earlier findings, whatever the
+                        outcome, and what they found. Every replication
                         count in ORE comes from it and links to the evidence.
                       </div>
                     </div>
@@ -610,9 +603,9 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Print or share it</div>
-                      <div class="wt-callout-text">
-                        <strong>Print</strong> makes a printable page.
+                      <div class="wt-callout-title" data-i18n="walkthrough.report.share.title">Download or share it</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.report.share.text">
+                        <strong>Download</strong> saves the report as a PDF.
                         <strong>Copy link</strong> shares the whole report in
                         the link itself, so nothing is uploaded.
                       </div>
@@ -646,18 +639,20 @@
                       <line x1="3" y1="9" x2="21" y2="9" />
                       <line x1="9" y1="21" x2="9" y2="9" />
                     </svg>
-                    Spreadsheets &amp; documents
+                    <span data-i18n="walkthrough.tag.sheets">Spreadsheets &amp; documents</span>
                   </span>
                   <span class="wt-step-num">7 of 9</span>
                 </div>
-                <h2 class="wt-title">Check a whole list of papers at once</h2>
-                <p class="wt-desc">
+                <h2 class="wt-title" data-i18n="walkthrough.sheets.title">Check a whole list of papers at once</h2>
+                <p class="wt-desc" data-i18n="walkthrough.sheets.check">
                   Open a spreadsheet of DOIs, such as a reading list or the
-                  studies for a review, in Google Sheets or Excel Online. ORE
-                  checks every DOI in it, including rows you have not scrolled
-                  to, and reports in a popup.
+                  studies for a review, in Google Sheets or Excel Online. In
+                  Google Sheets, ORE checks every DOI in the tab, including rows
+                  you have not scrolled to. Excel Online only draws the rows on
+                  screen, so ORE checks those; scroll to cover the rest. Results
+                  appear in a popup.
                 </p>
-                <p class="wt-desc">
+                <p class="wt-desc" data-i18n="walkthrough.sheets.retracted">
                   <strong>Retracted papers are listed first</strong>, each with
                   a link to its notice, and the popup appears for them even if
                   nothing else was found.
@@ -671,8 +666,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">One tab at a time</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.sheets.tabs.title">One tab at a time</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.sheets.tabs.text">
                         Each sheet tab is checked on its own. Closing the popup
                         on one tab leaves the others alone.
                       </div>
@@ -686,8 +681,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Hide or snooze</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.sheets.hide.title">Hide or snooze</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.sheets.hide.text">
                         <strong>Hide for this sheet</strong> closes the card for
                         this sheet. <strong>Snooze</strong> hides it for ten
                         minutes.
@@ -702,8 +697,8 @@
                       </svg>
                     </div>
                     <div class="wt-callout-body">
-                      <div class="wt-callout-title">Writing in Google Docs or Word Online?</div>
-                      <div class="wt-callout-text">
+                      <div class="wt-callout-title" data-i18n="walkthrough.sheets.docs.title">Writing in Google Docs or Word Online?</div>
+                      <div class="wt-callout-text" data-i18n="walkthrough.sheets.docs.text">
                         Each reference with a DOI gets a small marker. Open it
                         for the same details as a pill.
                       </div>
@@ -749,15 +744,15 @@
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome wt-sites wt-setup-step">
                 <span class="wt-step-num">8 of 9</span>
-                <h1 class="wt-title wt-title-lead">Set up ORE</h1>
-                <p class="wt-desc wt-desc-lead">
+                <h1 class="wt-title wt-title-lead" data-i18n="walkthrough.setup.title">Set up ORE</h1>
+                <p class="wt-desc wt-desc-lead" data-i18n="walkthrough.setup.intro">
                   Your choices are saved as soon as you make them, and you can
                   change them any time in Settings.
                 </p>
                 <div class="wt-setup">
                   <form class="wt-setup-field" id="wt-email-form" novalidate>
-                    <label class="wt-setup-label" for="wt-email-input">Your email (optional)</label>
-                    <p class="wt-setup-help">
+                    <label class="wt-setup-label" for="wt-email-input" data-i18n="walkthrough.setup.email.label">Your email (optional)</label>
+                    <p class="wt-setup-help" data-i18n="walkthrough.setup.email.help">
                       Needed to find open-access versions: Unpaywall asks for a contact
                       address. ORE also gives it to Crossref, OpenAlex and NCBI
                       when it looks papers up. Remove it any time.
@@ -767,14 +762,15 @@
                       class="wt-setup-input"
                       type="email"
                       placeholder="you@university.edu"
+                      data-i18n-attr="placeholder:walkthrough.setup.email.placeholder"
                       autocomplete="email"
                       aria-describedby="wt-email-status"
                     />
                     <p class="wt-setup-status" id="wt-email-status" role="status"></p>
                   </form>
                   <div class="wt-setup-field">
-                    <label class="wt-setup-label" for="wt-citation-select">Your citation style</label>
-                    <p class="wt-setup-help">
+                    <label class="wt-setup-label" for="wt-citation-select" data-i18n="walkthrough.setup.citation.label">Your citation style</label>
+                    <p class="wt-setup-help" data-i18n="walkthrough.setup.citation.help">
                       The format the copy button uses: APA, Vancouver, BibTeX
                       and eight more.
                     </p>
@@ -786,8 +782,8 @@
                     <p class="wt-setup-status" id="wt-citation-status" role="status"></p>
                   </div>
                 </div>
-                <h2 class="wt-setup-heading">Where should ORE run?</h2>
-                <p class="wt-desc wt-desc-lead">
+                <h2 class="wt-setup-heading" data-i18n="walkthrough.setup.sites.title">Where should ORE run?</h2>
+                <p class="wt-desc wt-desc-lead" data-i18n="walkthrough.setup.sites.intro">
                   ORE is on for journals, publishers, preprint servers and
                   documents, and off for shopping, video, messaging and web
                   search. Tick or untick a category, or open it to choose site
@@ -805,12 +801,12 @@
             <div class="wt-step-inner is-welcome">
               <div class="wt-welcome">
                 <span class="wt-step-num">9 of 9</span>
-                <h1 class="wt-title wt-title-lead">You're ready</h1>
-                <p class="wt-desc wt-desc-lead">
+                <h1 class="wt-title wt-title-lead" data-i18n="walkthrough.ready.title">You're ready</h1>
+                <p class="wt-desc wt-desc-lead" data-i18n="walkthrough.ready.automatic">
                   ORE works by itself as you browse. While it checks a page, a
                   small note shows in the corner, then goes away.
                 </p>
-                <p class="wt-desc wt-desc-lead">
+                <p class="wt-desc wt-desc-lead" data-i18n="walkthrough.ready.toolbar">
                   The ORE button in your browser toolbar shows a number when
                   papers on the page have something to report. Click it to
                   pause or turn off ORE on a site.
@@ -819,16 +815,16 @@
                 <div class="wt-closing" data-demo="scan-indicator"></div>
 
                 <div class="wt-try">
-                  <p>See ORE on a real paper, with a short guided tour.</p>
-                  <button class="wt-nav-btn primary" id="tour-sample-btn" type="button">
+                  <p data-i18n="walkthrough.ready.tryText">See ORE on a real paper, with a short guided tour.</p>
+                  <button class="wt-nav-btn primary" id="tour-sample-btn" type="button" data-i18n="walkthrough.ready.openSample">
                     Open a sample article
                   </button>
-                  <p class="wt-try-error" id="tour-sample-error" role="alert" hidden>
+                  <p class="wt-try-error" id="tour-sample-error" role="alert" hidden data-i18n="walkthrough.ready.sampleError">
                     Couldn't open the sample article. Please try again.
                   </p>
                 </div>
 
-                <p class="wt-footnote">
+                <p class="wt-footnote" data-i18n="walkthrough.ready.later">
                   Later, click the ORE toolbar button and choose “Tour this
                   page” for a tour of the page you are on, “How it works” to
                   see this again, or “Settings” to block a site.
@@ -844,12 +840,12 @@
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <h1 class="wt-title wt-title-lead">You're all set</h1>
-                <p class="wt-desc wt-desc-lead">
+                <h1 class="wt-title wt-title-lead" data-i18n="walkthrough.done.title">You're all set</h1>
+                <p class="wt-desc wt-desc-lead" data-i18n="walkthrough.done.text">
                   Setup is complete. Start using the plugin: ORE will check
                   papers by itself as you browse.
                 </p>
-                <button class="wt-nav-btn primary" id="done-close-btn" type="button">
+                <button class="wt-nav-btn primary" id="done-close-btn" type="button" data-i18n="walkthrough.done.close">
                   Close this tab
                 </button>
               </div>
@@ -858,19 +854,19 @@
         </div>
 
         <div class="wt-nav">
-          <button class="wt-nav-btn" id="prev-btn" disabled>
+          <button class="wt-nav-btn" id="prev-btn" disabled data-i18n="walkthrough.nav.back">
             &larr; Back
           </button>
           <div class="wt-dots">
-            <button class="wt-dot active" data-step="0" aria-label="Welcome"></button>
-            <button class="wt-dot" data-step="1" aria-label="Search results"></button>
-            <button class="wt-dot" data-step="2" aria-label="The pill and the side tab"></button>
-            <button class="wt-dot" data-step="3" aria-label="Reading the pill"></button>
-            <button class="wt-dot" data-step="4" aria-label="Retractions and concerns"></button>
-            <button class="wt-dot" data-step="5" aria-label="The Meta Report"></button>
-            <button class="wt-dot" data-step="6" aria-label="Spreadsheets and documents"></button>
-            <button class="wt-dot" data-step="7" aria-label="Setup"></button>
-            <button class="wt-dot" data-step="8" aria-label="You're ready"></button>
+            <button class="wt-dot active" data-step="0" aria-label="Welcome" data-i18n-attr="aria-label:walkthrough.dots.welcome"></button>
+            <button class="wt-dot" data-step="1" aria-label="Search results" data-i18n-attr="aria-label:walkthrough.dots.search"></button>
+            <button class="wt-dot" data-step="2" aria-label="The pill and the side tab" data-i18n-attr="aria-label:walkthrough.dots.article"></button>
+            <button class="wt-dot" data-step="3" aria-label="Reading the pill" data-i18n-attr="aria-label:walkthrough.dots.pill"></button>
+            <button class="wt-dot" data-step="4" aria-label="Retractions and concerns" data-i18n-attr="aria-label:walkthrough.dots.notices"></button>
+            <button class="wt-dot" data-step="5" aria-label="The Meta Report" data-i18n-attr="aria-label:walkthrough.dots.report"></button>
+            <button class="wt-dot" data-step="6" aria-label="Spreadsheets and documents" data-i18n-attr="aria-label:walkthrough.dots.sheets"></button>
+            <button class="wt-dot" data-step="7" aria-label="Setup" data-i18n-attr="aria-label:walkthrough.dots.setup"></button>
+            <button class="wt-dot" data-step="8" aria-label="You're ready" data-i18n-attr="aria-label:walkthrough.dots.ready"></button>
           </div>
           <button class="wt-nav-btn primary" id="next-btn">Next &rarr;</button>
         </div>

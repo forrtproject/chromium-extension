@@ -15,6 +15,7 @@ import {ensureFocusStyle} from "@shared/flora-ui";
 import {noteScanEnded, noteScanHidden, noteScanProgress, noteScanReset, noteScanShown, noteScanStarted} from "@shared/toolbar-scan";
 import {blockDomain, snoozeDomain} from "@shared/domains";
 import {getSettings} from "@shared/settings";
+import {t, uiLocale} from "@shared/i18n";
 import {
     _resetProgressTabForTesting,
     finishTabProgress,
@@ -51,10 +52,6 @@ export interface WorkItem {
     status: WorkItemStatus;
 }
 
-export function count(n: number, noun: string): string {
-    return `${n} ${noun}${n === 1 ? "" : "s"}`;
-}
-
 // validate/augment sit adjacent: Scholar runs them in order, articles at once.
 const STAGE_PROGRESS: Record<WorkStage, number> = {
     scan: 0.08,
@@ -68,18 +65,21 @@ const STAGE_PROGRESS: Record<WorkStage, number> = {
 const STAGE_ORDER = Object.keys(STAGE_PROGRESS) as WorkStage[];
 
 /** Shown for a stage that has not reported a detail of its own yet. */
-const STAGE_LABEL: Record<WorkStage, string> = {
-    scan: "Read the page",
-    validate: "Check DOIs resolve",
-    augment: "Find DOIs for references without one",
-    notices: "Check for retractions",
-    lookup: "Look up in FORRT / Retraction Watch / PubPeer",
-    report: "Mark up results",
-};
+function stageLabel(stage: WorkStage): string {
+    // i18n: stage checklist in the progress panel; imperative, one step of a page check
+    switch (stage) {
+        case "scan": return t("debug.stage.scan", "Read the page");
+        case "validate": return t("debug.stage.validate", "Check DOIs resolve");
+        case "augment": return t("debug.stage.augment", "Find DOIs for references without one");
+        case "notices": return t("debug.stage.notices", "Check for retractions");
+        case "lookup": return t("debug.stage.lookup", "Look up in FORRT / Retraction Watch / PubPeer");
+        case "report": return t("debug.stage.report", "Mark up results");
+    }
+}
 
 const SKIPPED_GLYPH = "⊘";
-const DEFAULT_LABEL = "ORE is looking up the papers on this page…";
-const SETTLING_LABEL = "Finishing up…";
+const defaultLabel = (): string => t("progress.toast.defaultLabel", "ORE is looking up the papers on this page…");
+const settlingLabel = (): string => t("progress.toast.settling", "Finishing up…");
 
 const HOST_STYLE =
     "position:fixed;right:18px;z-index:2147483647;" +
@@ -200,7 +200,7 @@ let elapsedTimer: ReturnType<typeof setInterval> | null = null;
 let renderFrame: number | null = null;
 // 0 = nothing reported yet, and the bar runs indeterminate.
 let progress = 0;
-let labelText = DEFAULT_LABEL;
+let labelText = "";
 let suppressed = false;
 // Set by × and the site pause; only a page change (resetWorkSummary) lifts it.
 let dismissed = false;
@@ -261,7 +261,9 @@ function stageRecord(stage: WorkStage): StageRecord {
 }
 
 function formatDuration(ms: number): string {
-    return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
+    const number = (n: number, digits: number): string =>
+        n.toLocaleString(uiLocale(), {minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false});
+    return ms >= 1000 ? `${number(ms / 1000, 1)} s` : `${number(Math.round(ms), 0)} ms`;
 }
 
 /** Charge the time since the last stage change to the stage that was current. */
@@ -362,29 +364,31 @@ function buildPauseRow(): HTMLElement {
     const row = document.createElement("div");
     row.setAttribute("data-flora-work-pause-row", "");
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", "Snooze ORE on this site");
+    row.setAttribute("aria-label", t("debug.toast.snoozeSite", "Snooze ORE on this site"));
     row.style.cssText = PAUSE_ROW_STYLE;
 
     const caption = document.createElement("span");
     caption.style.cssText = "color:rgba(255,255,255,0.75);font-size:11px;margin-right:2px;";
-    caption.textContent = "Snooze ORE here:";
+    caption.textContent = t("debug.toast.snoozeHere", "Snooze ORE here:");
 
-    const hour = textButton("1 hour");
+    // i18n: snooze duration button, keep short
+    const hour = textButton(t("debug.toast.snoozeHour", "1 hour"));
     hour.addEventListener("click", () => {
         const hostname = location.hostname;
         const until = Date.now() + 60 * 60 * 1000;
         void pauseSite(snoozeDomain(hostname, 60 * 60 * 1000), {hostname, until});
     });
 
-    const tomorrow = textButton("Until tomorrow");
+    // i18n: snooze duration button, keep short
+    const tomorrow = textButton(t("debug.toast.snoozeTomorrow", "Until tomorrow"));
     tomorrow.addEventListener("click", () => {
         const hostname = location.hostname;
         const duration = msUntilTomorrow6am();
         void pauseSite(snoozeDomain(hostname, duration), {hostname, until: Date.now() + duration});
     });
 
-    const block = textButton("Disable on this domain");
-    block.title = "Re-enable from the ORE popup or options";
+    const block = textButton(t("debug.toast.disableDomain", "Disable on this domain"));
+    block.title = t("debug.toast.disableDomainTitle", "Re-enable from the ORE popup or options");
     block.addEventListener("click", () => {
         const hostname = location.hostname;
         void pauseSite(blockDomain(hostname), {hostname, blocked: true});
@@ -413,7 +417,7 @@ async function copyLog(button: HTMLButtonElement): Promise<boolean> {
     } catch {
         ok = false;
     }
-    flashButton(button, ok ? "Copied ✓" : "Copy failed");
+    flashButton(button, ok ? t("debug.toast.copied", "Copied ✓") : t("debug.toast.copyFailed", "Copy failed"));
     return ok;
 }
 
@@ -423,14 +427,14 @@ function buildFooter(): HTMLElement {
     footer.style.cssText =
         "display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center;padding-top:6px;";
 
-    const copy = textButton("Copy log");
+    const copy = textButton(t("debug.toast.copyLog", "Copy log"));
     copy.setAttribute("data-flora-work-copy", "");
     copy.addEventListener("click", () => void copyLog(copy));
     footer.append(copy);
 
-    const cancel = textButton("Cancel");
+    const cancel = textButton(t("debug.toast.cancel", "Cancel"));
     cancel.setAttribute("data-flora-work-cancel", "");
-    cancel.title = "Stop this pass — ORE runs again on the next page";
+    cancel.title = t("debug.toast.cancelTitle", "Stop this pass — ORE runs again on the next page");
     cancel.addEventListener("click", () => {
         cancelled = true;
         cancelWork();
@@ -470,14 +474,14 @@ function ensureToast(): HTMLElement {
     label.textContent = labelText;
     const elapsed = document.createElement("span");
     elapsed.setAttribute("data-flora-work-elapsed", "");
-    elapsed.title = "Time this pass has been running";
+    elapsed.title = t("debug.toast.elapsedTitle", "Time this pass has been running");
     // Kept out of the live region, which would otherwise announce every tick.
     elapsed.setAttribute("aria-hidden", "true");
     elapsed.style.cssText =
         "flex-shrink:0;color:rgba(255,255,255,0.7);font-size:11px;font-variant-numeric:tabular-nums;";
 
     const pauseRow = buildPauseRow();
-    const pause = iconButton("Snooze ORE on this site", PAUSE_SVG);
+    const pause = iconButton(t("debug.toast.snoozeSite", "Snooze ORE on this site"), PAUSE_SVG);
     pause.setAttribute("data-flora-work-pause", "");
     pause.setAttribute("aria-expanded", "false");
     pause.addEventListener("click", () => {
@@ -486,7 +490,7 @@ function ensureToast(): HTMLElement {
         pause.setAttribute("aria-expanded", String(!open));
     });
 
-    const chevron = iconButton("Show details", CHEVRON_SVG);
+    const chevron = iconButton(t("debug.toast.showDetails", "Show details"), CHEVRON_SVG);
     chevron.setAttribute("data-flora-work-chevron", "");
     chevron.setAttribute("aria-expanded", "false");
     chevron.addEventListener("click", () => {
@@ -494,7 +498,7 @@ function ensureToast(): HTMLElement {
         applyExpanded(host);
     });
 
-    const close = iconButton("Dismiss", CLOSE_SVG);
+    const close = iconButton(t("progress.toast.dismiss", "Dismiss"), CLOSE_SVG);
     close.setAttribute("data-flora-work-close", "");
     close.addEventListener("click", () => {
         dismissed = true;
@@ -507,7 +511,7 @@ function ensureToast(): HTMLElement {
     const track = document.createElement("div");
     track.setAttribute("data-flora-work-track", "");
     track.setAttribute("role", "progressbar");
-    track.setAttribute("aria-label", "ORE progress on this page");
+    track.setAttribute("aria-label", t("debug.toast.progressLabel", "ORE progress on this page"));
     track.setAttribute("aria-valuemin", "0");
     track.setAttribute("aria-valuemax", "100");
     track.style.cssText = TRACK_STYLE;
@@ -538,7 +542,9 @@ function applyExpanded(host: HTMLElement): void {
     if (panel) panel.style.display = expanded ? "flex" : "none";
     if (chevron) {
         chevron.setAttribute("aria-expanded", String(expanded));
-        chevron.title = expanded ? "Hide details" : "Show details";
+        chevron.title = expanded
+            ? t("debug.toast.hideDetails", "Hide details")
+            : t("debug.toast.showDetails", "Show details");
     }
     if (arrow) arrow.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
     if (expanded) renderStages(host);
@@ -601,7 +607,8 @@ function renderItems(): HTMLElement {
         const more = document.createElement("li");
         more.setAttribute("data-flora-work-more", "");
         more.style.cssText = "padding:2px 0 2px 21px;color:rgba(255,255,255,0.55);";
-        more.textContent = `${items.length - MAX_ITEM_ROWS} more…`;
+        // i18n: further items (papers) in the running stage that are not listed
+        more.textContent = t("debug.toast.moreItems", "{count} more…", {count: items.length - MAX_ITEM_ROWS});
         list.append(more);
     }
     return list;
@@ -609,9 +616,9 @@ function renderItems(): HTMLElement {
 
 function markSkipped(glyph: HTMLElement): void {
     glyph.textContent = SKIPPED_GLYPH;
-    glyph.title = "Skipped";
+    glyph.title = t("debug.toast.skipped", "Skipped");
     glyph.setAttribute("role", "img");
-    glyph.setAttribute("aria-label", "Skipped");
+    glyph.setAttribute("aria-label", t("debug.toast.skipped", "Skipped"));
 }
 
 function summaryRow(icon: string, text: string, color: string, ms?: number): HTMLLIElement {
@@ -638,7 +645,11 @@ function summaryRow(icon: string, text: string, color: string, ms?: number): HTM
 
 function renderPageSummary(list: HTMLElement): void {
     if (pageScans > 1) {
-        const caption = summaryRow("", `Scanned this page ${pageScans} times`, "rgba(255,255,255,0.6)");
+        const caption = summaryRow(
+            "",
+            t("debug.toast.scannedTimes", "Scanned this page {count, plural, one {# time} other {# times}}", {count: pageScans}),
+            "rgba(255,255,255,0.6)",
+        );
         caption.setAttribute("data-flora-work-extra", "passes");
         list.append(caption);
     }
@@ -646,16 +657,16 @@ function renderPageSummary(list: HTMLElement): void {
         const record = pageStages.get(stage);
         if (!record) continue;
         const row = record.ran
-            ? summaryRow("✓", record.detail ?? STAGE_LABEL[stage], "rgba(255,255,255,0.75)", pageTimes.get(stage) ?? 0)
-            : summaryRow(SKIPPED_GLYPH, STAGE_LABEL[stage], "rgba(255,255,255,0.5)");
+            ? summaryRow("✓", record.detail ?? stageLabel(stage), "rgba(255,255,255,0.75)", pageTimes.get(stage) ?? 0)
+            : summaryRow(SKIPPED_GLYPH, stageLabel(stage), "rgba(255,255,255,0.5)");
         if (!record.ran) markSkipped(row.firstElementChild as HTMLElement);
         row.setAttribute("data-flora-work-stage", stage);
         row.dataset.floraWorkState = record.ran ? "done" : "skipped";
         list.append(row);
     }
     for (const [extra, text, ms] of [
-        ["other", "Other work", pageTimes.get("other") ?? 0],
-        ["idle", "Waiting between passes", pageIdleMs],
+        ["other", t("debug.toast.otherWork", "Other work"), pageTimes.get("other") ?? 0],
+        ["idle", t("debug.toast.idle", "Waiting between passes"), pageIdleMs],
     ] as const) {
         if (ms < 1) continue;
         const row = summaryRow("·", text, "rgba(255,255,255,0.6)", ms);
@@ -692,22 +703,22 @@ function renderStages(host: HTMLElement): void {
             spinner.style.cssText = SMALL_SPINNER_STYLE;
             icon.append(spinner);
             row.style.fontWeight = "600";
-            text.textContent = record.detail ?? STAGE_LABEL[record.stage];
+            text.textContent = record.detail ?? stageLabel(record.stage);
         } else if (record.ran) {
             row.dataset.floraWorkState = "done";
             icon.textContent = "✓";
             row.style.color = "rgba(255,255,255,0.75)";
-            text.textContent = record.detail ?? STAGE_LABEL[record.stage];
+            text.textContent = record.detail ?? stageLabel(record.stage);
         } else if (record.skipped) {
             row.dataset.floraWorkState = "skipped";
             markSkipped(icon);
             row.style.color = "rgba(255,255,255,0.5)";
-            text.textContent = STAGE_LABEL[record.stage];
+            text.textContent = stageLabel(record.stage);
         } else {
             row.dataset.floraWorkState = "pending";
             icon.textContent = "○";
             row.style.color = "rgba(255,255,255,0.5)";
-            text.textContent = STAGE_LABEL[record.stage];
+            text.textContent = stageLabel(record.stage);
         }
 
         row.append(icon, text);
@@ -856,7 +867,7 @@ export function beginWorkIndicator(plan?: WorkPlan): void {
         const host = document.getElementById(WORK_TOAST_ID);
         if (host) setRunningControls(host, true);
         progress = 0;
-        labelText = DEFAULT_LABEL;
+        labelText = defaultLabel();
         cancelled = false;
         expanded = false;
         finished = false;
@@ -1012,7 +1023,7 @@ export function endWorkIndicator(): void {
             finishTimer = null;
             finished = true;
             progress = 1;
-            labelText = `Done in ${formatDuration(endedAt - (pageStartedAt ?? passStartedAt))}`;
+            labelText = t("progress.toast.doneIn", "Done in {duration}", {duration: formatDuration(endedAt - (pageStartedAt ?? passStartedAt))});
             expanded = offerLogCopy;
             debugLog(`Work: page quiet — ${labelText} (${formatBreakdown([...pageTimes, ["idle between passes", pageIdleMs]], formatDuration)})`);
             renderNow();
@@ -1036,7 +1047,7 @@ export function endWorkIndicator(): void {
 
 function showSettling(waitMs: number): void {
     progress = 1;
-    labelText = SETTLING_LABEL;
+    labelText = settlingLabel();
     const host = document.getElementById(WORK_TOAST_ID);
     if (!host) return;
     const label = host.querySelector<HTMLElement>("[data-flora-work-label]");
@@ -1132,7 +1143,7 @@ export function _resetWorkIndicatorForTesting(): void {
     endCancellableWork();
     resumeAutomaticWork(); // also clears a page cancellation, so automatic work can start again
     progress = 0;
-    labelText = DEFAULT_LABEL;
+    labelText = defaultLabel();
     suppressed = false;
     dismissed = false;
     cancelled = false;

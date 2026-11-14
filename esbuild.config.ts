@@ -74,6 +74,12 @@ const configs: esbuild.BuildOptions[] = [
     entryPoints: ["src/report-page/index.ts"],
     outfile: "docs/report.js",
   },
+  // The translation review page on the docs site (docs/translate/).
+  {
+    ...sharedOptions,
+    entryPoints: ["src/review-page/index.ts"],
+    outfile: "docs/translate/review.js",
+  },
 ];
 
 function copyStaticAssets() {

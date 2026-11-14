@@ -7,6 +7,7 @@ import { buildDebugReport, issueUrl, stashIssueReport } from "@shared/debug-repo
 import { showToast } from "@shared/toast";
 import { writeClipboard } from "@shared/clipboard";
 import { noteScanError } from "@shared/toolbar-scan";
+import { t } from "@shared/i18n";
 
 const offered = new Set<string>();
 
@@ -40,9 +41,10 @@ export function offerErrorReport(info: RuntimeErrorInfo): void {
     offered.add(id);
     offeredCount++;
 
-    showToast("ORE hit an error on this page.", {
+    showToast(t("notice.error.message", "ORE hit an error on this page."), {
         tone: "error",
-        action: { label: "Report it", onClick: () => openIssue(info) },
+        // i18n: toast button that opens a bug report form; keep short.
+        action: { label: t("notice.error.report", "Report it"), onClick: () => openIssue(info) },
     });
 }
 
@@ -65,8 +67,8 @@ async function openIssue(info: RuntimeErrorInfo): Promise<void> {
     const copied = await writeClipboard(link.url);
     showToast(
         copied
-            ? "Couldn't open the issue form — the link is on your clipboard."
-            : "Couldn't open the issue form. Report it from the ORE toolbar menu.",
+            ? t("notice.error.openFailedCopied", "Couldn't open the issue form — the link is on your clipboard.")
+            : t("notice.error.openFailed", "Couldn't open the issue form. Report it from the ORE toolbar menu."),
         { tone: "error", duration: 6000 }
     );
 }

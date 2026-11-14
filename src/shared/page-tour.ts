@@ -5,6 +5,7 @@ import {waitForWorkToFinish} from "@shared/progress-toast";
 import {debugWarn} from "@shared/debug";
 import {clearTourRequest, isTourRequestedFor} from "@shared/tour-sample";
 import {currentPageEntry, isSamePage} from "@shared/page-identity";
+import {t} from "@shared/i18n";
 
 export type TourSurface = "article" | "search";
 
@@ -24,7 +25,6 @@ const CARD_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 
 const PILL = `.${INDICATOR_PILL_CLASS}`;
-const NO_PILL_TEXT = "A reference without a pill is one ORE could not identify.";
 
 function shown(el: Element | null): el is HTMLElement {
     if (!(el instanceof HTMLElement) || !el.isConnected) return false;
@@ -51,10 +51,12 @@ function noticeStop(): TourStop | null {
     const retracted = /retract/i.test((segment ?? target).textContent ?? "");
     return {
         target,
-        title: retracted ? "This paper has been retracted" : "This paper has an expression of concern",
+        title: retracted
+            ? t("tour.notice.retractedTitle", "This paper has been retracted")
+            : t("tour.notice.concernTitle", "This paper has an expression of concern"),
         text: retracted
-            ? "It was withdrawn, usually because of serious errors or misconduct. Open the warning to read the journal's notice."
-            : "The journal has flagged a problem that is not yet resolved. Open the warning to read the journal's notice.",
+            ? t("tour.notice.retractedText", "It was withdrawn, usually because of serious errors or misconduct. Open the warning to read the journal's notice.")
+            : t("tour.notice.concernText", "The journal has flagged a problem that is not yet resolved. Open the warning to read the journal's notice."),
     };
 }
 
@@ -63,8 +65,8 @@ function popoverStop(wrapper: HTMLElement): TourStop | null {
     if (!popover) return null;
     return {
         target: popover,
-        title: "Point at a pill to see the details",
-        text: "Each row is a link: copy the reference, find an open-access version, read the PubPeer discussion, or see replications. Click a pill to keep this open.",
+        title: t("tour.popover.title", "Point at a pill to see the details"),
+        text: t("tour.popover.text", "Each row is a link: copy the reference, find an open-access version, read the PubPeer discussion, or see replications. Click a pill to keep this open."),
         enter: () => pinIndicatorPopover(wrapper, true),
         leave: () => pinIndicatorPopover(wrapper, false),
     };
@@ -79,17 +81,28 @@ export function articleTourStops(): TourStop[] {
     // Three stops (a pill, its details, the report tab), plus a retraction
     // warning when the page has one. The first stop names the other pills
     // instead of visiting each of them.
-    const others = [
-        referencePill && referencePill !== sample ? "each paper in the reference list" : null,
-        loosePill && loosePill !== sample ? "each DOI mentioned in the text" : null,
-    ].filter(Boolean);
-    const alsoText = others.length ? `ORE adds the same pill to ${others.join(" and ")}.` : "";
+    const alsoReferences = Boolean(referencePill && referencePill !== sample);
+    const alsoLoose = Boolean(loosePill && loosePill !== sample);
+    const alsoText = (): string => {
+        if (alsoReferences && alsoLoose) {
+            return t("tour.pill.alsoBoth", "ORE adds the same pill to each paper in the reference list and each DOI mentioned in the text.");
+        }
+        if (alsoReferences) return t("tour.pill.alsoReferences", "ORE adds the same pill to each paper in the reference list.");
+        if (alsoLoose) return t("tour.pill.alsoLoose", "ORE adds the same pill to each DOI mentioned in the text.");
+        return t("tour.pill.pointAt", "Point at it to see what ORE found.");
+    };
     if (sample === titlePill && titlePill) {
-        stops.push({target: titlePill, title: "Findings for this article", text: alsoText || "Point at it to see what ORE found."});
+        stops.push({target: titlePill, title: t("tour.pill.articleTitle", "Findings for this article"), text: alsoText()});
     } else if (sample === referencePill && referencePill) {
-        stops.push({target: referencePill, title: "Every paper in the reference list gets a pill", text: `${NO_PILL_TEXT} ${alsoText}`.trim()});
+        stops.push({
+            target: referencePill,
+            title: t("tour.pill.referenceTitle", "Every paper in the reference list gets a pill"),
+            text: alsoLoose
+                ? t("tour.pill.noPillAlsoLoose", "A reference without a pill is one ORE could not identify. ORE adds the same pill to each DOI mentioned in the text.")
+                : t("tour.pill.noPill", "A reference without a pill is one ORE could not identify."),
+        });
     } else if (sample) {
-        stops.push({target: sample, title: "A pill marks a paper ORE recognised", text: alsoText || "Point at it to see what ORE found."});
+        stops.push({target: sample, title: t("tour.pill.recognisedTitle", "A pill marks a paper ORE recognised"), text: alsoText()});
     }
     const popover = sample ? popoverStop(sample) : null;
     if (popover) stops.push(popover);
@@ -99,8 +112,8 @@ export function articleTourStops(): TourStop[] {
     if (tab) {
         stops.push({
             target: tab,
-            title: "Everything in one place",
-            text: "This tab opens the full report on the article and its references.",
+            title: t("tour.tab.title", "Everything in one place"),
+            text: t("tour.tab.text", "This tab opens the full report on the article and its references."),
         });
     }
     return stops;
@@ -113,16 +126,18 @@ export function searchTourStops(): TourStop[] {
     if (pill) {
         stops.push({
             target: pill,
-            title: panel ? "ORE adds this panel to each result" : "ORE adds this pill to each result",
-            text: "Each row is one check: the paper's DOI, an open-access version, discussion on PubPeer, and replications. Every row is also a link.",
+            title: panel
+                ? t("tour.search.panelTitle", "ORE adds this panel to each result")
+                : t("tour.search.pillTitle", "ORE adds this pill to each result"),
+            text: t("tour.search.text", "Each row is one check: the paper's DOI, an open-access version, discussion on PubPeer, and replications. Every row is also a link."),
         });
     }
     const matched = firstShown(`${PILL}[data-flora-augmented]`);
     if (matched) {
         stops.push({
             target: matched,
-            title: "A dotted DOI was matched by title",
-            text: "This result had no DOI, so ORE matched it by title; check that it is the right paper.",
+            title: t("tour.search.matchedTitle", "A dotted DOI was matched by title"),
+            text: t("tour.search.matchedText", "This result had no DOI, so ORE matched it by title; check that it is the right paper."),
         });
     }
     const notice = noticeStop();
@@ -209,11 +224,11 @@ export function runPageTour(stops: TourStop[]): boolean {
         <div class="step"></div>
         <h2 id="flora-tour-title"></h2>
         <p id="flora-tour-text"></p>
-        <div class="foot" hidden>See this again any time from the ORE button in your browser toolbar.</div>
+        <div class="foot" hidden></div>
         <div class="actions">
-          <button type="button" class="skip">Skip tour</button>
-          <button type="button" class="back">Back</button>
-          <button type="button" class="next">Next</button>
+          <button type="button" class="skip"></button>
+          <button type="button" class="back"></button>
+          <button type="button" class="next"></button>
         </div>
       </div>`;
     const spotlight = root.querySelector<HTMLElement>(".spotlight")!;
@@ -225,6 +240,9 @@ export function runPageTour(stops: TourStop[]): boolean {
     const back = root.querySelector<HTMLButtonElement>(".back")!;
     const next = root.querySelector<HTMLButtonElement>(".next")!;
     const skip = root.querySelector<HTMLButtonElement>(".skip")!;
+    foot.textContent = t("tour.foot", "See this again any time from the ORE button in your browser toolbar.");
+    skip.textContent = t("tour.skip", "Skip tour");
+    back.textContent = t("tour.back", "Back");
     document.documentElement.appendChild(host);
 
     let index = -1;
@@ -258,7 +276,8 @@ export function runPageTour(stops: TourStop[]): boolean {
         const stop = stops[index];
         stop.enter?.();
         toTopLayer(host);
-        stepLabel.textContent = `${index + 1} of ${stops.length}`;
+        // i18n: position in the page tour, e.g. "2 of 4"
+        stepLabel.textContent = t("tour.stepCount", "{current} of {total}", {current: index + 1, total: stops.length});
         title.textContent = stop.title;
         text.textContent = stop.text;
         const last = index === stops.length - 1;
@@ -266,7 +285,7 @@ export function runPageTour(stops: TourStop[]): boolean {
         // "Done" ends the tour on the last stop; "Skip tour" beside it says the same.
         skip.style.visibility = last ? "hidden" : "";
         back.disabled = index === 0;
-        next.textContent = last ? "Done" : "Next";
+        next.textContent = last ? t("tour.done", "Done") : t("tour.next", "Next");
         stop.target.scrollIntoView({block: "center", inline: "nearest", behavior: reduceMotion ? "auto" : "smooth"});
         place();
         next.focus({preventScroll: true});

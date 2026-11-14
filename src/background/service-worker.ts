@@ -8,6 +8,7 @@ import {installCacheBudget} from "@shared/cache-budget";
 import {createDoiSet, lookupDOIs} from "@shared/flora-api";
 import {RET_COUNT_KEY, RET_MAP_KEY, RET_SYNC_TIME_KEY, RR_MAP_KEY, RR_SYNC_TIME_KEY, registeredReportsSync, retractionEntryCount, validRegisteredReportMap, storageSync, type RetractionMaps} from "@shared/data-extract";
 import {getSettings} from "@shared/settings";
+import {fetchCatalog, initI18n, LOCALE_CATALOG_REQUEST, SUPPORTED_LOCALES, t, type Locale} from "@shared/i18n";
 import type {DoiString, ReplicationResult, RetractionResponse} from "@shared/types";
 import type {RegisteredReport, RegisteredReportMap} from "@shared/registered-reports";
 import {LookupResponse, RetractionCheckResponse, RegisteredReportCheckResponse, SheetFetchResponse, AugmentResponse, AugmentRequest, PmcResolveResponse, OpenAlexResolveResponse, SemanticScholarResolveResponse, CreateSetResponse, type ScanState} from "@shared/messages";
@@ -31,6 +32,9 @@ const cache = new LocalCache<ReplicationResult>("flora", 0);
 const noMatchCache = new LocalCache<never>("flora:no-match", 0);
 const NO_MATCH_TTL_MS = 5 * 60_000;
 installCacheBudget();
+// Toolbar titles and the Meta Report PDF are translated; paintTab and the PDF
+// handler wait for this before rendering text.
+void initI18n();
 
 // The worker owns the debug log: its own entries are stored directly, and
 // every other context ships batches here via FLORA_DEBUG_ENTRIES.
@@ -62,25 +66,27 @@ const ICONS = {
     clear: { 16: "/dist/icons/clear-16.png", 32: "/dist/icons/clear-32.png" },
 };
 const BADGE_COLOURS = { snoozed: "#853953", scanning: "#5f6368", flagged: "#853953", incomplete: "#b45309", error: "#b91c1c" };
-const INCOMPLETE_NOTE = " — some checks unavailable, results incomplete";
 const TAB_ERROR_PREFIX = "flora_tab_error:";
 
 interface TabError { pageUrl: string; pageKey: string; error: RuntimeErrorInfo; entries: DebugLogEntry[] }
 
 const tabPaints = new Map<number, number>();
 
-function paintTab(tabId: number, path: Record<number, string>, title: string, badge = "", colour = ""): void {
+/** `title` runs once the interface language is loaded, so a paint at worker start-up is not left in English. */
+function paintTab(tabId: number, path: Record<number, string>, title: () => string, badge = "", colour = ""): void {
     tabPaints.set(tabId, (tabPaints.get(tabId) ?? 0) + 1);
     chrome.action.setIcon({ tabId, path }).catch(() => {});
-    chrome.action.setTitle({ tabId, title: isTestingBuild() ? `${title} (Testing)` : title }).catch(() => {});
+    // Callbacks on the one init promise run in call order, so titles land in paint order.
+    void initI18n().catch(() => {}).then(() => {
+        const text = title();
+        // i18n: toolbar button tooltip in the testing build; {title} is the normal tooltip
+        const shown = isTestingBuild() ? t("debug.testing.toolbarTitle", "{title} (Testing)", {title: text}) : text;
+        return chrome.action.setTitle({ tabId, title: shown });
+    }).catch(() => {});
     chrome.action.setBadgeText?.({ tabId, text: badge })?.catch?.(() => {});
     if (!badge || !colour) return;
     chrome.action.setBadgeBackgroundColor?.({ tabId, color: colour })?.catch?.(() => {});
     chrome.action.setBadgeTextColor?.({ tabId, color: "#ffffff" })?.catch?.(() => {});
-}
-
-function papersText(n: number): string {
-    return `${n} ${n === 1 ? "paper" : "papers"}`;
 }
 
 function defaultPopup(): string {
@@ -97,7 +103,7 @@ function leaveErrorState(tabId: number): Promise<void> {
 }
 
 function clearTabError(tabId: number): Promise<void> {
-    paintTab(tabId, ICONS.inactive, "FORRT ORE");
+    paintTab(tabId, ICONS.inactive, () => "FORRT ORE");
     return leaveErrorState(tabId);
 }
 
@@ -125,9 +131,10 @@ function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null
     paintTab(
         tabId,
         blocked ? ICONS.blocked : active ? ICONS.active : ICONS.inactive,
-        blocked ? "FORRT ORE — turned off on this domain"
-            : snoozed ? `FORRT ORE — snoozed here until ${formatSnoozeEnd(snoozedUntil as number)}`
-            : active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
+        () => blocked ? t("toolbar.title.blocked", "FORRT ORE — turned off on this domain")
+            : snoozed ? t("toolbar.title.snoozed", "FORRT ORE — snoozed here until {time}", {time: formatSnoozeEnd(snoozedUntil as number)})
+            : active ? t("toolbar.title.active", "FORRT ORE — active on this page")
+            : t("toolbar.title.inactive", "FORRT ORE — inactive on this page"),
         snoozed ? "Zz" : "",
         BADGE_COLOURS.snoozed,
     );
@@ -138,23 +145,29 @@ function setTabScanState(tabId: number, state: ScanState): void {
         const stored: TabError = { pageUrl: state.pageUrl, pageKey: state.pageKey, error: state.error, entries: state.entries };
         chrome.storage.session.set({ [TAB_ERROR_PREFIX + tabId]: stored }).catch(() => {});
         chrome.action.setPopup?.({ tabId, popup: "" })?.catch?.(() => {});
-        paintTab(tabId, ICONS.inactive, "FORRT ORE — something went wrong. Click to report a bug", "!", BADGE_COLOURS.error);
+        paintTab(tabId, ICONS.inactive,
+            () => t("toolbar.title.error", "FORRT ORE — something went wrong. Click to report a bug"),
+            "!", BADGE_COLOURS.error);
         return;
     }
     leaveErrorState(tabId);
     if (state.phase === "scanning") {
         paintTab(tabId, ICONS.inactive,
-            state.papers > 0 ? `FORRT ORE — checking ${papersText(state.papers)}…` : "FORRT ORE — checking this page…",
+            () => state.papers > 0
+                ? t("toolbar.title.checkingPapers", "FORRT ORE — checking {count, plural, one {# paper} other {# papers}}…", {count: state.papers})
+                : t("toolbar.title.checking", "FORRT ORE — checking this page…"),
             "…", BADGE_COLOURS.scanning);
         return;
     }
-    const note = state.incomplete ? INCOMPLETE_NOTE : "";
+    const incomplete = state.incomplete ? "yes" : "no";
     if (state.flagged > 0) {
-        paintTab(tabId, ICONS.active, `FORRT ORE — ${papersText(state.flagged)} flagged${note}`,
+        paintTab(tabId, ICONS.active,
+            () => t("toolbar.title.flagged", "{incomplete, select, yes {FORRT ORE — {count, plural, one {# paper} other {# papers}} flagged — some checks unavailable, results incomplete} other {FORRT ORE — {count, plural, one {# paper} other {# papers}} flagged}}", {count: state.flagged, incomplete}),
             state.flagged > 99 ? "99+" : String(state.flagged),
             state.incomplete ? BADGE_COLOURS.incomplete : BADGE_COLOURS.flagged);
     } else {
-        paintTab(tabId, ICONS.clear, `FORRT ORE — no flags: checked ${papersText(state.papers)}${note}`,
+        paintTab(tabId, ICONS.clear,
+            () => t("toolbar.title.clear", "{incomplete, select, yes {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}} — some checks unavailable, results incomplete} other {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}}}}", {count: state.papers, incomplete}),
             state.incomplete ? "!" : "", BADGE_COLOURS.incomplete);
     }
 }
@@ -271,6 +284,14 @@ chrome.runtime.onMessage.addListener(
             return false;
         }
         const run = <T>(task: (signal?: AbortSignal) => Promise<T>) => runWorkerRequest(message, sender, task);
+        if ((message as {type?: string} | null)?.type === LOCALE_CATALOG_REQUEST) {
+            const requested = (message as {locale?: string}).locale;
+            if (!(SUPPORTED_LOCALES as readonly string[]).includes(requested ?? "")) return false;
+            fetchCatalog(requested as Locale)
+                .then((catalog) => sendResponse({catalog}))
+                .catch(() => sendResponse({catalog: {}}));
+            return true;
+        }
         if (
             typeof message === "object" &&
             message !== null &&
@@ -448,8 +469,10 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (isReportPdfRequest(message)) {
-            sendResponse(handleReportPdf(message.payload));
-            return false;
+            // The PDF's labels are translated; wait for the language to load.
+            const build = () => sendResponse(handleReportPdf(message.payload));
+            initI18n().then(build, build);
+            return true;
         }
 
         if (isAugmentRequest(message)) {

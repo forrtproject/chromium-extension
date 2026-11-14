@@ -5,6 +5,7 @@
 import type {NoticeKind} from "@shared/types";
 import {plainTitle} from "@shared/plain-title";
 import {webUrl} from "@shared/web-url";
+import {t, tHtml, uiLocale} from "@shared/i18n";
 
 // The docs site's canonical host. forrtproject.github.io/* 301-redirects here,
 // so linking to the github.io form would ship a redirect in every shared link.
@@ -258,17 +259,19 @@ function sectionHtml(title: string, entries: ReportEntry[]): string {
 
 function referenceHtml(reference: ReportReference): string {
     const tags: string[] = [];
+    const tag = (kind: string, label: string): string => `<span class="tag tag-${kind}">${esc(label)}</span>`;
     if (reference.replications) {
-        tags.push(`<span class="tag tag-repl">${reference.replications} replication${reference.replications === 1 ? "" : "s"}</span>`);
+        tags.push(tag("repl", t("report.tag.replications", "{count, plural, one {# replication} other {# replications}}", {count: reference.replications})));
     }
     if (reference.reproductions) {
-        tags.push(`<span class="tag tag-repro">${reference.reproductions} reproduction${reference.reproductions === 1 ? "" : "s"}</span>`);
+        tags.push(tag("repro", t("report.tag.reproductions", "{count, plural, one {# reproduction} other {# reproductions}}", {count: reference.reproductions})));
     }
-    if (reference.inAtlas) tags.push(`<span class="tag tag-atlas">In the Atlas</span>`);
-    if (reference.notice === "retraction") tags.push(`<span class="tag tag-retracted">Retracted</span>`);
-    if (reference.notice === "concern") tags.push(`<span class="tag tag-concern">Concern</span>`);
+    if (reference.inAtlas) tags.push(tag("atlas", t("report.tag.inAtlas", "In the Atlas")));
+    if (reference.notice === "retraction") tags.push(tag("retracted", t("report.tag.retracted", "Retracted")));
+    // i18n: tag on a reference with an expression of concern; keep short
+    if (reference.notice === "concern") tags.push(tag("concern", t("report.tag.concern", "Concern")));
     if (reference.comments) {
-        tags.push(`<span class="tag tag-pubpeer">${reference.comments} PubPeer comment${reference.comments === 1 ? "" : "s"}</span>`);
+        tags.push(tag("pubpeer", t("report.tag.pubpeerComments", "{count, plural, one {# PubPeer comment} other {# PubPeer comments}}", {count: reference.comments})));
     }
     if (tags.length === 0) return "";
     return `<li>
@@ -281,13 +284,15 @@ function noticeHtml(payload: ReportPayload): string {
     if (!payload.notice) return "";
     const isRetraction = payload.notice.kind === "retraction";
     const tone = isRetraction ? "notice-retracted" : "notice-concern";
-    const headline = `<strong>${isRetraction ? "This article has been retracted." : "This article has an expression of concern."}</strong>`;
+    const headline = `<strong>${esc(isRetraction
+        ? t("report.notice.retracted", "This article has been retracted.")
+        : t("report.notice.concern", "This article has an expression of concern."))}</strong>`;
     const doi = doiText(payload.notice.doi);
     if (!doi) return `<div class="notice ${tone}">${headline}</div>`;
     return `<a class="notice ${tone}"
       href="${esc(doiUrl(doi))}" target="_blank" rel="noopener">
       ${headline}
-      <span>Read the notice ↗</span>
+      <span>${esc(t("report.notice.read", "Read the notice ↗"))}</span>
     </a>`;
 }
 
@@ -365,11 +370,15 @@ export function renderReportBody(payload: ReportPayload): string {
     const flaggedRefs = payload.references.filter((r) => referenceHtml(r) !== "");
 
     const stats = [
-        replications ? {n: replications, label: `Replication${replications === 1 ? "" : "s"}`} : null,
-        reproductions ? {n: reproductions, label: `Reproduction${reproductions === 1 ? "" : "s"}`} : null,
-        originals ? {n: originals, label: `Original stud${originals === 1 ? "y" : "ies"}`} : null,
+        // i18n: stat tile label under a big number (the count is shown separately)
+        replications ? {n: replications, label: t("report.stat.replications", "{count, plural, one {Replication} other {Replications}}", {count: replications})} : null,
+        // i18n: stat tile label under a big number (the count is shown separately)
+        reproductions ? {n: reproductions, label: t("report.stat.reproductions", "{count, plural, one {Reproduction} other {Reproductions}}", {count: reproductions})} : null,
+        // i18n: stat tile label under a big number (the count is shown separately)
+        originals ? {n: originals, label: t("report.stat.originals", "{count, plural, one {Original study} other {Original studies}}", {count: originals})} : null,
         payload.pubpeer?.comments
-            ? {n: payload.pubpeer.comments, label: `PubPeer comment${payload.pubpeer.comments === 1 ? "" : "s"}`}
+            // i18n: stat tile label under a big number (the count is shown separately)
+            ? {n: payload.pubpeer.comments, label: t("report.stat.pubpeerComments", "{count, plural, one {PubPeer comment} other {PubPeer comments}}", {count: payload.pubpeer.comments})}
             : null,
     ].filter((stat): stat is {n: number; label: string} => stat !== null);
 
@@ -383,7 +392,7 @@ export function renderReportBody(payload: ReportPayload): string {
     return `<div class="sheet">
     <div class="masthead">
       <span class="brand">FORRT ORE</span>
-      <span class="what">Meta Report</span>
+      <span class="what">${esc(t("report.title", "Meta Report"))}</span>
     </div>
     <div class="head">
       <h1>${heading}</h1>
@@ -394,18 +403,19 @@ export function renderReportBody(payload: ReportPayload): string {
     ${stats.length ? `<div class="stats">${stats.map((s) =>
         `<div class="stat"><b>${s.n}</b><span>${esc(s.label)}</span></div>`
     ).join("")}</div>` : ""}
-    ${sectionHtml("Replications", payload.replications)}
-    ${sectionHtml("Reproductions", payload.reproductions)}
-    ${sectionHtml("Original papers", payload.originals)}
+    ${sectionHtml(t("report.section.replications", "Replications"), payload.replications)}
+    ${sectionHtml(t("report.section.reproductions", "Reproductions"), payload.reproductions)}
+    ${sectionHtml(t("report.section.originals", "Original papers"), payload.originals)}
     ${flaggedRefs.length ? `<section>
-      <h2>Flagged references <span class="count">${flaggedRefs.length}</span></h2>
+      <h2>${esc(t("report.section.flaggedRefs", "Flagged references"))} <span class="count">${flaggedRefs.length}</span></h2>
       <ul class="entries">${flaggedRefs.map(referenceHtml).join("")}</ul>
     </section>` : ""}
     <div class="colophon">
-      Compiled by <a href="${INSTALL_URL}">FORRT ORE</a> on
-      ${esc(new Date(payload.generated).toLocaleDateString(undefined, {dateStyle: "long"}))}
-      from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.
-      Replication evidence is a starting point for judgement, not a verdict.
+      ${tHtml("report.colophon.compiled", "Compiled by <a href=\"{url}\">FORRT ORE</a> on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.", {
+        url: INSTALL_URL,
+        date: new Date(payload.generated).toLocaleDateString(uiLocale(), {dateStyle: "long"}),
+      })}
+      ${esc(t("report.colophon.caveat", "Replication evidence is a starting point for judgement, not a verdict."))}
     </div>
   </div>`;
 }

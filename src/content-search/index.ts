@@ -17,6 +17,7 @@ import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-s
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 import {cancelPageTourStart, closePageTour, startPageTourOnceIdle} from "@shared/page-tour";
 import {searchScriptOwns} from "@shared/search-sites";
+import {initI18n} from "@shared/i18n";
 
 const SITE_STYLE_ID = "flora-search-site-style";
 
@@ -83,6 +84,9 @@ const pageStartup = (async () => {
             return;
         }
 
+        // Load the interface language before any UI renders, then read the pause
+        // state, so a resume during the catalog load is not missed.
+        await initI18n();
         const pause = await getDomainPause([location.hostname]);
         if (pause.blocked || pause.snoozedUntil !== null) {
             debugLog(`Domain is ${pause.blocked ? "blocked" : "snoozed"}`);

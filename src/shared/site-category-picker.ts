@@ -1,5 +1,6 @@
 import { getCustomSites, getDisabledSites, normaliseSiteInput, saveCustomSites, saveDisabledSites } from "./domains";
-import { SITE_CATEGORIES, siteDomains, type CatalogSite, type SiteCategory } from "./site-categories";
+import { SITE_CATEGORIES, siteCategoryLabel, siteDomains, type CatalogSite, type SiteCategory } from "./site-categories";
+import { t, uiLocale } from "./i18n";
 
 const CUSTOM_CATEGORY_ID = "custom";
 
@@ -12,13 +13,13 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
   addForm.className = "site-add";
   const addInput = document.createElement("input");
   addInput.type = "text";
-  addInput.placeholder = "Site to turn on, e.g. journals.example.org";
+  addInput.placeholder = t("sites.add.placeholder", "Site to turn on, e.g. journals.example.org");
   addInput.autocomplete = "off";
   addInput.spellcheck = false;
-  addInput.setAttribute("aria-label", "Site to turn ORE on for");
+  addInput.setAttribute("aria-label", t("sites.add.inputLabel", "Site to turn ORE on for"));
   const addButton = document.createElement("button");
   addButton.type = "submit";
-  addButton.textContent = "Turn on for site";
+  addButton.textContent = t("sites.add.button", "Turn on for site");
   const addError = document.createElement("p");
   addError.className = "site-add-error";
   addError.setAttribute("role", "alert");
@@ -50,7 +51,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     try {
       await saveDisabledSites([...next].sort());
     } catch {
-      showAddError("Couldn't save your site choices. Try again.");
+      showAddError(t("sites.saveFailed", "Couldn't save your site choices. Try again."));
       render();
       return false;
     }
@@ -85,13 +86,13 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       await saveCustomSites(remaining);
     } catch {
       if (wasDisabled) await persistDisabledSites(new Set([...disabledSites, domain]));
-      showAddError(`Couldn't remove ${domain}. Try again.`);
+      showAddError(t("sites.removeFailed", "Couldn't remove {domain}. Try again.", { domain }));
       render();
       return;
     }
     customSites = remaining;
     render();
-    onChange?.(`Removed ${domain}.`);
+    onChange?.(t("sites.removed", "Removed {domain}.", { domain }));
   });
 
   addForm.addEventListener("submit", (event) => {
@@ -99,7 +100,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     addError.hidden = true;
     const domain = normaliseSiteInput(addInput.value);
     if (!domain) {
-      showAddError("Enter a domain such as journals.example.org.");
+      showAddError(t("sites.add.invalid", "Enter a domain such as journals.example.org."));
       return;
     }
     void serial(async () => {
@@ -107,7 +108,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       for (const category of categories()) {
         const listed = category.sites.flatMap(siteDomains).find((d) => forms.includes(d));
         if (listed) {
-          showAddError(`${listed} is already listed under ${category.label}.`);
+          showAddError(t("sites.add.alreadyListed", "{domain} is already listed under {category}.", { domain: listed, category: siteCategoryLabel(category) }));
           return;
         }
       }
@@ -115,7 +116,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       try {
         await saveCustomSites(added);
       } catch {
-        showAddError(`Couldn't add ${domain}. Try again.`);
+        showAddError(t("sites.add.failed", "Couldn't add {domain}. Try again.", { domain }));
         return;
       }
       customSites = added;
@@ -124,7 +125,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       const open = list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`);
       render();
       if (!open) list.querySelector<HTMLDetailsElement>(`details[data-category="${CUSTOM_CATEGORY_ID}"]`)!.open = true;
-      if (enabled) onChange?.(`ORE will run on ${domain}.`);
+      if (enabled) onChange?.(t("sites.add.added", "ORE will run on {domain}.", { domain }));
     });
   });
 
@@ -137,6 +138,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
     const isOn = (site: CatalogSite): boolean => siteDomains(site).every((d) => !disabledSites.has(d));
 
     for (const category of categories()) {
+      const categoryName = siteCategoryLabel(category);
       const domains = category.sites.flatMap(siteDomains);
       const enabledCount = category.sites.filter(isOn).length;
       const anyOn = domains.some((d) => !disabledSites.has(d));
@@ -151,19 +153,25 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       all.type = "checkbox";
       all.checked = enabledCount === category.sites.length;
       all.indeterminate = anyOn && !all.checked;
-      all.setAttribute("aria-label", `Run ORE on ${category.label} sites`);
+      all.setAttribute("aria-label", t("sites.category.toggleLabel", "Run ORE on {category} sites", { category: categoryName }));
       all.addEventListener("click", (e) => e.stopPropagation());
       all.addEventListener("change", () => {
         void setSitesEnabled(domains, all.checked).then((saved) => {
-          if (saved) onChange?.(`ORE ${all.checked ? "turned on" : "turned off"} for ${category.label.toLowerCase()}.`);
+          if (!saved) return;
+          // English writes the category name in lower case mid-sentence; other languages keep their own casing.
+          const shown = uiLocale() === "en" ? categoryName.toLowerCase() : categoryName;
+          onChange?.(all.checked
+            ? t("sites.category.turnedOn", "ORE turned on for {category}.", { category: shown })
+            : t("sites.category.turnedOff", "ORE turned off for {category}.", { category: shown }));
         });
       });
 
       const name = document.createElement("span");
-      name.textContent = category.label;
+      name.textContent = categoryName;
       const countEl = document.createElement("span");
       countEl.className = "site-category-count";
-      countEl.textContent = `${enabledCount} of ${category.sites.length}`;
+      // i18n: how many of the category's sites ORE runs on, e.g. "3 of 7".
+      countEl.textContent = t("sites.category.count", "{on} of {total}", { on: enabledCount, total: category.sites.length });
       summary.append(all, name, countEl);
       details.appendChild(summary);
 
@@ -177,7 +185,11 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
         box.checked = isOn(site);
         box.addEventListener("change", () => {
           void setSitesEnabled(siteDomains(site), box.checked).then((saved) => {
-            if (saved) onChange?.(`ORE ${box.checked ? "turned on" : "turned off"} on ${site.domain}.`);
+            if (saved) {
+              onChange?.(box.checked
+                ? t("sites.site.turnedOn", "ORE turned on on {domain}.", { domain: site.domain })
+                : t("sites.site.turnedOff", "ORE turned off on {domain}.", { domain: site.domain }));
+            }
           });
         });
         const label = document.createElement("span");
@@ -185,7 +197,10 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
         option.append(box, label);
         if (site.label) {
           const host = document.createElement("small");
-          host.textContent = site.aliases?.length ? `${site.domain} + ${site.aliases.length} more` : site.domain;
+          host.textContent = site.aliases?.length
+            // i18n: a site's main domain plus how many country versions are switched with it.
+            ? t("sites.site.aliases", "{domain} + {count} more", { domain: site.domain, count: site.aliases.length })
+            : site.domain;
           if (site.aliases?.length) host.title = siteDomains(site).join(", ");
           option.append(host);
         }
@@ -199,7 +214,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
         remove.type = "button";
         remove.className = "site-remove";
         remove.textContent = "×";
-        remove.setAttribute("aria-label", `Remove ${site.domain}`);
+        remove.setAttribute("aria-label", t("sites.site.removeLabel", "Remove {domain}", { domain: site.domain }));
         remove.addEventListener("click", () => void removeCustomSite(site.domain));
         row.append(option, remove);
         sites.appendChild(row);

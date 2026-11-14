@@ -1,6 +1,7 @@
 /** Centralised extension settings stored in chrome.storage.sync. */
 
 import { debugError } from "./debug";
+import type { LanguagePreference } from "./i18n";
 
 export interface FloraSettings {
   /** Optional API contact email for Crossref, OpenAlex, Unpaywall and NCBI.
@@ -26,6 +27,8 @@ export interface FloraSettings {
   refreshDataOnStartup: boolean;
   /** Opted in to attaching a screenshot of the page to issue reports. */
   attachScreenshot: boolean;
+  /** Interface language; "auto" follows the browser. */
+  language: LanguagePreference;
 }
 
 /** Floor for a non-zero cache budget, so a sweep can never squeeze out the
@@ -46,6 +49,7 @@ const DEFAULTS: FloraSettings = {
   offerLogCopyAfterPass: false,
   refreshDataOnStartup: false,
   attachScreenshot: false,
+  language: "auto",
 };
 
 let cachedSettings: FloraSettings | null = null;

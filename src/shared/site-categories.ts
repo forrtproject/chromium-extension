@@ -1,4 +1,5 @@
 import {OFF_BY_DEFAULT_CATEGORIES} from "./site-categories-off";
+import {t} from "./i18n";
 
 export interface CatalogSite {
   domain: string;
@@ -13,8 +14,31 @@ export function siteDomains(site: CatalogSite): string[] {
 
 export interface SiteCategory {
   id: string;
+  /** English name; show `siteCategoryLabel()` instead. */
   label: string;
   sites: CatalogSite[];
+}
+
+/** The category's name in the interface language. */
+export function siteCategoryLabel(category: SiteCategory): string {
+  switch (category.id) {
+    case "custom": return t("sites.category.custom", "Your sites");
+    case "search-discovery": return t("sites.category.searchDiscovery", "Scholarly search & discovery");
+    case "publishers": return t("sites.category.publishers", "Major publishers & university presses");
+    case "open-access": return t("sites.category.openAccess", "Open-access publishers");
+    case "medicine": return t("sites.category.medicine", "Medicine & health journals");
+    case "societies": return t("sites.category.societies", "Scientific societies & associations");
+    case "repositories": return t("sites.category.repositories", "Preprints, repositories & indexes");
+    case "regional": return t("sites.category.regional", "Regional & university journals");
+    case "documents": return t("sites.category.documents", "Documents & spreadsheets");
+    case "social": return t("sites.category.social", "Social networking");
+    case "news": return t("sites.category.news", "News");
+    case "video": return t("sites.category.video", "Video & streaming");
+    case "messaging": return t("sites.category.messaging", "Email & messaging");
+    case "shopping": return t("sites.category.shopping", "Shopping");
+    case "search": return t("sites.category.webSearch", "Web search");
+    default: return category.label;
+  }
 }
 
 export const SITE_CATEGORIES: SiteCategory[] = [
