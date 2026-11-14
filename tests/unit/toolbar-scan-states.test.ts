@@ -71,17 +71,17 @@ describe("the toolbar reflects scan progress and results", () => {
         await scan({phase: "scanning", papers: 0});
 
         expect(icon.at(-1)!.path).toEqual(GRAY);
-        expect(title.at(-1)!.title).toBe("FORRT ORE — checking this page…");
+        expect(title.at(-1)!.title).toBe("FORRT ORE is checking this page…");
         expect(badge.at(-1)!.text).toBe("…");
         expect(badgeColour.at(-1)).toBe("#5f6368");
     });
 
     it("counts the papers being checked", async () => {
         await scan({phase: "scanning", papers: 1});
-        expect(title.at(-1)!.title).toBe("FORRT ORE — checking 1 paper…");
+        expect(title.at(-1)!.title).toBe("FORRT ORE is checking 1 paper…");
 
         await scan({phase: "scanning", papers: 3});
-        expect(title.at(-1)!.title).toBe("FORRT ORE — checking 3 papers…");
+        expect(title.at(-1)!.title).toBe("FORRT ORE is checking 3 papers…");
     });
 
     it("shows the green icon when nothing was flagged", async () => {
@@ -273,7 +273,7 @@ describe("the toolbar reflects scan progress and results", () => {
             await scan({phase: "scanning", papers: 2}, 7);
             await new Promise((r) => setTimeout(r, 0));
 
-            expect(title.at(-1)).toEqual({tabId: 7, title: "FORRT ORE — checking 2 papers…"});
+            expect(title.at(-1)).toEqual({tabId: 7, title: "FORRT ORE is checking 2 papers…"});
             expect(badge.at(-1)).toEqual({tabId: 7, text: "…"});
         });
 

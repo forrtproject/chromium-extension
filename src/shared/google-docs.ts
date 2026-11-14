@@ -142,7 +142,7 @@ function showExportStatus(unavailable: boolean): void {
         document.body.append(status);
     }
     status.textContent = exportText !== undefined
-        ? 'ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.'
+        ? 'ORE: Could not recheck the whole document. The report uses the last complete scan and may miss recent edits. Retrying automatically.'
         : 'ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.';
 }
 async function refreshGoogleDocsText(onChange: () => void): Promise<void> {

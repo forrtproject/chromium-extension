@@ -202,7 +202,7 @@ describe("side panel comments", () => {
         renderSidePanel([feedback(url)], [], new Map<DoiString, LookupState>(), new Map<DoiString, DoiContext>([[DOI, "article"]]), new Map(), []);
     }
 
-    const openPanel = (): void => document.querySelector<HTMLElement>('[aria-label="Open the FORRT ORE panel"]')!.click();
+    const openPanel = (): void => document.querySelector<HTMLElement>('[aria-label="Open the ORE report"]')!.click();
     const commentsSection = (): HTMLElement => document.querySelector<HTMLElement>("[data-flora-pubpeer-comments]")!;
     const commentRequests = () => sendMessage.mock.calls.filter(([m]) => (m as {type?: string}).type === "FLORA_PUBPEER_COMMENTS");
 

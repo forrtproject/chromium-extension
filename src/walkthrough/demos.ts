@@ -364,7 +364,7 @@ function scanIndicator(): HTMLElement {
 }
 
 /**
- * Both the Sheets popup and the Meta Report pin themselves to the viewport and
+ * Both the Sheets popup and the ORE report pin themselves to the viewport and
  * mount on document.body. Inside a page-sized mock they have to be moved into
  * the frame and re-anchored to it.
  */

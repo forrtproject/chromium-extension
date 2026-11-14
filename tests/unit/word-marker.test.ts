@@ -114,7 +114,7 @@ describe("document editor marker",()=>{
   state.set(doi,{status:"no-match"});
   renderSidePanel([], [{doi,title:"A referenced study"}],state,new Map([[doi,"reference"]]),new Map(),[],"Document 1",undefined,{documentMode:true});
   const panel=deep(document).querySelector('#flora-pubpeer-panel')!;
-  expect(panel.textContent).toContain("Meta Report");expect(panel.textContent).toContain("Document 1");
+  expect(panel.textContent).toContain("Report");expect(panel.textContent).toContain("Document 1");
   expect(panel.textContent).toContain("A referenced study");expect(panel.textContent).not.toContain("This article hasn't been discussed");
  });
 });

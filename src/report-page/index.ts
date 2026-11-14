@@ -16,7 +16,7 @@ function injectStyles(): void {
 
 function renderEmpty(message: string): void {
     root.innerHTML = `<div class="sheet">
-      <div class="masthead"><span class="brand">FORRT ORE</span><span class="what">Meta Report</span></div>
+      <div class="masthead"><span class="brand">FORRT ORE</span><span class="what">Report</span></div>
       <div class="head"><h1>${message}</h1>
         <div class="byline">A report link carries its whole report in the part of the URL
         after the <code>#</code>. If the link was shortened, wrapped by a mail client, or
@@ -40,7 +40,7 @@ async function main(): Promise<void> {
         return;
     }
 
-    document.title = `${plainTitle(payload.title)} — FORRT ORE Meta Report`;
+    document.title = `${plainTitle(payload.title)} — FORRT ORE report`;
     root.innerHTML = renderReportBody(payload);
 
     const install = document.createElement("a");

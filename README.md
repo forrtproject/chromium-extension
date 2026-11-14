@@ -1,6 +1,6 @@
 # FORRT ORE — Open Research Extension
 
-**FORRT ORE** (Open Research Extension) is a browser extension for Chrome and Edge that detects academic papers on the web and surfaces what is known about them: replication and reproduction evidence from the [FORRT Replication Database](https://forrt.org/replication-database/), retractions and expressions of concern, PubPeer discussion, and open-access full text.
+**FORRT ORE** (Open Research Extension) is a browser extension for Chrome and Edge that detects academic papers on the web and surfaces what is known about them: replication and reproduction evidence from the [FLoRA](https://forrt.org/replication-hub/flora/) (the FORRT Library of Reproduction and Replication Attempts), retractions and expressions of concern, PubPeer discussion, and open-access full text.
 
 When you visit an article page (PubMed, journal websites, preprint servers, etc.) or search on Google Scholar, OpenAlex, Semantic Scholar, PubMed, Europe PMC, Scopus or EBSCOhost, ORE scans for DOIs, looks them up, and shows what it found in an inline pill next to each paper and each reference.
 
@@ -175,7 +175,7 @@ also offers **Copy log** in its expanded panel, and — with the popup's
 its duration (`Work: augment done in 2310 ms`), so a slow pass shows which stage
 took the time. The same panel lists the stages of the current pass (on Google
 Scholar also the DOIs and titles being resolved) and a **Cancel** button; the clock
-icon snoozes ORE on the site for an hour or until tomorrow (resume from the popup)
+icon pauses ORE on the site for an hour or until tomorrow (resume from the popup)
 or disables it on the domain.
 
 To report a bug: turn debug mode on, reload the page, reproduce, then hit
@@ -279,7 +279,7 @@ The full link is a bearer secret: anyone holding it can read the list until it e
 
 ## Data sources & credits
 
-- **Replication / reproduction data** — [FORRT Replication Database](https://forrt.org/replication-database/).
+- **Replication / reproduction data** — [FLoRA](https://forrt.org/replication-hub/flora/) (the FORRT Library of Reproduction and Replication Attempts).
 - **Title → DOI resolution** — [Crossref](https://www.crossref.org/) and [OpenAlex](https://openalex.org/).
 - **Retractions** — [Retraction Watch](https://retractionwatch.com/) / The Center for Scientific Integrity, made openly available in partnership with [Crossref](https://gitlab.com/crossref/retraction-watch-data) under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - **Registered Reports** — the [Registered Reports Zotero library](https://www.zotero.org/groups/5937153/registered_reports/library), as exported by [RRDB](https://github.com/LukasRoeseler/RRDB). Cite: Montoya, A. K., Krenzer, W. L. D., Buchanan, E. M., Pronizius, E., Wang, Y. A., Morillo, D., … Armstrong, C. (2026). *Database of Published Registered Reports*. https://doi.org/10.17605/OSF.IO/VUR72

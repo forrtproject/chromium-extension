@@ -1,4 +1,4 @@
-// A Meta Report as portable data: the panel builds one, the print view and the
+// An ORE report as portable data: the panel builds one, the print view and the
 // shared web page both render it. Nothing is uploaded — a shared report travels
 // entirely inside the link's fragment, which browsers never send to a server.
 
@@ -264,7 +264,7 @@ function referenceHtml(reference: ReportReference): string {
     if (reference.reproductions) {
         tags.push(`<span class="tag tag-repro">${reference.reproductions} reproduction${reference.reproductions === 1 ? "" : "s"}</span>`);
     }
-    if (reference.inAtlas) tags.push(`<span class="tag tag-atlas">In the Atlas</span>`);
+    if (reference.inAtlas) tags.push(`<span class="tag tag-atlas">In the FLoRA Replication Atlas</span>`);
     if (reference.notice === "retraction") tags.push(`<span class="tag tag-retracted">Retracted</span>`);
     if (reference.notice === "concern") tags.push(`<span class="tag tag-concern">Concern</span>`);
     if (reference.comments) {
@@ -383,7 +383,7 @@ export function renderReportBody(payload: ReportPayload): string {
     return `<div class="sheet">
     <div class="masthead">
       <span class="brand">FORRT ORE</span>
-      <span class="what">Meta Report</span>
+      <span class="what">Report</span>
     </div>
     <div class="head">
       <h1>${heading}</h1>
@@ -404,7 +404,7 @@ export function renderReportBody(payload: ReportPayload): string {
     <div class="colophon">
       Compiled by <a href="${INSTALL_URL}">FORRT ORE</a> on
       ${esc(new Date(payload.generated).toLocaleDateString(undefined, {dateStyle: "long"}))}
-      from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.
+      from FLoRA, Retraction Watch, Unpaywall and PubPeer.
       Replication evidence is a starting point for judgement, not a verdict.
     </div>
   </div>`;

@@ -125,8 +125,8 @@ function setTabIcon(tabId: number, active: boolean, snoozedUntil?: number | null
     paintTab(
         tabId,
         blocked ? ICONS.blocked : active ? ICONS.active : ICONS.inactive,
-        blocked ? "FORRT ORE — turned off on this domain"
-            : snoozed ? `FORRT ORE — snoozed here until ${formatSnoozeEnd(snoozedUntil as number)}`
+        blocked ? "FORRT ORE — turned off on this site"
+            : snoozed ? `FORRT ORE — paused here until ${formatSnoozeEnd(snoozedUntil as number)}`
             : active ? "FORRT ORE — active on this page" : "FORRT ORE — inactive on this page",
         snoozed ? "Zz" : "",
         BADGE_COLOURS.snoozed,
@@ -144,7 +144,7 @@ function setTabScanState(tabId: number, state: ScanState): void {
     leaveErrorState(tabId);
     if (state.phase === "scanning") {
         paintTab(tabId, ICONS.inactive,
-            state.papers > 0 ? `FORRT ORE — checking ${papersText(state.papers)}…` : "FORRT ORE — checking this page…",
+            state.papers > 0 ? `FORRT ORE is checking ${papersText(state.papers)}…` : "FORRT ORE is checking this page…",
             "…", BADGE_COLOURS.scanning);
         return;
     }

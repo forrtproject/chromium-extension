@@ -70,11 +70,11 @@ const STAGE_ORDER = Object.keys(STAGE_PROGRESS) as WorkStage[];
 /** Shown for a stage that has not reported a detail of its own yet. */
 const STAGE_LABEL: Record<WorkStage, string> = {
     scan: "Read the page",
-    validate: "Check DOIs resolve",
+    validate: "Validate DOI links",
     augment: "Find DOIs for references without one",
     notices: "Check for retractions",
-    lookup: "Look up in FORRT / Retraction Watch / PubPeer",
-    report: "Mark up results",
+    lookup: "Look up in FLoRA and PubPeer",
+    report: "Show results",
 };
 
 const SKIPPED_GLYPH = "⊘";
@@ -362,12 +362,12 @@ function buildPauseRow(): HTMLElement {
     const row = document.createElement("div");
     row.setAttribute("data-flora-work-pause-row", "");
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", "Snooze ORE on this site");
+    row.setAttribute("aria-label", "ORE on this site");
     row.style.cssText = PAUSE_ROW_STYLE;
 
     const caption = document.createElement("span");
     caption.style.cssText = "color:rgba(255,255,255,0.75);font-size:11px;margin-right:2px;";
-    caption.textContent = "Snooze ORE here:";
+    caption.textContent = "ORE on this site:";
 
     const hour = textButton("1 hour");
     hour.addEventListener("click", () => {
@@ -383,8 +383,8 @@ function buildPauseRow(): HTMLElement {
         void pauseSite(snoozeDomain(hostname, duration), {hostname, until: Date.now() + duration});
     });
 
-    const block = textButton("Disable on this domain");
-    block.title = "Re-enable from the ORE popup or options";
+    const block = textButton("Turn off on this site");
+    block.title = "Turn back on in the ORE toolbar menu or Settings";
     block.addEventListener("click", () => {
         const hostname = location.hostname;
         void pauseSite(blockDomain(hostname), {hostname, blocked: true});
@@ -477,7 +477,7 @@ function ensureToast(): HTMLElement {
         "flex-shrink:0;color:rgba(255,255,255,0.7);font-size:11px;font-variant-numeric:tabular-nums;";
 
     const pauseRow = buildPauseRow();
-    const pause = iconButton("Snooze ORE on this site", PAUSE_SVG);
+    const pause = iconButton("Pause ORE on this site", PAUSE_SVG);
     pause.setAttribute("data-flora-work-pause", "");
     pause.setAttribute("aria-expanded", "false");
     pause.addEventListener("click", () => {

@@ -122,7 +122,7 @@ describe("the popup's page tour button", () => {
     it("says the browser's own pages are out of reach without messaging them", async () => {
         await openPopup("chrome://extensions/");
         clickTour();
-        await vi.waitFor(() => expect(helpTitle()).toBe("ORE can't run on browser pages"));
+        await vi.waitFor(() => expect(helpTitle()).toBe("ORE only runs on websites"));
         expect(chrome.tabs.sendMessage).not.toHaveBeenCalledWith(1, {type: "FLORA_START_PAGE_TOUR"});
         expect(element("tour-sample-btn").hidden).toBe(false);
         expect(element("tour-reload-btn").hidden).toBe(true);

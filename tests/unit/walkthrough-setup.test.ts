@@ -138,7 +138,7 @@ describe("the walkthrough's setup step", () => {
         byId("next-btn").click();
 
         expect(byId("wt-done").classList.contains("is-active")).toBe(true);
-        expect(byId("wt-done").textContent).toContain("Start using the plugin");
+        expect(byId("wt-done").textContent).toContain("ORE will check papers automatically");
         expect(stepIsActive(LAST_STEP)).toBe(false);
         expect(document.querySelector<HTMLElement>(".wt-nav")!.hidden).toBe(true);
         expect(window.close).not.toHaveBeenCalled();

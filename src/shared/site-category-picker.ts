@@ -155,7 +155,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
       all.addEventListener("click", (e) => e.stopPropagation());
       all.addEventListener("change", () => {
         void setSitesEnabled(domains, all.checked).then((saved) => {
-          if (saved) onChange?.(`ORE ${all.checked ? "turned on" : "turned off"} for ${category.label.toLowerCase()}.`);
+          if (saved) onChange?.(`ORE is now ${all.checked ? "on" : "off"} for ${category.label.toLowerCase()}.`);
         });
       });
 
@@ -177,7 +177,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
         box.checked = isOn(site);
         box.addEventListener("change", () => {
           void setSitesEnabled(siteDomains(site), box.checked).then((saved) => {
-            if (saved) onChange?.(`ORE ${box.checked ? "turned on" : "turned off"} on ${site.domain}.`);
+            if (saved) onChange?.(`ORE is now ${box.checked ? "on" : "off"} for ${site.domain}.`);
           });
         });
         const label = document.createElement("span");

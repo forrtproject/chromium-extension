@@ -111,9 +111,9 @@ describe("notice segment", () => {
         repaint();
         expect(badgeTitle()).toBe("No replication or reproduction data found");
         repaint({status: "loading"} as LookupState);
-        expect(badgeTitle()).toBe("Checking FORRT…");
+        expect(badgeTitle()).toBe("Checking FLoRA…");
         repaint({status: "error", message: "x"} as LookupState);
-        expect(badgeTitle()).toBe("FORRT unavailable");
+        expect(badgeTitle()).toBe("FLoRA unavailable");
     });
 });
 

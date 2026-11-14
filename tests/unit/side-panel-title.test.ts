@@ -15,7 +15,7 @@ function render(articleTitle: string | null = null): void {
 }
 
 function panelTitle(): string {
-    const link = document.querySelector<HTMLElement>("#flora-pubpeer-panel a[title='Open in FLoRA'] span");
+    const link = document.querySelector<HTMLElement>("#flora-pubpeer-panel a[title='Open in FLoRA Replication Atlas'] span");
     return link?.textContent ?? "";
 }
 
@@ -132,7 +132,7 @@ describe("side panel article title", () => {
         render("A&amp;nbsp;replication of <i>Fusobacterium</i> and <scp>DNA</scp> work");
 
         expect(panelTitle()).toBe("A replication of Fusobacterium and DNA work");
-        const span = document.querySelector<HTMLElement>("#flora-pubpeer-panel a[title='Open in FLoRA'] span")!;
+        const span = document.querySelector<HTMLElement>("#flora-pubpeer-panel a[title='Open in FLoRA Replication Atlas'] span")!;
         expect(span.style.textTransform).toBe("");
     });
 

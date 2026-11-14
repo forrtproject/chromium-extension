@@ -123,9 +123,9 @@ describe("progress tab", () => {
 
         expect(tab()!.querySelector("[data-flora-tab-clear-icon]")).not.toBeNull();
         expect(tab()!.hasAttribute("data-flora-tab-busy")).toBe(false);
-        expect(tab()!.title).toContain("No flags on this page");
-        expect(tab()!.title).toContain("Checked 42 papers: no retractions, concerns, replications, reproductions or PubPeer comments.");
-        expect(tab()!.getAttribute("aria-label")).toMatch(/^FORRT ORE: No flags/);
+        expect(tab()!.title).toContain("No findings: checked");
+        expect(tab()!.title).toContain("checked 42 papers and found no retractions, expressions of concern, replications, reproductions or PubPeer comments.");
+        expect(tab()!.getAttribute("aria-label")).toMatch(/^FORRT ORE: No findings/);
         expect(document.getElementById("flora-nothing-found")).toBeNull();
 
         vi.advanceTimersByTime(10_000);
@@ -145,7 +145,7 @@ describe("progress tab", () => {
         endWorkIndicator();
         vi.advanceTimersByTime(600);
         expect(tab()!.hasAttribute("data-flora-tab-clear")).toBe(true);
-        expect(tab()!.title).toContain("No flags on this page");
+        expect(tab()!.title).toContain("No findings: checked");
     });
 
     it("marks the report tab with the summary without changing its label", () => {
@@ -155,8 +155,8 @@ describe("progress tab", () => {
         reportNothingFound(papers(3));
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(panelTab.title).toContain("No flags");
-        expect(panelTab.getAttribute("aria-label")).toBe("Open the FORRT ORE panel");
+        expect(panelTab.title).toContain("No findings");
+        expect(panelTab.getAttribute("aria-label")).toBe("Open the ORE report");
         expect(panelTab.querySelector("[data-flora-tab-clear-icon]")).not.toBeNull();
         expect(panelTab.style.background).toContain("#0b7a5a");
         expect(panelTab.style.cursor).not.toBe("default");
@@ -196,7 +196,7 @@ describe("progress tab", () => {
         reportNothingFound([a, b, c]);
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(tab()!.title).toContain("Checked 3 papers: no retractions, concerns, replications or reproductions.");
+        expect(tab()!.title).toContain("checked 3 papers and found no retractions, expressions of concern, replications or reproductions.");
         expect(tab()!.title).not.toContain("PubPeer");
 
         _recordPubPeerVerdictsForTesting([[b, "clear"], [c, "unavailable"]]);
@@ -211,8 +211,8 @@ describe("progress tab", () => {
         reportNothingFound(papers(1));
         endWorkIndicator();
         vi.advanceTimersByTime(600);
-        expect(tab()!.title).toContain("No flags for this paper");
-        expect(tab()!.title).toContain("Checked 1 paper: no retractions");
+        expect(tab()!.title).toContain("No findings: checked 1 paper");
+        expect(tab()!.title).toContain("checked 1 paper and found no retractions");
     });
 
     it("keeps the report tab disabled until the pass ends, then pulses it", () => {
@@ -230,7 +230,7 @@ describe("progress tab", () => {
         expect(panelTab.hasAttribute("aria-disabled")).toBe(false);
         expect(panelTab.querySelector("[data-flora-tab-fill]")).toBeNull();
         expect(panelTab.style.animation).toContain("flora-tab-pulse");
-        expect(panelTab.getAttribute("aria-label")).toBe("Open the FORRT ORE panel");
+        expect(panelTab.getAttribute("aria-label")).toBe("Open the ORE report");
 
         panelTab.click();
         expect(panelOpen()).toBe(true);
@@ -262,7 +262,7 @@ describe("progress tab", () => {
         settle();
         expect(panelTab.hasAttribute("data-flora-tab-busy")).toBe(true);
         expect(panelTab.hasAttribute("aria-disabled")).toBe(false);
-        expect(panelTab.getAttribute("aria-label")).toContain("Open the FORRT ORE panel");
+        expect(panelTab.getAttribute("aria-label")).toContain("Open the ORE report");
 
         panelTab.click();
         expect(panelOpen()).toBe(true);

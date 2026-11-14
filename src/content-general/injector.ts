@@ -246,7 +246,7 @@ function noticeSection(notices: RetractionResponse[], rows?: SheetsRowLookup): s
   return `
       <div data-flora-notices style="margin-bottom:14px;">
         <div style="font-size:11px;font-weight:600;color:#5f6368;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;">
-          Withdrawn or questioned
+          Retractions and expressions of concern
         </div>
         ${rowsHtml}
       </div>`;
@@ -291,8 +291,8 @@ export function renderSheetsModal(
   existing?.remove();
 
   const summary = hasReplicationData
-    ? `Found replication &amp; reproduction data for <strong data-flora-doi-count style="color:#202124;">${doiCount} DOI${doiCount !== 1 ? "s" : ""}</strong> in this spreadsheet.`
-    : "Checked the DOIs in this spreadsheet against the Retraction Watch database.";
+    ? `Found replication or reproduction data for <strong data-flora-doi-count style="color:#202124;">${doiCount} DOI${doiCount !== 1 ? "s" : ""}</strong> in this sheet tab.`
+    : "Checked DOIs from this sheet tab against the Retraction Watch database.";
 
   const statCards = hasReplicationData ? `
         <div style="display:flex;gap:10px;margin-bottom:4px;">
@@ -316,7 +316,7 @@ export function renderSheetsModal(
         <a data-flora-details-link target="_blank" rel="noopener" style="
           all:unset;cursor:pointer;padding:7px 18px;font-size:13px;font-weight:500;
           color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;text-align:center;
-        ">Open in FLoRA Atlas</a>` : "";
+        ">Open in FLoRA Replication Atlas</a>` : "";
 
   const host = document.createElement("div");
   host.id = SHEETS_MODAL_ID;
@@ -355,7 +355,7 @@ export function renderSheetsModal(
           all:unset;cursor:pointer;padding:7px 8px;font-size:13px;font-weight:500;line-height:1;
           color:#5f6368;border-radius:6px;transition:color 0.15s;white-space:nowrap;
           display:flex;align-items:center;justify-content:center;gap:6px;margin-right:auto;
-        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Snooze ${SHEETS_SNOOZE_MINUTES} min</button>
+        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Pause ${SHEETS_SNOOZE_MINUTES} min</button>
         <button class="flora-modal-dismiss" style="
           all:unset;cursor:pointer;padding:7px 12px;font-size:13px;font-weight:500;
           color:#5f6368;border-radius:6px;transition:background 0.15s;white-space:nowrap;
@@ -779,7 +779,7 @@ function buildShareButton(payload: () => ReportPayload): HTMLButtonElement {
       .then((url) => writeClipboard(url))
       .then((copied) => {
         showToast(
-          copied ? "Report link copied — the report travels inside the link" : "Couldn't copy the link",
+          copied ? "Report link copied. The report is stored in the link itself, so nothing is uploaded." : "Couldn't copy the link",
           { tone: copied ? "success" : "error" }
         );
       })
@@ -915,7 +915,7 @@ export function renderSidePanel(
 
   // Tab trigger — always visible on right edge
   const tab = document.createElement("button");
-  tab.setAttribute("aria-label", "Open the FORRT ORE panel");
+  tab.setAttribute("aria-label", "Open the ORE report");
   tab.setAttribute("data-flora-panel-tab", "");
   // all:unset resets animation, so animation is declared explicitly after it.
   // 'right' is animated by flora-tab-enter; openPanel/closePanel clear the animation
@@ -982,7 +982,7 @@ export function renderSidePanel(
     "display:flex;align-items:center;gap:10px;flex-shrink:0;";
   header.innerHTML = `
     <span style="color:#fff;font-weight:700;font-size:13px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">FORRT ORE</span>
-    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;">Meta Report</span>`;
+    <span style="color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;">Report</span>`;
 
   const buildPayload = (): ReportPayload => ({
     v: 1,
@@ -1046,7 +1046,7 @@ export function renderSidePanel(
     titleLink.href = articleFloraUrl;
     titleLink.target = "_blank";
     titleLink.rel = "noopener";
-    titleLink.title = "Open in FLoRA";
+    titleLink.title = "Open in FLoRA Replication Atlas";
     titleLink.style.cssText =
       "display:inline-flex;align-items:flex-start;gap:4px;color:#853953;font-weight:600;" +
       "font-size:18px;text-decoration:none;line-height:1.4;word-break:break-word;flex:1;min-width:0;";
@@ -1297,7 +1297,7 @@ export function renderSidePanel(
         icon.href = oaUrl;
         icon.target = "_blank";
         icon.rel = "noopener noreferrer";
-        icon.title = "Free PDF available via Unpaywall";
+        icon.title = "Free full text available via Unpaywall";
         // Both the article title and the reference/replication entries get a
         // circular OA badge so the status reads as a deliberate element; the
         // title's is larger to match its prominence.
@@ -1377,7 +1377,7 @@ export function renderSidePanel(
         ));
       }
       if (n_originals_total > 0) {
-        tagsRow.appendChild(makeTag("View in Atlas", "#fef9c3", "#854d0e", "#fde047"));
+        tagsRow.appendChild(makeTag("Open in FLoRA Replication Atlas", "#fef9c3", "#854d0e", "#fde047"));
       }
     }
 
@@ -1600,7 +1600,7 @@ export function renderSidePanel(
       if (loadedComments.length === 0) {
         showCommentsStatus("These comments can only be read on PubPeer.", true);
       } else if (visible.length === 0) {
-        showCommentsStatus("Every comment here is from a commenter you've hidden in Settings.", true);
+        showCommentsStatus("Every comment here is from a commenter you've muted in Settings.", true);
       } else {
         const footer = document.createElement("div");
         footer.style.cssText = "display:flex;justify-content:center;padding:4px 16px 16px;";
@@ -1715,7 +1715,7 @@ export function renderSidePanel(
     openLink.style.cssText =
       "all:unset;cursor:pointer;padding:6px 16px;font-size:12px;font-weight:500;" +
       "color:#fff;background:linear-gradient(135deg,#853953,#612D53);border-radius:6px;";
-    openLink.textContent = "Open in FLoRA Atlas";
+    openLink.textContent = "Open in FLoRA Replication Atlas";
     footer.appendChild(openLink);
     panel.appendChild(footer);
   }
@@ -1731,7 +1731,7 @@ export function renderSidePanel(
     panel.style.transform = "translateX(0)";
     tab.style.right = `${PANEL_WIDTH}px`;
     arrow.style.transform = "rotate(180deg)";
-    setTabLabel(tab, "Close FLoRA panel");
+    setTabLabel(tab, "Close the ORE report");
     setPanelZIndex("2147483646");
     loadThreadComments?.();
   };
@@ -1743,7 +1743,7 @@ export function renderSidePanel(
     panel.style.transform = "translateX(100%)";
     tab.style.right = "0";
     arrow.style.transform = "rotate(0deg)";
-    setTabLabel(tab, "Open the FORRT ORE panel");
+    setTabLabel(tab, "Open the ORE report");
     setPanelZIndex("2147483647");
   };
 

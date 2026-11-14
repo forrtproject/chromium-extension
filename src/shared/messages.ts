@@ -130,7 +130,7 @@ export interface PageFindings {
     article?: ArticleFindings;
     /** The article's references when `article` is set, otherwise every paper on the page. */
     others: FindingCounts;
-    /** The page has a side panel that "Open report" can open. */
+    /** The page has a side panel that "Open ORE report" can open. */
     panel: boolean;
 }
 

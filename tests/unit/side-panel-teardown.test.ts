@@ -25,7 +25,7 @@ function render(): void {
 
 function tab(): HTMLElement {
     const el = document.querySelector<HTMLElement>(
-        '[aria-label="Open the FORRT ORE panel"], [aria-label="Close FLoRA panel"]'
+        '[aria-label="Open the ORE report"], [aria-label="Close the ORE report"]'
     );
     if (!el) throw new Error("panel tab not rendered");
     return el;

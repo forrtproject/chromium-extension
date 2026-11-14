@@ -100,7 +100,7 @@ function masthead(l: Layout): void {
   l.font("bold", 11, [255, 255, 255]);
   l.doc.text("FORRT ORE", MARGIN, 25);
   l.font("normal", 11, [255, 255, 255]);
-  l.doc.text("Meta Report", MARGIN + l.doc.getTextWidth("FORRT ORE ") + 6, 25);
+  l.doc.text("Report", MARGIN + l.doc.getTextWidth("FORRT ORE ") + 6, 25);
   l.y = 64;
 }
 
@@ -239,7 +239,7 @@ function referenceTags(reference: ReportReference): string[] {
   const tags: string[] = [];
   if (reference.replications) tags.push(plural(reference.replications, "replication"));
   if (reference.reproductions) tags.push(plural(reference.reproductions, "reproduction"));
-  if (reference.inAtlas) tags.push("In the Atlas");
+  if (reference.inAtlas) tags.push("In the FLoRA Replication Atlas");
   if (reference.notice === "retraction") tags.push("Retracted");
   if (reference.notice === "concern") tags.push("Concern");
   if (reference.comments) tags.push(plural(reference.comments, "PubPeer comment"));
@@ -262,7 +262,7 @@ function colophon(l: Layout, payload: ReportPayload): void {
   const date = new Date(payload.generated).toLocaleDateString(undefined, {dateStyle: "long"});
   l.font("normal", 8.5, MUTED);
   l.paragraph(
-    `Compiled by FORRT ORE on ${date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer. ` +
+    `Compiled by FORRT ORE on ${date} from FLoRA, Retraction Watch, Unpaywall and PubPeer. ` +
     "Replication evidence is a starting point for judgement, not a verdict.",
     8.5,
   );
@@ -275,13 +275,13 @@ function pageNumbers(l: Layout): void {
   for (let page = 1; page <= pages; page++) {
     l.doc.setPage(page);
     l.font("normal", 8, MUTED);
-    l.doc.text(`FORRT ORE Meta Report · page ${page} of ${pages}`, PAGE_W / 2, PAGE_H - 28, {align: "center"});
+    l.doc.text(`FORRT ORE report · page ${page} of ${pages}`, PAGE_W / 2, PAGE_H - 28, {align: "center"});
   }
 }
 
 export function buildReportPdf(payload: ReportPayload): ArrayBuffer {
   const l = new Layout();
-  l.doc.setProperties({title: pdfText(`${plainTitle(payload.title)} — FORRT ORE Meta Report`), creator: "FORRT ORE"});
+  l.doc.setProperties({title: pdfText(`${plainTitle(payload.title)} — FORRT ORE report`), creator: "FORRT ORE"});
   masthead(l);
   heading(l, payload);
   notice(l, payload);
