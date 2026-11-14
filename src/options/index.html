@@ -68,7 +68,7 @@
               <h1 class="dh-title">FORRT ORE &mdash; Open Research Extension</h1>
               <div class="dh-authors">
                 Choose how ORE shows evidence on the papers you read.
-                Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.
+                An email enables open-access lookups and makes title matching faster; every other check works without it.
               </div>
 
               <div class="dh-callout" role="note">
@@ -90,13 +90,14 @@
                 <div class="dh-callout-body">
                   <div class="dh-callout-title">Why we ask for your email</div>
                   <p class="dh-callout-text">
-                    Crossref, OpenAlex and Unpaywall ask for a contact address
-                    with each lookup. Without one, ORE can't look for
-                    open-access versions or match papers by title.
+                    Unpaywall needs a contact address to look for
+                    open-access versions. Crossref also answers faster when a
+                    lookup includes one, so papers without a DOI are matched
+                    by title more quickly.
                   </p>
                   <p class="dh-callout-text dh-callout-text--muted">
-                    Your email is sent only as a contact parameter to those
-                    services and the NCBI identifier converter. Chrome sync
+                    Your email is sent only as a contact parameter to
+                    Crossref, Unpaywall and the NCBI identifier converter. Chrome sync
                     stores it; FORRT never receives it. Clear the field and
                     save to remove it.
                   </p>
@@ -104,11 +105,9 @@
                     <summary>Why these services ask for it</summary>
                     <p>
                       <a href="https://api.crossref.org" target="_blank" rel="noopener">Crossref</a>
-                      and
-                      <a href="https://api.openalex.org" target="_blank" rel="noopener">OpenAlex</a>
-                      place requests that include a contact address in their
-                      <strong>polite-access pool</strong>, which has faster rate
-                      limits and more reliable lookups. Unpaywall needs an
+                      places requests that include a contact address in its
+                      <strong>polite pool</strong>, which allows three title
+                      searches at a time instead of one. Unpaywall needs an
                       address to answer open-access lookups.
                     </p>
                   </details>
@@ -149,6 +148,43 @@
             </form>
 
             <p id="status-msg" class="status status-block" hidden></p>
+
+            <div class="dh dh-openalex">
+              <div class="dh-label">Title matching</div>
+              <h2 class="dh-title" id="openalex-heading">OpenAlex key (optional)</h2>
+              <p class="dh-callout-text">
+                ORE matches titles with OpenAlex as well as Crossref: it finds
+                some papers Crossref misses, helps pick the right version when
+                there are several, and shares the load. Without a key, everyone
+                on your network shares one small free daily allowance; when it
+                runs low, ORE matches titles with Crossref alone, which is
+                slower and finds fewer papers, and tells you.
+                A free key from
+                <a href="https://openalex.org/settings/api" target="_blank" rel="noopener">openalex.org</a>
+                gives you your own allowance. Chrome sync stores it; it is sent
+                only to OpenAlex.
+              </p>
+            </div>
+            <form id="openalex-form" aria-labelledby="openalex-heading">
+              <div class="action-bar">
+                <div class="ab-group">
+                  <label class="ab-label" for="openalex-input">Key</label>
+                  <input
+                    id="openalex-input"
+                    type="password"
+                    class="ab-input"
+                    placeholder="Paste your OpenAlex API key"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
+                <div class="ab-sep"></div>
+                <div class="ab-group">
+                  <button type="submit" id="openalex-save" class="ab-btn">Save key</button>
+                </div>
+              </div>
+            </form>
+            <p id="openalex-status" class="status status-block" hidden></p>
           </div>
 
           <!-- ═══ CITATION STYLE ═══ -->

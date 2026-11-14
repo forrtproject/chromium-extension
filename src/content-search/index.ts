@@ -17,6 +17,9 @@ import {reportActiveState, reportBlocked, reportInactive} from "@shared/active-s
 import {renderSetupPrompt, hideAllFloraUI, showAllFloraUI} from "../content-general/injector";
 import {cancelPageTourStart, closePageTour, startPageTourOnceIdle} from "@shared/page-tour";
 import {searchScriptOwns} from "@shared/search-sites";
+import {installOpenAlexLimitNotice} from "@shared/openalex-notice";
+
+installOpenAlexLimitNotice();
 
 const SITE_STYLE_ID = "flora-search-site-style";
 

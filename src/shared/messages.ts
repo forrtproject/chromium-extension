@@ -1,6 +1,7 @@
 import {activeWorkSignal, abortableDelay} from "./work-cancellation";
 import type {DoiString, DoiAugmentRequest, ReplicationResult, RetractionResponse} from "./types";
 import type {AugmentSource} from "./doi-augment";
+import type {OpenAlexLimit} from "./openalex-quota";
 import type {NcbiIdType} from "./pmc-resolve";
 import type {RegisteredReport} from "./registered-reports";
 import {debugLog} from "./debug";
@@ -305,6 +306,15 @@ export interface AugmentResponse {
     /** title → which platform resolved it, so the page log can name it. */
     sources?: Record<string, AugmentSource | null>;
     unanswered?: string[];
+    /** Present while OpenAlex's daily budget is down to its reserve and Crossref matches titles alone. */
+    openalexLimit?: OpenAlexLimit;
+}
+
+let openAlexLimitListener: ((limit: OpenAlexLimit) => void) | null = null;
+
+/** Content scripts register how to tell the reader that OpenAlex's daily budget ran low. */
+export function onOpenAlexLimit(listener: (limit: OpenAlexLimit) => void): void {
+    openAlexLimitListener = listener;
 }
 
 export function isAugmentRequest(msg: unknown): msg is AugmentRequest {
@@ -450,6 +460,7 @@ export async function augmentDOIsViaWorker(
         requests,
     });
     if (!response) throw new Error("Extension context invalidated");
+    if (response.openalexLimit) openAlexLimitListener?.(response.openalexLimit);
     const unanswered = new Set(response.unanswered ?? []);
     const result = new Map<string, DoiString | null>();
     for (const [title, doi] of Object.entries(response?.results ?? {})) {
