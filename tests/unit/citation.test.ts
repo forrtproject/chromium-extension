@@ -58,6 +58,18 @@ describe("tidyCitation", () => {
       .toBe("Ray O. Title. American Psychologist. 2004.");
   });
 
+  it("decodes double-escaped entities and escaped tags instead of leaking them", () => {
+    expect(tidyCitation("Ray, O. Smith &amp;amp; Jones. &lt;i&gt;Drosophila&lt;/i&gt; genetics.", apa))
+      .toBe("Ray, O. Smith & Jones. Drosophila genetics.");
+    expect(tidyCitation("Ray, O. Pages 1&#8211;5 &#x2014; <sup>13</sup>C.", apa))
+      .toBe("Ray, O. Pages 1–5 — 13C.");
+  });
+
+  it("keeps a bare less-than sign that is not a tag", () => {
+    expect(tidyCitation("Ray, O. Effects at p &lt; 0.05 and n &gt; 10.", apa))
+      .toBe("Ray, O. Effects at p < 0.05 and n > 10.");
+  });
+
   it("keeps reference-manager exports byte-for-byte apart from markup", () => {
     const ris = "TY  - JOUR\nTI  - Title\nAU  - Ray, Oakley\nER  - ";
     expect(tidyCitation(ris, citationFormat("ris"))).toBe(ris.trim());
@@ -83,6 +95,11 @@ describe("tidyCitationHtml", () => {
   it("leaves entities encoded, since the clipboard flavour is HTML", () => {
     expect(tidyCitationHtml("Pelletier, A. <i>pathseq</i> &amp; friends.", apa))
       .toBe("Pelletier, A. <i>pathseq</i> &amp; friends.");
+  });
+
+  it("turns escaped markup into real emphasis and collapses double-escaped entities", () => {
+    expect(tidyCitationHtml("Ray, O. <i>Journal</i>. Smith &amp;amp; &lt;i&gt;Drosophila&lt;/i&gt;.", apa))
+      .toBe("Ray, O. <i>Journal</i>. Smith &amp; <i>Drosophila</i>.");
   });
 
   it("restores journal and volume italics when the resolver returns plain text", () => {

@@ -74,24 +74,67 @@ const ENTITIES: Record<string, string> = {
     apos: "'",
     "#39": "'",
     nbsp: " ",
+    ndash: "–",
+    mdash: "—",
+    hellip: "…",
+    lsquo: "‘",
+    rsquo: "’",
+    ldquo: "“",
+    rdquo: "”",
 };
 
-/** CSL output carries markup (`<i>`, `&amp;`); the clipboard wants plain text. */
+const TAG = /<\/?[a-z][\w:.-]*(?:\s[^<>]*)?\/?>/gi;
+// Crossref titles sometimes arrive with their markup escaped (`&lt;i&gt;`), at times twice over.
+const ESCAPED_TAG = /&(?:amp;)*lt;(\/?[a-z][\w:.-]*(?:\s[^<>&]*)?\/?)&(?:amp;)*gt;/gi;
+
+function decodeEntities(text: string): string {
+    return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
+        const lower = entity.toLowerCase();
+        if (lower.startsWith("#")) {
+            const code = lower.startsWith("#x") ? parseInt(lower.slice(2), 16) : parseInt(lower.slice(1), 10);
+            return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+        }
+        return ENTITIES[lower] ?? match;
+    });
+}
+
+/** CSL output carries markup (`<i>`, `&amp;`), sometimes escaped; the clipboard wants plain text. */
 function stripMarkup(raw: string): string {
-    return raw
-        .replace(/<[^>]*>/g, "")
-        .replace(/&(#?[a-z0-9]+);/gi, (match, entity: string) => ENTITIES[entity.toLowerCase()] ?? match);
+    let text = raw;
+    for (let pass = 0; pass < 3; pass++) {
+        const next = decodeEntities(text.replace(TAG, ""));
+        if (next === text) return text;
+        text = next;
+    }
+    return text.replace(TAG, "");
 }
 
 // Tags kept from CSL output; every other tag and every attribute is dropped,
 // so nothing but plain emphasis reaches the clipboard.
 const INLINE_TAGS = new Set(["i", "em", "b", "strong", "sub", "sup"]);
 
-function keepInlineMarkup(raw: string): string {
-    return raw.replace(/<(\/?)([a-z0-9]+)[^>]*>/gi, (_match, slash: string, name: string) => {
-        const tag = name.toLowerCase();
-        return INLINE_TAGS.has(tag) ? `<${slash}${tag}>` : "";
-    });
+function keepInlineTag(tag: string): string {
+    const [, slash, name] = /^<(\/?)([a-z0-9]+)/i.exec(tag) ?? [];
+    return name && INLINE_TAGS.has(name.toLowerCase()) ? `<${slash}${name.toLowerCase()}>` : "";
+}
+
+function decodeFully(text: string): string {
+    for (let pass = 0; pass < 3; pass++) {
+        const next = decodeEntities(text);
+        if (next === text) break;
+        text = next;
+    }
+    return text;
+}
+
+function cleanInlineHtml(source: string): string {
+    let html = "";
+    let cursor = 0;
+    for (const match of source.matchAll(TAG)) {
+        html += escapeHtml(decodeFully(source.slice(cursor, match.index))) + keepInlineTag(match[0]);
+        cursor = match.index + match[0].length;
+    }
+    return html + escapeHtml(decodeFully(source.slice(cursor)));
 }
 
 interface CitationRange {
@@ -234,11 +277,11 @@ export function tidyCitation(raw: string, format: CitationFormat): string {
 /** The same entry with its emphasis intact, or null where the format has none. */
 export function tidyCitationHtml(raw: string, format: CitationFormat): string | null {
     if (format.verbatim) return null;
-    const hasInlineMarkup = /<(?:\/?)(?:i|em|b|strong|sub|sup)\b/i.test(raw);
-    const hasMarkup = /<[^>]+>/i.test(raw);
-    const html = hasInlineMarkup || hasMarkup
-        ? polish(keepInlineMarkup(raw).trim())
-        : formatPlainCitationHtml(polish(stripMarkup(raw)), format);
+    const source = raw.replace(ESCAPED_TAG, "<$1>");
+    const hasMarkup = new RegExp(TAG.source, "i").test(source);
+    const html = hasMarkup
+        ? polish(cleanInlineHtml(source).trim())
+        : formatPlainCitationHtml(polish(stripMarkup(source)), format);
     return html || null;
 }
 
@@ -289,9 +332,12 @@ export async function fetchCitationDetailed(doi: string, formatId: string): Prom
     const format = citationFormat(formatId);
     const key = `${doi}|${format.id}`;
 
-    // Entries cached before rich text shipped carry no `html`.
+    // Entries cached before rich text shipped carry no `html`; older entries may still hold escaped markup.
     const cached = await CITATION_CACHE.get(key);
-    if (cached) return {citation: {text: cached.text, html: cached.html ?? null}, reachable: true};
+    if (cached) {
+        const html = cached.html ? cleanInlineHtml(cached.html) : null;
+        return {citation: {text: stripMarkup(cached.text), html}, reachable: true};
+    }
 
     const existing = inflight.get(key);
     if (existing) return existing;

@@ -1,7 +1,28 @@
 import * as esbuild from "esbuild";
-import { copyFileSync, mkdirSync, readdirSync } from "fs";
+import { copyFileSync, mkdirSync, readdirSync, readFileSync } from "fs";
 
 const isWatch = process.argv.includes("--watch");
+
+// Chrome Web Store rejects MV3 items containing remotely hosted code; jsPDF's
+// "pdfobjectnewwindow" output injects a cdnjs <script>, so that branch is cut.
+const REMOTE_OUTPUT_BRANCHES = /case"pdfobjectnewwindow":[\s\S]*?(?=case"dataurlnewwindow":)/;
+
+const jsPdfOfflineOnly: esbuild.Plugin = {
+  name: "jspdf-offline-only",
+  setup(build) {
+    build.onLoad({ filter: /[\\/]jspdf[\\/]dist[\\/]jspdf\.es\.min\.js$/ }, (args) => {
+      const source = readFileSync(args.path, "utf8");
+      if (!REMOTE_OUTPUT_BRANCHES.test(source)) {
+        throw new Error(`jsPDF's pdfobjectnewwindow branch not found in ${args.path}; update the patch`);
+      }
+      const contents = source.replace(
+        REMOTE_OUTPUT_BRANCHES,
+        'case"pdfobjectnewwindow":case"pdfjsnewwindow":throw new Error("Unsupported output type");',
+      );
+      return { contents, loader: "js" };
+    });
+  },
+};
 
 const sharedOptions: esbuild.BuildOptions = {
   bundle: true,
@@ -12,6 +33,7 @@ const sharedOptions: esbuild.BuildOptions = {
   loader: { ".css": "text" },
   // Testing builds store every log line and show a testing banner; release builds store only warnings and errors.
   define: { __ORE_TESTING_BUILD__: JSON.stringify(!process.argv.includes("--release")) },
+  plugins: [jsPdfOfflineOnly],
 };
 
 const configs: esbuild.BuildOptions[] = [

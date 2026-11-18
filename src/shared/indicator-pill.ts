@@ -214,6 +214,45 @@ const NOTICE_SEGMENT_ATTR = "data-flora-notice-segment";
 const RR_ROW_ATTR = "data-flora-rr-row";
 const MARKER_RESTING_SHADOW = "0 1px 2px rgba(27,31,36,0.12)";
 
+const DARK_ATTR = "data-flora-dark";
+const DARK_BORDER = "rgba(255,255,255,0.22)";
+const DARK_BORDER_HOVER = "rgba(255,255,255,0.4)";
+const DARK_ABSENT_TEXT = "rgba(255,255,255,0.6)";
+const DARK_ABSENT_STRIKE = "rgba(255,255,255,0.35)";
+
+let backdropCache: WeakMap<Element, boolean> | null = null;
+
+function opaqueRgb(color: string): [number, number, number] | null {
+    const parts = color.match(/^rgba?\(([^)]+)\)$/)?.[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+    if (!parts || parts.length < 3 || parts.some(Number.isNaN)) return null;
+    return (parts[3] ?? 1) >= 0.5 ? [parts[0], parts[1], parts[2]] : null;
+}
+
+function canvasIsDark(): boolean {
+    const scheme = getComputedStyle(document.documentElement).colorScheme;
+    if (scheme.includes("only light") || !scheme.includes("dark")) return false;
+    return !scheme.includes("light") || matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function onDarkBackdrop(el: Element): boolean {
+    if (!backdropCache) {
+        backdropCache = new WeakMap();
+        setTimeout(() => { backdropCache = null; }, 0);
+    }
+    const visited: Element[] = [];
+    let dark: boolean | undefined;
+    for (let node = el.parentElement; node && dark === undefined; node = node.parentElement) {
+        dark = backdropCache.get(node);
+        if (dark !== undefined) break;
+        visited.push(node);
+        const rgb = opaqueRgb(getComputedStyle(node).backgroundColor);
+        if (rgb) dark = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] < 128;
+    }
+    dark ??= canvasIsDark();
+    for (const node of visited) backdropCache.set(node, dark);
+    return dark;
+}
+
 const FILL_ALPHA = "c7";
 const FILL_HOVER_ALPHA = "e6";
 const BORDER_ALPHA = "4d";
@@ -292,9 +331,14 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
 function refreshSegmentStrip(strip: HTMLElement): void {
     for (const divider of strip.querySelectorAll(`[${SEGMENT_DIVIDER_ATTR}]`)) divider.remove();
 
+    const dark = strip.hasAttribute(DARK_ATTR);
     const segments = [...strip.querySelectorAll<HTMLElement>(`[${SEGMENT_ATTR}]`)];
     segments.forEach((seg, i) => {
         const present = seg.hasAttribute(SEGMENT_PRESENT_ATTR);
+        if (dark && !present) {
+            seg.style.color = DARK_ABSENT_TEXT;
+            seg.style.textDecorationColor = DARK_ABSENT_STRIKE;
+        }
         const prev = i > 0 ? segments[i - 1].hasAttribute(SEGMENT_PRESENT_ATTR) : null;
         const next = i < segments.length - 1 ? segments[i + 1].hasAttribute(SEGMENT_PRESENT_ATTR) : null;
 
@@ -1512,6 +1556,20 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
             refreshMarker();
         });
         refreshMarker();
+    } else {
+        const matchBackdrop = () => {
+            if (!onDarkBackdrop(wrapper)) return;
+            pill.setAttribute(DARK_ATTR, "");
+            pill.style.background = "transparent";
+            restingBorder = DARK_BORDER;
+            hoverBorder = DARK_BORDER_HOVER;
+            pill.style.borderColor = restingBorder;
+            refreshSegmentStrip(pill);
+        };
+        requestAnimationFrame(() => {
+            if (wrapper.isConnected) matchBackdrop();
+            else whenNearViewport(wrapper, matchBackdrop);
+        });
     }
 
     let faceOa = lookups.oa;
