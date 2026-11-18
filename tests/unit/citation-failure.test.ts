@@ -24,6 +24,21 @@ describe("citation failure reasons", () => {
         _resetCitationCacheForTesting();
     });
 
+    it("cleans escaped markup out of citations cached before the fix", async () => {
+        (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+            flora_citation_blob: {
+                "10.1000/old|apa": {
+                    v: {text: "Smith &amp; Jones. &lt;i&gt;Fly&lt;/i&gt;.", html: "Smith &amp;amp; Jones. &lt;i&gt;Fly&lt;/i&gt;."},
+                    t: Date.now(),
+                },
+            },
+        });
+
+        const outcome = await fetchCitationDetailed("10.1000/old", "apa");
+
+        expect(outcome.citation).toEqual({text: "Smith & Jones. Fly.", html: "Smith &amp; Jones. <i>Fly</i>."});
+    });
+
     it("reports unreachable when nothing answers", async () => {
         server.use(
             http.get(CROSSREF, () => HttpResponse.error()),

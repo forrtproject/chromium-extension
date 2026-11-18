@@ -127,14 +127,15 @@ function decodeFully(text: string): string {
     return text;
 }
 
-function cleanInlineHtml(source: string): string {
+function cleanInlineHtml(raw: string): string {
+    const source = raw.replace(ESCAPED_TAG, "<$1>");
     let html = "";
     let cursor = 0;
     for (const match of source.matchAll(TAG)) {
-        html += escapeHtml(decodeFully(source.slice(cursor, match.index))) + keepInlineTag(match[0]);
+        html += escapeText(decodeFully(source.slice(cursor, match.index))) + keepInlineTag(match[0]);
         cursor = match.index + match[0].length;
     }
-    return html + escapeHtml(decodeFully(source.slice(cursor)));
+    return html + escapeText(decodeFully(source.slice(cursor)));
 }
 
 interface CitationRange {
@@ -222,6 +223,10 @@ function plainCitationRanges(text: string, format: CitationFormat): CitationRang
 }
 
 /** Escape a plain-text citation before inserting it into clipboard HTML. */
+function escapeText(text: string): string {
+    return text.replace(/[&<>]/g, (character) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[character] ?? character));
+}
+
 function escapeHtml(text: string): string {
     return text.replace(/[&<>"']/g, (character) => ({
         "&": "&amp;",

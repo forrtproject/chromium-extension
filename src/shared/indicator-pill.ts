@@ -229,7 +229,7 @@ function opaqueRgb(color: string): [number, number, number] | null {
 }
 
 function canvasIsDark(): boolean {
-    const scheme = getComputedStyle(document.documentElement).colorScheme;
+    const scheme = getComputedStyle(document.documentElement).colorScheme ?? "";
     if (scheme.includes("only light") || !scheme.includes("dark")) return false;
     return !scheme.includes("light") || matchMedia("(prefers-color-scheme: dark)").matches;
 }
@@ -1568,7 +1568,6 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
         };
         requestAnimationFrame(() => {
             if (wrapper.isConnected) matchBackdrop();
-            else whenNearViewport(wrapper, matchBackdrop);
         });
     }
 
