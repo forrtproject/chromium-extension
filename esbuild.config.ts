@@ -1,5 +1,6 @@
 import * as esbuild from "esbuild";
 import { copyFileSync, mkdirSync, readdirSync } from "fs";
+import { jsPdfOfflineOnly } from "./scripts/jspdf-offline-only";
 
 const isWatch = process.argv.includes("--watch");
 
@@ -12,6 +13,7 @@ const sharedOptions: esbuild.BuildOptions = {
   loader: { ".css": "text" },
   // Testing builds store every log line and show a testing banner; release builds store only warnings and errors.
   define: { __ORE_TESTING_BUILD__: JSON.stringify(!process.argv.includes("--release")) },
+  plugins: [jsPdfOfflineOnly],
 };
 
 const configs: esbuild.BuildOptions[] = [

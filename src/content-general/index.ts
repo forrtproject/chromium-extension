@@ -74,6 +74,7 @@ import {injectLooseDoiPills, resetLooseDoiPills} from "./loose-dois";
 import {maybeOfferFeedback} from "@shared/feedback-prompt";
 import {countFindings, hasReplication, lookUpMissingReferenceStates, ResolvedReferences} from "./reference-states";
 import type {PageFindings, PageStateResponse} from "@shared/messages";
+import {installOpenAlexLimitNotice} from "@shared/openalex-notice";
 
 const pageState = new Map<DoiString, LookupState>();
 // PubPeer answers gathered before pills are drawn, so a pill's face is final when it appears.
@@ -1540,6 +1541,7 @@ async function fetchSheetDois(): Promise<void> {
 
 async function startOnPage(): Promise<void> {
     setScanSummarySource(scanSummary);
+    installOpenAlexLimitNotice();
     // Applicable page — mark the toolbar icon active for this tab.
     if (floraHidden) reportInactive();
     else reportActiveState(true);

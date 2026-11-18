@@ -3,9 +3,12 @@
 import { debugError } from "./debug";
 
 export interface FloraSettings {
-  /** Optional API contact email for Crossref, OpenAlex, Unpaywall and NCBI.
-   * Title matching and Unpaywall lookups require a nonempty value. */
+  /** Optional API contact email for Crossref, Unpaywall and NCBI. Unpaywall
+   * (open-access) lookups require it; with it, Crossref allows faster title matching. */
   email: string;
+  /** Optional free OpenAlex API key: the user's own daily budget instead of the
+   * small one everyone on their network shares (see openalex-quota.ts). */
+  openalexKey: string;
   /** Citation format id used by the pill's Copy citation row (see citation.ts). */
   citationStyle: string;
   /**
@@ -41,6 +44,7 @@ const STORAGE_KEY = "flora_settings";
 
 const DEFAULTS: FloraSettings = {
   email: "",
+  openalexKey: "",
   citationStyle: "apa",
   cacheQuotaMb: 50,
   offerLogCopyAfterPass: false,

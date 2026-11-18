@@ -51,7 +51,7 @@ export function mountSetupChoices(): {emailIsValid: () => boolean} {
       savedEmail = email;
       showStatus(emailStatus, email
         ? "Email saved. Reload open tabs to use it for lookups."
-        : "Email removed. Title matching and open-access lookups need an email; other checks still work.");
+        : "Email removed. Open-access lookups need an email, and title matching is slower without one; other checks work as before.");
     } catch (err) {
       debugError("Walkthrough: could not save the email —", err);
       showStatus(emailStatus, SAVE_FAILED, true);

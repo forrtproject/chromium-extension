@@ -255,15 +255,21 @@ function reference(l: Layout, item: ReportReference): void {
   l.y += 8;
 }
 
+// A locale whose date the PDF fonts cannot print gets the date in English, like the sentence around it.
+function reportDate(generated: number): string {
+  const date = new Date(generated);
+  const local = date.toLocaleDateString(undefined, {dateStyle: "long"});
+  return pdfText(local).includes("?") ? date.toLocaleDateString("en-GB", {dateStyle: "long"}) : local;
+}
+
 function colophon(l: Layout, payload: ReportPayload): void {
   l.ensure(56);
   l.rule();
   l.y += 16;
-  const date = new Date(payload.generated).toLocaleDateString(undefined, {dateStyle: "long"});
   l.font("normal", 8.5, MUTED);
   l.paragraph(
-    `Compiled by FORRT ORE on ${date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer. ` +
-    "Replication evidence is a starting point for judgement, not a verdict.",
+    `Compiled by FORRT ORE on ${reportDate(payload.generated)} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer. ` +
+    "ORE shows what has been reported about a paper. Read those reports before you judge it.",
     8.5,
   );
   l.font("normal", 8.5, MAROON);

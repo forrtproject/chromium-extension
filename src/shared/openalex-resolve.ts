@@ -1,11 +1,12 @@
 import {fetchWithDeadline, isAbortError} from "./work-cancellation";
-// OpenAlex work id → DOI, in one batched API call per 50 ids. Runs in the
-// service worker (see resolveOpenAlexIdsViaWorker) so the polite-pool mailto
-// and any future pacing sit with the other OpenAlex traffic.
+// OpenAlex work id → DOI, in one batched API call per 50 ids (1 credit). Runs
+// in the service worker (see resolveOpenAlexIdsViaWorker) so the API key and
+// the daily budget (openalex-quota.ts) sit with the other OpenAlex traffic.
 
 import type {DoiString} from "./types";
 import {normaliseDOI} from "./doi-normalise";
 import {getSettings} from "./settings";
+import {noteOpenAlexResponse, withOpenAlexKey} from "./openalex-quota";
 import {debugLog, debugWarn} from "./debug";
 import {withResolveTimeout} from "./resolve-timeout";
 
@@ -21,14 +22,14 @@ export function normaliseOpenAlexId(raw: unknown): string | null {
 }
 
 async function fetchWorks(ids: string[], signal?: AbortSignal): Promise<Array<{id?: string; doi?: string | null}>> {
-    const {email} = await getSettings();
+    const key = ((await getSettings()).openalexKey ?? "").trim();
     const params = new URLSearchParams({
         filter: `openalex:${ids.join("|")}`,
         select: "id,doi",
         "per-page": String(MAX_IDS_PER_REQUEST),
     });
-    if (email) params.set("mailto", email);
-    const response = await fetchWithDeadline(`${OPENALEX_WORKS}?${params.toString()}`, {signal});
+    const response = await fetchWithDeadline(withOpenAlexKey(`${OPENALEX_WORKS}?${params.toString()}`, key), {signal});
+    noteOpenAlexResponse(response, key);
     if (!response.ok) throw new Error(`OpenAlex HTTP ${response.status}`);
     const data = (await response.json()) as {results?: Array<{id?: string; doi?: string | null}>};
     return data.results ?? [];

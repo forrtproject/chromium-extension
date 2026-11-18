@@ -339,28 +339,26 @@ describe("augmentDOIs", () => {
     expect(results.get("Third Unknown Title")).toBeNull();
   });
 
-  it("does not query or cache a no-match when no email is configured", async () => {
-    // Regression: previously the no-email path still wrote {found:false} to the
-    // cache (30-day TTL), so a title visited before the user set their email
-    // stayed unresolved for 30 days even after they added it.
-    vi.mocked(getSettings).mockResolvedValueOnce({ email: "" } as any);
+  it("matches titles without an email, leaving out the contact parameter", async () => {
+    vi.mocked(getSettings).mockResolvedValueOnce({ email: "", openalexKey: "" } as any);
 
-    let crossrefHits = 0;
+    const urls: string[] = [];
     server.use(
-      http.get(CROSSREF_URL, () => {
-        crossrefHits++;
-        return HttpResponse.json({ message: { items: [] } });
+      http.get(CROSSREF_URL, ({ request }) => {
+        urls.push(request.url);
+        return HttpResponse.json({ message: { items: [{ DOI: "10.1000/no-email", title: ["A Paper Without Email"] }] } });
       }),
-      http.get(OPENALEX_URL, () => HttpResponse.json({ results: [] }))
+      http.get(OPENALEX_URL, ({ request }) => {
+        urls.push(request.url);
+        return HttpResponse.json({ results: [] });
+      })
     );
-    const setSpy = chrome.storage.local.set as ReturnType<typeof vi.fn>;
-    setSpy.mockClear();
 
     const results = await augmentDOIs(["A Paper Without Email"]);
 
-    expect(results.get("A Paper Without Email")).toBeNull();
-    expect(crossrefHits).toBe(0); // never queried — no email
-    expect(setSpy).not.toHaveBeenCalled(); // and crucially never poisoned the cache
+    expect(results.get("A Paper Without Email")).toBe("10.1000/no-email");
+    expect(urls.length).toBeGreaterThan(0);
+    expect(urls.some((u) => /mailto=|email=/.test(u))).toBe(false);
   });
 
   it("does not cache a no-match when neither platform answered", async () => {

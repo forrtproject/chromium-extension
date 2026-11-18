@@ -36,7 +36,9 @@ describe("the report PDF", () => {
         expect(pdf).toContain("This article has been retracted.");
         expect(pdf).toContain("A direct replication");
         expect(pdf).toContain("FLAGGED REFERENCES");
-        expect(pdf).toContain("not a verdict");
+        // The colophon wraps by date length, so "ORE" can end the line before this text.
+        expect(pdf).toContain("shows what has been reported about a paper.");
+        expect(pdf).toContain("Read those reports before you judge it.");
         expect(pdf).toContain("/URI (https://example.org/article)");
         expect(pdf).toContain("/URI (https://doi.org/10.1/notice)");
         expect(pdf).toContain("/URI (https://doi.org/10.1/cited)");
@@ -67,6 +69,35 @@ describe("the report PDF", () => {
 
     it("names the file after the article, without characters a file system rejects", () => {
         expect(reportPdfFilename(payload({title: "<i>Power</i> Posing: a/b?"}))).toBe("ORE report – Power Posing a b.pdf");
+    });
+});
+
+describe("the report date", () => {
+    const generated = new Date(2026, 0, 15, 12).getTime();
+    const nativeDate = Date.prototype.toLocaleDateString;
+
+    function pdfUnderLocale(locale: string): string {
+        vi.spyOn(Date.prototype, "toLocaleDateString").mockImplementation(function (this: Date, requested, options) {
+            return nativeDate.call(this, requested ?? locale, options);
+        });
+        return text(buildReportPdf(payload({generated})));
+    }
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it.each([
+        "ja-JP", "zh-CN", "zh-TW", "ko-KR", "ar", "ar-EG", "ar-SA", "hi-IN", "hi-IN-u-nu-deva", "mr-IN", "ru-RU", "el-GR",
+        "he-IL", "th-TH", "fa-IR", "ja-JP-u-ca-japanese",
+    ])("prints in Latin characters and the Gregorian calendar under %s", (locale) => {
+        expect(pdfUnderLocale(locale)).toContain("Compiled by FORRT ORE on 15 January 2026 from");
+    });
+
+    it.each([
+        ["en-US", "January 15, 2026"],
+        ["en-GB", "15 January 2026"],
+        ["de-DE", "15. Januar 2026"],
+    ])("keeps the browser's own format under %s", (locale, date) => {
+        expect(pdfUnderLocale(locale)).toContain(`Compiled by FORRT ORE on ${date} from`);
     });
 });
 
