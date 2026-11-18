@@ -140,42 +140,62 @@ export function backdropColor(el: Element): Rgb {
     return result;
 }
 
-const themeListeners = new Map<Element, () => void>();
-let themeWatchStarted = false;
+const THEME_ATTRIBUTES = ["class", "style", "data-theme", "data-mode", "data-color-mode", "data-color-scheme", "data-bs-theme"];
+
+const rechecks = new WeakMap<Element, () => void>();
+const followers = new Set<WeakRef<Element>>();
+let pruneAt = 64;
+let themeObserver: MutationObserver | null = null;
+const changedRoots = new Set<Node>();
 let recheckQueued = false;
 
-const THEME_ATTRIBUTES = ["class", "style", "data-theme", "data-mode", "data-color-mode", "data-color-scheme", "data-bs-theme"];
+function pruneCollected(): void {
+    for (const ref of followers) if (!ref.deref()) followers.delete(ref);
+    pruneAt = Math.max(64, followers.size * 2);
+}
 
 function recheckThemes(): void {
     recheckQueued = false;
     backdropCache = null;
-    for (const [el, recheck] of themeListeners) {
-        if (el.isConnected) recheck();
-        else themeListeners.delete(el);
+    const roots = [...changedRoots];
+    changedRoots.clear();
+    for (const ref of followers) {
+        const el = ref.deref();
+        if (!el) {
+            followers.delete(ref);
+            continue;
+        }
+        if (el.isConnected && roots.some((root) => root.contains(el))) rechecks.get(el)?.();
     }
 }
 
-function queueRecheck(): void {
+function queueRecheck(roots: Iterable<Node>): void {
+    for (const root of roots) changedRoots.add(root);
     if (recheckQueued) return;
     recheckQueued = true;
     requestAnimationFrame(recheckThemes);
 }
 
-function startThemeWatch(): void {
-    themeWatchStarted = true;
-    const observer = new MutationObserver(queueRecheck);
-    const observe = (target: Element) => observer.observe(target, {attributes: true, attributeFilter: THEME_ATTRIBUTES});
-    observe(document.documentElement);
-    if (document.body) observe(document.body);
-    else document.addEventListener("DOMContentLoaded", () => document.body && observe(document.body), {once: true});
+function observer(): MutationObserver {
+    if (themeObserver) return themeObserver;
+    themeObserver = new MutationObserver((mutations) => queueRecheck(mutations.map((m) => m.target)));
     if (typeof matchMedia === "function") {
-        matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", queueRecheck);
+        matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => queueRecheck([document.documentElement]));
     }
+    return themeObserver;
 }
 
-/** Run `recheck` now and again whenever the page's theme switches; dropped once `el` leaves the page. */
+/**
+ * Run `recheck` now and again whenever a theme attribute changes on `el` or any
+ * ancestor, or the OS scheme flips. Held weakly: a removed pill is not kept alive.
+ */
 export function followPageTheme(el: Element, recheck: () => void): void {
-    if (!themeWatchStarted) startThemeWatch();
-    themeListeners.set(el, recheck);
+    const watcher = observer();
+    for (let node = el.parentElement; node; node = node.parentElement) {
+        watcher.observe(node, {attributes: true, attributeFilter: THEME_ATTRIBUTES});
+    }
+    if (!rechecks.has(el)) followers.add(new WeakRef(el));
+    rechecks.set(el, recheck);
+    if (followers.size >= pruneAt) pruneCollected();
     recheck();
 }

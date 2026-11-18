@@ -1,5 +1,66 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { backdropColor, contrastRatio, isDark, parseCssColor } from "../../src/shared/backdrop";
+import { backdropColor, contrastRatio, followPageTheme, isDark, parseCssColor } from "../../src/shared/backdrop";
+
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+const flush = async () => {
+  await Promise.resolve();
+  await nextFrame();
+};
+
+describe("followPageTheme", () => {
+  function nested() {
+    const theme = document.createElement("div");
+    const article = document.createElement("article");
+    const pill = document.createElement("span");
+    article.appendChild(pill);
+    theme.appendChild(article);
+    document.body.appendChild(theme);
+    return { theme, article, pill };
+  }
+
+  it("rechecks when a theme class changes on an intermediate ancestor", async () => {
+    const { theme, pill } = nested();
+    const recheck = vi.fn();
+    followPageTheme(pill, recheck);
+    expect(recheck).toHaveBeenCalledTimes(1);
+    theme.classList.add("dark");
+    await flush();
+    expect(recheck).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves pills outside the changed subtree alone", async () => {
+    const first = nested();
+    const second = nested();
+    const firstCheck = vi.fn();
+    const secondCheck = vi.fn();
+    followPageTheme(first.pill, firstCheck);
+    followPageTheme(second.pill, secondCheck);
+    first.theme.setAttribute("data-theme", "dark");
+    await flush();
+    expect(firstCheck).toHaveBeenCalledTimes(2);
+    expect(secondCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not recheck a pill that has left the page", async () => {
+    const { theme, pill } = nested();
+    const recheck = vi.fn();
+    followPageTheme(pill, recheck);
+    pill.remove();
+    theme.classList.add("dark");
+    document.body.classList.add("dark");
+    await flush();
+    expect(recheck).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores attributes that cannot change a theme", async () => {
+    const { theme, pill } = nested();
+    const recheck = vi.fn();
+    followPageTheme(pill, recheck);
+    theme.setAttribute("aria-busy", "true");
+    await flush();
+    expect(recheck).toHaveBeenCalledTimes(1);
+  });
+});
 
 const near = (actual: readonly number[] | null, expected: number[], tolerance = 2) => {
   expect(actual).not.toBeNull();

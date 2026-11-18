@@ -116,6 +116,12 @@ describe("tidyCitationHtml", () => {
       .toBe("Ray, O. <i>J</i>. <i>Fly</i> and <i>Worm</i>.");
   });
 
+  it("cleans escaped tags that carry boolean attributes", () => {
+    expect(tidyCitationHtml("Ray, O. <i>J</i>. &lt;span hidden&gt;Title&lt;/span&gt; &lt;i inert&gt;Fly&lt;/i&gt;.", apa))
+      .toBe("Ray, O. <i>J</i>. Title <i>Fly</i>.");
+    expect(tidyCitation("Ray, O. &lt;span hidden&gt;Title&lt;/span&gt;.", apa)).toBe("Ray, O. Title.");
+  });
+
   it("treats a dashed tag name as unknown rather than as its prefix", () => {
     expect(tidyCitationHtml("Ray, O. <i-custom>Title</i-custom>.", apa)).toBe("Ray, O. Title.");
   });

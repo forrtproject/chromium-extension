@@ -93,7 +93,11 @@ const GT = "";
 
 const TAG_NAME = String.raw`[a-z][\w.-]*(?::[a-z][\w.-]*)?`;
 const TAG = new RegExp(String.raw`<(\/?)(${TAG_NAME})(?:\s(?:[^<>"']|"[^"]*"|'[^']*')*)?\/?>`, "gi");
-const ESCAPED_ATTRS = String.raw`(?:\s+[a-z_:][\w:.-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=${LT}${GT}]+))*\s*\/?`;
+// Valueless attributes count only when HTML defines them as boolean, so
+// "a &lt;b and c&gt; d" is still read as a comparison rather than as <b>.
+const BOOLEAN_ATTRS = "hidden|inert|itemscope|nowrap|open|disabled|reversed|compact";
+const ESCAPED_ATTR = String.raw`\s+(?:[a-z_:][\w:.-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=${LT}${GT}]+)|(?:${BOOLEAN_ATTRS})(?![\w:.-]))`;
+const ESCAPED_ATTRS = String.raw`(?:${ESCAPED_ATTR})*\s*\/?`;
 const ESCAPED_TAG = new RegExp(`${LT}(\\/?)(${TAG_NAME})(${ESCAPED_ATTRS})${GT}`, "gi");
 
 // Crossref titles sometimes arrive with their markup escaped (`&lt;i&gt;`),
