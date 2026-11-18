@@ -195,8 +195,8 @@ describe("report rendering", () => {
         expect(html).toContain("Fusobacterium infection");
     });
 
-    it("says what the evidence is and is not", () => {
-        expect(renderReportBody(payload())).toContain("not a verdict");
+    it("asks readers to read the reports before judging the paper", () => {
+        expect(renderReportBody(payload())).toContain("ORE shows what has been reported about a paper. Read those reports before you judge it.");
     });
 });
 

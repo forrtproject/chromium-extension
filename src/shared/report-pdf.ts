@@ -263,7 +263,7 @@ function colophon(l: Layout, payload: ReportPayload): void {
   l.font("normal", 8.5, MUTED);
   l.paragraph(
     `Compiled by FORRT ORE on ${date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer. ` +
-    "Replication evidence is a starting point for judgement, not a verdict.",
+    "ORE shows what has been reported about a paper. Read those reports before you judge it.",
     8.5,
   );
   l.font("normal", 8.5, MAROON);

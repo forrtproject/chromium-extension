@@ -36,7 +36,7 @@ describe("the report PDF", () => {
         expect(pdf).toContain("This article has been retracted.");
         expect(pdf).toContain("A direct replication");
         expect(pdf).toContain("FLAGGED REFERENCES");
-        expect(pdf).toContain("not a verdict");
+        expect(pdf).toContain("ORE shows what has been reported about a paper.");
         expect(pdf).toContain("/URI (https://example.org/article)");
         expect(pdf).toContain("/URI (https://doi.org/10.1/notice)");
         expect(pdf).toContain("/URI (https://doi.org/10.1/cited)");
