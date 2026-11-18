@@ -58,7 +58,13 @@ export interface Citation {
     html: string | null;
 }
 
-const CITATION_CACHE = new BlobCache<{text: string; html?: string | null}>({
+interface CachedCitation {
+    text: string;
+    html?: string | null;
+    normalized?: true;
+}
+
+const CITATION_CACHE = new BlobCache<CachedCitation>({
     storageKey: "flora_citation_blob",
     ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days — a published record's citation is stable
     maxEntries: 1500,
@@ -66,77 +72,94 @@ const CITATION_CACHE = new BlobCache<{text: string; html?: string | null}>({
 
 const inflight = new Map<string, Promise<CitationOutcome>>();
 
-const ENTITIES: Record<string, string> = {
-    amp: "&",
-    lt: "<",
-    gt: ">",
-    quot: '"',
-    apos: "'",
-    "#39": "'",
-    nbsp: " ",
-    ndash: "–",
-    mdash: "—",
-    hellip: "…",
-    lsquo: "‘",
-    rsquo: "’",
-    ldquo: "“",
-    rdquo: "”",
-};
+const ENTITIES = new Map<string, string>([
+    ["amp", "&"],
+    ["quot", '"'],
+    ["apos", "'"],
+    ["nbsp", " "],
+    ["ndash", "–"],
+    ["mdash", "—"],
+    ["hellip", "…"],
+    ["lsquo", "‘"],
+    ["rsquo", "’"],
+    ["ldquo", "“"],
+    ["rdquo", "”"],
+]);
 
-const TAG = /<\/?[a-z][\w:.-]*(?:\s[^<>]*)?\/?>/gi;
-// Crossref titles sometimes arrive with their markup escaped (`&lt;i&gt;`), at times twice over.
-const ESCAPED_TAG = /&(?:amp;)*lt;(\/?[a-z][\w:.-]*(?:\s[^<>&]*)?\/?)&(?:amp;)*gt;/gi;
+// Decoded `<` and `>` stand in as private-use characters until the end, so an
+// encoded comparison ("p &lt; 0.05") can never be mistaken for markup.
+const LT = "";
+const GT = "";
 
-function decodeEntities(text: string): string {
+const TAG_NAME = String.raw`[a-z][\w.-]*(?::[a-z][\w.-]*)?`;
+const TAG = new RegExp(String.raw`<(\/?)(${TAG_NAME})(?:\s(?:[^<>"']|"[^"]*"|'[^']*')*)?\/?>`, "gi");
+const ESCAPED_ATTRS = String.raw`(?:\s+[a-z_:][\w:.-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=${LT}${GT}]+))*\s*\/?`;
+const ESCAPED_TAG = new RegExp(`${LT}(\\/?)(${TAG_NAME})(${ESCAPED_ATTRS})${GT}`, "gi");
+
+// Crossref titles sometimes arrive with their markup escaped (`&lt;i&gt;`),
+// at times twice over; only these elements are restored from that form.
+const CITATION_ELEMENTS = new Set([
+    "i", "b", "u", "em", "strong", "sub", "sup", "sc", "scp", "small", "span", "div", "p", "a", "br", "font",
+]);
+
+const isCitationElement = (name: string): boolean =>
+    name.includes(":") || CITATION_ELEMENTS.has(name.toLowerCase());
+
+function decodeCodePoint(code: number, match: string, verbatim: boolean): string {
+    if (code === 0x3c) return LT;
+    if (code === 0x3e) return GT;
+    if (!(code > 0 && code <= 0x10ffff)) return match;
+    if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) return verbatim ? match : " ";
+    return String.fromCodePoint(code);
+}
+
+function decodeEntities(text: string, verbatim: boolean): string {
     return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
         const lower = entity.toLowerCase();
-        if (lower.startsWith("#")) {
-            const code = lower.startsWith("#x") ? parseInt(lower.slice(2), 16) : parseInt(lower.slice(1), 10);
-            return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
-        }
-        return ENTITIES[lower] ?? match;
+        if (lower.startsWith("#x")) return decodeCodePoint(parseInt(lower.slice(2), 16), match, verbatim);
+        if (lower.startsWith("#")) return decodeCodePoint(parseInt(lower.slice(1), 10), match, verbatim);
+        if (lower === "lt") return LT;
+        if (lower === "gt") return GT;
+        return ENTITIES.get(lower) ?? match;
     });
 }
 
-/** CSL output carries markup (`<i>`, `&amp;`), sometimes escaped; the clipboard wants plain text. */
-function stripMarkup(raw: string): string {
+/** Decode entities (repeatedly, for double escaping) and turn escaped citation elements back into tags. */
+function parseMarkup(raw: string, verbatim = false): string {
     let text = raw;
     for (let pass = 0; pass < 3; pass++) {
-        const next = decodeEntities(text.replace(TAG, ""));
-        if (next === text) return text;
+        const next = decodeEntities(text, verbatim);
+        if (next === text) break;
         text = next;
     }
-    return text.replace(TAG, "");
+    return text.replace(ESCAPED_TAG, (match, slash: string, name: string, attrs: string) =>
+        isCitationElement(name) ? `<${slash}${name}${attrs}>` : match);
+}
+
+const literalBrackets = (text: string): string => text.replaceAll(LT, "<").replaceAll(GT, ">");
+
+/** CSL output carries markup (`<i>`, `&amp;`), sometimes escaped; the clipboard wants plain text. */
+function plainText(parsed: string): string {
+    return literalBrackets(parsed.replace(TAG, ""));
 }
 
 // Tags kept from CSL output; every other tag and every attribute is dropped,
 // so nothing but plain emphasis reaches the clipboard.
 const INLINE_TAGS = new Set(["i", "em", "b", "strong", "sub", "sup"]);
 
-function keepInlineTag(tag: string): string {
-    const [, slash, name] = /^<(\/?)([a-z0-9]+)/i.exec(tag) ?? [];
-    return name && INLINE_TAGS.has(name.toLowerCase()) ? `<${slash}${name.toLowerCase()}>` : "";
-}
-
-function decodeFully(text: string): string {
-    for (let pass = 0; pass < 3; pass++) {
-        const next = decodeEntities(text);
-        if (next === text) break;
-        text = next;
-    }
-    return text;
-}
-
-function cleanInlineHtml(raw: string): string {
-    const source = raw.replace(ESCAPED_TAG, "<$1>");
+function inlineHtml(parsed: string): string {
     let html = "";
     let cursor = 0;
-    for (const match of source.matchAll(TAG)) {
-        html += escapeText(decodeFully(source.slice(cursor, match.index))) + keepInlineTag(match[0]);
+    for (const match of parsed.matchAll(TAG)) {
+        const name = match[2].toLowerCase();
+        html += escapeText(literalBrackets(parsed.slice(cursor, match.index)));
+        if (INLINE_TAGS.has(name)) html += `<${match[1]}${name}>`;
         cursor = match.index + match[0].length;
     }
-    return html + escapeText(decodeFully(source.slice(cursor)));
+    return html + escapeText(literalBrackets(parsed.slice(cursor)));
 }
+
+const hasTag = (parsed: string): boolean => new RegExp(TAG.source, "i").test(parsed);
 
 interface CitationRange {
     start: number;
@@ -275,19 +298,27 @@ function polish(rendered: string): string {
 }
 
 export function tidyCitation(raw: string, format: CitationFormat): string {
-    const text = stripMarkup(raw).trim();
+    const text = plainText(parseMarkup(raw, format.verbatim)).trim();
     return format.verbatim ? text : polish(text);
 }
 
 /** The same entry with its emphasis intact, or null where the format has none. */
 export function tidyCitationHtml(raw: string, format: CitationFormat): string | null {
     if (format.verbatim) return null;
-    const source = raw.replace(ESCAPED_TAG, "<$1>");
-    const hasMarkup = new RegExp(TAG.source, "i").test(source);
-    const html = hasMarkup
-        ? polish(cleanInlineHtml(source).trim())
-        : formatPlainCitationHtml(polish(stripMarkup(source)), format);
+    const parsed = parseMarkup(raw);
+    const html = hasTag(parsed)
+        ? polish(inlineHtml(parsed).trim())
+        : formatPlainCitationHtml(polish(plainText(parsed)), format);
     return html || null;
+}
+
+/** Entries cached before normalization shipped may still hold escaped or double-escaped markup. */
+function upgradeLegacyEntry(cached: CachedCitation, format: CitationFormat): Citation {
+    if (format.verbatim) return {text: cached.text, html: null};
+    return {
+        text: plainText(parseMarkup(cached.text)),
+        html: cached.html ? inlineHtml(parseMarkup(cached.html)) : null,
+    };
 }
 
 function crossrefUrl(doi: string, email: string): string {
@@ -337,11 +368,10 @@ export async function fetchCitationDetailed(doi: string, formatId: string): Prom
     const format = citationFormat(formatId);
     const key = `${doi}|${format.id}`;
 
-    // Entries cached before rich text shipped carry no `html`; older entries may still hold escaped markup.
     const cached = await CITATION_CACHE.get(key);
     if (cached) {
-        const html = cached.html ? cleanInlineHtml(cached.html) : null;
-        return {citation: {text: stripMarkup(cached.text), html}, reachable: true};
+        const citation = cached.normalized ? {text: cached.text, html: cached.html ?? null} : upgradeLegacyEntry(cached, format);
+        return {citation, reachable: true};
     }
 
     const existing = inflight.get(key);
@@ -349,7 +379,7 @@ export async function fetchCitationDetailed(doi: string, formatId: string): Prom
 
     const pending = requestCitation(doi, format)
         .then(async (outcome) => {
-            if (outcome.citation) await CITATION_CACHE.set(key, outcome.citation);
+            if (outcome.citation) await CITATION_CACHE.set(key, {...outcome.citation, normalized: true});
             return outcome;
         })
         .finally(() => inflight.delete(key));
