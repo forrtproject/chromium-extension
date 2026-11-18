@@ -72,6 +72,35 @@ describe("the report PDF", () => {
     });
 });
 
+describe("the report date", () => {
+    const generated = new Date(2026, 0, 15, 12).getTime();
+    const nativeDate = Date.prototype.toLocaleDateString;
+
+    function pdfUnderLocale(locale: string): string {
+        vi.spyOn(Date.prototype, "toLocaleDateString").mockImplementation(function (this: Date, requested, options) {
+            return nativeDate.call(this, requested ?? locale, options);
+        });
+        return text(buildReportPdf(payload({generated})));
+    }
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it.each([
+        "ja-JP", "zh-CN", "zh-TW", "ko-KR", "ar", "ar-EG", "ar-SA", "hi-IN", "hi-IN-u-nu-deva", "mr-IN", "ru-RU", "el-GR",
+        "he-IL", "th-TH", "fa-IR", "ja-JP-u-ca-japanese",
+    ])("prints in Latin characters and the Gregorian calendar under %s", (locale) => {
+        expect(pdfUnderLocale(locale)).toContain("Compiled by FORRT ORE on 15 January 2026 from");
+    });
+
+    it.each([
+        ["en-US", "January 15, 2026"],
+        ["en-GB", "15 January 2026"],
+        ["de-DE", "15. Januar 2026"],
+    ])("keeps the browser's own format under %s", (locale, date) => {
+        expect(pdfUnderLocale(locale)).toContain(`Compiled by FORRT ORE on ${date} from`);
+    });
+});
+
 describe("the panel's Download button", () => {
     const ARTICLE = doi("10.1038/nature12373");
     const sendMessage = vi.mocked(chrome.runtime.sendMessage);
