@@ -33,6 +33,9 @@ Object.defineProperty(globalThis, "chrome", {
         removeListener: vi.fn(),
       },
     },
+    i18n: {
+      getUILanguage: vi.fn(() => "en-GB"),
+    },
     runtime: {
       id: "test-extension-id",
       getURL: vi.fn((path: string) => `chrome-extension://test-extension-id/${path}`),

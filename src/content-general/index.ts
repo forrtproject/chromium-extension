@@ -58,7 +58,7 @@ import {isSearchHost, searchScriptOwns} from "@shared/search-sites";
 import {fetchOpenAccess} from "@shared/openaccess";
 import {showUpdatedToast, watchForExtensionUpdate} from "@shared/update-notice";
 import {showToast, dismissToast} from "@shared/toast";
-import {initI18n, t, uiLocale} from "@shared/i18n";
+import {initI18n, t, intlLocale} from "@shared/i18n";
 import {clearOutages, onOutagesChanged, outageSources, retryOutages} from "@shared/outages";
 import {resolveReferenceDois, renderResolvedReferences, releaseReferenceEntries, resetReferenceMarkers, type ResolvedReference} from "./references";
 import {fetchSheetCsv, parseSheetsUrl, sheetRowsByDoi, sheetTabKey} from "./sheets";
@@ -133,7 +133,7 @@ function unavailableMessage(checks: UnavailableCheck[]): string {
     const list = listOf(checks.map(unavailableItem));
     // i18n: {list} names two or more checks, e.g. "open access and PubPeer"; the first letter is capitalised automatically
     const sentence = t("page.unavailable.several", "{list} are unavailable.", {list});
-    return sentence.charAt(0).toLocaleUpperCase(uiLocale()) + sentence.slice(1);
+    return sentence.charAt(0).toLocaleUpperCase(intlLocale()) + sentence.slice(1);
 }
 
 /** One notice, with one Retry, for whichever checks could not run on this page. */

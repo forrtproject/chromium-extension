@@ -15,7 +15,7 @@ import {ensureFocusStyle} from "@shared/flora-ui";
 import {noteScanEnded, noteScanHidden, noteScanProgress, noteScanReset, noteScanShown, noteScanStarted} from "@shared/toolbar-scan";
 import {blockDomain, snoozeDomain} from "@shared/domains";
 import {getSettings} from "@shared/settings";
-import {t, uiLocale} from "@shared/i18n";
+import {t, intlLocale} from "@shared/i18n";
 import {
     _resetProgressTabForTesting,
     finishTabProgress,
@@ -262,7 +262,7 @@ function stageRecord(stage: WorkStage): StageRecord {
 
 function formatDuration(ms: number): string {
     const number = (n: number, digits: number): string =>
-        n.toLocaleString(uiLocale(), {minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false});
+        n.toLocaleString(intlLocale(), {minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false});
     return ms >= 1000 ? `${number(ms / 1000, 1)} s` : `${number(Math.round(ms), 0)} ms`;
 }
 

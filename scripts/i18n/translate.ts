@@ -6,31 +6,39 @@
  */
 
 import {
-  EN_FILE, GLOSSARY_FILE, localeFile, readJson, writeSortedJson,
-  forTranslation, translationProblems, type SourceCatalog, type TranslationCatalog,
+  EN_FILE, GLOSSARY_FILE, STYLE_FILE, localeFile, readJson, writeSortedJson,
+  forTranslation, translationProblems, type LanguageStyle, type SourceCatalog, type TranslationCatalog,
 } from "./catalog";
 import { classifyEntries } from "./classify";
 
 const DEFAULT_MODEL = "anthropic/claude-sonnet-5.5";
 const BATCH = 40;
-const LANGUAGE_NAMES: Record<string, string> = { de: "German" };
-
 interface Options { model?: string; limit: number; dryRun: boolean }
 
-function systemPrompt(lang: string, glossary: Record<string, Record<string, string>>): string {
+export function systemPrompt(lang: string, style: LanguageStyle, glossary: Record<string, Record<string, string>>, en: SourceCatalog): string {
   const terms = Object.entries(glossary)
-    .map(([en, t]) => `- ${en} → ${t[lang] ?? "(keep English)"}${t.note ? ` (${t.note})` : ""}`)
+    .map(([term, t]) => {
+      const note = t.note ? ` (${lang === "de" ? "" : "German glossary note, for context only: "}${t.note})` : "";
+      return `- ${term} → ${t[lang] ?? "no agreed term yet: use the term researchers in this field use, consistently"}${note}`;
+    })
+    .join("\n");
+  const examples = Object.entries(style.examples)
+    .filter(([id]) => en[id])
+    .map(([id, text]) => `- ${JSON.stringify(en[id].message)} → ${JSON.stringify(text)}`)
     .join("\n");
   return `You translate the interface of FORRT ORE, a browser extension for researchers. It marks academic papers on web pages with small "pills" that show replications, retractions, expressions of concern, Registered Reports, PubPeer comments and open-access copies.
 
-Translate each English message into ${LANGUAGE_NAMES[lang]}. Rules:
-- Natural, concise UI language for academics. Avoid addressing the user directly: neither "du" nor "Sie". Use infinitives and impersonal or passive phrasing ("Seite neu laden, um …", "Die E-Mail-Adresse wird nur … gesendet", "Ihre/deine" → "die"). Where a sentence seems to need direct address, restructure it as a noun phrase or passive.
+Translate each English message into ${style.name}. Rules:
+- Natural, concise, respectful UI language for academics. Prefer impersonal phrasing to addressing the reader.
+${style.rules.map((r) => `- ${r}`).join("\n")}
 - Messages use ICU MessageFormat. Keep every {placeholder} name unchanged. Keep plural/select structure ({n, plural, one {…} other {…}}) and its option keywords; translate only the text inside the options; keep "#".
 - Keep HTML tags and their attributes exactly; translate only the text between them.
-- Keep product and data-source names unchanged: FORRT, ORE, FLoRA, PubPeer, Retraction Watch, Crossref, OpenAlex, Unpaywall, Semantic Scholar, DOI, Google Scholar.
+- Keep product and data-source names unchanged: FORRT, ORE, FLoRA, PubPeer, Retraction Watch, FORRT Replication Database, Crossref, OpenAlex, Unpaywall, Semantic Scholar, DOI, Google Scholar.
 - Keep keyboard keys, URLs, file names and code unchanged.
 - Follow this glossary:
 ${terms || "(none)"}
+- Match the tone and conventions of these approved translations:
+${examples || "(none)"}
 
 Reply with only a JSON object mapping each id to its translation.`;
 }
@@ -65,12 +73,14 @@ export async function translateMissing(lang: string, opts: Options): Promise<num
   const path = localeFile(lang);
   const tr = readJson<TranslationCatalog>(path, {});
   const glossary = readJson<Record<string, Record<string, string>>>(GLOSSARY_FILE, {});
+  const style = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {})[lang];
+  if (!style) throw new Error(`No style guide for "${lang}" in src/locales/style.json`);
 
   const todo = Object.keys(en).filter((id) => !tr[id] || tr[id].source !== en[id].message).slice(0, opts.limit);
   console.log(`${lang}: ${todo.length} messages to translate with ${model}`);
   if (opts.dryRun || !todo.length) return 0;
 
-  const system = systemPrompt(lang, glossary);
+  const system = systemPrompt(lang, style, glossary, en);
   let cost = 0, done = 0, failed = 0;
   const queue = [...todo];
   const retried = new Set<string>();

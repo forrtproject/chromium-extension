@@ -12,6 +12,31 @@ if (!existsSync(join(ROOT, "manifest.json"))) throw new Error("Run the i18n scri
 export const EN_FILE = join(ROOT, "src/locales/en.json");
 export const localeFile = (lang: string): string => join(ROOT, `src/locales/${lang}.json`);
 export const GLOSSARY_FILE = join(ROOT, "src/locales/glossary.json");
+export const STYLE_FILE = join(ROOT, "src/locales/style.json");
+export const US_SPELLING_FILE = join(ROOT, "src/locales/en-US-spelling.json");
+
+/** US English catalog: only the messages whose British spelling changes. */
+export function usEnglishCatalog(en: SourceCatalog, spelling: Record<string, string>): Record<string, string> {
+  const words = Object.keys(spelling).sort((a, b) => b.length - a.length);
+  const pattern = new RegExp(`\\b(${words.join("|")})`, "gi");
+  const out: Record<string, string> = {};
+  for (const [id, src] of Object.entries(en)) {
+    const us = src.message.replace(pattern, (uk) => {
+      const word = spelling[uk.toLowerCase()];
+      return uk[0] === uk[0].toUpperCase() ? word[0].toUpperCase() + word.slice(1) : word;
+    });
+    if (us !== src.message && !translationIssues(src.message, us, "en-US").length) out[id] = us;
+  }
+  return out;
+}
+
+export interface LanguageStyle {
+  name: string;
+  nativeName: string;
+  rules: string[];
+  /** Approved translations of a few English messages, by message id. */
+  examples: Record<string, string>;
+}
 
 /** One English message as extracted from the code. */
 export interface SourceEntry {

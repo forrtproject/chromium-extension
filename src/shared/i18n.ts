@@ -24,12 +24,12 @@ import { formatMessage, messageTags, type MessageValues } from "./i18n-format";
 export type { MessageValues };
 
 /** Languages with a shipped catalog. The first is the source language. */
-export const SUPPORTED_LOCALES = ["en", "de"] as const;
+export const SUPPORTED_LOCALES = ["en", "en-US", "de"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 /** Value of the `language` setting: a supported locale or "auto" (browser language). */
 export type LanguagePreference = "auto" | Locale;
 
-export const LOCALE_NAMES: Record<Locale, string> = { en: "English", de: "Deutsch" };
+export const LOCALE_NAMES: Record<Locale, string> = { en: "English (UK)", "en-US": "English (US)", de: "Deutsch" };
 
 let locale: Locale = "en";
 let catalog: Record<string, string> = {};
@@ -38,9 +38,17 @@ export function uiLocale(): Locale {
   return locale;
 }
 
+/** Locale for Intl date, number and list formatting; plain "en" would format as US English. */
+export function intlLocale(): string {
+  return locale === "en" ? "en-GB" : locale;
+}
+
 export function resolveLocale(pref: LanguagePreference | undefined, browserLanguage: string): Locale {
   if (pref && pref !== "auto" && (SUPPORTED_LOCALES as readonly string[]).includes(pref)) return pref;
-  const base = browserLanguage.toLowerCase().split(/[-_]/)[0];
+  const tag = browserLanguage.replace(/_/g, "-").toLowerCase();
+  const exact = SUPPORTED_LOCALES.find((l) => l.toLowerCase() === tag);
+  if (exact) return exact;
+  const base = tag.split("-")[0];
   return (SUPPORTED_LOCALES as readonly string[]).includes(base) ? (base as Locale) : "en";
 }
 

@@ -1,4 +1,4 @@
-import {t, uiLocale} from "./i18n";
+import {t, intlLocale} from "./i18n";
 
 export interface SnoozeChoice {
     label: string;
@@ -35,7 +35,7 @@ export const SNOOZE_CHOICES: readonly SnoozeChoice[] = [
 /** "14:35", or "tomorrow at 09:00" when the pause runs past midnight. */
 export function formatSnoozeEnd(until: number): string {
     const end = new Date(until);
-    const time = end.toLocaleTimeString(uiLocale(), {hour: "2-digit", minute: "2-digit"});
+    const time = end.toLocaleTimeString(intlLocale(), {hour: "2-digit", minute: "2-digit"});
     if (end.toDateString() === new Date().toDateString()) return time;
     // i18n: end of a snooze, inserted into "Paused until …" / "Snoozed until …"; {time} is a clock time such as 09:00.
     return t("snooze.endTomorrow", "tomorrow at {time}", {time});

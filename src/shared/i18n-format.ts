@@ -115,6 +115,12 @@ function pluralCategory(locale: string, n: number): string {
   return rules.select(n);
 }
 
+function categoryNamesOneNumber(locale: string, category: string): boolean {
+  let hits = 0;
+  for (let n = 0; n <= 200 && hits < 2; n++) if (pluralCategory(locale, n) === category) hits++;
+  return hits <= 1;
+}
+
 export function formatMessage(source: string, values: MessageValues = {}, locale = "en"): string {
   const render = (nodes: Node[], count: number | null): string => {
     let out = "";
@@ -249,7 +255,8 @@ export function hasChoices(source: string): boolean {
  * Problems that make a translation unsafe or wrong to ship, in plain words for
  * reviewers: broken syntax, changed markup, missing plural or variant cases,
  * and placeholders missing from a case. A case may leave out its own number
- * where the form already implies it ("one", "=1").
+ * where the form already implies it ("=1", or a category such as German "one"
+ * or Arabic "two" that covers a single number; French "one" also covers 0).
  */
 export function translationIssues(english: string, translation: string, locale: string): string[] {
   if (!translation.trim()) return ["The translation is empty."];
@@ -278,7 +285,9 @@ export function translationIssues(english: string, translation: string, locale: 
   if (unknown.length) issues.push(`Unknown placeholder: ${unknown.map((a) => `{${a}}`).join(", ")}. Keep the names from the English.`);
   for (const form of enForms) {
     const got = argsOf(trForms.get(key(form))!.text);
-    const implied = new Set(form.path.filter((p) => p.type === "plural" && (p.key === "one" || p.key.startsWith("="))).map((p) => p.name));
+    const implied = new Set(form.path
+      .filter((p) => p.type === "plural" && (p.key.startsWith("=") || (p.key !== "other" && categoryNamesOneNumber(locale, p.key))))
+      .map((p) => p.name));
     const missing = [...argsOf(form.text)].filter((a) => !got.has(a) && !implied.has(a));
     if (missing.length) {
       const where = form.path.length ? ` in the case ${form.path.map((p) => `${p.name} = ${p.key}`).join(", ")}` : "";

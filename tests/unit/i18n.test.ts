@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { formatMessage, messageArguments, messageTags } from "../../src/shared/i18n-format";
-import { localizeDocument, resolveLocale, setLocaleForTesting, t, tHtml } from "../../src/shared/i18n";
-import { EN_FILE, extract, localeFile, readJson, translationProblems, type SourceCatalog, type TranslationCatalog } from "../../scripts/i18n/catalog";
+import { intlLocale, localizeDocument, resolveLocale, setLocaleForTesting, t, tHtml } from "../../src/shared/i18n";
+import {
+  EN_FILE, STYLE_FILE, US_SPELLING_FILE, extract, localeFile, readJson, translationProblems, usEnglishCatalog,
+  type LanguageStyle, type SourceCatalog, type TranslationCatalog,
+} from "../../scripts/i18n/catalog";
 
 afterEach(() => setLocaleForTesting("en"));
 
@@ -57,6 +60,29 @@ describe("runtime", () => {
     expect(resolveLocale("auto", "fr-FR")).toBe("en");
     expect(resolveLocale("en", "de-DE")).toBe("en");
     expect(resolveLocale(undefined, "de")).toBe("de");
+    expect(resolveLocale("auto", "en-US")).toBe("en-US");
+    expect(resolveLocale("auto", "en_US")).toBe("en-US");
+    expect(resolveLocale("auto", "en-GB")).toBe("en");
+    expect(resolveLocale("auto", "en-AU")).toBe("en");
+  });
+
+  it("formats dates for UK English rather than Intl's US default", () => {
+    setLocaleForTesting("en");
+    expect(new Date(2026, 10, 18).toLocaleDateString(intlLocale())).toBe("18/11/2026");
+    setLocaleForTesting("en-US");
+    expect(new Date(2026, 10, 18).toLocaleDateString(intlLocale())).toBe("11/18/2026");
+    setLocaleForTesting("en");
+  });
+});
+
+describe("US English", () => {
+  it("changes only British spellings and keeps the message valid", () => {
+    const en = readJson<SourceCatalog>(EN_FILE, {});
+    const us = usEnglishCatalog(en, readJson(US_SPELLING_FILE, {}));
+    expect(us["walkthrough.pill.parts"]).toMatch(/\bcolored\b/);
+    expect(Object.values(us).join(" ")).not.toMatch(/colour|behaviour|recognis|judgement|towards/i);
+    expect(usEnglishCatalog({ x: { message: "Recognised towards the centre", where: [] } }, { recognis: "recogniz", towards: "toward", centre: "center" }))
+      .toEqual({ x: "Recognized toward the center" });
   });
 });
 
@@ -65,6 +91,27 @@ describe("catalogs", () => {
     const { catalog, errors } = extract();
     expect(errors).toEqual([]);
     expect(catalog).toEqual(readJson<SourceCatalog>(EN_FILE, {}));
+  });
+
+  it("style guide examples are valid translations of current messages", () => {
+    const en = readJson<SourceCatalog>(EN_FILE, {});
+    const styles = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
+    const forbidden: Record<string, RegExp> = {
+      de: /\b(du|dich|dir|dein\w*|Ihnen|Ihre?[mnrs]?)\b/,
+      fr: /\b(tu|toi|ton|ta|tes)\b/i,
+      es: /\b(tú|vos|tu|tus|te)\b/i,
+      "pt-PT": /\bvocê/i,
+      ro: /[şţŞŢ]/,
+      ko: /당신|너는|너의/,
+      "zh-CN": /你|[一-鿿][,.?!:;]|[,.?!:;][一-鿿]/,
+    };
+    for (const [lang, style] of Object.entries(styles)) {
+      for (const [id, text] of Object.entries(style.examples)) {
+        expect(en[id], `${lang} example ${id}`).toBeDefined();
+        expect(translationProblems(en, { [id]: { message: text, source: en[id].message, status: "reviewed" } }, lang)).toEqual([]);
+        if (forbidden[lang]) expect(text, `${lang} ${id}`).not.toMatch(forbidden[lang]);
+      }
+    }
   });
 
   it("German translations keep placeholders and markup", () => {
@@ -120,5 +167,8 @@ describe("translation checks", () => {
     expect(translationIssues("Show {n, plural, one {# more} other {# more}}", "{n, plural, one {# weitere} other {weitere}}", "de")[0]).toMatch(/Missing placeholder.*n = other/);
     // The singular may leave out its own number.
     expect(translationIssues("{n, plural, one {# more paper} other {# more papers}}", "{n, plural, one {Ein weiterer Artikel} other {# weitere Artikel}}", "de")).toEqual([]);
+    expect(translationIssues("{n, plural, one {# comment} other {# comments}}", "{n, plural, one {Un commentaire} many {# commentaires} other {# commentaires}}", "fr")[0]).toMatch(/n = one/);
+    expect(translationIssues("{n, plural, one {# comment} other {# comments}}",
+      "{n, plural, zero {لا توجد تعليقات} one {تعليق واحد} two {تعليقان} few {# تعليقات} many {# تعليقًا} other {# تعليق}}", "ar")).toEqual([]);
   });
 });

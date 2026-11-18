@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import { INSTALL_URL, outcomeTags, validDoiUrl, type ReportEntry, type ReportPayload, type ReportReference } from "./report";
 import { plainTitle } from "./plain-title";
 import { webUrl } from "./web-url";
-import { t, uiLocale } from "./i18n";
+import { t, intlLocale } from "./i18n";
 
 type Rgb = [number, number, number];
 
@@ -183,7 +183,7 @@ function sectionHeading(l: Layout, title: string, count: number): void {
   l.rule();
   l.y += 18;
   l.font("bold", 9, MUTED);
-  const label = pdfText(title.toLocaleUpperCase(uiLocale()));
+  const label = pdfText(title.toLocaleUpperCase(intlLocale()));
   l.doc.text(label, MARGIN, l.y);
   l.font("bold", 9, MAROON);
   l.doc.text(String(count), MARGIN + l.doc.getTextWidth(`${label} `) + 2, l.y);
@@ -274,7 +274,7 @@ function colophon(l: Layout, payload: ReportPayload): void {
   l.ensure(56);
   l.rule();
   l.y += 16;
-  const date = new Date(payload.generated).toLocaleDateString(uiLocale(), {dateStyle: "long"});
+  const date = new Date(payload.generated).toLocaleDateString(intlLocale(), {dateStyle: "long"});
   l.font("normal", 8.5, MUTED);
   l.paragraph(
     `${t("report.pdf.compiled", "Compiled by FORRT ORE on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.", {date})} ` +

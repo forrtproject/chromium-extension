@@ -5,7 +5,7 @@
 import type {NoticeKind} from "@shared/types";
 import {plainTitle} from "@shared/plain-title";
 import {webUrl} from "@shared/web-url";
-import {t, tHtml, uiLocale} from "@shared/i18n";
+import {t, tHtml, intlLocale} from "@shared/i18n";
 
 // The docs site's canonical host. forrtproject.github.io/* 301-redirects here,
 // so linking to the github.io form would ship a redirect in every shared link.
@@ -413,7 +413,7 @@ export function renderReportBody(payload: ReportPayload): string {
     <div class="colophon">
       ${tHtml("report.colophon.compiled", "Compiled by <a href=\"{url}\">FORRT ORE</a> on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.", {
         url: INSTALL_URL,
-        date: new Date(payload.generated).toLocaleDateString(uiLocale(), {dateStyle: "long"}),
+        date: new Date(payload.generated).toLocaleDateString(intlLocale(), {dateStyle: "long"}),
       })}
       ${esc(t("report.colophon.caveat", "Replication evidence is a starting point for judgement, not a verdict."))}
     </div>

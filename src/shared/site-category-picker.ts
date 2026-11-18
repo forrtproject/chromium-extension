@@ -159,7 +159,7 @@ export function mountSiteCategoryPicker(container: HTMLElement, onChange?: (mess
         void setSitesEnabled(domains, all.checked).then((saved) => {
           if (!saved) return;
           // English writes the category name in lower case mid-sentence; other languages keep their own casing.
-          const shown = uiLocale() === "en" ? categoryName.toLowerCase() : categoryName;
+          const shown = uiLocale().startsWith("en") ? categoryName.toLowerCase() : categoryName;
           onChange?.(all.checked
             ? t("sites.category.turnedOn", "ORE turned on for {category}.", { category: shown })
             : t("sites.category.turnedOff", "ORE turned off for {category}.", { category: shown }));

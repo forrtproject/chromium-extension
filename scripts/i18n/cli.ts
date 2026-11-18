@@ -15,13 +15,13 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SUPPORTED_LOCALES } from "../../src/shared/i18n";
 import {
-  EN_FILE, GLOSSARY_FILE, ROOT, extract, forTranslation, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
+  EN_FILE, GLOSSARY_FILE, ROOT, US_SPELLING_FILE, extract, usEnglishCatalog, forTranslation, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
   type SourceCatalog, type TranslationCatalog, type TranslationEntry,
 } from "./catalog";
 import { translateMissing } from "./translate";
 import { classifyEntries } from "./classify";
 
-const TARGETS = SUPPORTED_LOCALES.filter((l) => l !== "en");
+const TARGETS = SUPPORTED_LOCALES.filter((l) => l !== "en" && l !== "en-US");
 
 function loadEn(): SourceCatalog {
   return readJson<SourceCatalog>(EN_FILE, {});
@@ -78,6 +78,7 @@ function cmdBuild(): number {
   mkdirSync(reviewData, { recursive: true });
   writeFileSync(join(reviewData, "en.json"), `${JSON.stringify(forTranslation(en))}\n`);
   writeFileSync(join(reviewData, "glossary.json"), `${JSON.stringify(readJson(GLOSSARY_FILE, {}))}\n`);
+  writeFileSync(join(ROOT, "dist/locales/en-US.json"), JSON.stringify(usEnglishCatalog(en, readJson(US_SPELLING_FILE, {}))));
   for (const lang of TARGETS) {
     const tr = readJson<TranslationCatalog>(localeFile(lang), {});
     const bad = new Set(translationProblems(en, tr, lang).map((p) => p.split(":")[0]));

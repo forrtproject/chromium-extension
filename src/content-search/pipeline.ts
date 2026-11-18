@@ -23,7 +23,7 @@ import {noteScanUpdated, type ScanSummary} from "@shared/toolbar-scan";
 import {reportCodeError} from "@shared/error-report";
 import {hasReplication} from "../content-general/reference-states";
 import {isSetupComplete} from "@shared/settings";
-import {t, uiLocale} from "@shared/i18n";
+import {t, intlLocale, uiLocale} from "@shared/i18n";
 import {deferredOpenAccess} from "@shared/openaccess";
 import {abortWorkForNavigation, activeWorkSignal, isAbortError, canStartAutomaticWork, resumeAutomaticWork, workSignal} from "@shared/work-cancellation";
 import {waitUntilVisible} from "@shared/page-visibility";
@@ -562,8 +562,8 @@ onOutagesChanged(() => {
 
 /** "a", "a and b", "a, b and c" — no serial comma in English, matching the original wording. */
 function listOf(items: string[]): string {
-    if (uiLocale() === "en") return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
-    return new Intl.ListFormat(uiLocale(), {type: "conjunction"}).format(items);
+    if (uiLocale().startsWith("en")) return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+    return new Intl.ListFormat(intlLocale(), {type: "conjunction"}).format(items);
 }
 
 /** A single retry keeps either failure from hiding the other provider's recovery action. */
@@ -595,7 +595,7 @@ async function updateSearchRetry(adapter: SearchSiteAdapter, root: ParentNode): 
     const sentence = t("search.retry.unavailable", "{number, select, plural {{list} are unavailable.} other {{list} is unavailable.}}", {number: grammaticalNumber, list: listOf(what)});
     searchRetryMessage = what.length === 1 && titleFailed
         ? t("search.retry.doiMatchingSome", "DOI matching is unavailable for some results.")
-        : `${sentence.charAt(0).toLocaleUpperCase(uiLocale())}${sentence.slice(1)}`;
+        : `${sentence.charAt(0).toLocaleUpperCase(intlLocale())}${sentence.slice(1)}`;
     if (searchRetryToast?.isConnected && searchRetryToast.getAttribute("data-flora-toast-message") === searchRetryMessage) {
         noteScanUpdated();
         return;

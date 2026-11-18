@@ -8,20 +8,25 @@
  */
 
 import { hasChoices } from "../../src/shared/i18n-format";
-import { EN_FILE, forTranslation, localeFile, readJson, writeSortedJson, type SourceCatalog, type TranslationCatalog } from "./catalog";
+import {
+  EN_FILE, GLOSSARY_FILE, STYLE_FILE, forTranslation, localeFile, readJson, writeSortedJson,
+  type LanguageStyle, type SourceCatalog, type TranslationCatalog,
+} from "./catalog";
 import { callModel, parseReply } from "./translate";
 
 const DEFAULT_MODEL = "openai/gpt-6.1-sol";
 const BATCH = 40;
-const LANGUAGE_NAMES: Record<string, string> = { de: "German" };
 
-const system = (lang: string): string => `You triage ${LANGUAGE_NAMES[lang]} translations of the interface of FORRT ORE, a browser extension that marks academic papers with small "pills" showing replications, retractions, expressions of concern, Registered Reports, PubPeer comments and open-access copies. A native speaker will review them; your rating decides what they look at first.
+const system = (lang: string, style: LanguageStyle, glossary: Record<string, Record<string, string>>): string => `You triage ${style.name} translations of the interface of FORRT ORE, a browser extension that marks academic papers with small "pills" showing replications, retractions, expressions of concern, Registered Reports, PubPeer comments and open-access copies. A native speaker will review them; your rating decides what they look at first.
 
 For each item rate the review need:
 1 = quick check: short, routine UI wording (buttons, menu labels, standard status text) and the translation is clearly correct and natural. Safe to approve after a glance.
 2 = read it: probably correct, but phrasing, register, terminology or fit in the UI deserves a native speaker's read.
 3 = review carefully: any of — statements about scientific evidence (replication outcomes, retractions, what a finding means), privacy or data-handling claims, instructions users must follow exactly, ambiguous English where the translation had to guess, a possible mistranslation or unnatural wording, tight space limits, or you have any doubt.
-Style rules the translation should follow: no direct address ("Sie"/"du"), "Retraction" kept in English, "pill" = "Markierung", names unchanged.
+Style rules the translation should follow (rate 3 if one is broken):
+${style.rules.map((r) => `- ${r}`).join("\n")}
+- Product and data-source names unchanged.
+Agreed terms: ${Object.entries(glossary).filter(([, t]) => t[lang]).map(([term, t]) => `${term} = ${t[lang]}`).join("; ") || "none yet"}.
 
 Reply with only a JSON object: {"<id>": {"level": 1|2|3, "reason": "<= 12 words in English; empty for level 1"}}.`;
 
@@ -37,6 +42,9 @@ export async function classifyEntries(lang: string, opts: { all: boolean; model?
     .filter((id) => opts.all || tr[id].review == null)
     .slice(0, opts.limit ?? Infinity);
   console.log(`${lang}: rating ${todo.length} translations with ${model}`);
+  const style = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {})[lang];
+  if (!style) throw new Error(`No style guide for "${lang}" in src/locales/style.json`);
+  const prompt = system(lang, style, readJson(GLOSSARY_FILE, {}));
   let cost = 0, missed = 0;
   for (let i = 0; i < todo.length; i += BATCH) {
     const batch = todo.slice(i, i + BATCH);
@@ -49,7 +57,7 @@ export async function classifyEntries(lang: string, opts: { all: boolean; model?
     }));
     let reply: Record<string, Rating> = {};
     try {
-      const r = await callModel(model, system(lang), JSON.stringify(payload, null, 1));
+      const r = await callModel(model, prompt, JSON.stringify(payload, null, 1));
       cost += r.cost;
       reply = parseReply<Rating>(r.text);
     } catch (err) {

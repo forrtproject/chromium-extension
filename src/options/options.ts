@@ -24,7 +24,7 @@ import {
   resolveLocale,
   SUPPORTED_LOCALES,
   t,
-  uiLocale,
+  intlLocale,
   type LanguagePreference,
 } from "../shared/i18n";
 
@@ -204,7 +204,7 @@ async function main(): Promise<void> {
     const entries = t("settings.data.entries", "{count, plural, one {# entry} other {# entries}}", { count: set.count });
     // i18n: shown after the entry count; the list shipped with the extension and has not been refreshed.
     if (set.updatedAt === null) return `${entries} · ${t("settings.data.bundled", "bundled with ORE")}`;
-    const date = new Date(set.updatedAt).toLocaleString(uiLocale(), { dateStyle: "medium", timeStyle: "short" });
+    const date = new Date(set.updatedAt).toLocaleString(intlLocale(), { dateStyle: "medium", timeStyle: "short" });
     // i18n: shown after the entry count; {date} is when the list was last downloaded.
     return `${entries} · ${t("settings.data.updated", "updated {date}", { date })}`;
   }
