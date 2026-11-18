@@ -405,7 +405,7 @@ export function renderReportBody(payload: ReportPayload): string {
       Compiled by <a href="${INSTALL_URL}">FORRT ORE</a> on
       ${esc(new Date(payload.generated).toLocaleDateString(undefined, {dateStyle: "long"}))}
       from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.
-      Replication evidence is a starting point for judgement, not a verdict.
+      ORE shows what has been reported about a paper. Read those reports before you judge it.
     </div>
   </div>`;
 }
