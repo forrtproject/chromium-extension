@@ -31,6 +31,7 @@ import {MARKER_EDGE_GAP} from "@shared/editor-marker";
 import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {PILL_ROW_CLASS} from "@shared/pill-row";
+import {backdropColor, blend, contrastRatio, followPageTheme, isDark, type Rgb} from "@shared/backdrop";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -214,6 +215,30 @@ const NOTICE_SEGMENT_ATTR = "data-flora-notice-segment";
 const RR_ROW_ATTR = "data-flora-rr-row";
 const MARKER_RESTING_SHADOW = "0 1px 2px rgba(27,31,36,0.12)";
 
+const DARK_ATTR = "data-flora-dark";
+const DARK_BORDER = "rgba(255,255,255,0.22)";
+const DARK_BORDER_HOVER = "rgba(255,255,255,0.4)";
+const DARK_ABSENT_ALPHA = 0.6;
+const DARK_ABSENT_TEXT = `rgba(255,255,255,${DARK_ABSENT_ALPHA})`;
+const DARK_ABSENT_STRIKE = "rgba(255,255,255,0.35)";
+const DARK_FILL: Rgb = [28, 28, 31];
+const LIGHT_FILL = "#ffffff";
+const WHITE: Rgb = [255, 255, 255];
+const MIN_TEXT_CONTRAST = 4.5;
+const ABSENT_TEXT_VAR = "--flora-absent";
+const ABSENT_STRIKE_VAR = "--flora-absent-strike";
+
+interface PillTheme {
+    dark: boolean;
+    fill: string;
+}
+
+function themeFor(backdrop: Rgb): PillTheme {
+    if (!isDark(backdrop)) return {dark: false, fill: LIGHT_FILL};
+    const seeThrough = contrastRatio(blend(WHITE, DARK_ABSENT_ALPHA, backdrop), backdrop) >= MIN_TEXT_CONTRAST;
+    return {dark: true, fill: seeThrough ? "transparent" : `rgb(${DARK_FILL.join(",")})`};
+}
+
 const FILL_ALPHA = "c7";
 const FILL_HOVER_ALPHA = "e6";
 const BORDER_ALPHA = "4d";
@@ -246,7 +271,7 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
         ? spec.fill ?? `${color}${FILL_HOVER_ALPHA}`
         : `${color}${ABSENT_HOVER_ALPHA}`;
     const decoration = spec.decoration
-        ?? (spec.exists || spec.pending ? "text-decoration:none;" : `text-decoration:line-through;text-decoration-color:${color}${ABSENT_ALPHA};`);
+        ?? (spec.exists || spec.pending ? "text-decoration:none;" : `text-decoration:line-through;text-decoration-color:var(${ABSENT_STRIKE_VAR}, ${color}${ABSENT_ALPHA});`);
 
     const el = document.createElement("span");
     el.setAttribute(spec.attr, "");
@@ -257,7 +282,7 @@ function buildSegment(spec: SegmentSpec, color: string): HTMLElement {
     el.style.cssText = `
     display:inline-flex;align-items:center;gap:5px;flex-shrink:0;
     padding:3px 9px;white-space:nowrap;line-height:1;
-    color:${spec.exists ? "#fff" : `${color}${ABSENT_ALPHA}`};
+    color:${spec.exists ? "#fff" : `var(${ABSENT_TEXT_VAR}, ${color}${ABSENT_ALPHA})`};
     background:${rest};
     ${decoration}
     transition:background 0.15s ease;
@@ -1512,6 +1537,25 @@ function buildIndicatorPill(options: IndicatorPillOptions, slot?: StackSlot): HT
             refreshMarker();
         });
         refreshMarker();
+    } else {
+        const matchBackdrop = () => {
+            const theme = themeFor(backdropColor(wrapper));
+            pill.toggleAttribute(DARK_ATTR, theme.dark);
+            pill.style.background = theme.fill;
+            if (theme.dark) {
+                pill.style.setProperty(ABSENT_TEXT_VAR, DARK_ABSENT_TEXT);
+                pill.style.setProperty(ABSENT_STRIKE_VAR, DARK_ABSENT_STRIKE);
+            } else {
+                pill.style.removeProperty(ABSENT_TEXT_VAR);
+                pill.style.removeProperty(ABSENT_STRIKE_VAR);
+            }
+            restingBorder = theme.dark ? DARK_BORDER : `${color}${BORDER_ALPHA}`;
+            hoverBorder = theme.dark ? DARK_BORDER_HOVER : `${color}${ABSENT_ALPHA}`;
+            pill.style.borderColor = pill.matches(":hover") ? hoverBorder : restingBorder;
+        };
+        requestAnimationFrame(() => {
+            if (wrapper.isConnected) followPageTheme(wrapper, matchBackdrop);
+        });
     }
 
     let faceOa = lookups.oa;

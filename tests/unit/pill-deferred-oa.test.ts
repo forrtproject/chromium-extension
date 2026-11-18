@@ -23,7 +23,11 @@ beforeEach(() => {
         disconnect() {}
     });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(async () => {
+    document.body.innerHTML = "";
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    vi.unstubAllGlobals();
+});
 
 async function pill(lookup: () => Promise<typeof OA>) {
     const {createIndicatorPill} = await import("../../src/shared/indicator-pill");
