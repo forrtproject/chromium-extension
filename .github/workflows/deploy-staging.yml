@@ -1,0 +1,31 @@
+name: Deploy to staging
+
+# Publishes this repository's site to https://staging.forrt.org/chromium-extension/ through the
+# shared FORRT workflow (forrtproject/.github), which documents the details.
+#   - Push to `staging` or `staging/<name>`, or push a tag starting with `staging`.
+#   - Or Actions -> "Deploy to staging" -> Run workflow, entering any branch, tag or commit.
+on:
+  push:
+    branches: ['staging', 'staging/**']
+    tags: ['staging**']
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or commit to deploy (empty = the branch selected above)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: forrtproject/.github/.github/workflows/deploy-staging.yml@main
+    with:
+      ref: ${{ inputs.ref }}
+      # No build: docs/ is committed (npm run build writes docs/report.js) and production
+      # GitHub Pages serves it as it is.
+      site-dir: docs
+    secrets:
+      STAGING_GITHUB_TOKEN: ${{ secrets.STAGING_GITHUB_TOKEN }}
