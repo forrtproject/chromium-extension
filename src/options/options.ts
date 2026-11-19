@@ -18,6 +18,7 @@ import {
   type DebugReportData,
 } from "../shared/debug-report";
 import {
+  availableLocales,
   initI18n,
   localizeDocument,
   LOCALE_NAMES,
@@ -84,14 +85,15 @@ async function main(): Promise<void> {
     }
   }
 
-  languageSelect.add(new Option(
-    // i18n: {name} is the language the browser setting resolves to, in its own name (e.g. "Deutsch").
-    t("settings.language.auto", "Browser default ({name})", { name: LOCALE_NAMES[resolveLocale("auto", browserUiLanguage())] }),
-    "auto"
-  ));
-  for (const locale of SUPPORTED_LOCALES) languageSelect.add(new Option(LOCALE_NAMES[locale], locale));
-
-  getSettings().then(({ language }) => {
+  Promise.all([availableLocales(), getSettings()]).then(([available, { language }]) => {
+    languageSelect.add(new Option(
+      // i18n: {name} is the language the browser setting resolves to, in its own name (e.g. "Deutsch").
+      t("settings.language.auto", "Browser default ({name})", { name: LOCALE_NAMES[resolveLocale("auto", browserUiLanguage(), available)] }),
+      "auto"
+    ));
+    for (const locale of SUPPORTED_LOCALES) {
+      if (locale === "en" || available.includes(locale) || locale === language) languageSelect.add(new Option(LOCALE_NAMES[locale], locale));
+    }
     languageSelect.value = language;
   });
 

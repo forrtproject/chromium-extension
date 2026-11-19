@@ -10,6 +10,7 @@ import {
   forTranslation, translationProblems, type LanguageStyle, type SourceCatalog, type TranslationCatalog,
 } from "./catalog";
 import { classifyEntries } from "./classify";
+import { styleIssues } from "../../src/shared/i18n-format";
 
 const DEFAULT_MODEL = "anthropic/claude-sonnet-5.5";
 const BATCH = 40;
@@ -18,7 +19,8 @@ interface Options { model?: string; limit: number; dryRun: boolean }
 export function systemPrompt(lang: string, style: LanguageStyle, glossary: Record<string, Record<string, string>>, en: SourceCatalog): string {
   const terms = Object.entries(glossary)
     .map(([term, t]) => {
-      const note = t.note ? ` (${lang === "de" ? "" : "German glossary note, for context only: "}${t.note})` : "";
+      const notes = [t.note, t[`note:${lang}`]].filter(Boolean).join(" ");
+      const note = notes ? ` (${notes})` : "";
       return `- ${term} → ${t[lang] ?? "no agreed term yet: use the term researchers in this field use, consistently"}${note}`;
     })
     .join("\n");
@@ -52,6 +54,7 @@ export async function callModel(model: string, system: string, user: string): Pr
     body: JSON.stringify({
       model,
       temperature: 0.2,
+      max_tokens: 16000,
       response_format: { type: "json_object" },
       usage: { include: true },
       messages: [{ role: "system", content: system }, { role: "user", content: user }],
@@ -73,14 +76,14 @@ export async function translateMissing(lang: string, opts: Options): Promise<num
   const path = localeFile(lang);
   const tr = readJson<TranslationCatalog>(path, {});
   const glossary = readJson<Record<string, Record<string, string>>>(GLOSSARY_FILE, {});
-  const style = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {})[lang];
-  if (!style) throw new Error(`No style guide for "${lang}" in src/locales/style.json`);
+  const guide = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {})[lang];
+  if (!guide) throw new Error(`No style guide for "${lang}" in src/locales/style.json`);
 
   const todo = Object.keys(en).filter((id) => !tr[id] || tr[id].source !== en[id].message).slice(0, opts.limit);
   console.log(`${lang}: ${todo.length} messages to translate with ${model}`);
   if (opts.dryRun || !todo.length) return 0;
 
-  const system = systemPrompt(lang, style, glossary, en);
+  const system = systemPrompt(lang, guide, glossary, en);
   let cost = 0, done = 0, failed = 0;
   const queue = [...todo];
   const retried = new Set<string>();
@@ -113,15 +116,17 @@ export async function translateMissing(lang: string, opts: Options): Promise<num
         ...(prev?.status === "reviewed" ? { note: `Previously reviewed: ${prev.message}` } : {}),
       };
       const problems = typeof message === "string" ? translationProblems(en, { [id]: candidate }, lang) : ["no reply"];
-      if (problems.length) {
+      const style = typeof message === "string" ? styleIssues(message, guide.avoid) : [];
+      if (problems.length || (style.length && !retried.has(id))) {
         if (!retried.has(id)) { retried.add(id); queue.push(id); }
         else { failed++; console.warn(`gave up on ${id}: ${problems[0]}`); }
         continue;
       }
+      if (style.length) console.warn(`style warning on ${id}: ${style[0]}`);
       tr[id] = candidate;
       done++;
     }
-    writeSortedJson(path, tr);
+    if (Object.keys(tr).length) writeSortedJson(path, tr);
     console.log(`  ${done}/${todo.length} translated, spend so far $${cost.toFixed(3)}`);
   }
   console.log(`${lang}: ${done} translated, ${failed} failed, OpenRouter cost $${cost.toFixed(3)}`);

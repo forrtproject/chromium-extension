@@ -31,7 +31,7 @@ import {MARKER_EDGE_GAP} from "@shared/editor-marker";
 import {writeClipboard, writeRichClipboard} from "@shared/clipboard";
 import {showToast} from "@shared/toast";
 import {PILL_ROW_CLASS} from "@shared/pill-row";
-import {t} from "@shared/i18n";
+import {t, uiDirection, uiLocale} from "@shared/i18n";
 
 export const INDICATOR_PILL_CLASS = "flora-indicator-pill";
 
@@ -778,7 +778,7 @@ function buildOaRow(state: OaState, compact = false, retry?: () => void): HTMLEl
         + `cursor:pointer;user-select:none;border-radius:5px;padding:${compact ? "1px 4px" : "3px 5px"};`;
 
     const list = document.createElement("div");
-    list.style.cssText = `display:none;flex-direction:column;padding:0 0 ${compact ? "2px" : "4px"} ${compact ? "19px" : "24px"};`;
+    list.style.cssText = `display:none;flex-direction:column;padding-block:0 ${compact ? "2px" : "4px"};padding-inline:${compact ? "19px" : "24px"} 0;`;
     for (const loc of locations) list.appendChild(buildOaChoice(loc, compact));
 
     const setToggle = () => {
@@ -1710,13 +1710,15 @@ function createPopover(color: string, label: string): HTMLElement {
     font-style: normal;
     line-height: 18px;
     color: #1f2328;
-    text-align: left;
+    text-align: start;
     white-space: normal;
     flex-direction: column;
     gap: 2px;
   `;
     // Sites style their own modals through [role="dialog"], which this host carries.
     for (const [prop, value] of POPOVER_HOST_GUARDS) popover.style.setProperty(prop, value, "important");
+    popover.lang = uiLocale();
+    popover.dir = uiDirection();
     const root = popover.attachShadow({mode: "open"});
     const style = document.createElement("style");
     style.textContent = POPOVER_SHADOW_CSS;
@@ -1939,7 +1941,7 @@ export function createStackedIndicatorPill(papers: IndicatorPillOptions[]): HTML
     label.setAttribute("aria-live", "polite");
     label.style.cssText = "flex:1;min-width:0;font-size:11px;font-weight:600;color:#57606a;letter-spacing:0.02em;";
     const dots = document.createElement("span");
-    dots.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-right:4px;";
+    dots.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-inline-end:4px;";
     const prev = pagerButton(PAGER_PREV_SVG, t("pill.stack.previous", "Previous paper"), color);
     const next = pagerButton(PAGER_NEXT_SVG, t("pill.stack.next", "Next paper"), color);
     header.append(label, dots, prev, next);
@@ -2101,7 +2103,7 @@ export function createIndicatorPanel(options: IndicatorPillOptions): HTMLElement
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     font-size: 12px;
     line-height: 16px;
-    text-align: left;
+    text-align: start;
   `;
 
     ensurePanelStyle();

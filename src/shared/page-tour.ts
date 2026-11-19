@@ -5,7 +5,7 @@ import {waitForWorkToFinish} from "@shared/progress-toast";
 import {debugWarn} from "@shared/debug";
 import {clearTourRequest, isTourRequestedFor} from "@shared/tour-sample";
 import {currentPageEntry, isSamePage} from "@shared/page-identity";
-import {t} from "@shared/i18n";
+import {t, uiDirection, uiLocale} from "@shared/i18n";
 
 export type TourSurface = "article" | "search";
 
@@ -169,7 +169,7 @@ const STYLES = `
   }
   button:focus-visible { outline: 2px solid #853953; outline-offset: 2px; }
   button[disabled] { opacity: .45; cursor: default; }
-  .skip { border: 0; background: none; color: #6e7781; padding: 6px 4px; margin-right: auto; }
+  .skip { border: 0; background: none; color: #6e7781; padding: 6px 4px; margin-inline-end: auto; }
   .next { background: #853953; border-color: #853953; color: #fff; font-weight: 600; }
   @media (prefers-reduced-motion: reduce) { .spotlight { transition: none; } }
 `;
@@ -217,6 +217,8 @@ export function runPageTour(stops: TourStop[]): boolean {
     host.setAttribute("data-flora-ui", "");
     if (typeof host.showPopover === "function") host.setAttribute("popover", "manual");
     host.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;overflow:visible;pointer-events:none;z-index:2147483647;";
+    host.lang = uiLocale();
+    host.dir = uiDirection();
     const root = host.attachShadow({mode: "open"});
     root.innerHTML = `<style>${STYLES}</style>
       <div class="spotlight"></div>

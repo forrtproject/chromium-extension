@@ -24,12 +24,22 @@ import { formatMessage, messageTags, type MessageValues } from "./i18n-format";
 export type { MessageValues };
 
 /** Languages with a shipped catalog. The first is the source language. */
-export const SUPPORTED_LOCALES = ["en", "en-US", "de"] as const;
+export const SUPPORTED_LOCALES = ["en", "en-US", "de", "fr", "es", "pt-BR", "pt-PT", "ro", "hu", "ar", "ko", "zh-CN"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 /** Value of the `language` setting: a supported locale or "auto" (browser language). */
 export type LanguagePreference = "auto" | Locale;
 
-export const LOCALE_NAMES: Record<Locale, string> = { en: "English (UK)", "en-US": "English (US)", de: "Deutsch" };
+export const LOCALE_NAMES: Record<Locale, string> = {
+  en: "English (UK)", "en-US": "English (US)", de: "Deutsch", fr: "Français", es: "Español",
+  "pt-BR": "Português (Brasil)", "pt-PT": "Português (Portugal)", ro: "Română", hu: "Magyar",
+  ar: "العربية", ko: "한국어", "zh-CN": "简体中文",
+};
+
+const RTL_LOCALES: ReadonlySet<string> = new Set(["ar"]);
+
+export function uiDirection(): "ltr" | "rtl" {
+  return RTL_LOCALES.has(locale) ? "rtl" : "ltr";
+}
 
 let locale: Locale = "en";
 let catalog: Record<string, string> = {};
@@ -43,13 +53,22 @@ export function intlLocale(): string {
   return locale === "en" ? "en-GB" : locale;
 }
 
-export function resolveLocale(pref: LanguagePreference | undefined, browserLanguage: string): Locale {
-  if (pref && pref !== "auto" && (SUPPORTED_LOCALES as readonly string[]).includes(pref)) return pref;
+export function resolveLocale(
+  pref: LanguagePreference | undefined,
+  browserLanguage: string,
+  available: readonly string[] = SUPPORTED_LOCALES,
+): Locale {
+  const offered = SUPPORTED_LOCALES.filter((l) => l === "en" || available.includes(l));
+  if (pref && pref !== "auto" && (offered as readonly string[]).includes(pref)) return pref;
   const tag = browserLanguage.replace(/_/g, "-").toLowerCase();
-  const exact = SUPPORTED_LOCALES.find((l) => l.toLowerCase() === tag);
+  const exact = offered.find((l) => l.toLowerCase() === tag);
   if (exact) return exact;
-  const base = tag.split("-")[0];
-  return (SUPPORTED_LOCALES as readonly string[]).includes(base) ? (base as Locale) : "en";
+  const [base, ...rest] = tag.split("-");
+  let candidate: string = base;
+  // Traditional Chinese readers must not get Simplified Chinese; they fall back to English.
+  if (base === "zh") candidate = !rest.includes("hans") && rest.some((p) => ["tw", "hk", "mo", "hant"].includes(p)) ? "" : "zh-CN";
+  if (base === "pt") candidate = rest.some((p) => ["ao", "mz", "cv", "gw", "st", "tl", "mo", "lu", "ch"].includes(p)) ? "pt-PT" : "pt-BR";
+  return (offered as readonly string[]).includes(candidate) ? (candidate as Locale) : "en";
 }
 
 function browserLanguage(): string {
@@ -57,6 +76,16 @@ function browserLanguage(): string {
     return chrome.i18n.getUILanguage();
   } catch {
     return typeof navigator !== "undefined" ? navigator.language : "en";
+  }
+}
+
+/** Locales with a shipped catalog, besides the English source. */
+export async function availableLocales(): Promise<string[]> {
+  try {
+    const res = await fetch(chrome.runtime.getURL("dist/locales/available.json"));
+    return res.ok ? ((await res.json()) as string[]) : [];
+  } catch {
+    return [];
   }
 }
 
@@ -137,7 +166,10 @@ async function applyPreference(pref: LanguagePreference | undefined): Promise<vo
   if (run !== applying) return;
   catalog = next;
   locale = nextLocale;
-  if (typeof document !== "undefined" && isExtensionContext()) document.documentElement.lang = locale;
+  if (typeof document !== "undefined" && isExtensionContext()) {
+    document.documentElement.lang = locale;
+    document.documentElement.dir = uiDirection();
+  }
 }
 
 /** Test hook: switch language synchronously with a given catalog. */
