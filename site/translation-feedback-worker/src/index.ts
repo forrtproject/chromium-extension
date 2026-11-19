@@ -7,9 +7,12 @@ export interface Env {
   GITHUB_APP_PRIVATE_KEY: string;
   TURNSTILE_SECRET: string;
   LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
-  CONTACTS: {
-    put(key: string, value: string, options?: { expirationTtl?: number; metadata?: unknown }): Promise<void>;
-  };
+  CONTACTS: KV;
+  REVIEWS: KV;
+}
+
+interface KV {
+  put(key: string, value: string, options?: { expirationTtl?: number; metadata?: unknown }): Promise<void>;
 }
 
 export const CONTACT_TTL_SECONDS = 365 * 24 * 60 * 60;
@@ -68,6 +71,94 @@ export function validate(input: unknown): { ok: true; value: Submission } | { ok
   return { ok: true, value: { language, name: name.trim(), email: email.trim(), message: text, turnstileToken, ...(confirm ? { confirm } : {}) } };
 }
 
+export interface ReviewEntry { message: string; source: string; approved: boolean; note?: string; changed?: boolean }
+
+export interface ReviewSubmission {
+  language: string;
+  name: string;
+  email: string;
+  message: string;
+  turnstileToken: string;
+  entries: Record<string, ReviewEntry>;
+}
+
+export const MAX_REVIEW_BYTES = 1_500_000;
+
+export function validateReview(input: unknown): { ok: true; value: ReviewSubmission } | { ok: false; error: string } {
+  if (!input || typeof input !== "object") return { ok: false, error: "Invalid request." };
+  const raw = input as Record<string, unknown>;
+  const person = validate({ ...raw, language: "general", message: "review", confirm: undefined });
+  if (!person.ok) return person;
+  const { language, message, entries } = raw;
+  if (typeof language !== "string" || !Object.hasOwn(LANGUAGES, language) || language === "general" || language === "en-US") {
+    return { ok: false, error: "Choose a language." };
+  }
+  if (message != null && (typeof message !== "string" || message.length > 4000)) return { ok: false, error: "Keep the message under 4,000 characters." };
+  if (!entries || typeof entries !== "object" || Array.isArray(entries)) return { ok: false, error: "Your review is empty." };
+  const clean: Record<string, ReviewEntry> = {};
+  for (const [id, e] of Object.entries(entries as Record<string, unknown>)) {
+    const v = e as Record<string, unknown> | null;
+    const ok = /^[A-Za-z0-9_.-]{1,160}$/.test(id) && v && typeof v.message === "string" && typeof v.source === "string"
+      && v.message.length <= 6000 && v.source.length <= 6000 && typeof v.approved === "boolean"
+      && (v.note == null || (typeof v.note === "string" && v.note.length <= 2000));
+    if (!ok) return { ok: false, error: "Your review contains an entry that could not be read. Reload the page and try again." };
+    clean[id] = {
+      message: v.message as string, source: v.source as string, approved: v.approved as boolean,
+      ...(typeof v.note === "string" && v.note.trim() ? { note: v.note.trim() } : {}),
+      ...(v.changed === true ? { changed: true } : {}),
+    };
+  }
+  const count = Object.keys(clean).length;
+  if (!count) return { ok: false, error: "Your review is empty." };
+  if (count > 3000) return { ok: false, error: "Your review is too large to send. Download it instead." };
+  return { ok: true, value: { ...person.value, language, message: typeof message === "string" ? message.trim() : "", entries: clean } };
+}
+
+export function reviewFile(s: ReviewSubmission, exported: string): unknown {
+  const entries = Object.fromEntries(Object.entries(s.entries).map(([id, { changed: _changed, ...e }]) => [id, e]));
+  return { format: "ore-translation-review", locale: s.language, reviewer: s.name, exported, entries };
+}
+
+const quoteBlock = (text: string): string => neutralize(text).split("\n").map((l) => `> ${l}`).join("\n");
+const COMMENT_BUDGET = 55_000;
+
+export function reviewCommentBody(s: ReviewSubmission, reviewPageUrl: string, key: string): string {
+  const all = Object.entries(s.entries);
+  const approved = all.filter(([, e]) => e.approved).length;
+  const edited = all.filter(([, e]) => e.changed);
+  const noted = all.filter(([, e]) => e.note);
+  const counts = [`${approved} approved`, `${edited.length} edited`, ...(noted.length ? [`${noted.length} with notes`] : [])].join(", ");
+  const parts = [
+    `<!-- ore-review:${s.language} -->`,
+    `**${LANGUAGES[s.language]} review from ${plainName(s.name)}** · ${counts}`,
+    `<sub>Sent from the [translation review page](${reviewPageUrl}?lang=${s.language}) without a GitHub account.</sub>`,
+  ];
+  if (s.message) parts.push("", quoteBlock(s.message));
+  let used = parts.join("\n").length;
+  const section = (title: string, rows: [string, ReviewEntry][], line: (id: string, e: ReviewEntry) => string) => {
+    if (!rows.length) return;
+    const out = [`<details><summary>${title} (${rows.length})</summary>`, ""];
+    let shown = 0;
+    for (const [id, e] of rows) {
+      const block = line(id, e);
+      if (used + block.length > COMMENT_BUDGET) break;
+      out.push(block, "");
+      used += block.length;
+      shown++;
+    }
+    if (shown < rows.length) out.push(`…and ${rows.length - shown} more in the stored review.`, "");
+    out.push("</details>");
+    parts.push("", ...out);
+  };
+  section("Edited translations", edited, (id, e) => `\`${id}\`\n${quoteBlock(e.source)}\n\n→ ${neutralize(e.message).replace(/\n/g, " ")}`);
+  section("Notes from the reviewer", noted, (id, e) => `\`${id}\`: ${neutralize(e.note ?? "").replace(/\n/g, " ")}`);
+  parts.push(
+    "",
+    `<sub>To apply: \`npx wrangler kv key get --binding REVIEWS --remote "${key}" > review.json\` in \`site/translation-feedback-worker\`, then \`npm run i18n -- import review.json\`.</sub>`,
+  );
+  return parts.join("\n");
+}
+
 const TASK = /^(\s*[-*+] \[)( |x|X)(\] )(.*)$/;
 
 export function sectionLanguage(body: string): string | null {
@@ -114,7 +205,7 @@ export function plainName(name: string): string {
 export function commentBody(s: Submission, reviewPageUrl: string, confirmed: string[] = []): string {
   const lang = LANGUAGES[s.language];
   const label = s.language === "general" ? "General feedback" : `${lang} (\`${s.language}\`)`;
-  const anchor = s.language === "general" ? "" : `#${s.language}`;
+  const anchor = s.language === "general" ? "" : `?lang=${s.language}`;
   const parts = [
     `<!-- ore-feedback:${s.language} -->`,
     `**${confirmed.length ? "Checks confirmed by" : "Feedback from"} ${plainName(s.name)}** · ${label}`,
@@ -244,6 +335,41 @@ function json(body: unknown, status: number, origin: string | null): Response {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
+async function handleReview(input: unknown, env: Env, ip: string | null, origin: string, request: Request): Promise<Response> {
+  const checked = validateReview(input);
+  if (!checked.ok) return json({ error: checked.error }, 400, origin);
+  if (!(await turnstileOk(env, checked.value.turnstileToken, ip))) {
+    return json({ error: "The check that you are not a bot failed. Please try again." }, 403, origin);
+  }
+  const s = checked.value;
+  const sent = new Date().toISOString();
+  const key = `review:${s.language}:${sent.replace(/[:.]/g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
+  try {
+    await env.REVIEWS.put(key, JSON.stringify(reviewFile(s, sent), null, 2), {
+      metadata: { language: s.language, reviewer: s.name, entries: Object.keys(s.entries).length, sent },
+    });
+    const token = await installationToken(env);
+    const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/issues/${env.GITHUB_ISSUE}/comments`, {
+      method: "POST",
+      headers: { ...GITHUB_HEADERS, Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ body: reviewCommentBody(s, env.REVIEW_PAGE_URL, key) }),
+    });
+    if (!res.ok) throw new Error(`review comment ${res.status}`);
+    const comment = (await res.json()) as { id: number; html_url: string };
+    await edgeCache()?.delete(new Request(new URL("/comments", request.url).toString()));
+    const contact = { name: s.name, email: s.email, language: s.language, comment: comment.html_url, review: key, sent };
+    try {
+      await env.CONTACTS.put(`comment:${comment.id}`, JSON.stringify(contact), { expirationTtl: CONTACT_TTL_SECONDS, metadata: contact });
+    } catch (err) {
+      console.error(`contact not stored for comment ${comment.id}: ${(err as Error).message}`);
+    }
+    return json({ ok: true, url: comment.html_url }, 201, origin);
+  } catch (err) {
+    console.error((err as Error).message);
+    return json({ error: "Your review could not be sent right now. Your work is still saved in this browser; please try again later." }, 502, origin);
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origins = env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
@@ -273,7 +399,8 @@ export default {
         return json({ error: "Comments could not be loaded." }, 502, allowed);
       }
     }
-    if (url.pathname !== "/feedback" || request.method !== "POST") return json({ error: "Not found." }, 404, allowed);
+    const posting = (url.pathname === "/feedback" || url.pathname === "/review") && request.method === "POST";
+    if (!posting) return json({ error: "Not found." }, 404, allowed);
     if (!allowed) return json({ error: "Not allowed from this site." }, 403, null);
 
     const ip = request.headers.get("CF-Connecting-IP");
@@ -281,8 +408,11 @@ export default {
       return json({ error: "Too many messages at once. Please wait a minute and try again." }, 429, allowed);
     }
 
+    const text = await request.text();
+    if (text.length > MAX_REVIEW_BYTES) return json({ error: "Your review is too large to send. Download it instead." }, 413, allowed);
     let input: unknown;
-    try { input = await request.json(); } catch { return json({ error: "Invalid request." }, 400, allowed); }
+    try { input = JSON.parse(text); } catch { return json({ error: "Invalid request." }, 400, allowed); }
+    if (url.pathname === "/review") return handleReview(input, env, ip, allowed, request);
     const checked = validate(input);
     if (!checked.ok) return json({ error: checked.error }, 400, allowed);
     if (!(await turnstileOk(env, checked.value.turnstileToken, ip))) {

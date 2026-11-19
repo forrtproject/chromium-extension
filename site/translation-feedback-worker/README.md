@@ -1,68 +1,55 @@
 # Translation feedback relay
 
-Cloudflare Worker that lets people without a GitHub account send feedback from
-https://forrt.org/chromium-extension/translate/feedback/ (`docs/translate/feedback/`).
-It checks Cloudflare Turnstile, a hidden honeypot field and a per-IP limit
-(5 a minute), then posts the message to
-issue #295 as a GitHub App. Mentions, issue references, images and HTML in the
-message are neutralised before posting.
+Cloudflare Worker behind the translation review page,
+https://forrt.org/chromium-extension/translate/ (`docs/translate/`, built from
+`src/review-page/`). It lets reviewers without a GitHub account take part and
+posts on issue #295 as the `ore-translation-feedback` GitHub App.
 
-`GET /comments` serves the issue and its comments to the page, read with the
-app's token (5,000 requests an hour) and cached for 60 seconds, so visitors
-don't run into GitHub's limit of 60 anonymous reads an hour.
+| Endpoint | What it does |
+|---|---|
+| `GET /comments` | Issue #295 and its comments for the style-guide panel, read with the app's token and cached for 60 s |
+| `POST /review` | A line-by-line review: stored in `REVIEWS` in the import format, with a credited summary posted on #295 |
+| `POST /feedback` | Feedback on a language's style guide, optionally ticking its checklist items |
 
-The sender's email is never posted. It is stored in the `CONTACTS` KV namespace
-under `comment:<comment id>` and expires after a year.
+Every POST passes Cloudflare Turnstile, a hidden honeypot field and a per-IP
+limit (5 a minute), and only `https://forrt.org` may call it. Mentions, issue
+references, images and HTML are neutralised before posting.
 
-## One-time setup
+The sender's email is never posted. It is stored in `CONTACTS` under
+`comment:<comment id>` and expires after a year.
 
-1. **GitHub App** (needs an owner of the forrtproject organisation)
-   - Organisation settings → Developer settings → GitHub Apps → New GitHub App.
-   - Name: `ORE translation feedback`. Homepage URL: `https://forrt.org/chromium-extension/translate/feedback/`.
-   - Webhook: untick **Active**.
-   - Repository permissions: **Issues: Read and write**. Nothing else.
-   - Where can it be installed: **Only on this account**.
-   - Create it, note the **App ID**, then **Generate a private key** (downloads a `.pem`).
-   - Install App → forrtproject → **Only select repositories** → `chromium-extension`.
+## Applying a review
 
-2. **Turnstile** (Cloudflare dashboard → Turnstile → Add widget)
-   - Hostname: `forrt.org`. Mode: Managed.
-   - Note the **site key** and the **secret key**.
+Each review comment on #295 ends with its key. From this folder:
 
-3. **Deploy the Worker** (from this folder)
+```sh
+npx wrangler kv key get --binding REVIEWS --remote "review:de:…" > review.json
+cd ../.. && npm run i18n -- import site/translation-feedback-worker/review.json
+```
 
-   ```sh
-   npx wrangler login
-   npx wrangler kv namespace create CONTACTS   # paste the printed id into wrangler.toml
-   npx wrangler secret put GITHUB_APP_ID
-   npx wrangler secret put GITHUB_APP_PRIVATE_KEY < path/to/app.private-key.pem
-   npx wrangler secret put TURNSTILE_SECRET
-   npx wrangler deploy
-   ```
-
-   `deploy` prints the Worker URL, e.g. `https://ore-translation-feedback.<account>.workers.dev`.
-
-4. **Turn the form on**: in `docs/translate/feedback/index.html` set
-
-   ```js
-   const FEEDBACK_ENDPOINT = "https://ore-translation-feedback.<account>.workers.dev/feedback";
-   const TURNSTILE_SITEKEY = "<site key>";
-   ```
-
-   then commit and merge to main; GitHub Pages publishes `docs/`.
+`npx wrangler kv key list --binding REVIEWS --remote` lists every stored review.
 
 ## Finding who sent a comment
 
-Every comment's link ends in `#issuecomment-<id>`. From this folder:
+A comment's link ends in `#issuecomment-<id>`:
 
 ```sh
 npx wrangler kv key get --binding CONTACTS --remote "comment:<id>"
 npx wrangler kv key list --binding CONTACTS --remote   # everyone, with name, email and language
 ```
 
-The same list is under Cloudflare dashboard → Storage & Databases → KV →
-CONTACTS. To delete someone's details on request:
+To delete someone's details on request:
 `npx wrangler kv key delete --binding CONTACTS --remote "comment:<id>"`.
 
-Delete the downloaded `.pem` once it is stored as a secret. To stop the relay,
-uninstall the GitHub App or run `npx wrangler delete`.
+## Setup (already done; for a fresh account)
+
+1. **GitHub App** (owner of forrtproject): Issues read and write only, webhook
+   off, installed only on `chromium-extension`. Store its ID and private key
+   with `npx wrangler secret put GITHUB_APP_ID` and
+   `npx wrangler secret put GITHUB_APP_PRIVATE_KEY < key.pem`, then delete the `.pem`.
+2. **Turnstile** widget for `forrt.org`, managed mode. Put its secret in
+   `npx wrangler secret put TURNSTILE_SECRET` and its site key in
+   `src/review-page/relay.ts`.
+3. **KV**: `npx wrangler kv namespace create CONTACTS` and `… create REVIEWS`;
+   put the ids in `wrangler.toml`.
+4. `npx wrangler deploy`, and put the Worker URL in `src/review-page/relay.ts`.

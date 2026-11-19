@@ -6,11 +6,15 @@ compatibility_date = "2026-11-01"
 ALLOWED_ORIGINS = "https://forrt.org"
 GITHUB_REPO = "forrtproject/chromium-extension"
 GITHUB_ISSUE = "295"
-REVIEW_PAGE_URL = "https://forrt.org/chromium-extension/translate/feedback/"
+REVIEW_PAGE_URL = "https://forrt.org/chromium-extension/translate/"
 
 [[kv_namespaces]]
 binding = "CONTACTS"
 id = "f398a917739c499092da5c385c50bcc9"
+
+[[kv_namespaces]]
+binding = "REVIEWS"
+id = "fb274c01d2b543a2910d7f9204df0262"
 
 [[ratelimits]]
 name = "LIMITER"

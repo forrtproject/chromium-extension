@@ -11,12 +11,12 @@
  *   npm run i18n -- build            write dist/locales/*.json and the review page data
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SUPPORTED_LOCALES } from "../../src/shared/i18n";
 import {
-  EN_FILE, GLOSSARY_FILE, ROOT, US_SPELLING_FILE, extract, usEnglishCatalog, forTranslation, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
-  type SourceCatalog, type TranslationCatalog, type TranslationEntry,
+  EN_FILE, GLOSSARY_FILE, ROOT, STYLE_FILE, US_SPELLING_FILE, extract, usEnglishCatalog, forTranslation, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
+  type LanguageStyle, type SourceCatalog, type TranslationCatalog, type TranslationEntry,
 } from "./catalog";
 import { translateMissing } from "./translate";
 import { classifyEntries } from "./classify";
@@ -85,8 +85,15 @@ function cmdBuild(): number {
     const ship = shippableCatalog(en, tr);
     for (const id of bad) delete ship[id];
     writeFileSync(join(ROOT, `dist/locales/${lang}.json`), JSON.stringify(ship));
-    writeFileSync(join(reviewData, `${lang}.json`), `${JSON.stringify(tr)}\n`);
   }
+  const styles = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
+  const languages: Record<string, { name: string; nativeName: string; rules: string[]; draft: boolean }> = {};
+  for (const [lang, style] of Object.entries(styles)) {
+    const draft = existsSync(localeFile(lang));
+    if (draft) writeFileSync(join(reviewData, `${lang}.json`), `${JSON.stringify(readJson<TranslationCatalog>(localeFile(lang), {}))}\n`);
+    languages[lang] = { name: style.name, nativeName: style.nativeName, rules: style.rules, draft };
+  }
+  writeFileSync(join(reviewData, "languages.json"), `${JSON.stringify(languages)}\n`);
   return 0;
 }
 
@@ -100,7 +107,7 @@ interface ReviewFile {
 function cmdImport(file: string | undefined): number {
   if (!file) { console.error("usage: npm run i18n -- import <review-file.json>"); return 2; }
   const review = JSON.parse(readFileSync(file, "utf-8")) as ReviewFile;
-  if (review.format !== "ore-translation-review" || !(TARGETS as readonly string[]).includes(review.locale)) {
+  if (review.format !== "ore-translation-review" || !Object.hasOwn(readJson<Record<string, LanguageStyle>>(STYLE_FILE, {}), review.locale)) {
     console.error("error: not a review file for a supported language"); return 1;
   }
   const en = loadEn();

@@ -126,3 +126,51 @@ kbd { border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4p
 .quick-en { color: var(--ink-soft); overflow-wrap: anywhere; }
 .quick-tr { overflow-wrap: anywhere; }
 @media (max-width: 600px) { .quick-row { grid-template-columns: 1fr auto; } .quick-en { grid-column: 1 / -1; font-size: 0.85rem; } }
+
+/* Credit, rules and the style guide from issue #295 */
+.credit { font-weight: 600; color: var(--maroon-dark); margin: 0.25rem 0 0.5rem; }
+.intro .rules-body { margin: 0.4rem 0; padding-left: 1.2rem; }
+.intro .rules-body li { margin: 0.25rem 0; }
+.guide { background: #fff; border: 1px solid var(--rule); border-left: 4px solid var(--maroon); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.guide[hidden] { display: none; }
+.guide-head { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: baseline; justify-content: space-between; }
+.guide h2 { font-family: Domine, Georgia, serif; font-size: 1.25rem; margin: 0; }
+.guide-link { font-size: 0.9rem; }
+.guide-lede { color: var(--ink-soft); margin: 0.4rem 0 0.6rem; }
+.guide-progress { display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: var(--ink-soft); }
+.guide-progress .bar { flex: 0 0 140px; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.guide-progress .bar i { display: block; height: 100%; width: 0; background: var(--ok); }
+.guide details { margin: 0.6rem 0; }
+.guide summary { cursor: pointer; font-weight: 600; color: var(--maroon); }
+.guide-body { overflow-wrap: anywhere; }
+.guide-body h3 { font-size: 1rem; margin: 1rem 0 0.4rem; }
+.guide-body blockquote { margin: 0 0 0.5rem; padding: 0.4rem 0.7rem; background: var(--bg-soft); border-radius: 6px; }
+.guide-body blockquote p { margin: 0; }
+.guide-body table { border-collapse: collapse; width: 100%; font-size: 0.92rem; display: block; overflow-x: auto; }
+.guide-body th, .guide-body td { text-align: start; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--rule); }
+.guide-body ul.contains-task-list { list-style: none; padding-left: 0.2rem; }
+.guide-body .task-list-item input { margin-right: 0.5rem; }
+.guide-body .task-list-item input:not(:disabled) { cursor: pointer; width: 18px; height: 18px; vertical-align: -3px; accent-color: var(--ok); }
+.confirm-bar { position: sticky; bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.6rem 0.9rem; border-radius: 8px; background: var(--ok-tint); border: 1px solid var(--ok); }
+.confirm-bar[hidden] { display: none; }
+.guide-replies-body .reply { border-left: 3px solid var(--maroon-tint); padding: 0.1rem 0 0.1rem 0.8rem; margin: 0.6rem 0; overflow-wrap: anywhere; }
+.reply-meta { font-size: 0.85rem; color: var(--ink-faint); }
+.guide-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.guide-status { font-size: 0.88rem; color: var(--warn); }
+.no-draft p { margin: 0.4rem auto; max-width: 52ch; }
+
+/* Send dialog */
+#send-dialog { width: min(560px, calc(100vw - 32px)); border: 1px solid var(--rule); border-radius: 10px; padding: 1.25rem; color: var(--ink); }
+#send-dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+#send-dialog h2 { font-family: Domine, Georgia, serif; font-size: 1.2rem; margin: 0 0 0.4rem; }
+#send-dialog .note { font-size: 0.88rem; color: var(--ink-soft); margin: 0 0 0.6rem; }
+#send-dialog .credit-note { color: var(--maroon-dark); font-weight: 600; }
+#send-dialog ul { margin: 0 0 0.6rem; padding-left: 1.2rem; font-size: 0.92rem; }
+#send-dialog label { display: block; font-size: 0.9rem; font-weight: 600; margin: 0.7rem 0 0.2rem; }
+#send-dialog input, #send-dialog textarea { width: 100%; font: inherit; font-size: 0.95rem; border: 1px solid var(--rule); border-radius: 6px; padding: 0.45rem 0.55rem; }
+#send-dialog textarea { min-height: 110px; resize: vertical; }
+.trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+#send-turnstile { margin-top: 0.8rem; min-height: 65px; }
+.send-error { color: var(--bad); font-size: 0.9rem; margin: 0.5rem 0 0; }
+.send-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+@media (max-width: 600px) { .top-actions { flex-wrap: wrap; } }

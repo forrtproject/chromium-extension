@@ -1,13 +1,15 @@
 /**
  * Translation review page (docs/translate/). Reviewers check machine
- * translations against the English, edit or approve them, and download a file
- * for the maintainers to apply with `npm run i18n -- import <file>`.
- * Work is kept in this browser's localStorage until downloaded.
+ * translations against the English, edit or approve them, and send the review
+ * through the feedback relay (or download it) for the maintainers to apply with
+ * `npm run i18n -- import <file>`. Work is kept in this browser's localStorage.
  */
 
 import {
   formatMessage, formsToMessage, hasChoices, messageArguments, messageForms, translationIssues, type MessageForm,
 } from "@shared/i18n-format";
+import { guideUnsent, startGuide } from "./guide";
+import { messageDraft, openSend } from "./relay";
 
 interface SourceEntry { message: string; context?: string; where: string[]; html?: boolean }
 interface TranslationEntry {
@@ -15,10 +17,12 @@ interface TranslationEntry {
   review?: 1 | 2 | 3; reviewReason?: string;
 }
 interface LocalEntry { message: string; source: string; approved: boolean; note?: string }
-interface LocalState { reviewer: string; entries: Record<string, LocalEntry> }
+interface LocalState { reviewer: string; entries: Record<string, LocalEntry>; sent?: Record<string, string> }
 type Glossary = Record<string, Record<string, string>>;
+interface LanguageInfo { name: string; nativeName: string; rules: string[]; draft: boolean }
 
 const LANGUAGES: Record<string, string> = { de: "Deutsch (German)" };
+let languageInfo: Record<string, LanguageInfo> = { de: { name: "German", nativeName: "Deutsch", rules: [], draft: true } };
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 const listEl = $<HTMLElement>("#list");
@@ -32,7 +36,6 @@ const countEl = $<HTMLElement>("#count");
 const glossaryEl = $<HTMLElement>("#glossary");
 
 let lang = new URLSearchParams(location.search).get("lang") ?? "de";
-if (!Object.hasOwn(LANGUAGES, lang)) lang = "de";
 let en: Record<string, SourceEntry> = {};
 let tr: Record<string, TranslationEntry> = {};
 let glossary: Glossary = {};
@@ -290,6 +293,7 @@ function renderCard(id: string): HTMLElement {
     area.rows = 1;
     area.spellcheck = true;
     area.lang = lang;
+    area.dir = "auto";
     area.value = value;
     area.setAttribute("aria-label", label);
     area.addEventListener("keydown", onKey);
@@ -478,7 +482,9 @@ function updateProgress(): void {
   const ids = Object.keys(en);
   const done = ids.filter((id) => { const l = localOf(id); return l ? l.approved : statusOf(id) === "reviewed"; }).length;
   const mine = Object.keys(state.entries).filter((id) => en[id] && localOf(id)).length;
-  progressEl.textContent = `${done} of ${ids.length} reviewed · ${mine} change${mine === 1 ? "" : "s"} by you not yet sent`;
+  const unsent = unsentIds().length;
+  progressEl.textContent = `${done} of ${ids.length} reviewed · ${mine} change${mine === 1 ? "" : "s"} by you`
+    + (mine ? ` (${unsent ? `${unsent} not yet sent` : "all sent"})` : "");
   filterCounts();
 }
 
@@ -495,6 +501,48 @@ function renderGlossary(): void {
     table.append(row);
   }
   glossaryEl.querySelector(".glossary-body")!.replaceChildren(table);
+}
+
+const snapshot = (e: LocalEntry): string => JSON.stringify([e.message, e.approved, e.note ?? ""]);
+
+function unsentIds(): string[] {
+  return Object.keys(state.entries).filter((id) => {
+    const local = en[id] && localOf(id);
+    return local && state.sent?.[id] !== snapshot(local);
+  });
+}
+
+function sendReview(): void {
+  const ids = unsentIds();
+  if (!ids.length) {
+    alert(Object.keys(state.entries).some((id) => en[id] && localOf(id))
+      ? "Everything you've changed has already been sent. Thank you!"
+      : "You haven't changed or approved anything yet.");
+    return;
+  }
+  const entries = Object.fromEntries(ids.map((id) => {
+    const local = localOf(id)!;
+    return [id, { ...local, changed: local.message !== tr[id]?.message }];
+  }));
+  const approved = ids.filter((id) => entries[id].approved).length;
+  const edited = ids.filter((id) => entries[id].changed).length;
+  const summary = el("p", "note", `You're sending ${ids.length} change${ids.length === 1 ? "" : "s"} for ${LANGUAGES[lang]}: ${approved} approved, ${edited} edited.`);
+  void openSend({
+    title: "Send my review",
+    summary: [summary],
+    messageRequired: false,
+    defaultName: state.reviewer,
+    doneText: "Your review is on its way to the ORE team and a summary is on issue #295. We'll credit you by name for your contribution. You can keep going; next time only new changes are sent.",
+    path: "/review",
+    payload: (f) => ({ language: lang, ...f, entries }),
+    onSent: (name) => {
+      state.sent ??= {};
+      for (const id of ids) state.sent[id] = snapshot(localOf(id)!);
+      if (!state.reviewer.trim()) { state.reviewer = name; reviewerInput.value = name; }
+      saveState();
+      updateProgress();
+    },
+  });
 }
 
 function download(): void {
@@ -546,17 +594,49 @@ async function loadFile(file: File): Promise<void> {
   }
 }
 
+function renderRules(): void {
+  const rules = languageInfo[lang]?.rules ?? [];
+  const box = $<HTMLElement>("#rules");
+  box.hidden = !rules.length;
+  box.querySelector("summary")!.textContent = `Style rules for ${languageInfo[lang]?.name ?? lang}`;
+  box.querySelector(".rules-body")!.replaceChildren(...rules.map((r) => el("li", "", r)));
+}
+
+function showNoDraft(): void {
+  for (const sel of [".controls", ".status"]) $<HTMLElement>(sel).hidden = true;
+  const box = el("div", "empty no-draft");
+  box.append(
+    el("p", "", `There's no machine draft for ${languageInfo[lang].name} yet.`),
+    el("p", "", "Start with the style guide above: once the form of address and key terms are agreed, the full draft will follow here for line-by-line review."),
+  );
+  listEl.replaceChildren(box);
+}
+
 async function start(): Promise<void> {
-  for (const [code, name] of Object.entries(LANGUAGES)) {
-    const opt = el("option", "", name);
+  const manifest = await fetchJson<Record<string, LanguageInfo>>("data/languages.json").catch(() => null);
+  if (manifest && Object.keys(manifest).length) {
+    languageInfo = manifest;
+    for (const code of Object.keys(LANGUAGES)) delete LANGUAGES[code];
+    for (const [code, info] of Object.entries(manifest)) {
+      LANGUAGES[code] = info.nativeName && info.nativeName !== info.name ? `${info.nativeName} · ${info.name}` : info.name;
+    }
+  }
+  if (!Object.hasOwn(LANGUAGES, lang)) lang = "de";
+  const codes = Object.keys(LANGUAGES).sort((a, b) => Number(languageInfo[b]?.draft) - Number(languageInfo[a]?.draft) || LANGUAGES[a].localeCompare(LANGUAGES[b]));
+  for (const code of codes) {
+    const opt = el("option", "", `${LANGUAGES[code]}${languageInfo[code]?.draft ? "" : " — style guide only"}`);
     opt.value = code;
     langSelect.append(opt);
   }
   langSelect.value = lang;
+  document.documentElement.lang = lang;
+  renderRules();
+  startGuide(lang, languageInfo[lang]?.name ?? lang, () => state.reviewer);
+  const draft = languageInfo[lang]?.draft !== false;
   try {
     [en, tr, glossary] = await Promise.all([
       fetchJson<Record<string, SourceEntry>>("data/en.json"),
-      fetchJson<Record<string, TranslationEntry>>(`data/${lang}.json`),
+      draft ? fetchJson<Record<string, TranslationEntry>>(`data/${lang}.json`) : Promise.resolve({}),
       fetchJson<Glossary>("data/glossary.json").catch(() => ({})),
     ]);
   } catch (err) {
@@ -577,6 +657,7 @@ async function start(): Promise<void> {
     areaSelect.append(opt);
   }
   renderGlossary();
+  if (!draft) { showNoDraft(); return; }
   render();
   updateProgress();
 }
@@ -590,6 +671,7 @@ searchInput.addEventListener("input", () => {
   searchTimer = window.setTimeout(() => { shown = PAGE; render(); }, 200);
 });
 $<HTMLButtonElement>("#download").addEventListener("click", download);
+$<HTMLButtonElement>("#send-review").addEventListener("click", sendReview);
 const fileInput = $<HTMLInputElement>("#load-file");
 $<HTMLButtonElement>("#load").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
@@ -597,9 +679,13 @@ fileInput.addEventListener("change", () => {
   if (file) void loadFile(file);
   fileInput.value = "";
 });
-window.addEventListener("beforeunload", () => {
+window.addEventListener("beforeunload", (event) => {
   clearTimeout(saveTimer);
   try { localStorage.setItem(storageKey(), JSON.stringify(state)); } catch { /* ignore */ }
+  if (unsentIds().length || guideUnsent() || messageDraft()) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
 });
 
 void start();

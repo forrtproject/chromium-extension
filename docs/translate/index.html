@@ -22,7 +22,8 @@
         <div class="top-actions">
           <button id="load" class="btn btn-ghost" type="button">Load a file</button>
           <input id="load-file" type="file" accept="application/json,.json" hidden />
-          <button id="download" class="btn btn-primary" type="button">Download my review</button>
+          <button id="download" class="btn btn-ghost" type="button">Download</button>
+          <button id="send-review" class="btn btn-primary" type="button">Send my review</button>
         </div>
       </div>
     </header>
@@ -34,18 +35,20 @@
           Each card shows one piece of text from the extension: the English original and a machine-made draft. Fix anything
           that is wrong or awkward, then press <strong>Approve</strong> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>&nbsp;+&nbsp;<kbd>Enter</kbd>).
           Drafts are sorted by how much attention they need: <strong>careful review</strong> first, then <strong>read it</strong>;
-          routine <strong>quick checks</strong> can be skimmed and approved together. Your work is saved in this browser as you go.
+          routine <strong>quick checks</strong> can be skimmed and approved together. Your work is saved in this browser as you go;
+          press <strong>Send my review</strong> when you're ready. No GitHub account needed.
         </p>
+        <p class="credit">Every contribution is acknowledged: reviewers are credited by name in ORE.</p>
         <details>
           <summary>How to send us your review, and what the symbols mean</summary>
           <ol>
-            <li>Press <strong>Download my review</strong>. This saves a small <code>.json</code> file with only your changes and approvals.</li>
             <li>
-              Send the file to the ORE team: attach it to a
-              <a href="https://github.com/forrtproject/chromium-extension/issues/new?title=Translation%20review" target="_blank" rel="noopener">GitHub issue</a>
-              (drag it into the comment box) or email it to your FORRT contact.
+              Press <strong>Send my review</strong> and enter your name and email. Your name and a summary of your changes appear on
+              <a href="https://github.com/forrtproject/chromium-extension/issues/295" target="_blank" rel="noopener">issue #295</a>;
+              your email stays private and is only used to ask you about your review. You can send again later; only new changes are sent.
             </li>
-            <li>To continue on another computer, use <strong>Load a file</strong> with the file you downloaded.</li>
+            <li>No connection, or prefer email? <strong>Download</strong> saves a small <code>.json</code> file with your changes to send to your FORRT contact.</li>
+            <li>To continue on another computer, use <strong>Load a file</strong> with a file you downloaded.</li>
           </ol>
           <p>
             Words in curly brackets such as <code>{count}</code> or <code>{domain}</code> are filled in by the extension; keep them exactly as
@@ -53,12 +56,44 @@
             Write each as a complete sentence; the line under each box shows how it will look. Keep tags such as
             <code>&lt;strong&gt;…&lt;/strong&gt;</code> around the matching words. The preview under each card shows the result.
           </p>
-          <p>Don’t address users as “Sie” or “du”: use infinitives and impersonal phrasing (“Seite neu laden, um …”). Keep names such as FORRT, ORE, PubPeer and Retraction Watch unchanged.</p>
+          <p>Keep names such as FORRT, ORE, PubPeer and Retraction Watch unchanged.</p>
+        </details>
+        <details id="rules" hidden>
+          <summary>Style rules for this language</summary>
+          <ul class="rules-body"></ul>
         </details>
         <details id="glossary">
           <summary>Glossary</summary>
           <div class="glossary-body"></div>
         </details>
+      </section>
+
+      <section id="guide" class="guide" aria-labelledby="guide-title" hidden>
+        <div class="guide-head">
+          <h2 id="guide-title">Style guide</h2>
+          <a id="guide-link" class="guide-link" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+        <p class="guide-lede">
+          How ORE should address readers and which terms it uses in this language. Tick the checks you agree with and tell us what to change;
+          every translation follows this guide.
+        </p>
+        <div class="guide-progress"><span class="bar"><i></i></span><span class="guide-progress-text"></span></div>
+        <details class="guide-details" open>
+          <summary>Rules, examples and terms</summary>
+          <div class="guide-body"></div>
+        </details>
+        <div class="confirm-bar" hidden>
+          <span class="confirm-count"></span>
+          <button class="btn btn-primary confirm-send" type="button">Send feedback</button>
+        </div>
+        <details class="guide-replies">
+          <summary>Feedback on this guide</summary>
+          <div class="guide-replies-body"></div>
+        </details>
+        <div class="guide-actions">
+          <button id="guide-feedback" class="btn btn-ghost" type="button">Send feedback on the guide</button>
+          <span class="guide-status"></span>
+        </div>
       </section>
 
       <section class="controls" aria-label="Filters">
@@ -84,6 +119,36 @@
 
       <div id="list" aria-live="polite"></div>
     </main>
+
+    <dialog id="send-dialog" aria-labelledby="send-title">
+      <form id="send-form" novalidate>
+        <h2 id="send-title">Send my review</h2>
+        <div id="send-summary"></div>
+        <p class="note">
+          Your name and a summary appear on <a href="https://github.com/forrtproject/chromium-extension/issues/295" target="_blank" rel="noopener">issue #295</a>.
+          Your email is never shown: only the FORRT team can see it, to ask you about your review, and it is deleted after a year.
+        </p>
+        <p class="note credit-note">We'll acknowledge your contribution and credit you by name in ORE, so use the name you'd like to be credited under.</p>
+        <label for="send-name">Your name</label>
+        <input id="send-name" autocomplete="name" maxlength="80" required />
+        <label for="send-email">Your email <span class="note">(private)</span></label>
+        <input id="send-email" type="email" autocomplete="email" maxlength="254" required />
+        <label for="send-message">Message <span class="note" id="send-optional">(optional)</span></label>
+        <textarea id="send-message" maxlength="4000"></textarea>
+        <div class="trap" aria-hidden="true"><label for="send-website">Website</label><input id="send-website" tabindex="-1" autocomplete="off" /></div>
+        <div id="send-turnstile"></div>
+        <p class="send-error" id="send-error" role="alert" hidden></p>
+        <div class="send-actions">
+          <button type="button" class="btn btn-ghost" id="send-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="send-submit">Send</button>
+        </div>
+      </form>
+      <div id="send-done" hidden>
+        <h2>Thank you</h2>
+        <p id="send-done-text"></p>
+        <div class="send-actions"><button type="button" class="btn btn-primary" id="send-close">Close</button></div>
+      </div>
+    </dialog>
 
     <script src="review.js"></script>
   </body>

@@ -1,7 +1,18 @@
 // @vitest-environment node
 import { generateKeyPairSync, createVerify } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import worker, { CONTACT_TTL_SECONDS, appJwt, commentBody, neutralize, sectionLanguage, tickItems, validate, type Env } from "../../site/translation-feedback-worker/src/index";
+import worker, {
+  CONTACT_TTL_SECONDS, appJwt, commentBody, neutralize, reviewCommentBody, sectionLanguage, tickItems, validate, validateReview, type Env,
+} from "../../site/translation-feedback-worker/src/index";
+
+const review = {
+  language: "de", name: "Anna Weber", email: "anna@uni.example", message: "", turnstileToken: "tok",
+  entries: {
+    "popup.title": { message: "Einstellungen öffnen", source: "Open settings", approved: true, changed: true },
+    "pill.copied": { message: "Kopiert", source: "Copied", approved: true },
+    "page.note": { message: "Hinweis", source: "Note", approved: false, note: "Is @someone right? see #12" },
+  },
+};
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const pkcs1 = privateKey.export({ type: "pkcs1", format: "pem" }).toString();
@@ -11,17 +22,18 @@ const env: Env = {
   ALLOWED_ORIGINS: "https://forrt.org",
   GITHUB_REPO: "forrtproject/chromium-extension",
   GITHUB_ISSUE: "295",
-  REVIEW_PAGE_URL: "https://forrt.org/chromium-extension/translate/feedback/",
+  REVIEW_PAGE_URL: "https://forrt.org/chromium-extension/translate/",
   GITHUB_APP_ID: "123",
   GITHUB_APP_PRIVATE_KEY: pkcs1,
   TURNSTILE_SECRET: "secret",
   CONTACTS: { put: vi.fn(async () => {}) },
+  REVIEWS: { put: vi.fn(async () => {}) },
 };
 
 const valid = { language: "pt-PT", name: "Maria Silva", email: "maria@uni.example", message: "Definições está certo.", turnstileToken: "tok" };
 
-function post(body: unknown, origin = "https://forrt.org"): Request {
-  return new Request("https://worker.example/feedback", {
+function post(body: unknown, origin = "https://forrt.org", path = "/feedback"): Request {
+  return new Request(`https://worker.example${path}`, {
     method: "POST",
     headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.5" },
     body: JSON.stringify(body),
@@ -54,7 +66,7 @@ describe("translation feedback worker", () => {
     expect(body).toContain("Portuguese (Portugal) (`pt-PT`)");
     expect(body).toContain("\\*\\*Maria\\*\\* @​x");
     expect(body).toContain("> line one\n> line two");
-    expect(body).toContain("https://forrt.org/chromium-extension/translate/feedback/#pt-PT");
+    expect(body).toContain("https://forrt.org/chromium-extension/translate/?lang=pt-PT");
   });
 
   it("signs a GitHub App JWT from PKCS#1 and PKCS#8 keys", async () => {
@@ -164,6 +176,50 @@ describe("translation feedback worker", () => {
     }));
     const res = await worker.fetch(post({ ...valid, confirm: { commentId: 56, items: [0] } }), env);
     expect(res.status).toBe(400);
+  });
+
+  it("validates a review and summarises it for the issue", () => {
+    expect(validateReview(review).ok).toBe(true);
+    expect(validateReview({ ...review, entries: {} }).ok).toBe(false);
+    expect(validateReview({ ...review, language: "general" }).ok).toBe(false);
+    expect(validateReview({ ...review, email: "x" }).ok).toBe(false);
+    expect(validateReview({ ...review, entries: { "bad id!": review.entries["pill.copied"] } }).ok).toBe(false);
+    const checked = validateReview(review);
+    if (!checked.ok) throw new Error("invalid");
+    const body = reviewCommentBody(checked.value, env.REVIEW_PAGE_URL, "review:de:k");
+    expect(body).toContain("**German review from Anna Weber** · 2 approved, 1 edited, 1 with notes");
+    expect(body).toContain("`popup.title`\n> Open settings\n\n→ Einstellungen öffnen");
+    expect(body).toContain("@​someone");
+    expect(body).toContain('"review:de:k"');
+    expect(body).not.toContain("anna@uni.example");
+  });
+
+  it("stores the review in the import format, then posts the summary", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      if (url.includes("turnstile")) return Response.json({ success: true });
+      if (url.endsWith("/installation")) return Response.json({ id: 42 });
+      if (url.includes("/access_tokens")) return Response.json({ token: "ghs_r", expires_at: new Date(Date.now() + 3600e3).toISOString() });
+      if (url.endsWith("/issues/295/comments")) return Response.json({ id: 900, html_url: "https://github.com/c/9" }, { status: 201 });
+      return new Response("", { status: 404 });
+    }));
+    const reviews = { put: vi.fn(async () => {}) };
+    const res = await worker.fetch(post(review, "https://forrt.org", "/review"), { ...env, REVIEWS: reviews });
+    expect(res.status).toBe(201);
+    const [key, stored] = reviews.put.mock.calls[0] as unknown as [string, string];
+    expect(key).toMatch(/^review:de:/);
+    const file = JSON.parse(stored);
+    expect(file).toMatchObject({ format: "ore-translation-review", locale: "de", reviewer: "Anna Weber" });
+    expect(file.entries["popup.title"]).toEqual({ message: "Einstellungen öffnen", source: "Open settings", approved: true });
+    expect(JSON.stringify(file)).not.toContain("anna@uni.example");
+    const posted = JSON.parse(calls.find((c) => c.url.endsWith("/295/comments"))!.init!.body as string).body;
+    expect(posted).toContain(key);
+  });
+
+  it("rejects oversized requests before parsing them", async () => {
+    const huge = { ...review, message: "x".repeat(1_600_000) };
+    expect((await worker.fetch(post(huge, "https://forrt.org", "/review"), env)).status).toBe(413);
   });
 
   it("does not post when Turnstile fails", async () => {
