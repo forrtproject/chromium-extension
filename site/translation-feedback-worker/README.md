@@ -1,7 +1,7 @@
 # Translation feedback relay
 
 Cloudflare Worker behind the translation review page,
-https://forrt.org/chromium-extension/translate/ (`docs/translate/`, built from
+https://staging.forrt.org/chromium-extension/translate/ (`docs/translate/`, built from
 `src/review-page/`). It lets reviewers without a GitHub account take part and
 posts on issue #295 as the `ore-translation-feedback` GitHub App.
 
@@ -12,7 +12,7 @@ posts on issue #295 as the `ore-translation-feedback` GitHub App.
 | `POST /feedback` | Feedback on a language's style guide, optionally ticking its checklist items |
 
 Every POST passes Cloudflare Turnstile, a hidden honeypot field and a per-IP
-limit (5 a minute), and only `https://forrt.org` may call it. Mentions, issue
+limit (5 a minute), and only `https://staging.forrt.org` and `https://forrt.org` (set in `ALLOWED_ORIGINS`) may call it. Mentions, issue
 references, images and HTML are neutralised before posting.
 
 The sender's email is never posted. It is stored in `CONTACTS` under
@@ -47,7 +47,7 @@ To delete someone's details on request:
    off, installed only on `chromium-extension`. Store its ID and private key
    with `npx wrangler secret put GITHUB_APP_ID` and
    `npx wrangler secret put GITHUB_APP_PRIVATE_KEY < key.pem`, then delete the `.pem`.
-2. **Turnstile** widget for `forrt.org`, managed mode. Put its secret in
+2. **Turnstile** widget for `staging.forrt.org` and `forrt.org`, managed mode. Put its secret in
    `npx wrangler secret put TURNSTILE_SECRET` and its site key in
    `src/review-page/relay.ts`.
 3. **KV**: `npx wrangler kv namespace create CONTACTS` and `… create REVIEWS`;

@@ -1,7 +1,7 @@
 {
   "Expression of Concern": {
     "de": "Expression of Concern",
-    "note": "Publisher term; keep English and capitalise it as 'Expression of Concern' everywhere, including running text (plural 'Expressions of Concern').",
+    "note": "A publisher's formal notice that a paper's findings may be unreliable.",
     "fr": "expression de préoccupation",
     "es": "expresión de preocupación",
     "pt-BR": "expressão de preocupação",
@@ -10,7 +10,8 @@
     "hu": "Expression of Concern",
     "ko": "우려 표명",
     "zh-CN": "关注声明",
-    "ar": "بيان قلق"
+    "ar": "بيان قلق",
+    "note:de": "Keep English and capitalise it as 'Expression of Concern' everywhere, including running text (plural 'Expressions of Concern')."
   },
   "FORRT Replication Database": {
     "de": "FORRT Replication Database",
@@ -40,7 +41,7 @@
   },
   "open access": {
     "de": "Open Access",
-    "note": "'open-access copy' → 'Open-Access-Version'.",
+    "note": "Free-to-read version of a paper.",
     "fr": "accès ouvert",
     "es": "acceso abierto",
     "pt-BR": "acesso aberto",
@@ -49,7 +50,8 @@
     "hu": "nyílt hozzáférés",
     "ko": "오픈 액세스",
     "zh-CN": "开放获取",
-    "ar": "الوصول المفتوح"
+    "ar": "الوصول المفتوح",
+    "note:de": "'open-access copy' → 'Open-Access-Version'."
   },
   "original study": {
     "de": "Originalstudie",
@@ -65,7 +67,7 @@
   },
   "pill": {
     "de": "Markierung",
-    "note": "The small labels ORE adds next to papers. Use 'Markierung' consistently.",
+    "note": "The small labels ORE adds next to papers.",
     "fr": "pastille",
     "es": "etiqueta",
     "pt-BR": "etiqueta",
@@ -74,7 +76,8 @@
     "hu": "címke",
     "ko": "배지",
     "zh-CN": "标记",
-    "ar": "شارة"
+    "ar": "شارة",
+    "note:de": "Use 'Markierung' consistently."
   },
   "preprint": {
     "de": "Preprint",
@@ -102,7 +105,7 @@
   },
   "reference": {
     "de": "Literaturangabe",
-    "note": "An entry in a paper's reference list; 'references' (section) → 'Literaturverzeichnis'.",
+    "note": "An entry in a paper's reference list.",
     "fr": "référence",
     "es": "referencia",
     "pt-BR": "referência",
@@ -111,11 +114,12 @@
     "hu": "hivatkozás",
     "ko": "참고문헌",
     "zh-CN": "参考文献",
-    "ar": "مرجع"
+    "ar": "مرجع",
+    "note:de": "'references' (section) → 'Literaturverzeichnis'."
   },
   "Registered Report": {
     "de": "Registered Report",
-    "note": "Publication format; keep English, plural 'Registered Reports'.",
+    "note": "Publication format where the study plan is peer-reviewed before data collection.",
     "fr": "Registered Report",
     "es": "Registered Report",
     "pt-BR": "Registered Report",
@@ -124,11 +128,12 @@
     "hu": "Registered Report",
     "ko": "Registered Report",
     "zh-CN": "注册报告",
-    "ar": "التقرير المسجَّل"
+    "ar": "التقرير المسجَّل",
+    "note:de": "Keep English, plural 'Registered Reports'."
   },
   "replication": {
     "de": "Replikation",
-    "note": "'replication study' → 'Replikationsstudie'.",
+    "note": "A new study that repeats an earlier one to test its finding.",
     "fr": "réplication",
     "es": "replicación",
     "pt-BR": "replicação",
@@ -137,7 +142,8 @@
     "hu": "replikáció",
     "ko": "반복 연구",
     "zh-CN": "重复研究",
-    "ar": "التكرار"
+    "ar": "التكرار",
+    "note:de": "'replication study' → 'Replikationsstudie'."
   },
   "reproduction": {
     "de": "Reproduktion",
@@ -153,7 +159,7 @@
   },
   "retracted": {
     "de": "zurückgezogen",
-    "note": "Label on a pill: 'Zurückgezogen'.",
+    "note": "State of a paper the publisher has withdrawn; shown as a label on a pill.",
     "fr": "rétracté",
     "es": "retractado",
     "pt-BR": "retratado",
@@ -162,11 +168,12 @@
     "hu": "visszavont",
     "ko": "철회됨",
     "zh-CN": "已撤稿",
-    "ar": "مسحوب"
+    "ar": "مسحوب",
+    "note:de": "Label on a pill: 'Zurückgezogen'."
   },
   "retraction": {
     "de": "Retraction",
-    "note": "Keep the English noun (plural 'Retractions'); 'Retraction Notice' stays English too. For the state of a paper, 'zurückgezogen' is fine ('Dieser Artikel wurde zurückgezogen'). Never 'Zurückziehung'.",
+    "note": "A publisher's withdrawal of a paper.",
     "fr": "rétractation",
     "es": "retractación",
     "pt-BR": "retratação",
@@ -175,7 +182,8 @@
     "hu": "visszavonás",
     "ko": "철회",
     "zh-CN": "撤稿",
-    "ar": "سحب"
+    "ar": "سحب",
+    "note:de": "Keep the English noun (plural 'Retractions'); 'Retraction Notice' stays English too. For the state of a paper, 'zurückgezogen' is fine ('Dieser Artikel wurde zurückgezogen'). Never 'Zurückziehung'."
   },
   "Retraction Watch": {
     "de": "Retraction Watch",
@@ -228,7 +236,7 @@
   },
   "snooze": {
     "de": "pausieren",
-    "note": "Temporarily turn ORE off on a site: 'Snooze on this site' → 'Auf dieser Website pausieren'.",
+    "note": "Temporarily turn ORE off on a site.",
     "fr": "mettre en pause",
     "es": "pausar",
     "pt-BR": "pausar",
@@ -237,11 +245,12 @@
     "hu": "szüneteltetés",
     "ko": "일시 중지",
     "zh-CN": "暂停",
-    "ar": "إيقاف مؤقت"
+    "ar": "إيقاف مؤقت",
+    "note:de": "'Snooze on this site' → 'Auf dieser Website pausieren'."
   },
   "tour": {
     "de": "Tour",
-    "note": "The guided tour of ORE's pills on the current page: 'Tour this page' → 'Seite erkunden' or 'Tour starten'; never 'Seitentour'.",
+    "note": "The guided tour of ORE's pills on the current page.",
     "fr": "visite guidée",
     "es": "recorrido",
     "pt-BR": "tour",
@@ -250,6 +259,7 @@
     "hu": "bemutató",
     "ko": "둘러보기",
     "zh-CN": "导览",
-    "ar": "جولة"
+    "ar": "جولة",
+    "note:de": "'Tour this page' → 'Seite erkunden' or 'Tour starten'; never 'Seitentour'."
   }
 }

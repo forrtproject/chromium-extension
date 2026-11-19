@@ -15,13 +15,15 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SUPPORTED_LOCALES } from "../../src/shared/i18n";
 import {
-  EN_FILE, GLOSSARY_FILE, ROOT, STYLE_FILE, US_SPELLING_FILE, extract, usEnglishCatalog, forTranslation, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
+  EN_FILE, GLOSSARY_FILE, ROOT, STYLE_FILE, US_SPELLING_FILE, extract, styleWarnings, usEnglishCatalog, forTranslation, translationProblems, localeFile, readJson, shippableCatalog, writeIfChanged, writeSortedJson,
   type LanguageStyle, type SourceCatalog, type TranslationCatalog, type TranslationEntry,
 } from "./catalog";
 import { translateMissing } from "./translate";
 import { classifyEntries } from "./classify";
 
 const TARGETS = SUPPORTED_LOCALES.filter((l) => l !== "en" && l !== "en-US");
+const drafted = (): string[] => TARGETS.filter((l) => existsSync(localeFile(l)));
+const stylesOf = (): Record<string, LanguageStyle> => readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
 
 function loadEn(): SourceCatalog {
   return readJson<SourceCatalog>(EN_FILE, {});
@@ -61,13 +63,21 @@ function cmdExtract(checkOnly: boolean): number {
 function cmdCheck(): number {
   let failed = cmdExtract(true);
   const en = loadEn();
+  const styles = stylesOf();
   for (const lang of TARGETS) {
-    const problems = translationProblems(en, readJson<TranslationCatalog>(localeFile(lang), {}), lang);
+    if (!styles[lang]) { console.error(`error: ${lang}: no style guide in src/locales/style.json`); failed = 1; }
+  }
+  for (const lang of drafted()) {
+    const tr = readJson<TranslationCatalog>(localeFile(lang), {});
+    const problems = translationProblems(en, tr, lang);
     for (const p of problems) console.error(`error: ${lang}: ${p}`);
     if (problems.length) failed = 1;
-    const s = status(en, readJson<TranslationCatalog>(localeFile(lang), {}));
+    for (const w of styleWarnings(tr, styles[lang])) console.warn(`warning: ${lang}: ${w}`);
+    const s = status(en, tr);
     console.log(`${lang}: ${s.reviewed} reviewed, ${s.machine} machine, ${s.stale} stale, ${s.missing} missing, ${s.obsolete} obsolete`);
   }
+  const waiting = TARGETS.filter((l) => !existsSync(localeFile(l)));
+  if (waiting.length) console.log(`no draft yet: ${waiting.join(", ")} (npm run i18n -- translate <lang>)`);
   return failed;
 }
 
@@ -79,19 +89,23 @@ function cmdBuild(): number {
   writeFileSync(join(reviewData, "en.json"), `${JSON.stringify(forTranslation(en))}\n`);
   writeFileSync(join(reviewData, "glossary.json"), `${JSON.stringify(readJson(GLOSSARY_FILE, {}))}\n`);
   writeFileSync(join(ROOT, "dist/locales/en-US.json"), JSON.stringify(usEnglishCatalog(en, readJson(US_SPELLING_FILE, {}))));
-  for (const lang of TARGETS) {
+  const shipped = ["en-US"];
+  for (const lang of drafted()) {
     const tr = readJson<TranslationCatalog>(localeFile(lang), {});
     const bad = new Set(translationProblems(en, tr, lang).map((p) => p.split(":")[0]));
     const ship = shippableCatalog(en, tr);
     for (const id of bad) delete ship[id];
+    if (!Object.keys(ship).length) continue;
     writeFileSync(join(ROOT, `dist/locales/${lang}.json`), JSON.stringify(ship));
+    shipped.push(lang);
   }
-  const styles = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
-  const languages: Record<string, { name: string; nativeName: string; rules: string[]; draft: boolean }> = {};
+  writeFileSync(join(ROOT, "dist/locales/available.json"), JSON.stringify(shipped));
+  const styles = stylesOf();
+  const languages: Record<string, { name: string; nativeName: string; rules: string[]; avoid: LanguageStyle["avoid"]; draft: boolean }> = {};
   for (const [lang, style] of Object.entries(styles)) {
     const draft = existsSync(localeFile(lang));
     if (draft) writeFileSync(join(reviewData, `${lang}.json`), `${JSON.stringify(readJson<TranslationCatalog>(localeFile(lang), {}))}\n`);
-    languages[lang] = { name: style.name, nativeName: style.nativeName, rules: style.rules, draft };
+    languages[lang] = { name: style.name, nativeName: style.nativeName, rules: style.rules, avoid: style.avoid ?? [], draft };
   }
   writeFileSync(join(reviewData, "languages.json"), `${JSON.stringify(languages)}\n`);
   return 0;

@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from "
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { JSDOM } from "jsdom";
-import { parseMessage, translationIssues } from "../../src/shared/i18n-format";
+import { parseMessage, styleIssues, translationIssues, type StyleRule } from "../../src/shared/i18n-format";
 
 /** Project root; the scripts and tests run from there. */
 export const ROOT = process.cwd();
@@ -36,6 +36,11 @@ export interface LanguageStyle {
   rules: string[];
   /** Approved translations of a few English messages, by message id. */
   examples: Record<string, string>;
+  avoid?: StyleRule[];
+}
+
+export function styleWarnings(tr: TranslationCatalog, style: LanguageStyle | undefined): string[] {
+  return Object.entries(tr).flatMap(([id, e]) => styleIssues(e.message, style?.avoid).map((w) => `${id}: ${w}`));
 }
 
 /** One English message as extracted from the code. */
@@ -207,7 +212,7 @@ export function writeIfChanged(file: string, data: Record<string, unknown>): boo
 }
 
 /** Problems that make a translation unusable or unsafe to ship. */
-export function translationProblems(en: SourceCatalog, tr: TranslationCatalog, locale = "de"): string[] {
+export function translationProblems(en: SourceCatalog, tr: TranslationCatalog, locale: string): string[] {
   const problems: string[] = [];
   for (const [id, entry] of Object.entries(tr)) {
     const src = en[id];

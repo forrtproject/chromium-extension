@@ -6,7 +6,7 @@
  */
 
 import {
-  formatMessage, formsToMessage, hasChoices, messageArguments, messageForms, translationIssues, type MessageForm,
+  formatMessage, formsToMessage, hasChoices, messageArguments, messageForms, styleIssues, translationIssues, type MessageForm, type StyleRule,
 } from "@shared/i18n-format";
 import { guideUnsent, startGuide } from "./guide";
 import { messageDraft, openSend } from "./relay";
@@ -19,7 +19,7 @@ interface TranslationEntry {
 interface LocalEntry { message: string; source: string; approved: boolean; note?: string }
 interface LocalState { reviewer: string; entries: Record<string, LocalEntry>; sent?: Record<string, string> }
 type Glossary = Record<string, Record<string, string>>;
-interface LanguageInfo { name: string; nativeName: string; rules: string[]; draft: boolean }
+interface LanguageInfo { name: string; nativeName: string; rules: string[]; avoid?: StyleRule[]; draft: boolean }
 
 const LANGUAGES: Record<string, string> = { de: "Deutsch (German)" };
 let languageInfo: Record<string, LanguageInfo> = { de: { name: "German", nativeName: "Deutsch", rules: [], draft: true } };
@@ -259,7 +259,8 @@ function renderCard(id: string): HTMLElement {
   const refresh = (): void => {
     const l = localOf(id);
     const found = problems(id, message);
-    issues.replaceChildren(...found.map((p) => el("li", "", p)));
+    const style = styleIssues(message, languageInfo[lang]?.avoid);
+    issues.replaceChildren(...found.map((p) => el("li", "", p)), ...style.map((w) => el("li", "style-warning", `Style: ${w}`)));
     approve.textContent = l?.approved ? "✓ Approved" : "Approve";
     approve.classList.toggle("is-approved", !!l?.approved);
     approve.disabled = found.length > 0;
@@ -497,7 +498,7 @@ function renderGlossary(): void {
   table.append(headRow);
   for (const [term, t] of rows) {
     const row = el("tr");
-    row.append(el("td", "", term), el("td", "", t[lang] ?? "—"), el("td", "", t.note ?? ""));
+    row.append(el("td", "", term), el("td", "", t[lang] ?? "—"), el("td", "", [t.note, t[`note:${lang}`]].filter(Boolean).join(" ")));
     table.append(row);
   }
   glossaryEl.querySelector(".glossary-body")!.replaceChildren(table);

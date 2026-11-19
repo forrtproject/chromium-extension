@@ -121,6 +121,13 @@ function categoryNamesOneNumber(locale: string, category: string): boolean {
   return hits <= 1;
 }
 
+export interface StyleRule { pattern: string; flags?: string; message: string }
+
+export function styleIssues(text: string, rules: readonly StyleRule[] = []): string[] {
+  const plain = text.replace(/<[^>]+>/g, " ").replace(/&(?:#\d+|#x[\da-f]+|[a-z]+);/gi, " ");
+  return rules.filter((r) => new RegExp(r.pattern, r.flags ?? "u").test(plain)).map((r) => r.message);
+}
+
 export function formatMessage(source: string, values: MessageValues = {}, locale = "en"): string {
   const render = (nodes: Node[], count: number | null): string => {
     let out = "";

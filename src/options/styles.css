@@ -29,8 +29,8 @@
   --text-muted: #888;
   --border: #d0d1d1;
   --border-light: #e0e1e1;
-  --font-display: "Domine", Georgia, serif;
-  --font-body: "Source Sans 3", "Segoe UI", sans-serif;
+  --font-display: "Domine", Georgia, "Noto Naskh Arabic", "Songti SC", "Noto Serif SC", "Noto Serif KR", "Noto Sans Arabic", "Segoe UI Arabic", Tahoma, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", serif;
+  --font-body: "Source Sans 3", "Segoe UI", "Noto Sans Arabic", "Segoe UI Arabic", Tahoma, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
   --radius: 6px;
   --radius-lg: 10px;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -229,7 +229,7 @@ body {
   padding: 0.65rem 0.85rem;
   background: var(--surface);
   border-radius: var(--radius);
-  border-left: 3px solid var(--primary);
+  border-inline-start: 3px solid var(--primary);
 }
 
 .dh-apa-label {
@@ -265,7 +265,7 @@ body {
   padding: 1rem 1.1rem;
   background: var(--primary-faint);
   border: 1px solid var(--success-border);
-  border-left: 4px solid var(--primary);
+  border-inline-start: 4px solid var(--primary);
   border-radius: var(--radius);
   display: flex;
   gap: 0.85rem;
@@ -513,7 +513,7 @@ label {
 .footer-bar a {
   color: rgba(255, 255, 255, 0.4);
   text-decoration: none;
-  margin-left: 1rem;
+  margin-inline-start: 1rem;
   transition: color var(--transition-fast);
 }
 
@@ -718,7 +718,7 @@ label {
   content: "";
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: 17px;
   height: 17px;
   background: var(--white);
@@ -764,7 +764,7 @@ label {
 
 .data-meta {
   color: var(--text-muted);
-  text-align: right;
+  text-align: end;
 }
 
 /* ─── Site categories ─── */
@@ -795,7 +795,7 @@ label {
   content: "";
   width: 7px;
   height: 7px;
-  margin-left: auto;
+  margin-inline-start: auto;
   border-right: 1.5px solid var(--text-muted);
   border-bottom: 1.5px solid var(--text-muted);
   transform: rotate(45deg);
@@ -911,7 +911,7 @@ label {
 }
 
 .site-remove {
-  margin-left: auto;
+  margin-inline-start: auto;
   border: none;
   background: none;
   color: var(--text-muted);
@@ -930,14 +930,14 @@ label {
   list-style: none;
   cursor: pointer;
   position: relative;
-  padding-right: 3.25rem;
+  padding-inline-end: 3.25rem;
   border-bottom: none;
 }
 .tech-card > summary::-webkit-details-marker { display: none; }
 .tech-card > summary::after {
   content: "";
   position: absolute;
-  right: 1.75rem;
+  inset-inline-end: 1.75rem;
   top: 50%;
   width: 8px;
   height: 8px;
@@ -985,3 +985,5 @@ label {
 .detail-card[id] {
   scroll-margin-top: 1rem;
 }
+
+[dir="rtl"] .toggle-switch input:checked + .toggle-track::before { transform: translateX(-17px); }

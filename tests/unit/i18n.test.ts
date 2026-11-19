@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { formatMessage, messageArguments, messageTags } from "../../src/shared/i18n-format";
-import { intlLocale, localizeDocument, resolveLocale, setLocaleForTesting, t, tHtml } from "../../src/shared/i18n";
+import { existsSync } from "node:fs";
+import { formatMessage, messageArguments, messageTags, styleIssues } from "../../src/shared/i18n-format";
+import { SUPPORTED_LOCALES, intlLocale, localizeDocument, resolveLocale, setLocaleForTesting, t, tHtml } from "../../src/shared/i18n";
 import {
   EN_FILE, STYLE_FILE, US_SPELLING_FILE, extract, localeFile, readJson, translationProblems, usEnglishCatalog,
   type LanguageStyle, type SourceCatalog, type TranslationCatalog,
@@ -57,7 +58,18 @@ describe("runtime", () => {
 
   it("resolves the language from the setting or the browser", () => {
     expect(resolveLocale("auto", "de-AT")).toBe("de");
-    expect(resolveLocale("auto", "fr-FR")).toBe("en");
+    expect(resolveLocale("auto", "fr-FR")).toBe("fr");
+    expect(resolveLocale("auto", "fr-FR", ["de"])).toBe("en");
+    expect(resolveLocale("fr", "de-DE", ["de"])).toBe("de");
+    expect(resolveLocale("auto", "pt")).toBe("pt-BR");
+    expect(resolveLocale("auto", "pt-PT")).toBe("pt-PT");
+    expect(resolveLocale("auto", "pt-AO")).toBe("pt-PT");
+    expect(resolveLocale("auto", "zh-CN")).toBe("zh-CN");
+    expect(resolveLocale("auto", "zh-SG")).toBe("zh-CN");
+    expect(resolveLocale("auto", "zh-Hans-HK")).toBe("zh-CN");
+    expect(resolveLocale("auto", "zh-TW")).toBe("en");
+    expect(resolveLocale("auto", "zh-Hant")).toBe("en");
+    expect(resolveLocale("auto", "ar-EG")).toBe("ar");
     expect(resolveLocale("en", "de-DE")).toBe("en");
     expect(resolveLocale(undefined, "de")).toBe("de");
     expect(resolveLocale("auto", "en-US")).toBe("en-US");
@@ -93,30 +105,49 @@ describe("catalogs", () => {
     expect(catalog).toEqual(readJson<SourceCatalog>(EN_FILE, {}));
   });
 
-  it("style guide examples are valid translations of current messages", () => {
+  it("every supported language has a style guide whose examples follow it", () => {
     const en = readJson<SourceCatalog>(EN_FILE, {});
     const styles = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
-    const forbidden: Record<string, RegExp> = {
-      de: /\b(du|dich|dir|dein\w*|Ihnen|Ihre?[mnrs]?)\b/,
-      fr: /\b(tu|toi|ton|ta|tes)\b/i,
-      es: /\b(tú|vos|tu|tus|te)\b/i,
-      "pt-PT": /\bvocê/i,
-      ro: /[şţŞŢ]/,
-      ko: /당신|너는|너의/,
-      "zh-CN": /你|[一-鿿][,.?!:;]|[,.?!:;][一-鿿]/,
-    };
+    for (const lang of SUPPORTED_LOCALES.filter((l) => !l.startsWith("en"))) {
+      expect(styles[lang], `style guide for ${lang}`).toBeDefined();
+      expect(styles[lang].avoid?.length, `avoid rules for ${lang}`).toBeGreaterThan(0);
+    }
     for (const [lang, style] of Object.entries(styles)) {
       for (const [id, text] of Object.entries(style.examples)) {
         expect(en[id], `${lang} example ${id}`).toBeDefined();
         expect(translationProblems(en, { [id]: { message: text, source: en[id].message, status: "reviewed" } }, lang)).toEqual([]);
-        if (forbidden[lang]) expect(text, `${lang} ${id}`).not.toMatch(forbidden[lang]);
+        expect(styleIssues(text, style.avoid), `${lang} ${id}`).toEqual([]);
       }
     }
   });
 
-  it("German translations keep placeholders and markup", () => {
+  it("each language's avoid rules catch the mistakes they describe", () => {
+    const styles = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
+    const bad: Record<string, string[]> = {
+      de: ["Lade die Seite neu, damit du alles siehst.", "Bitte laden Sie die Seite neu."],
+      fr: ["Recharge ta page.", "Vraiment?", "Vraiment ?"],
+      es: ["Recarga tu página.", "¿Quieres que te ayude, tú?"],
+      "pt-BR": ["Recarrega a tua página.", "Abra o ficheiro."],
+      "pt-PT": ["Você pode recarregar.", "Abra o arquivo.", "O ORE está carregando."],
+      ro: ["Reîncarcă pagina, ţi se va arăta.", "Poți reîncărca dacă tu vrei."],
+      hu: ["Töltsd újra, te is."],
+      ko: ["당신의 설정을 확인하세요."],
+      "zh-CN": ["你好", "ORE 已更新,请重新加载", "設定"],
+      ar: ["أنت تستخدم ORE", "تم التحديث, يرجى"],
+    };
+    for (const [lang, samples] of Object.entries(bad)) {
+      for (const s of samples) expect(styleIssues(s, styles[lang].avoid), `${lang}: ${s}`).not.toEqual([]);
+    }
+    expect(styleIssues("Bitte die Seite neu laden. Sie zeigt dann alles.", styles.de.avoid)).toEqual([]);
+    expect(styleIssues("Seite neu laden, um Prüfungen auszuführen.", styles.de.avoid)).toEqual([]);
+  });
+
+  it("every translation catalog keeps placeholders and markup", () => {
     const en = readJson<SourceCatalog>(EN_FILE, {});
-    expect(translationProblems(en, readJson<TranslationCatalog>(localeFile("de"), {}))).toEqual([]);
+    const styles = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
+    for (const lang of Object.keys(styles).filter((l) => existsSync(localeFile(l)))) {
+      expect(translationProblems(en, readJson<TranslationCatalog>(localeFile(lang), {}), lang), lang).toEqual([]);
+    }
   });
 });
 

@@ -15,7 +15,19 @@
       "page.comments.allHidden": "جميع التعليقات هنا من معلّقين تم إخفاؤهم في الإعدادات.",
       "pill.oa.noEmail": "يُرجى إضافة البريد الإلكتروني في الإعدادات للتحقق من الوصول المفتوح",
       "pill.marker.comments": "{count, plural, zero {لا توجد تعليقات على PubPeer} one {تعليق واحد على PubPeer} two {تعليقان على PubPeer} few {# تعليقات على PubPeer} many {# تعليقًا على PubPeer} other {# تعليق على PubPeer}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(أنتَ|أنتِ|أنت)(?!\\p{L})",
+        "flags": "u",
+        "message": "Avoid أنت: use verbal nouns or يُرجى."
+      },
+      {
+        "pattern": "[\\u0600-\\u06FF][,?;]|[,?;][\\u0600-\\u06FF]",
+        "flags": "u",
+        "message": "Use Arabic punctuation (، ؟ ؛) next to Arabic text."
+      }
+    ]
   },
   "de": {
     "name": "German",
@@ -31,7 +43,19 @@
       "page.comments.allHidden": "Alle Kommentare hier stammen von Personen, die in den Einstellungen ausgeblendet sind.",
       "pill.oa.noEmail": "E-Mail-Adresse in den Einstellungen hinterlegen, um Open Access zu prüfen",
       "pill.marker.comments": "{count, plural, one {# PubPeer-Kommentar} other {# PubPeer-Kommentare}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(du|dich|dir|dein\\p{L}*|euch|euer\\p{L}*)(?!\\p{L})",
+        "flags": "u",
+        "message": "Informal address (du/dein): use infinitives or impersonal phrasing."
+      },
+      {
+        "pattern": "(?<![.!?:]\\s|^|„)(?<!\\p{L})(Sie|Ihnen|Ihre?[mnrs]?)(?!\\p{L})",
+        "flags": "u",
+        "message": "Formal address (Sie/Ihr) mid-sentence: use infinitives or impersonal phrasing."
+      }
+    ]
   },
   "es": {
     "name": "Spanish",
@@ -49,7 +73,14 @@
       "page.comments.allHidden": "Todos los comentarios de aquí son de personas que ocultó en Configuración.",
       "pill.oa.noEmail": "Indique su correo electrónico en Configuración para verificar el acceso abierto",
       "pill.marker.comments": "{count, plural, one {# comentario en PubPeer} many {# comentarios en PubPeer} other {# comentarios en PubPeer}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(tú|vos|tu|tus|ti|contigo)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use usted, never tú or vos."
+      }
+    ]
   },
   "fr": {
     "name": "French",
@@ -67,14 +98,31 @@
       "page.comments.allHidden": "Tous les commentaires ici proviennent de personnes que vous avez masquées dans les Paramètres.",
       "pill.oa.noEmail": "Ajoutez votre adresse e-mail dans les Paramètres pour vérifier l'accès ouvert",
       "pill.marker.comments": "{count, plural, one {# commentaire PubPeer} many {# commentaires PubPeer} other {# commentaires PubPeer}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(tu|toi|ton|ta|tes)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use vous, never tu."
+      },
+      {
+        "pattern": "[^\\s\\u00a0\\u202f][?!;]",
+        "flags": "u",
+        "message": "Put a narrow no-break space (U+202F) before ? ! ;"
+      },
+      {
+        "pattern": " [?!;:]",
+        "flags": "u",
+        "message": "Use a no-break space, not a normal space, before ? ! ; :"
+      }
+    ]
   },
   "hu": {
     "name": "Hungarian",
     "nativeName": "Magyar",
     "rules": [
       "Address: prefer impersonal phrasing. Where a sentence needs address, use the formal Ön forms without the pronoun (\"Töltse újra\", \"e-mail-címét\"); never te forms (\"Töltsd újra\").",
-      "Articles follow pronunciation: \"az ORE\", \"a PubPeer\", \"a DOI\". Attach suffixes to names and acronyms with a hyphen (\"ORE-t\", \"PubPeer-en\", \"DOI-t\") and hyphenate compounds with them (\"PubPeer-hozzászólás\").",
+      "Articles follow pronunciation: \"az ORE\", \"a PubPeer\", \"a DOI\". Acronyms and abbreviations take hyphenated suffixes (\"ORE-t\", \"DOI-t\"); other names follow the usual spelling for foreign names (\"Crossrefben\", \"Unpaywallon\"). Hyphenate compounds with a name (\"PubPeer-hozzászólás\", \"FORRT-közösség\"). Google and Microsoft products keep their official Hungarian names (\"Google Táblázatok\").",
       "Plurals: the noun stays singular after a number, so one and other read the same (\"# hozzászólás\").",
       "Typography: quotation marks „…”."
     ],
@@ -84,7 +132,14 @@
       "page.comments.allHidden": "Az itt látható összes hozzászólás olyan személyektől származik, akiket elrejtett a Beállításokban.",
       "pill.oa.noEmail": "Adja meg e-mail-címét a Beállításokban a nyílt hozzáférés ellenőrzéséhez",
       "pill.marker.comments": "{count, plural, one {# PubPeer-hozzászólás} other {# PubPeer-hozzászólás}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(te|téged|neked|tiéd|veled)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use the formal Ön forms, never te."
+      }
+    ]
   },
   "ko": {
     "name": "Korean",
@@ -101,7 +156,14 @@
       "page.comments.allHidden": "이곳의 댓글은 모두 설정에서 숨긴 작성자가 남긴 댓글이에요.",
       "pill.oa.noEmail": "오픈 액세스를 확인하려면 설정에서 이메일을 추가하세요",
       "pill.marker.comments": "{count, plural, one {PubPeer 댓글 #개} other {PubPeer 댓글 #개}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "당신|너는|너의|네가",
+        "flags": "u",
+        "message": "Leave out the subject; never 당신 or 너."
+      }
+    ]
   },
   "pt-BR": {
     "name": "Brazilian Portuguese",
@@ -118,7 +180,19 @@
       "page.comments.allHidden": "Todos os comentários aqui são de pessoas que você ocultou nas Configurações.",
       "pill.oa.noEmail": "Adicione seu e-mail nas Configurações para verificar o acesso aberto",
       "pill.marker.comments": "{count, plural, one {# comentário no PubPeer} many {# comentários no PubPeer} other {# comentários no PubPeer}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(tu|teu|tua|teus|tuas|contigo)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use você or no pronoun, never tu."
+      },
+      {
+        "pattern": "(?<!\\p{L})(ficheiro|ecrã|utilizador|telemóvel)(?!\\p{L})",
+        "flags": "iu",
+        "message": "European Portuguese word: use the Brazilian one (arquivo, tela, usuário, celular)."
+      }
+    ]
   },
   "pt-PT": {
     "name": "European Portuguese",
@@ -135,7 +209,29 @@
       "page.comments.allHidden": "Todos os comentários aqui são de pessoas que ocultou nas Definições.",
       "pill.oa.noEmail": "Adicione o seu e-mail nas Definições para verificar o acesso aberto",
       "pill.marker.comments": "{count, plural, one {# comentário no PubPeer} many {# comentários no PubPeer} other {# comentários no PubPeer}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(você|vocês)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Avoid você: use the third-person verb without a pronoun."
+      },
+      {
+        "pattern": "(?<!\\p{L})(tu|teu|tua|teus|tuas|contigo)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Never tu in the interface."
+      },
+      {
+        "pattern": "(?<!\\p{L})(arquivo|tela|usuário|celular|Configurações)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Brazilian word: use the European one (ficheiro, ecrã, utilizador, telemóvel, Definições)."
+      },
+      {
+        "pattern": "(?<!\\p{L})((está|estão|estou|estamos) \\p{L}+ndo)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use estar a + infinitive, not the gerund."
+      }
+    ]
   },
   "ro": {
     "name": "Romanian",
@@ -152,7 +248,19 @@
       "page.comments.allHidden": "Toate comentariile de aici provin de la persoane pe care le-ați ascuns în Setări.",
       "pill.oa.noEmail": "Adăugați adresa de e-mail în Setări pentru a verifica accesul deschis",
       "pill.marker.comments": "{count, plural, one {# comentariu PubPeer} few {# comentarii PubPeer} other {# de comentarii PubPeer}}."
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "[şţŞŢ]",
+        "flags": "u",
+        "message": "Use ș and ț with comma below, not the cedilla forms ş ţ."
+      },
+      {
+        "pattern": "(?<!\\p{L})(tu|ți|tău|tale)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use the polite plural forms (dumneavoastră), never tu."
+      }
+    ]
   },
   "zh-CN": {
     "name": "Simplified Chinese (Mainland China)",
@@ -169,6 +277,23 @@
       "page.comments.allHidden": "这里的所有评论均来自已在设置中隐藏的评论者。",
       "pill.oa.noEmail": "在设置中添加电子邮箱，即可检查开放获取情况",
       "pill.marker.comments": "{count, plural, one {# 条 PubPeer 评论} other {# 条 PubPeer 评论}}。"
-    }
+    },
+    "avoid": [
+      {
+        "pattern": "你",
+        "flags": "u",
+        "message": "Use 您 or leave out the pronoun, never 你."
+      },
+      {
+        "pattern": "[\\u4e00-\\u9fff][,.?!:;]|[,.?!:;][\\u4e00-\\u9fff]",
+        "flags": "u",
+        "message": "Use full-width punctuation (，。？！：；) next to Chinese text."
+      },
+      {
+        "pattern": "[這個們來說時會對與為發開關問題設網頁檔體]",
+        "flags": "u",
+        "message": "Traditional character: use Simplified Chinese."
+      }
+    ]
   }
 }

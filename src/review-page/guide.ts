@@ -22,7 +22,7 @@ async function loadThread(): Promise<ThreadComment[]> {
     const res = await fetch(`${RELAY}/comments`);
     if (res.ok) return ((await res.json()) as { comments: ThreadComment[] }).comments;
   } catch {
-    // Relay unreachable (or this isn't forrt.org): read GitHub directly.
+    // Relay unreachable, or this site isn't in the relay's ALLOWED_ORIGINS: read GitHub directly.
   }
   const comments: ThreadComment[] = [];
   let url = `${ISSUE_API}/comments?per_page=100`;

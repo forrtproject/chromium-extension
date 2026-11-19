@@ -17,7 +17,7 @@ import { callModel, parseReply } from "./translate";
 const DEFAULT_MODEL = "openai/gpt-6.1-sol";
 const BATCH = 40;
 
-const system = (lang: string, style: LanguageStyle, glossary: Record<string, Record<string, string>>): string => `You triage ${style.name} translations of the interface of FORRT ORE, a browser extension that marks academic papers with small "pills" showing replications, retractions, expressions of concern, Registered Reports, PubPeer comments and open-access copies. A native speaker will review them; your rating decides what they look at first.
+export const system = (lang: string, style: LanguageStyle, glossary: Record<string, Record<string, string>>): string => `You triage ${style.name} translations of the interface of FORRT ORE, a browser extension that marks academic papers with small "pills" showing replications, retractions, expressions of concern, Registered Reports, PubPeer comments and open-access copies. A native speaker will review them; your rating decides what they look at first.
 
 For each item rate the review need:
 1 = quick check: short, routine UI wording (buttons, menu labels, standard status text) and the translation is clearly correct and natural. Safe to approve after a glance.
