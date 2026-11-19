@@ -1,0 +1,18 @@
+name = "ore-translation-feedback"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://forrt.org"
+GITHUB_REPO = "forrtproject/chromium-extension"
+GITHUB_ISSUE = "295"
+REVIEW_PAGE_URL = "https://forrt.org/chromium-extension/translate/feedback/"
+
+[[kv_namespaces]]
+binding = "CONTACTS"
+id = "f398a917739c499092da5c385c50bcc9"
+
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "2950"
+simple = { limit = 5, period = 60 }
