@@ -3,10 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2026-11-01"
 
 [vars]
-ALLOWED_ORIGINS = "https://forrt.org"
+ALLOWED_ORIGINS = "https://staging.forrt.org,https://forrt.org"
 GITHUB_REPO = "forrtproject/chromium-extension"
 GITHUB_ISSUE = "295"
-REVIEW_PAGE_URL = "https://forrt.org/chromium-extension/translate/"
+REVIEW_PAGE_URL = "https://staging.forrt.org/chromium-extension/translate/"
 
 [[kv_namespaces]]
 binding = "CONTACTS"
