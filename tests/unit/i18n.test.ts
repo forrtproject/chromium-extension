@@ -70,6 +70,9 @@ describe("runtime", () => {
     expect(resolveLocale("auto", "zh-TW")).toBe("en");
     expect(resolveLocale("auto", "zh-Hant")).toBe("en");
     expect(resolveLocale("auto", "ar-EG")).toBe("ar");
+    expect(resolveLocale("auto", "no")).toBe("nb");
+    expect(resolveLocale("auto", "nn-NO")).toBe("nb");
+    expect(resolveLocale("auto", "ja-JP")).toBe("ja");
     expect(resolveLocale("en", "de-DE")).toBe("en");
     expect(resolveLocale(undefined, "de")).toBe("de");
     expect(resolveLocale("auto", "en-US")).toBe("en-US");
@@ -134,6 +137,16 @@ describe("catalogs", () => {
       ko: ["당신의 설정을 확인하세요."],
       "zh-CN": ["你好", "ORE 已更新,请重新加载", "設定"],
       ar: ["أنت تستخدم ORE", "تم التحديث, يرجى"],
+      pl: ["Odśwież swoją stronę, a twój raport się pojawi.", "Czy Pan chce kontynuować?"],
+      nl: ["Herlaad je pagina.", "Jouw instellingen zijn opgeslagen."],
+      cs: ["Obnov si tvůj prohlížeč.", "Co ty na to?"],
+      sk: ["Obnov si tvoj prehliadač.", "Čo ty na to?"],
+      ru: ["Обнови свою страницу, ты увидишь результат.", "Твой отчёт готов."],
+      fi: ["Sinun pitää ladata sivu uudelleen.", "Teidän asetuksenne on tallennettu."],
+      sv: ["Vill ni fortsätta?"],
+      nb: ["Vil De fortsette nå?"],
+      it: ["Ricarica la tua pagina.", "Tu puoi continuare."],
+      ja: ["あなたの設定を確認してください。", "ORE を更新した,続行", "更新が必要だ。"],
     };
     for (const [lang, samples] of Object.entries(bad)) {
       for (const s of samples) expect(styleIssues(s, styles[lang].avoid), `${lang}: ${s}`).not.toEqual([]);

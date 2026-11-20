@@ -295,5 +295,261 @@
         "message": "Traditional character: use Simplified Chinese."
       }
     ]
+  },
+  "pl": {
+    "name": "Polish",
+    "nativeName": "Polski",
+    "rules": [
+      "Address: sentences avoid addressing the reader; use impersonal forms (\"należy odświeżyć stronę\") and the passive. Never Pan/Pani/Państwo, and no ty pronouns or possessives (ty, twój). Buttons and menu items use the imperative, as is standard in Polish software (\"Odśwież\", \"Kopiuj\").",
+      "Plurals: one is 1; few is 2–4, 22–24 … (\"# komentarze\"); many is 0, 5–21 … (\"# komentarzy\"); other is for fractions (\"# komentarza\").",
+      "ORE is an extension (rozszerzenie), so it takes neuter agreement (\"ORE zostało zaktualizowane\").",
+      "Typography: quotation marks „…”; a spaced en dash – for the English em dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE zostało zaktualizowane – aby uruchomić sprawdzanie, należy ponownie wczytać tę stronę.",
+      "notice.feedback.title": "Jak sprawdza się ORE?",
+      "page.comments.allHidden": "Wszystkie komentarze tutaj pochodzą od osób ukrytych w Ustawieniach.",
+      "pill.oa.noEmail": "Aby sprawdzać otwarty dostęp, należy dodać adres e-mail w Ustawieniach",
+      "pill.marker.comments": "{count, plural, one {# komentarz w PubPeer} few {# komentarze w PubPeer} many {# komentarzy w PubPeer} other {# komentarza w PubPeer}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(ty|ciebie|cię|tobie|twój|twoja|twoje|twojego|twojej|twoim|twoją|twoich)(?!\\p{L})",
+        "flags": "iu",
+        "message": "No ty pronouns or possessives: use impersonal phrasing."
+      },
+      {
+        "pattern": "(?<!\\p{L})(Pan|Pani|Państwo|Pana|Panu|Panią|Państwa)(?!\\p{L})",
+        "flags": "u",
+        "message": "Avoid Pan/Pani: use impersonal phrasing."
+      }
+    ]
+  },
+  "nl": {
+    "name": "Dutch",
+    "nativeName": "Nederlands",
+    "rules": [
+      "Address: prefer impersonal phrasing; where the reader is addressed, use u and uw, never je, jij or jouw. Buttons and menu items use the infinitive (\"Pagina opnieuw laden\").",
+      "Neutral Dutch that reads naturally in the Netherlands and Flanders.",
+      "Hyphenate compounds with a name (\"PubPeer-reactie\", \"ORE-knop\").",
+      "Typography: quotation marks “…”; replace the English em dash with a colon or a spaced en dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE is bijgewerkt: laad deze pagina opnieuw om de controles uit te voeren.",
+      "notice.feedback.title": "Hoe bevalt ORE?",
+      "page.comments.allHidden": "Alle reacties hier komen van personen die in Instellingen zijn verborgen.",
+      "pill.oa.noEmail": "Voeg uw e-mailadres toe in Instellingen om open access te controleren",
+      "pill.marker.comments": "{count, plural, one {# PubPeer-reactie} other {# PubPeer-reacties}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(je|jij|jou|jouw|jullie)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use u (or no pronoun), never je/jij."
+      }
+    ]
+  },
+  "cs": {
+    "name": "Czech",
+    "nativeName": "Čeština",
+    "rules": [
+      "Address: buttons and menu items use the infinitive (\"Obnovit stránku\"). Sentences that address the reader use the formal plural (vykání: \"Obnovte\", \"váš\"), with vy/váš in lower case; never tykání.",
+      "Plurals: one is 1; few is 2–4 (\"# komentáře\"); other is 0 and 5 or more (\"# komentářů\"); many is only for decimals (\"# komentáře\").",
+      "ORE takes neuter agreement, as rozšíření (\"ORE bylo aktualizováno\").",
+      "Typography: quotation marks „…“; a spaced en dash – for the English em dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE bylo aktualizováno. Obnovte tuto stránku, aby se spustily kontroly.",
+      "notice.feedback.title": "Jak se vám osvědčuje ORE?",
+      "page.comments.allHidden": "Všechny komentáře zde pocházejí od komentujících, které jste skryli v Nastavení.",
+      "pill.oa.noEmail": "Chcete-li kontrolovat otevřený přístup, přidejte v Nastavení svůj e-mail",
+      "pill.marker.comments": "{count, plural, one {# komentář na PubPeer} few {# komentáře na PubPeer} many {# komentáře na PubPeer} other {# komentářů na PubPeer}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(ty|tebe|tobě|tvůj|tvoje|tvá|tvého|tvým|tvojí)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use the formal plural (vykání), never tykání."
+      }
+    ]
+  },
+  "sk": {
+    "name": "Slovak",
+    "nativeName": "Slovenčina",
+    "rules": [
+      "Address: buttons and menu items use the infinitive (\"Obnoviť stránku\"). Sentences that address the reader use the formal plural (vykanie: \"Obnovte\", \"váš\"), with vy/váš in lower case; never tykanie.",
+      "Plurals: one is 1; few is 2–4 (\"# komentáre\"); other is 0 and 5 or more (\"# komentárov\"); many is only for decimals (\"# komentára\").",
+      "ORE takes neuter agreement, as rozšírenie (\"ORE bolo aktualizované\").",
+      "Typography: quotation marks „…“; a spaced en dash – for the English em dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE bolo aktualizované. Obnovte túto stránku, aby sa spustili kontroly.",
+      "notice.feedback.title": "Ako sa vám osvedčuje ORE?",
+      "page.comments.allHidden": "Všetky komentáre tu pochádzajú od komentujúcich, ktorých ste skryli v Nastaveniach.",
+      "pill.oa.noEmail": "Ak chcete kontrolovať otvorený prístup, pridajte v Nastaveniach svoj e-mail",
+      "pill.marker.comments": "{count, plural, one {# komentár na PubPeer} few {# komentáre na PubPeer} many {# komentára na PubPeer} other {# komentárov na PubPeer}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(ty|teba|tebe|ťa|tvoj|tvoja|tvoje|tvojho|tvojej|tvojim)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use the formal plural (vykanie), never tykanie."
+      }
+    ]
+  },
+  "ru": {
+    "name": "Russian",
+    "nativeName": "Русский",
+    "rules": [
+      "Address: buttons and menu items use the infinitive (\"Обновить страницу\"). Sentences that address the reader use вы (lower case in interface text) and the plural imperative (\"Обновите\"); never ты.",
+      "Plurals: one is 1, 21, 31 … so keep # in the one case (\"# комментарий\"); few is 2–4, 22–24 … (\"# комментария\"); many is 0, 5–20 … (\"# комментариев\"); other is for fractions (\"# комментария\").",
+      "Refer to the extension as \"расширение ORE\" where agreement is needed (\"Расширение ORE обновлено\").",
+      "Typography: quotation marks «…»; a spaced em dash — as in Russian typesetting."
+    ],
+    "examples": {
+      "notice.updated.message": "Расширение ORE обновлено — перезагрузите эту страницу, чтобы запустить проверки.",
+      "notice.feedback.title": "Как вам работа с ORE?",
+      "page.comments.allHidden": "Все комментарии здесь — от авторов, которых вы скрыли в настройках.",
+      "pill.oa.noEmail": "Чтобы проверять открытый доступ, добавьте адрес электронной почты в настройках",
+      "pill.marker.comments": "{count, plural, one {# комментарий на PubPeer} few {# комментария на PubPeer} many {# комментариев на PubPeer} other {# комментария на PubPeer}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(ты|тебя|тебе|тобой|твой|твоя|твоё|твое|твои|твоего|твоей|твоих)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use вы, never ты."
+      }
+    ]
+  },
+  "fi": {
+    "name": "Finnish",
+    "nativeName": "Suomi",
+    "rules": [
+      "Address: instructions use the imperative, which is neutral in Finnish interfaces (\"Lataa sivu uudelleen\"); statements use the passive (\"on piilotettu\"). Avoid personal pronouns (sinä, te) and possessive pronouns.",
+      "Inflect names with a colon after abbreviations and acronyms (\"ORE:n\", \"DOI:n\") and directly otherwise (\"PubPeerissä\"); hyphenate compounds with a name (\"PubPeer-kommentti\").",
+      "Plurals: one and other; after a number the noun is in the partitive singular (\"# PubPeer-kommenttia\").",
+      "Typography: quotation marks ”…”; a spaced en dash – for the English em dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE on päivitetty – lataa tämä sivu uudelleen, jotta tarkistukset voidaan suorittaa.",
+      "notice.feedback.title": "Miten ORE toimii?",
+      "page.comments.allHidden": "Kaikki tämän osion kommentit ovat kommentoijilta, jotka on piilotettu asetuksissa.",
+      "pill.oa.noEmail": "Lisää sähköpostiosoite asetuksissa, jotta avoin saatavuus voidaan tarkistaa",
+      "pill.marker.comments": "{count, plural, one {# PubPeer-kommentti} other {# PubPeer-kommenttia}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(sinä|sinun|sinua|sinulle|sinulla|sinusta|te|teidän|teitä|teille|teillä)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Avoid personal pronouns: use the imperative or the passive."
+      }
+    ]
+  },
+  "sv": {
+    "name": "Swedish",
+    "nativeName": "Svenska",
+    "rules": [
+      "Address: du is the respectful standard in Swedish software; leave the pronoun out where possible. Never ni as a polite form. Buttons and menu items use the imperative (\"Läs in sidan igen\").",
+      "Hyphenate compounds with a name (\"PubPeer-kommentar\", \"ORE-knappen\").",
+      "Typography: quotation marks ”…”; a spaced en dash – for the English em dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE har uppdaterats – läs in sidan igen för att köra kontrollerna.",
+      "notice.feedback.title": "Hur fungerar ORE för dig?",
+      "page.comments.allHidden": "Alla kommentarer här kommer från personer som du har dolt i Inställningar.",
+      "pill.oa.noEmail": "Lägg till din e-postadress i Inställningar för att kontrollera öppen tillgång",
+      "pill.marker.comments": "{count, plural, one {# PubPeer-kommentar} other {# PubPeer-kommentarer}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(ni)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use du (or no pronoun), not ni."
+      }
+    ]
+  },
+  "nb": {
+    "name": "Norwegian Bokmål",
+    "nativeName": "Norsk bokmål",
+    "rules": [
+      "Address: du is the respectful standard in Norwegian software; leave the pronoun out where possible. Never the formal De/Dem/Deres. Buttons and menu items use the imperative (\"Last inn siden på nytt\").",
+      "Write Bokmål, not Nynorsk.",
+      "Hyphenate compounds with a name (\"PubPeer-kommentar\", \"ORE-knappen\").",
+      "Typography: quotation marks «…»; a spaced en dash – for the English em dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE er oppdatert – last inn denne siden på nytt for å kjøre kontrollene.",
+      "notice.feedback.title": "Hvordan fungerer ORE for deg?",
+      "page.comments.allHidden": "Alle kommentarene her er fra personer du har skjult i Innstillinger.",
+      "pill.oa.noEmail": "Legg til e-postadressen din i Innstillinger for å sjekke åpen tilgang",
+      "pill.marker.comments": "{count, plural, one {# PubPeer-kommentar} other {# PubPeer-kommentarer}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<![.!?:]\\s|^)(?<!\\p{L})(De|Dem|Deres)(?!\\p{L})",
+        "flags": "u",
+        "message": "Use du, not the formal De."
+      }
+    ]
+  },
+  "it": {
+    "name": "Italian",
+    "nativeName": "Italiano",
+    "rules": [
+      "Address: prefer impersonal phrasing; buttons, menu items and instructions use the infinitive (\"Ricaricare la pagina\"). Where the reader must be addressed, use Lei forms; never tu.",
+      "ORE takes masculine agreement (\"ORE è stato aggiornato\").",
+      "Plurals: one is 1; many is only for large round numbers and reads like other.",
+      "Typography: quotation marks «…»; replace the English em dash with a colon or a spaced en dash.",
+      "People: neutral nouns where possible (\"le persone\", \"il gruppo di ricerca\")."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE è stato aggiornato: ricaricare questa pagina per eseguire i controlli.",
+      "notice.feedback.title": "Com'è l'esperienza con ORE?",
+      "page.comments.allHidden": "Tutti i commenti qui provengono da persone nascoste nelle Impostazioni.",
+      "pill.oa.noEmail": "Aggiungere l'indirizzo e-mail nelle Impostazioni per verificare l'accesso aperto",
+      "pill.marker.comments": "{count, plural, one {# commento PubPeer} many {# commenti PubPeer} other {# commenti PubPeer}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(tu|tuo|tua|tuoi|tue)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use impersonal phrasing or Lei, never tu."
+      }
+    ]
+  },
+  "ja": {
+    "name": "Japanese",
+    "nativeName": "日本語",
+    "rules": [
+      "Register: polite です/ます form in sentences; buttons, labels and menu items use concise noun forms (\"再読み込み\", \"設定を開く\"). Requests use 〜してください. Never plain だ/である style.",
+      "Address: leave out the subject; never あなた, 君 or お前.",
+      "Punctuation: full-width 、。？！：（）「」; no full stop at the end of buttons and labels. Half-width digits and Latin letters, with a half-width space between them and Japanese text (\"ORE が更新されました\", \"3 件\").",
+      "Plurals: Japanese has no plural forms. Keep the one and other cases with the same text and use counters (\"# 件\", \"# 本\").",
+      "Use 撤回 for retraction and 追試 for replication, as in Japanese research writing."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE が更新されました。チェックを実行するには、このページを再読み込みしてください。",
+      "notice.feedback.title": "ORE の使い心地はいかがですか？",
+      "page.comments.allHidden": "ここに表示されるコメントは、すべて設定で非表示にしたコメント投稿者によるものです。",
+      "pill.oa.noEmail": "オープンアクセスを確認するには、設定でメールアドレスを追加してください",
+      "pill.marker.comments": "{count, plural, one {PubPeer のコメント # 件} other {PubPeer のコメント # 件}}。"
+    },
+    "avoid": [
+      {
+        "pattern": "あなた|君は|お前",
+        "flags": "u",
+        "message": "Leave out the subject; never あなた."
+      },
+      {
+        "pattern": "[\\u3040-\\u30ff\\u4e00-\\u9fff][,.?!:;]|[,.?!:;][\\u3040-\\u30ff\\u4e00-\\u9fff]",
+        "flags": "u",
+        "message": "Use full-width punctuation (、。？！：) next to Japanese text."
+      },
+      {
+        "pattern": "(?:だ|である)。",
+        "flags": "u",
+        "message": "Use the polite です/ます form."
+      }
+    ]
   }
 }
