@@ -11,7 +11,17 @@
     "ko": "우려 표명",
     "zh-CN": "关注声明",
     "ar": "بيان قلق",
-    "note:de": "Keep English and capitalise it as 'Expression of Concern' everywhere, including running text (plural 'Expressions of Concern')."
+    "note:de": "Keep English and capitalise it as 'Expression of Concern' everywhere, including running text (plural 'Expressions of Concern').",
+    "pl": "Expression of Concern",
+    "nl": "Expression of Concern",
+    "cs": "Expression of Concern",
+    "sk": "Expression of Concern",
+    "ru": "выражение обеспокоенности",
+    "fi": "Expression of Concern",
+    "sv": "Expression of Concern",
+    "nb": "Expression of Concern",
+    "it": "Expression of Concern",
+    "ja": "懸念表明"
   },
   "FORRT Replication Database": {
     "de": "FORRT Replication Database",
@@ -24,7 +34,17 @@
     "hu": "FORRT Replication Database",
     "ko": "FORRT Replication Database",
     "zh-CN": "FORRT Replication Database",
-    "ar": "FORRT Replication Database"
+    "ar": "FORRT Replication Database",
+    "pl": "FORRT Replication Database",
+    "nl": "FORRT Replication Database",
+    "cs": "FORRT Replication Database",
+    "sk": "FORRT Replication Database",
+    "ru": "FORRT Replication Database",
+    "fi": "FORRT Replication Database",
+    "sv": "FORRT Replication Database",
+    "nb": "FORRT Replication Database",
+    "it": "FORRT Replication Database",
+    "ja": "FORRT Replication Database"
   },
   "Meta Report": {
     "de": "Meta-Bericht",
@@ -37,7 +57,17 @@
     "hu": "metajelentés",
     "ko": "메타 보고서",
     "zh-CN": "元报告",
-    "ar": "التقرير الشامل"
+    "ar": "التقرير الشامل",
+    "pl": "metaraport",
+    "nl": "metarapport",
+    "cs": "metazpráva",
+    "sk": "metaspráva",
+    "ru": "метаотчёт",
+    "fi": "metaraportti",
+    "sv": "metarapport",
+    "nb": "metarapport",
+    "it": "metareport",
+    "ja": "メタレポート"
   },
   "open access": {
     "de": "Open Access",
@@ -51,7 +81,17 @@
     "ko": "오픈 액세스",
     "zh-CN": "开放获取",
     "ar": "الوصول المفتوح",
-    "note:de": "'open-access copy' → 'Open-Access-Version'."
+    "note:de": "'open-access copy' → 'Open-Access-Version'.",
+    "pl": "otwarty dostęp",
+    "nl": "open access",
+    "cs": "otevřený přístup",
+    "sk": "otvorený prístup",
+    "ru": "открытый доступ",
+    "fi": "avoin saatavuus",
+    "sv": "öppen tillgång",
+    "nb": "åpen tilgang",
+    "it": "accesso aperto",
+    "ja": "オープンアクセス"
   },
   "original study": {
     "de": "Originalstudie",
@@ -63,7 +103,17 @@
     "hu": "eredeti tanulmány",
     "ko": "원 연구",
     "zh-CN": "原始研究",
-    "ar": "الدراسة الأصلية"
+    "ar": "الدراسة الأصلية",
+    "pl": "badanie oryginalne",
+    "nl": "oorspronkelijke studie",
+    "cs": "původní studie",
+    "sk": "pôvodná štúdia",
+    "ru": "исходное исследование",
+    "fi": "alkuperäinen tutkimus",
+    "sv": "originalstudie",
+    "nb": "originalstudie",
+    "it": "studio originale",
+    "ja": "元の研究"
   },
   "pill": {
     "de": "Markierung",
@@ -77,7 +127,17 @@
     "ko": "배지",
     "zh-CN": "标记",
     "ar": "شارة",
-    "note:de": "Use 'Markierung' consistently."
+    "note:de": "Use 'Markierung' consistently.",
+    "pl": "znacznik",
+    "nl": "label",
+    "cs": "štítek",
+    "sk": "štítok",
+    "ru": "метка",
+    "fi": "tunniste",
+    "sv": "etikett",
+    "nb": "merke",
+    "it": "etichetta",
+    "ja": "バッジ"
   },
   "preprint": {
     "de": "Preprint",
@@ -89,7 +149,17 @@
     "hu": "preprint",
     "ko": "프리프린트",
     "zh-CN": "预印本",
-    "ar": "نسخة ما قبل النشر"
+    "ar": "نسخة ما قبل النشر",
+    "pl": "preprint",
+    "nl": "preprint",
+    "cs": "preprint",
+    "sk": "preprint",
+    "ru": "препринт",
+    "fi": "preprint",
+    "sv": "preprint",
+    "nb": "preprint",
+    "it": "preprint",
+    "ja": "プレプリント"
   },
   "PubPeer comment": {
     "de": "PubPeer-Kommentar",
@@ -101,7 +171,17 @@
     "hu": "PubPeer-hozzászólás",
     "ko": "PubPeer 댓글",
     "zh-CN": "PubPeer 评论",
-    "ar": "تعليق على PubPeer"
+    "ar": "تعليق على PubPeer",
+    "pl": "komentarz w PubPeer",
+    "nl": "PubPeer-reactie",
+    "cs": "komentář na PubPeer",
+    "sk": "komentár na PubPeer",
+    "ru": "комментарий на PubPeer",
+    "fi": "PubPeer-kommentti",
+    "sv": "PubPeer-kommentar",
+    "nb": "PubPeer-kommentar",
+    "it": "commento su PubPeer",
+    "ja": "PubPeer のコメント"
   },
   "reference": {
     "de": "Literaturangabe",
@@ -115,7 +195,17 @@
     "ko": "참고문헌",
     "zh-CN": "参考文献",
     "ar": "مرجع",
-    "note:de": "'references' (section) → 'Literaturverzeichnis'."
+    "note:de": "'references' (section) → 'Literaturverzeichnis'.",
+    "pl": "pozycja bibliograficzna",
+    "nl": "literatuurverwijzing",
+    "cs": "bibliografický odkaz",
+    "sk": "bibliografický odkaz",
+    "ru": "библиографическая ссылка",
+    "fi": "lähdeviite",
+    "sv": "referens",
+    "nb": "referanse",
+    "it": "riferimento bibliografico",
+    "ja": "参考文献"
   },
   "Registered Report": {
     "de": "Registered Report",
@@ -129,7 +219,17 @@
     "ko": "Registered Report",
     "zh-CN": "注册报告",
     "ar": "التقرير المسجَّل",
-    "note:de": "Keep English, plural 'Registered Reports'."
+    "note:de": "Keep English, plural 'Registered Reports'.",
+    "pl": "Registered Report",
+    "nl": "Registered Report",
+    "cs": "Registered Report",
+    "sk": "Registered Report",
+    "ru": "Registered Report",
+    "fi": "Registered Report",
+    "sv": "Registered Report",
+    "nb": "Registered Report",
+    "it": "Registered Report",
+    "ja": "Registered Report"
   },
   "replication": {
     "de": "Replikation",
@@ -143,7 +243,17 @@
     "ko": "반복 연구",
     "zh-CN": "重复研究",
     "ar": "التكرار",
-    "note:de": "'replication study' → 'Replikationsstudie'."
+    "note:de": "'replication study' → 'Replikationsstudie'.",
+    "pl": "replikacja",
+    "nl": "replicatie",
+    "cs": "replikace",
+    "sk": "replikácia",
+    "ru": "репликация",
+    "fi": "replikaatio",
+    "sv": "replikering",
+    "nb": "replikasjon",
+    "it": "replicazione",
+    "ja": "追試"
   },
   "reproduction": {
     "de": "Reproduktion",
@@ -155,7 +265,17 @@
     "hu": "reprodukció",
     "ko": "재현",
     "zh-CN": "复现",
-    "ar": "إعادة الإنتاج"
+    "ar": "إعادة الإنتاج",
+    "pl": "reprodukcja",
+    "nl": "reproductie",
+    "cs": "reprodukce",
+    "sk": "reprodukcia",
+    "ru": "воспроизведение",
+    "fi": "reproduktio",
+    "sv": "reproduktion",
+    "nb": "reproduksjon",
+    "it": "riproduzione",
+    "ja": "再現"
   },
   "retracted": {
     "de": "zurückgezogen",
@@ -169,7 +289,17 @@
     "ko": "철회됨",
     "zh-CN": "已撤稿",
     "ar": "مسحوب",
-    "note:de": "Label on a pill: 'Zurückgezogen'."
+    "note:de": "Label on a pill: 'Zurückgezogen'.",
+    "pl": "wycofany",
+    "nl": "ingetrokken",
+    "cs": "stažený",
+    "sk": "stiahnutý",
+    "ru": "отозвана",
+    "fi": "vedetty takaisin",
+    "sv": "tillbakadragen",
+    "nb": "trukket tilbake",
+    "it": "ritirato",
+    "ja": "撤回済み"
   },
   "retraction": {
     "de": "Retraction",
@@ -183,7 +313,17 @@
     "ko": "철회",
     "zh-CN": "撤稿",
     "ar": "سحب",
-    "note:de": "Keep the English noun (plural 'Retractions'); 'Retraction Notice' stays English too. For the state of a paper, 'zurückgezogen' is fine ('Dieser Artikel wurde zurückgezogen'). Never 'Zurückziehung'."
+    "note:de": "Keep the English noun (plural 'Retractions'); 'Retraction Notice' stays English too. For the state of a paper, 'zurückgezogen' is fine ('Dieser Artikel wurde zurückgezogen'). Never 'Zurückziehung'.",
+    "pl": "wycofanie",
+    "nl": "intrekking",
+    "cs": "stažení",
+    "sk": "stiahnutie",
+    "ru": "отзыв статьи",
+    "fi": "takaisinveto",
+    "sv": "tillbakadragande",
+    "nb": "tilbaketrekking",
+    "it": "ritrattazione",
+    "ja": "撤回"
   },
   "Retraction Watch": {
     "de": "Retraction Watch",
@@ -196,7 +336,17 @@
     "hu": "Retraction Watch",
     "ko": "Retraction Watch",
     "zh-CN": "Retraction Watch",
-    "ar": "Retraction Watch"
+    "ar": "Retraction Watch",
+    "pl": "Retraction Watch",
+    "nl": "Retraction Watch",
+    "cs": "Retraction Watch",
+    "sk": "Retraction Watch",
+    "ru": "Retraction Watch",
+    "fi": "Retraction Watch",
+    "sv": "Retraction Watch",
+    "nb": "Retraction Watch",
+    "it": "Retraction Watch",
+    "ja": "Retraction Watch"
   },
   "search results": {
     "de": "Suchergebnisse",
@@ -208,7 +358,17 @@
     "hu": "találatok",
     "ko": "검색 결과",
     "zh-CN": "搜索结果",
-    "ar": "نتائج البحث"
+    "ar": "نتائج البحث",
+    "pl": "wyniki wyszukiwania",
+    "nl": "zoekresultaten",
+    "cs": "výsledky vyhledávání",
+    "sk": "výsledky vyhľadávania",
+    "ru": "результаты поиска",
+    "fi": "hakutulokset",
+    "sv": "sökresultat",
+    "nb": "søkeresultater",
+    "it": "risultati di ricerca",
+    "ja": "検索結果"
   },
   "settings": {
     "de": "Einstellungen",
@@ -220,7 +380,17 @@
     "hu": "Beállítások",
     "ko": "설정",
     "zh-CN": "设置",
-    "ar": "الإعدادات"
+    "ar": "الإعدادات",
+    "pl": "Ustawienia",
+    "nl": "Instellingen",
+    "cs": "Nastavení",
+    "sk": "Nastavenia",
+    "ru": "Настройки",
+    "fi": "Asetukset",
+    "sv": "Inställningar",
+    "nb": "Innstillinger",
+    "it": "Impostazioni",
+    "ja": "設定"
   },
   "site": {
     "de": "Website",
@@ -232,7 +402,17 @@
     "hu": "webhely",
     "ko": "사이트",
     "zh-CN": "网站",
-    "ar": "الموقع"
+    "ar": "الموقع",
+    "pl": "witryna",
+    "nl": "website",
+    "cs": "web",
+    "sk": "web",
+    "ru": "сайт",
+    "fi": "sivusto",
+    "sv": "webbplats",
+    "nb": "nettsted",
+    "it": "sito",
+    "ja": "サイト"
   },
   "snooze": {
     "de": "pausieren",
@@ -246,7 +426,17 @@
     "ko": "일시 중지",
     "zh-CN": "暂停",
     "ar": "إيقاف مؤقت",
-    "note:de": "'Snooze on this site' → 'Auf dieser Website pausieren'."
+    "note:de": "'Snooze on this site' → 'Auf dieser Website pausieren'.",
+    "pl": "wstrzymać",
+    "nl": "pauzeren",
+    "cs": "pozastavit",
+    "sk": "pozastaviť",
+    "ru": "приостановить",
+    "fi": "keskeyttää",
+    "sv": "pausa",
+    "nb": "sette på pause",
+    "it": "sospendere",
+    "ja": "一時停止"
   },
   "tour": {
     "de": "Tour",
@@ -260,6 +450,16 @@
     "ko": "둘러보기",
     "zh-CN": "导览",
     "ar": "جولة",
-    "note:de": "'Tour this page' → 'Seite erkunden' or 'Tour starten'; never 'Seitentour'."
+    "note:de": "'Tour this page' → 'Seite erkunden' or 'Tour starten'; never 'Seitentour'.",
+    "pl": "przewodnik",
+    "nl": "rondleiding",
+    "cs": "prohlídka",
+    "sk": "prehliadka",
+    "ru": "обзор",
+    "fi": "esittely",
+    "sv": "rundtur",
+    "nb": "omvisning",
+    "it": "tour guidato",
+    "ja": "ツアー"
   }
 }

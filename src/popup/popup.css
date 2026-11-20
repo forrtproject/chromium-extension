@@ -18,8 +18,8 @@
   --text-muted: #57606a;
   --border: #d0d1d1;
   --border-light: #e0e1e1;
-  --font-display: "Domine", Georgia, "Noto Naskh Arabic", "Songti SC", "Noto Serif SC", "Noto Serif KR", "Noto Sans Arabic", "Segoe UI Arabic", Tahoma, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", serif;
-  --font-body: "Source Sans 3", "Segoe UI", "Noto Sans Arabic", "Segoe UI Arabic", Tahoma, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --font-display: "Domine", Georgia, "Noto Naskh Arabic", "Songti SC", "Noto Serif SC", "Noto Serif KR", "Noto Sans Arabic", "Segoe UI Arabic", Tahoma, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Hiragino Sans", "Yu Gothic", Meiryo, "Noto Sans JP", serif;
+  --font-body: "Source Sans 3", "Segoe UI", "Noto Sans Arabic", "Segoe UI Arabic", Tahoma, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Hiragino Sans", "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
   --radius: 6px;
   --transition-fast: 0.12s ease;
 }

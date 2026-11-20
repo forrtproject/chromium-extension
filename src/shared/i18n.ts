@@ -24,7 +24,10 @@ import { formatMessage, messageTags, type MessageValues } from "./i18n-format";
 export type { MessageValues };
 
 /** Languages with a shipped catalog. The first is the source language. */
-export const SUPPORTED_LOCALES = ["en", "en-US", "de", "fr", "es", "pt-BR", "pt-PT", "ro", "hu", "ar", "ko", "zh-CN"] as const;
+export const SUPPORTED_LOCALES = [
+  "en", "en-US", "de", "fr", "es", "pt-BR", "pt-PT", "ro", "hu", "ar", "ko", "zh-CN",
+  "pl", "nl", "cs", "sk", "ru", "fi", "sv", "nb", "it", "ja",
+] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 /** Value of the `language` setting: a supported locale or "auto" (browser language). */
 export type LanguagePreference = "auto" | Locale;
@@ -33,6 +36,8 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   en: "English (UK)", "en-US": "English (US)", de: "Deutsch", fr: "Français", es: "Español",
   "pt-BR": "Português (Brasil)", "pt-PT": "Português (Portugal)", ro: "Română", hu: "Magyar",
   ar: "العربية", ko: "한국어", "zh-CN": "简体中文",
+  pl: "Polski", nl: "Nederlands", cs: "Čeština", sk: "Slovenčina", ru: "Русский", fi: "Suomi",
+  sv: "Svenska", nb: "Norsk bokmål", it: "Italiano", ja: "日本語",
 };
 
 const RTL_LOCALES: ReadonlySet<string> = new Set(["ar"]);
@@ -67,6 +72,7 @@ export function resolveLocale(
   let candidate: string = base;
   // Traditional Chinese readers must not get Simplified Chinese; they fall back to English.
   if (base === "zh") candidate = !rest.includes("hans") && rest.some((p) => ["tw", "hk", "mo", "hant"].includes(p)) ? "" : "zh-CN";
+  if (base === "no" || base === "nn") candidate = "nb";
   if (base === "pt") candidate = rest.some((p) => ["ao", "mz", "cv", "gw", "st", "tl", "mo", "lu", "ch"].includes(p)) ? "pt-PT" : "pt-BR";
   return (offered as readonly string[]).includes(candidate) ? (candidate as Locale) : "en";
 }
