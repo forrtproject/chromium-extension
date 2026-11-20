@@ -551,5 +551,30 @@
         "message": "Use the polite です/ます form."
       }
     ]
+  },
+  "tr": {
+    "name": "Turkish",
+    "nativeName": "Türkçe",
+    "rules": [
+      "Address: sentences that address the reader use the polite siz forms (\"yeniden yükleyin\", \"ayarlarınız\"); never sen forms. Buttons and menu items use the bare verb stem, as is standard in Turkish software (\"Kaydet\", \"Yeniden yükle\").",
+      "Suffixes on names and acronyms follow an apostrophe and harmonise with how the name is read (\"ORE'nin\", \"DOI'yi\", \"PubPeer'da\"). Where a placeholder would need a suffix you cannot predict, rephrase so it doesn't.",
+      "Plurals: one and other; after a number the noun stays singular (\"# PubPeer yorumu\").",
+      "Spelling: dotted and dotless i are different letters (İ/i, I/ı); keep them right when capitalising.",
+      "Typography: quotation marks “…”; replace the English em dash with a colon or a spaced en dash."
+    ],
+    "examples": {
+      "notice.updated.message": "ORE güncellendi. Kontrolleri çalıştırmak için bu sayfayı yeniden yükleyin.",
+      "notice.feedback.title": "ORE ile deneyiminiz nasıl?",
+      "page.comments.allHidden": "Buradaki tüm yorumlar, Ayarlar'da gizlediğiniz yorumculara ait.",
+      "pill.oa.noEmail": "Açık erişimi kontrol etmek için Ayarlar'a e-posta adresinizi ekleyin",
+      "pill.marker.comments": "{count, plural, one {# PubPeer yorumu} other {# PubPeer yorumu}}."
+    },
+    "avoid": [
+      {
+        "pattern": "(?<!\\p{L})(sen|seni|sana|senin|sende|senden)(?!\\p{L})",
+        "flags": "iu",
+        "message": "Use the polite siz forms, never sen."
+      }
+    ]
   }
 }

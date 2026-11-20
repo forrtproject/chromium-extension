@@ -26,7 +26,7 @@ export type { MessageValues };
 /** Languages with a shipped catalog. The first is the source language. */
 export const SUPPORTED_LOCALES = [
   "en", "en-US", "de", "fr", "es", "pt-BR", "pt-PT", "ro", "hu", "ar", "ko", "zh-CN",
-  "pl", "nl", "cs", "sk", "ru", "fi", "sv", "nb", "it", "ja",
+  "pl", "nl", "cs", "sk", "ru", "fi", "sv", "nb", "it", "ja", "tr",
 ] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 /** Value of the `language` setting: a supported locale or "auto" (browser language). */
@@ -37,7 +37,7 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   "pt-BR": "Português (Brasil)", "pt-PT": "Português (Portugal)", ro: "Română", hu: "Magyar",
   ar: "العربية", ko: "한국어", "zh-CN": "简体中文",
   pl: "Polski", nl: "Nederlands", cs: "Čeština", sk: "Slovenčina", ru: "Русский", fi: "Suomi",
-  sv: "Svenska", nb: "Norsk bokmål", it: "Italiano", ja: "日本語",
+  sv: "Svenska", nb: "Norsk bokmål", it: "Italiano", ja: "日本語", tr: "Türkçe",
 };
 
 const RTL_LOCALES: ReadonlySet<string> = new Set(["ar"]);
