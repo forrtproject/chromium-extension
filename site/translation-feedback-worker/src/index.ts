@@ -38,6 +38,7 @@ export const LANGUAGES: Record<string, string> = {
   nb: "Norwegian (Bokmål)",
   it: "Italian",
   ja: "Japanese",
+  tr: "Turkish",
   "en-US": "English (US)",
   general: "General",
 };

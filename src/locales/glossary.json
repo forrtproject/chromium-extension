@@ -21,7 +21,8 @@
     "sv": "Expression of Concern",
     "nb": "Expression of Concern",
     "it": "Expression of Concern",
-    "ja": "懸念表明"
+    "ja": "懸念表明",
+    "tr": "endişe bildirimi"
   },
   "FORRT Replication Database": {
     "de": "FORRT Replication Database",
@@ -44,7 +45,8 @@
     "sv": "FORRT Replication Database",
     "nb": "FORRT Replication Database",
     "it": "FORRT Replication Database",
-    "ja": "FORRT Replication Database"
+    "ja": "FORRT Replication Database",
+    "tr": "FORRT Replication Database"
   },
   "Meta Report": {
     "de": "Meta-Bericht",
@@ -67,7 +69,8 @@
     "sv": "metarapport",
     "nb": "metarapport",
     "it": "metareport",
-    "ja": "メタレポート"
+    "ja": "メタレポート",
+    "tr": "meta rapor"
   },
   "open access": {
     "de": "Open Access",
@@ -91,7 +94,8 @@
     "sv": "öppen tillgång",
     "nb": "åpen tilgang",
     "it": "accesso aperto",
-    "ja": "オープンアクセス"
+    "ja": "オープンアクセス",
+    "tr": "açık erişim"
   },
   "original study": {
     "de": "Originalstudie",
@@ -113,7 +117,8 @@
     "sv": "originalstudie",
     "nb": "originalstudie",
     "it": "studio originale",
-    "ja": "元の研究"
+    "ja": "元の研究",
+    "tr": "orijinal çalışma"
   },
   "pill": {
     "de": "Markierung",
@@ -137,7 +142,8 @@
     "sv": "etikett",
     "nb": "merke",
     "it": "etichetta",
-    "ja": "バッジ"
+    "ja": "バッジ",
+    "tr": "etiket"
   },
   "preprint": {
     "de": "Preprint",
@@ -159,7 +165,8 @@
     "sv": "preprint",
     "nb": "preprint",
     "it": "preprint",
-    "ja": "プレプリント"
+    "ja": "プレプリント",
+    "tr": "ön baskı"
   },
   "PubPeer comment": {
     "de": "PubPeer-Kommentar",
@@ -181,7 +188,8 @@
     "sv": "PubPeer-kommentar",
     "nb": "PubPeer-kommentar",
     "it": "commento su PubPeer",
-    "ja": "PubPeer のコメント"
+    "ja": "PubPeer のコメント",
+    "tr": "PubPeer yorumu"
   },
   "reference": {
     "de": "Literaturangabe",
@@ -205,7 +213,8 @@
     "sv": "referens",
     "nb": "referanse",
     "it": "riferimento bibliografico",
-    "ja": "参考文献"
+    "ja": "参考文献",
+    "tr": "kaynak"
   },
   "Registered Report": {
     "de": "Registered Report",
@@ -229,7 +238,8 @@
     "sv": "Registered Report",
     "nb": "Registered Report",
     "it": "Registered Report",
-    "ja": "Registered Report"
+    "ja": "Registered Report",
+    "tr": "Registered Report"
   },
   "replication": {
     "de": "Replikation",
@@ -253,7 +263,8 @@
     "sv": "replikering",
     "nb": "replikasjon",
     "it": "replicazione",
-    "ja": "追試"
+    "ja": "追試",
+    "tr": "replikasyon"
   },
   "reproduction": {
     "de": "Reproduktion",
@@ -275,7 +286,8 @@
     "sv": "reproduktion",
     "nb": "reproduksjon",
     "it": "riproduzione",
-    "ja": "再現"
+    "ja": "再現",
+    "tr": "yeniden üretim"
   },
   "retracted": {
     "de": "zurückgezogen",
@@ -299,7 +311,8 @@
     "sv": "tillbakadragen",
     "nb": "trukket tilbake",
     "it": "ritirato",
-    "ja": "撤回済み"
+    "ja": "撤回済み",
+    "tr": "geri çekilmiş"
   },
   "retraction": {
     "de": "Retraction",
@@ -323,7 +336,8 @@
     "sv": "tillbakadragande",
     "nb": "tilbaketrekking",
     "it": "ritrattazione",
-    "ja": "撤回"
+    "ja": "撤回",
+    "tr": "geri çekme"
   },
   "Retraction Watch": {
     "de": "Retraction Watch",
@@ -346,7 +360,8 @@
     "sv": "Retraction Watch",
     "nb": "Retraction Watch",
     "it": "Retraction Watch",
-    "ja": "Retraction Watch"
+    "ja": "Retraction Watch",
+    "tr": "Retraction Watch"
   },
   "search results": {
     "de": "Suchergebnisse",
@@ -368,7 +383,8 @@
     "sv": "sökresultat",
     "nb": "søkeresultater",
     "it": "risultati di ricerca",
-    "ja": "検索結果"
+    "ja": "検索結果",
+    "tr": "arama sonuçları"
   },
   "settings": {
     "de": "Einstellungen",
@@ -390,7 +406,8 @@
     "sv": "Inställningar",
     "nb": "Innstillinger",
     "it": "Impostazioni",
-    "ja": "設定"
+    "ja": "設定",
+    "tr": "Ayarlar"
   },
   "site": {
     "de": "Website",
@@ -412,7 +429,8 @@
     "sv": "webbplats",
     "nb": "nettsted",
     "it": "sito",
-    "ja": "サイト"
+    "ja": "サイト",
+    "tr": "site"
   },
   "snooze": {
     "de": "pausieren",
@@ -436,7 +454,8 @@
     "sv": "pausa",
     "nb": "sette på pause",
     "it": "sospendere",
-    "ja": "一時停止"
+    "ja": "一時停止",
+    "tr": "duraklatmak"
   },
   "tour": {
     "de": "Tour",
@@ -460,6 +479,7 @@
     "sv": "rundtur",
     "nb": "omvisning",
     "it": "tour guidato",
-    "ja": "ツアー"
+    "ja": "ツアー",
+    "tr": "tur"
   }
 }

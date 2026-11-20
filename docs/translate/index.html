@@ -19,7 +19,7 @@
           <img src="../img/forrt-logo.svg" alt="" />
           <span><strong>FORRT ORE</strong> translations</span>
         </a>
-        <div class="top-actions">
+        <div class="top-actions review-only" hidden>
           <button id="load" class="btn btn-ghost" type="button">Load a file</button>
           <input id="load-file" type="file" accept="application/json,.json" hidden />
           <button id="download" class="btn btn-ghost" type="button">Download</button>
@@ -31,7 +31,15 @@
     <main class="wrap">
       <section class="intro">
         <h1>Help translate the Open Research Extension</h1>
-        <p>
+        <p class="landing-only">
+          ORE marks research papers on the web with replications, retractions and other evidence. Native-speaking researchers
+          check how it reads in their language: no GitHub account needed. Pick your language to start.
+        </p>
+        <p class="review-only lang-heading" id="lang-heading" hidden>
+          <span id="lang-name"></span>
+          <a href="./" class="change-lang">All languages</a>
+        </p>
+        <p class="review-only" hidden>
           Each card shows one piece of text from the extension: the English original and a machine-made draft. Fix anything
           that is wrong or awkward, then press <strong>Approve</strong> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>&nbsp;+&nbsp;<kbd>Enter</kbd>).
           Drafts are sorted by how much attention they need: <strong>careful review</strong> first, then <strong>read it</strong>;
@@ -39,7 +47,7 @@
           press <strong>Send my review</strong> when you're ready. No GitHub account needed.
         </p>
         <p class="credit">Every contribution is acknowledged: reviewers are credited by name in ORE.</p>
-        <details>
+        <details class="review-only" hidden>
           <summary>How to send us your review, and what the symbols mean</summary>
           <ol>
             <li>
@@ -62,10 +70,15 @@
           <summary>Style rules for this language</summary>
           <ul class="rules-body"></ul>
         </details>
-        <details id="glossary">
+        <details id="glossary" class="review-only" hidden>
           <summary>Glossary</summary>
           <div class="glossary-body"></div>
         </details>
+      </section>
+
+      <section id="landing" class="landing landing-only" aria-labelledby="landing-title">
+        <h2 id="landing-title">Choose a language</h2>
+        <div class="lang-grid" id="lang-grid"></div>
       </section>
 
       <section id="guide" class="guide" aria-labelledby="guide-title" hidden>
@@ -96,9 +109,12 @@
         </div>
       </section>
 
-      <section class="controls" aria-label="Filters">
+      <p class="reviewer-line review-only" hidden>
+        <span id="reviewer-text"></span>
+        <button type="button" class="btn-link" id="reviewer-change">Change</button>
+      </p>
+      <section class="controls review-only" aria-label="Filters" hidden>
         <label>Language <select id="lang"></select></label>
-        <label>Your name <input id="reviewer" type="text" autocomplete="name" placeholder="Shown in the project history" /></label>
         <label>
           Show
           <select id="filter">
@@ -115,10 +131,23 @@
         <label>Part <select id="area"><option value="">All parts</option></select></label>
         <label class="grow">Search <input id="search" type="search" placeholder="Find English or translated text" /></label>
       </section>
-      <p class="status"><span id="progress"></span> · <span id="count"></span></p>
+      <p class="status review-only" hidden><span id="progress"></span> · <span id="count"></span></p>
 
-      <div id="list" aria-live="polite"></div>
+      <div id="list" class="review-only" aria-live="polite" hidden></div>
     </main>
+
+    <dialog id="name-dialog" aria-labelledby="name-title">
+      <form id="name-form" method="dialog">
+        <h2 id="name-title">Before you start</h2>
+        <p class="note">What name should we credit you under? It appears in ORE's acknowledgements and next to your review on GitHub. You can change it later.</p>
+        <label for="reviewer">Your name</label>
+        <input id="reviewer" type="text" autocomplete="name" maxlength="80" />
+        <div class="send-actions">
+          <button type="button" class="btn btn-ghost" id="name-skip">Skip for now</button>
+          <button type="submit" class="btn btn-primary" id="name-start">Start reviewing</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog id="send-dialog" aria-labelledby="send-title">
       <form id="send-form" novalidate>

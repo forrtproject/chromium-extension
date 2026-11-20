@@ -35,7 +35,33 @@ const searchInput = $<HTMLInputElement>("#search");
 const countEl = $<HTMLElement>("#count");
 const glossaryEl = $<HTMLElement>("#glossary");
 
-let lang = new URLSearchParams(location.search).get("lang") ?? "de";
+const requestedLang = new URLSearchParams(location.search).get("lang");
+let lang = requestedLang ?? "";
+const NAME_KEY = "ore-translation-reviewer";
+const NAME_SKIPPED_KEY = "ore-translation-reviewer-skipped";
+
+function savedName(): string {
+  try { return localStorage.getItem(NAME_KEY) ?? ""; } catch { return ""; }
+}
+
+function rememberName(name: string): void {
+  state.reviewer = name;
+  saveState();
+  try { localStorage.setItem(NAME_KEY, name); } catch { /* the name still applies for this visit */ }
+  showReviewer();
+}
+
+function showReviewer(): void {
+  const name = state.reviewer.trim();
+  $<HTMLElement>("#reviewer-text").textContent = name ? `Reviewing as ${name}` : "Reviewing without a name: add one to be credited";
+  $<HTMLButtonElement>("#reviewer-change").textContent = name ? "Change" : "Add your name";
+}
+
+function askName(): void {
+  reviewerInput.value = state.reviewer;
+  $<HTMLDialogElement>("#name-dialog").showModal();
+  reviewerInput.focus();
+}
 let en: Record<string, SourceEntry> = {};
 let tr: Record<string, TranslationEntry> = {};
 let glossary: Glossary = {};
@@ -539,7 +565,7 @@ function sendReview(): void {
     onSent: (name) => {
       state.sent ??= {};
       for (const id of ids) state.sent[id] = snapshot(localOf(id)!);
-      if (!state.reviewer.trim()) { state.reviewer = name; reviewerInput.value = name; }
+      if (name !== state.reviewer.trim()) rememberName(name);
       saveState();
       updateProgress();
     },
@@ -585,8 +611,7 @@ async function loadFile(file: File): Promise<void> {
     const n = Object.keys(data.entries).length;
     if (!confirm(`Load ${n} reviewed message${n === 1 ? "" : "s"} from this file? They replace your current work on the same messages.`)) return;
     Object.assign(state.entries, data.entries);
-    if (!state.reviewer && data.reviewer) state.reviewer = data.reviewer;
-    reviewerInput.value = state.reviewer;
+    if (!state.reviewer.trim() && data.reviewer) rememberName(data.reviewer);
     saveState();
     render();
     updateProgress();
@@ -613,6 +638,62 @@ function showNoDraft(): void {
   listEl.replaceChildren(box);
 }
 
+function setMode(review: boolean): void {
+  document.querySelectorAll<HTMLElement>(".review-only").forEach((n) => { n.hidden = !review; });
+  document.querySelectorAll<HTMLElement>(".landing-only").forEach((n) => { n.hidden = review; });
+}
+
+function browserMatch(codes: string[]): string | null {
+  for (const tag of navigator.languages ?? [navigator.language]) {
+    const t = tag.toLowerCase();
+    const base = t.split("-")[0];
+    const exact = codes.find((c) => c.toLowerCase() === t);
+    if (exact) return exact;
+    if (base === "en") return null;
+    if (base === "no" || base === "nn") return codes.includes("nb") ? "nb" : null;
+    const byBase = codes.find((c) => c.toLowerCase().split("-")[0] === base);
+    if (byBase) return byBase;
+  }
+  return null;
+}
+
+function savedWork(code: string): number {
+  try {
+    const raw = localStorage.getItem(`ore-translation-review-${code}`);
+    return raw ? Object.keys((JSON.parse(raw) as LocalState).entries ?? {}).length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+const TILE_NAMES: Record<string, string> = {
+  "pt-BR": "Portuguese (Brazil)", "pt-PT": "Portuguese (Portugal)", "zh-CN": "Chinese (Simplified)", nb: "Norwegian (Bokmål)",
+};
+const tileName = (code: string): string => TILE_NAMES[code] ?? languageInfo[code].name;
+
+function showLanding(): void {
+  setMode(false);
+  document.title = "Translate FORRT ORE";
+  const codes = Object.keys(languageInfo).sort((a, b) => tileName(a).localeCompare(tileName(b)));
+  const suggested = browserMatch(codes);
+  const ordered = suggested ? [suggested, ...codes.filter((c) => c !== suggested)] : codes;
+  const tiles = ordered.map((code) => {
+    const info = languageInfo[code];
+    const tile = el("a", `lang-tile${code === suggested ? " is-suggested" : ""}`);
+    tile.href = `?lang=${encodeURIComponent(code)}`;
+    const native = el("span", "lang-native", info.nativeName || info.name);
+    native.lang = code;
+    native.dir = "auto";
+    tile.append(native);
+    if (info.nativeName && info.nativeName !== tileName(code)) tile.append(el("span", "lang-english", tileName(code)));
+    const work = savedWork(code);
+    const meta = code === suggested ? "Your browser language" : work ? `Continue · ${work} change${work === 1 ? "" : "s"} saved` : info.draft ? "Draft ready for review" : "Style guide only";
+    tile.append(el("span", "lang-meta", meta));
+    return tile;
+  });
+  $<HTMLElement>("#lang-grid").replaceChildren(...tiles);
+}
+
 async function start(): Promise<void> {
   const manifest = await fetchJson<Record<string, LanguageInfo>>("data/languages.json").catch(() => null);
   if (manifest && Object.keys(manifest).length) {
@@ -622,7 +703,17 @@ async function start(): Promise<void> {
       LANGUAGES[code] = info.nativeName && info.nativeName !== info.name ? `${info.nativeName} · ${info.name}` : info.name;
     }
   }
-  if (!Object.hasOwn(LANGUAGES, lang)) lang = "de";
+  if (!requestedLang || !Object.hasOwn(LANGUAGES, lang)) { showLanding(); return; }
+  setMode(true);
+  state.reviewer = savedName();
+  showReviewer();
+  let skipped = false;
+  try { skipped = sessionStorage.getItem(NAME_SKIPPED_KEY) === "1"; } catch { /* ask again next visit */ }
+  if (!state.reviewer && !skipped) askName();
+  const info = languageInfo[lang];
+  const heading = $<HTMLElement>("#lang-name");
+  heading.textContent = info && info.nativeName !== info.name ? `${info.nativeName} · ${info.name}` : LANGUAGES[lang];
+  document.title = `Translate FORRT ORE: ${info?.name ?? lang}`;
   const codes = Object.keys(LANGUAGES).sort((a, b) => Number(languageInfo[b]?.draft) - Number(languageInfo[a]?.draft) || LANGUAGES[a].localeCompare(LANGUAGES[b]));
   for (const code of codes) {
     const opt = el("option", "", `${LANGUAGES[code]}${languageInfo[code]?.draft ? "" : " — style guide only"}`);
@@ -650,8 +741,10 @@ async function start(): Promise<void> {
     listEl.replaceChildren(box);
     return;
   }
+  const typed = $<HTMLDialogElement>("#name-dialog").open ? "" : state.reviewer;
   loadState();
-  reviewerInput.value = state.reviewer;
+  state.reviewer = savedName() || typed || state.reviewer;
+  showReviewer();
   for (const a of [...new Set(Object.keys(en).map(area))].sort()) {
     const opt = el("option", "", a);
     opt.value = a;
@@ -663,7 +756,12 @@ async function start(): Promise<void> {
   updateProgress();
 }
 
-reviewerInput.addEventListener("input", () => { state.reviewer = reviewerInput.value; saveState(); });
+$<HTMLFormElement>("#name-form").addEventListener("submit", () => rememberName(reviewerInput.value.trim()));
+$<HTMLButtonElement>("#name-skip").addEventListener("click", () => {
+  try { sessionStorage.setItem(NAME_SKIPPED_KEY, "1"); } catch { /* ask again next visit */ }
+  $<HTMLDialogElement>("#name-dialog").close();
+});
+$<HTMLButtonElement>("#reviewer-change").addEventListener("click", askName);
 langSelect.addEventListener("change", () => { location.search = `?lang=${langSelect.value}`; });
 for (const control of [filterSelect, areaSelect]) control.addEventListener("change", () => { shown = PAGE; render(); });
 let searchTimer: number | undefined;

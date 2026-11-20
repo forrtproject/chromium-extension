@@ -146,6 +146,7 @@ describe("catalogs", () => {
       sv: ["Vill ni fortsätta?"],
       nb: ["Vil De fortsette nå?"],
       it: ["Ricarica la tua pagina.", "Tu puoi continuare."],
+      tr: ["Sen sayfayı yenile.", "Senin ayarların kaydedildi."],
       ja: ["あなたの設定を確認してください。", "ORE を更新した,続行", "更新が必要だ。"],
     };
     for (const [lang, samples] of Object.entries(bad)) {
