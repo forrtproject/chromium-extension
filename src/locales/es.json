@@ -1,19 +1,19 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: no se puede actualizar el documento completo. El informe conserva el último análisis correcto y puede no reflejar las ediciones recientes. Se volverá a intentar automáticamente.",
+    "message": "ORE: no se puede actualizar el documento completo. El informe sigue mostrando los resultados de la última verificación completada y puede no reflejar los cambios recientes. Se volverá a intentar automáticamente.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long status message; check 'análisis correcto' wording"
+    "reviewReason": "Long status message; replaced awkward 'análisis correcto' and clarified previous results remain shown"
   },
   "editor.docs.scanUnavailable": {
-    "message": "ORE: no se puede analizar el documento completo. Solo se han verificado las páginas visibles. Se volverá a intentar automáticamente.",
+    "message": "ORE: no se puede analizar el documento completo. Solo se verificaron las páginas visibles. Se volverá a intentar automáticamente.",
     "source": "ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check 'verificado' vs 'comprobado' and overall flow"
+    "reviewReason": "Aligned verb tense with pan-Hispanic preterite used across catalog"
   },
   "editor.title.googleDocFallback": {
     "message": "Documento de Google",
@@ -60,12 +60,12 @@
     "review": 1
   },
   "notice.feedback.accept": {
-    "message": "Dar su opinión",
+    "message": "Enviar opinión",
     "source": "Give feedback",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Dar su opinión' possessive in a button; consider 'Opinar'"
+    "reviewReason": "Removed possessive 'su' from button label"
   },
   "notice.feedback.close": {
     "message": "Cerrar",
@@ -82,12 +82,12 @@
     "review": 1
   },
   "notice.feedback.message": {
-    "message": "Con un minuto de su opinión sobre qué funciona y qué falla, podemos mejorar ORE.",
+    "message": "Dedicar un minuto a contarnos qué funciona y qué no nos ayuda a mejorar ORE.",
     "source": "A minute of feedback on what works and what doesn't helps us improve ORE.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Idiomatic phrasing for 'A minute of feedback'"
   },
   "notice.feedback.title": {
     "message": "¿Qué tal funciona ORE?",
@@ -128,12 +128,12 @@
     "review": 1
   },
   "page.comments.loadFailed": {
-    "message": "No se pudieron cargar aquí los comentarios en PubPeer.",
+    "message": "No se pudieron cargar los comentarios en PubPeer aquí.",
     "source": "PubPeer comments couldn't be loaded here.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Word order 'cargar aquí' slightly awkward"
+    "reviewReason": "Smoothed word order"
   },
   "page.comments.loading": {
     "message": "Cargando comentarios…",
@@ -178,12 +178,12 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "No se pudo verificar el estado del debate. Los demás resultados disponibles se muestran arriba.",
+    "message": "No se pudo verificar si existe un debate. La demás información disponible se muestra arriba.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'resultados' for findings; check term fit"
+    "reviewReason": "Clarified discussion check and avoided ambiguous 'resultados'"
   },
   "page.comments.unavailableTitle": {
     "message": "PubPeer no disponible",
@@ -450,12 +450,12 @@
     "reviewReason": "'Completando' for augmenting; check meaning"
   },
   "page.progress.exportingSheet": {
-    "message": "Exportando esta pestaña de la hoja…",
+    "message": "Exportando esta pestaña…",
     "source": "Exporting this sheet tab…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'pestaña de la hoja' slightly clunky"
+    "reviewReason": "Simplified clunky 'pestaña de la hoja'"
   },
   "page.progress.foundDois": {
     "message": "{count, plural, one {Se encontró # DOI} many {Se encontraron # DOI} other {Se encontraron # DOI}} en esta página",
@@ -551,12 +551,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "Comprobando que {count, plural, one {# DOI se resuelve} many {# DOI se resuelven} other {# DOI se resuelven}}…",
+    "message": "Comprobando la validez de {count, plural, one {# DOI} many {# DOI} other {# DOI}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'se resuelve' for DOI resolution; check technical phrasing"
+    "reviewReason": "Has number or variant forms; replaced literal 'se resuelve'"
   },
   "page.refs.comments": {
     "message": "{count, plural, one {# comentario} many {# comentarios} other {# comentarios}}",
@@ -1115,12 +1115,12 @@
     "reviewReason": "Evidence status label; confirm term"
   },
   "pill.marker.empty": {
-    "message": "No se encontraron pruebas de replicación ni comentarios en PubPeer.",
+    "message": "No se encontraron datos de replicación ni comentarios en PubPeer.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence claim; 'pruebas de replicación' wording"
+    "reviewReason": "Evidence absence statement; replaced 'pruebas de replicación' (implied proof) with 'datos de replicación'"
   },
   "pill.marker.inProgress": {
     "message": "Verificaciones en curso.",
@@ -1357,12 +1357,12 @@
     "review": 1
   },
   "pill.provenance.search": {
-    "message": "Coincidencia por búsqueda: se buscó por título, primer autor y año. Compruebe que sea el artículo correcto.",
+    "message": "Coincidencia por búsqueda: identificado por título, primera autoría y año. Compruebe que sea el artículo correcto.",
     "source": "Matched by search — looked up by title, first author and year. Check it is the right paper.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction to verify; check flow"
+    "reviewReason": "Instruction to verify; removed 'búsqueda: se buscó' repetition and used neutral 'primera autoría'"
   },
   "pill.pubpeer.checkingTooltip": {
     "message": "Consultando PubPeer…",
@@ -2042,12 +2042,12 @@
     "review": 1
   },
   "popup.status.blockedReload": {
-    "message": "{domain} bloqueado: vuelva a cargar la página para aplicarlo",
+    "message": "{domain} bloqueado: vuelva a cargar la página para aplicar el cambio",
     "source": "Blocked {domain} — reload to apply",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check 'aplicarlo' referent"
+    "reviewReason": "Clarified 'aplicarlo' referent"
   },
   "popup.status.debugOff": {
     "message": "Modo de depuración desactivado",
@@ -2101,12 +2101,12 @@
     "review": 1
   },
   "popup.status.resumed": {
-    "message": "Reanudado en {domain}: vuelva a cargar la página para aplicarlo",
+    "message": "Reanudado en {domain}: vuelva a cargar la página para aplicar el cambio",
     "source": "Resumed on {domain} — reload to apply",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check 'aplicarlo' referent"
+    "reviewReason": "Clarified 'aplicarlo' referent"
   },
   "popup.status.sampleFailed": {
     "message": "No se pudo abrir el artículo de ejemplo",
@@ -2124,20 +2124,20 @@
     "reviewReason": "Instruction; check phrasing"
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} sigue desactivado porque está bloqueado su dominio principal o una categoría de sitios web: modifíquelo en Configuración",
+    "message": "{domain} sigue desactivado por un dominio superior bloqueado o una categoría de sitios web desactivada: cambie este ajuste en Configuración",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Complex blocking instruction; clarified parent domain, category state, and 'modifíquelo'"
   },
   "popup.status.unblocked": {
-    "message": "{domain} desbloqueado: vuelva a cargar la página para aplicarlo",
+    "message": "{domain} desbloqueado: vuelva a cargar la página para aplicar el cambio",
     "source": "Unblocked {domain} — reload to apply",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check 'aplicarlo' referent"
+    "reviewReason": "Clarified 'aplicarlo' referent"
   },
   "popup.subtitle": {
     "message": "Open Research Extension",
@@ -2240,12 +2240,12 @@
     "review": 1
   },
   "popup.tourPage": {
-    "message": "Recorrido por esta página",
+    "message": "Recorrer esta página",
     "source": "Tour this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Noun phrase for button; infinitive rule suggests 'Recorrer esta página'"
+    "reviewReason": "Used infinitive for button per style guide; synced with walkthrough.ready.later"
   },
   "popup.troubleshooting": {
     "message": "Solución de problemas",
@@ -2276,12 +2276,12 @@
     "review": 1
   },
   "progress.tab.checkingPercent": {
-    "message": "FORRT ORE está verificando esta página: {percent} % completado",
+    "message": "FORRT ORE está verificando esta página: {percent} % completado",
     "source": "FORRT ORE is checking this page, {percent}% done",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check percent spacing and agreement"
+    "reviewReason": "Used non-breaking space before % per Spanish typography"
   },
   "progress.tab.clearAria": {
     "message": "FORRT ORE: {summary}",
@@ -2351,12 +2351,12 @@
     "reviewReason": "'equipo autor' for possibly single author; check"
   },
   "pubpeer.comment.editorResponse": {
-    "message": "Respuesta editorial",
+    "message": "Respuesta del equipo editorial",
     "source": "Editor response",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'editorial' may read as publisher; check"
+    "reviewReason": "Avoided publisher ambiguity of 'Respuesta editorial'"
   },
   "pubpeer.comments.listLabel": {
     "message": "Comentarios en PubPeer",
@@ -2366,12 +2366,12 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Las pruebas de replicación son un punto de partida para formarse un juicio, no un veredicto.",
+    "message": "Los datos de replicación son un punto de partida para formarse un juicio, no un veredicto.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Statement about what evidence means"
+    "reviewReason": "Statement about what replication evidence means; replaced 'pruebas' with 'datos'"
   },
   "report.colophon.compiled": {
     "message": "Elaborado por <a href=\"{url}\">FORRT ORE</a> el {date} a partir de FORRT Replication Database, Retraction Watch, Unpaywall y PubPeer.",
@@ -2640,20 +2640,20 @@
     "reviewReason": "'Completando' for augmenting; check meaning"
   },
   "search.stage.checkingDois": {
-    "message": "Comprobando que {count, plural, one {# DOI se resuelve} many {# DOI se resuelven} other {# DOI se resuelven}}…",
+    "message": "Comprobando la validez de {count, plural, one {# DOI} many {# DOI} other {# DOI}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'se resuelve' technical phrasing"
+    "reviewReason": "Has number or variant forms; replaced literal 'se resuelve'"
   },
   "search.stage.lookingUp": {
-    "message": "{count, plural, one {Se encontró # DOI único} many {Se encontraron # DOI únicos} other {Se encontraron # DOI únicos}}: buscándolos…",
+    "message": "{count, plural, one {Se encontró # DOI único: buscándolo…} many {Se encontraron # DOI únicos: buscándolos…} other {Se encontraron # DOI únicos: buscándolos…}}",
     "source": "Found {count, plural, one {# unique DOI} other {# unique DOIs}} — looking them up…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'buscándolos' gerund after colon; check"
+    "reviewReason": "Fixed singular/plural clitic pronoun agreement ('buscándolo' vs 'buscándolos')"
   },
   "search.stage.markingUp": {
     "message": "Marcando {count, plural, one {# resultado} many {# resultados} other {# resultados}}…",
@@ -3100,12 +3100,12 @@
     "reviewReason": "'proceso en segundo plano' for worker; check"
   },
   "settings.debug.attachFailed": {
-    "message": "No se pudo adjuntar el informe: está en su portapapeles; péguelo en la incidencia.",
+    "message": "No se pudo adjuntar el informe. Está en su portapapeles: péguelo en la incidencia.",
     "source": "Couldn't attach the report — it's on your clipboard, paste it into the issue.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; double colon/semicolon chain"
+    "reviewReason": "Instruction; simplified colon/semicolon chain"
   },
   "settings.debug.clear": {
     "message": "Borrar registro",
@@ -3274,12 +3274,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Elija cómo muestra ORE las pruebas sobre los artículos que lee. El correo electrónico habilita la coincidencia de títulos con DOI y la búsqueda de acceso abierto; las demás verificaciones basadas en el DOI funcionan sin él.",
+    "message": "Elija cómo muestra ORE la información sobre los artículos que lee. El correo electrónico habilita la coincidencia de títulos con DOI y la búsqueda de acceso abierto; las demás verificaciones basadas en el DOI funcionan sin él.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Replaced 'las pruebas' (implied proof) with 'la información'"
   },
   "settings.email.label": {
     "message": "Correo electrónico",
@@ -3592,12 +3592,12 @@
     "review": 1
   },
   "sites.add.placeholder": {
-    "message": "Sitio web que activar, p. ej., journals.example.org",
+    "message": "Sitio web para activar, p. ej., journals.example.org",
     "source": "Site to turn on, e.g. journals.example.org",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Sitio web que activar' slightly awkward"
+    "reviewReason": "Replaced awkward 'Sitio web que activar'"
   },
   "sites.category.count": {
     "message": "{on} de {total}",
@@ -3966,20 +3966,20 @@
     "review": 1
   },
   "tour.pill.noPill": {
-    "message": "Una referencia sin etiqueta es una que ORE no pudo identificar.",
+    "message": "Una referencia sin etiqueta indica que ORE no pudo identificarla.",
     "source": "A reference without a pill is one ORE could not identify.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'es una que' clunky"
+    "reviewReason": "Replaced clunky 'es una que'"
   },
   "tour.pill.noPillAlsoLoose": {
-    "message": "Una referencia sin etiqueta es una que ORE no pudo identificar. ORE coloca la misma etiqueta en cada DOI mencionado en el texto.",
+    "message": "Una referencia sin etiqueta indica que ORE no pudo identificarla. ORE coloca la misma etiqueta en cada DOI mencionado en el texto.",
     "source": "A reference without a pill is one ORE could not identify. ORE adds the same pill to each DOI mentioned in the text.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'es una que' clunky"
+    "reviewReason": "Replaced clunky 'es una que'"
   },
   "tour.pill.pointAt": {
     "message": "Sitúe el puntero sobre ella para ver lo que encontró ORE.",
@@ -4005,12 +4005,12 @@
     "review": 1
   },
   "tour.popover.text": {
-    "message": "Cada fila es un enlace: copiar la referencia, encontrar una versión en acceso abierto, leer el debate en PubPeer o ver las replicaciones. Haga clic en una etiqueta para mantener esto abierto.",
+    "message": "Cada fila es un enlace: copiar la referencia, encontrar una versión en acceso abierto, leer el debate en PubPeer o ver las replicaciones. Haga clic en una etiqueta para mantener abierto este panel.",
     "source": "Each row is a link: copy the reference, find an open-access version, read the PubPeer discussion, or see replications. Click a pill to keep this open.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'mantener esto abierto' awkward"
+    "reviewReason": "Replaced vague 'mantener esto abierto'"
   },
   "tour.popover.title": {
     "message": "Sitúe el puntero sobre una etiqueta para ver los detalles",
@@ -4028,12 +4028,12 @@
     "reviewReason": "Instruction to verify; check"
   },
   "tour.search.matchedTitle": {
-    "message": "Un DOI punteado se identificó por el título",
+    "message": "Un DOI con subrayado punteado se identificó por el título",
     "source": "A dotted DOI was matched by title",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'DOI punteado' should be dotted-underlined DOI"
+    "reviewReason": "Clarified 'DOI punteado' as dotted-underlined DOI"
   },
   "tour.search.panelTitle": {
     "message": "ORE coloca este panel en cada resultado",
@@ -4101,12 +4101,12 @@
     "reviewReason": "Contains formatting"
   },
   "walkthrough.article.recognised.text": {
-    "message": "Si una referencia no tiene etiqueta, ORE no pudo identificarla y, por tanto, no se verificó nada para ella.",
+    "message": "Si una referencia no tiene etiqueta, significa que ORE no pudo identificarla y no realizó ninguna verificación.",
     "source": "No pill on a reference means ORE could not identify it, so nothing was checked for it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check flow of 'para ella'"
+    "reviewReason": "Smoothed flow; removed awkward 'para ella'"
   },
   "walkthrough.article.recognised.title": {
     "message": "Una etiqueta significa que ORE reconoció el artículo",
@@ -4131,12 +4131,12 @@
     "review": 1
   },
   "walkthrough.article.turnOff.text": {
-    "message": "Haga clic en el botón de ORE en la barra de herramientas del navegador para ocultarlo en esta página, pausarlo en este sitio web o desactivarlo por completo en el sitio web.",
+    "message": "Haga clic en el botón de ORE en la barra de herramientas del navegador para ocultarlo en esta página, pausarlo en este sitio web o desactivarlo en él por completo.",
     "source": "Click the ORE button in your browser toolbar to hide it on this page, snooze it on this site, or turn it off for the site entirely.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; repeated 'sitio web'"
+    "reviewReason": "Instruction; eliminated repeated 'sitio web'"
   },
   "walkthrough.article.turnOff.title": {
     "message": "Desactívelo donde no lo necesite",
@@ -4481,12 +4481,12 @@
     "review": 1
   },
   "walkthrough.ready.later": {
-    "message": "Más adelante, haga clic en el botón de ORE en la barra de herramientas y elija «Recorrido por esta página» para hacer un recorrido por la página en la que se encuentra, «Cómo funciona» para volver a ver esto o «Configuración» para bloquear un sitio web.",
+    "message": "Más adelante, haga clic en el botón de ORE en la barra de herramientas y elija «Recorrer esta página» para hacer un recorrido por la página en la que se encuentra, «Cómo funciona» para volver a ver esto o «Configuración» para bloquear un sitio web.",
     "source": "Later, click the ORE toolbar button and choose “Tour this page” for a tour of the page you are on, “How it works” to see this again, or “Settings” to block a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Quoted labels must match menu items exactly"
+    "reviewReason": "Quoted menu labels synced with popup.tourPage"
   },
   "walkthrough.ready.openSample": {
     "message": "Abrir un artículo de ejemplo",
@@ -4525,12 +4525,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "Una base de datos gratuita, gestionada por la comunidad FORRT, que recoge estudios de ciencias sociales y del comportamiento que intentaron replicar o reproducir hallazgos anteriores, junto con sus resultados, cualesquiera que fueran. Todos los recuentos de replicaciones de ORE proceden de ella y enlazan con las pruebas.",
+    "message": "Una base de datos gratuita, gestionada por la comunidad FORRT, que recoge estudios de ciencias sociales y del comportamiento que intentaron replicar o reproducir hallazgos anteriores, junto con sus resultados, cualesquiera que fueran. Todos los recuentos de replicaciones de ORE proceden de ella y enlazan con los datos correspondientes.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Database description; replaced 'las pruebas' with 'los datos correspondientes'"
   },
   "walkthrough.report.atlas.title": {
     "message": "Qué es <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a>",
@@ -4541,12 +4541,12 @@
     "reviewReason": "Product name without article; check"
   },
   "walkthrough.report.caution": {
-    "message": "Tome las etiquetas de resultado como un punto de partida, no como un veredicto sobre el original. Dependen de cómo describe sus resultados el equipo autor de la replicación. Una replicación fallida no demuestra por sí sola que el hallazgo original fuera falso o que el estudio original tuviera fallos: una replicación también puede fallar por azar, por baja potencia estadística o problemas en su propia ejecución, o porque las condiciones, situaciones o contextos eran distintos.",
+    "message": "Tome las etiquetas de resultado como un punto de partida, no como un veredicto sobre el estudio original. Dependen de cómo describe sus resultados el equipo autor de la replicación. Una replicación fallida no demuestra por sí sola que el hallazgo original fuera falso o que el estudio original tuviera fallos: una replicación también puede fallar por azar, por baja potencia estadística o problemas en su propia ejecución, o porque las condiciones, situaciones o contextos eran distintos.",
     "source": "Treat outcome labels as a starting point, not a verdict on the original. They depend on how replication authors describe their results. A failed replication does not by itself show that the original finding was false or the original study flawed: a replication can also fail by chance, because of low power or problems in its own conduct, or because conditions, situations, or contexts differed.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Statement about interpreting replication outcomes"
+    "reviewReason": "Statement about interpreting replication outcomes; clarified 'estudio original'"
   },
   "walkthrough.report.contents": {
     "message": "La pestaña lateral abre un informe sobre el artículo que está leyendo: sus replicaciones y lo que encontraron, cualquier retractación o expresión de preocupación, su debate en PubPeer y cuáles de sus referencias tienen algo que señalar.",
@@ -4609,20 +4609,20 @@
     "reviewReason": "Instruction; check"
   },
   "walkthrough.search.dotted.title": {
-    "message": "Compruebe un DOI punteado antes de confiar en él",
+    "message": "Compruebe un DOI con subrayado punteado antes de confiar en él",
     "source": "Check a dotted DOI before you rely on it",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'DOI punteado' should be dotted-underlined DOI"
+    "reviewReason": "Clarified 'DOI punteado' as dotted-underlined DOI"
   },
   "walkthrough.search.panel": {
-    "message": "En los sitios web de búsqueda, ORE coloca un pequeño panel junto a cada resultado para ayudarle a revisar los resultados de un vistazo. Haga clic en una fila para abrir el artículo, copiar su referencia, encontrar una versión en acceso abierto, leer el debate o ver sus replicaciones. Una fila que indica «Verificando…» aún está en curso; no significa que no se haya encontrado nada.",
+    "message": "En los sitios web de búsqueda, ORE coloca un pequeño panel junto a cada resultado para ayudarle a revisarlos de un vistazo. Haga clic en una fila para abrir el artículo, copiar su referencia, encontrar una versión en acceso abierto, leer el debate o ver sus replicaciones. Una fila que indica «Verificando…» aún está en curso; no significa que no se haya encontrado nada.",
     "source": "On search sites, ORE adds a small panel beside each result to help you skim the results. Click a row to open the paper, copy its reference, find an open-access version, read the discussion, or see its replications. A row that says “Checking…” is still running; it does not mean nothing was found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instruction; repeated 'resultados'"
+    "reviewReason": "Long instruction; eliminated repeated 'resultados'"
   },
   "walkthrough.search.title": {
     "message": "Evalúe un resultado antes de abrirlo",
@@ -4863,12 +4863,12 @@
     "review": 1
   },
   "walkthrough.welcome.articles.text": {
-    "message": "El artículo, cada artículo de su lista de referencias y cualquier DOI mencionado en otra parte de una página.",
+    "message": "El artículo, cada publicación de su lista de referencias y cualquier DOI mencionado en otra parte de una página.",
     "source": "The article, every paper in its reference list, and any DOI mentioned elsewhere on a page.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Repeated 'artículo'; check"
+    "reviewReason": "Eliminated repeated 'artículo'"
   },
   "walkthrough.welcome.articles.title": {
     "message": "Artículos y otras páginas",

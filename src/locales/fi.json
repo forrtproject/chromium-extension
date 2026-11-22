@@ -30,12 +30,12 @@
     "review": 1
   },
   "notice.error.message": {
-    "message": "ORE kohtasi virheen tällä sivulla.",
+    "message": "ORE:ssa tapahtui virhe tällä sivulla.",
     "source": "ORE hit an error on this page.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'kohtasi virheen' slightly literal; check natural phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "notice.error.openFailed": {
     "message": "Virheilmoituslomaketta ei voitu avata. Ilmoita virheestä ORE:n työkalupalkin valikosta.",
@@ -127,12 +127,12 @@
     "review": 1
   },
   "page.comments.loadFailed": {
-    "message": "PubPeer-kommentteja ei voitu ladata tähän.",
+    "message": "PubPeer-kommentteja ei voitu ladata tälle sivulle.",
     "source": "PubPeer comments couldn't be loaded here.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'ladata tähän' awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.comments.loading": {
     "message": "Ladataan kommentteja…",
@@ -228,12 +228,12 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "message": "Excel piirtää vain näytöllä näkyvät rivit, joten ORE tarkistaa ne. Vieritä taulukkoa, jotta loputkin rivit tarkistetaan.",
+    "message": "Excel lataa vain näytöllä näkyvät rivit, joten ORE tarkistaa ne. Vieritä taulukkoa, jotta loputkin rivit tarkistetaan.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; check 'piirtää' and phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.list.and": {
     "message": "{first} ja {last}",
@@ -441,12 +441,12 @@
     "review": 1
   },
   "page.progress.augmentingRefs": {
-    "message": "Täydennetään {count, plural, one {# lähdeviite} other {# lähdeviitettä}} ilman DOI:ta…",
+    "message": "Haetaan DOI {count, plural, one {# lähdeviitteelle} other {# lähdeviitteelle}} ilman DOI:ta…",
     "source": "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Täydennetään' for augmenting; check meaning"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.exportingSheet": {
     "message": "Viedään tätä taulukkovälilehteä…",
@@ -495,20 +495,20 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.markingUp": {
-    "message": "Merkitään sivua…",
+    "message": "Lisätään tunnisteita sivulle…",
     "source": "Marking up the page…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Merkitään sivua' vague for marking up"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.markingUpRefs": {
-    "message": "Merkitään {count, plural, one {# lähdeviite} other {# lähdeviitettä}}…",
+    "message": "Lisätään tunnisteita {count, plural, one {# lähdeviitteeseen} other {# lähdeviitteeseen}}…",
     "source": "Marking up {count, plural, one {# reference} other {# references}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Object case after 'Merkitään' with number"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.pubpeer": {
     "message": "Tarkistetaan PubPeeristä {count, plural, one {# artikkeli} other {# artikkelia}}…",
@@ -519,12 +519,12 @@
     "reviewReason": "Check case: 'PubPeeristä' plus object number"
   },
   "page.progress.resolvingRefs": {
-    "message": "Selvitetään lähdeviitteitä, joilla ei ole DOI:ta…",
+    "message": "Tunnistetaan lähdeviitteitä ilman DOI:ta…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Selvitetään' for resolving; check term"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.retractionsDois": {
     "message": "Tarkistetaan {count, plural, one {# DOI} other {# DOI:ta}} takaisinvetojen varalta…",
@@ -574,12 +574,12 @@
     "reviewReason": "Long capitalised heading; tags = tunniste check"
   },
   "page.refs.matchedByPmc": {
-    "message": "Täsmätty PMC-tunnuksen perusteella",
+    "message": "Täsmäytetty PMC-tunnuksen perusteella",
     "source": "Matched by PMC ID",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.refs.replicationsTag": {
     "message": "{count, plural, one {# replikaatio} other {# replikaatiota}}",
@@ -1173,12 +1173,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "pill.notice.concernLabel": {
-    "message": "Concern",
+    "message": "Huolenaihe",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.notice.concernTitle": {
     "message": "Expression of Concern",
@@ -1347,12 +1347,12 @@
     "reviewReason": "Drops 'Open'; check accessible name"
   },
   "pill.provenance.matchedByTitle": {
-    "message": "Täsmätty otsikon perusteella – tarkista, että artikkeli on oikea",
+    "message": "Täsmäytetty otsikon perusteella – tarkista, että artikkeli on oikea",
     "source": "Matched by title — check it is the right paper",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; 'Täsmätty' natural?"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.provenance.page": {
     "message": "Löytyi tältä sivulta",
@@ -1362,12 +1362,12 @@
     "review": 1
   },
   "pill.provenance.search": {
-    "message": "Täsmätty haun perusteella – haettu otsikon, ensimmäisen tekijän ja vuoden avulla. Tarkista, että artikkeli on oikea.",
+    "message": "Täsmäytetty haun perusteella – haettu otsikon, ensimmäisen tekijän ja vuoden avulla. Tarkista, että artikkeli on oikea.",
     "source": "Matched by search — looked up by title, first author and year. Check it is the right paper.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; 'Täsmätty' natural?"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.pubpeer.checkingTooltip": {
     "message": "Tarkistetaan PubPeeriä…",
@@ -1611,12 +1611,12 @@
     "reviewReason": "Finnish readers may not know 'OA'"
   },
   "pill.segment.reps": {
-    "message": "Repl",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Tight space; 'Repl' abbreviation unclear"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# artikkeli} other {# artikkelia}} tässä lähdeviitteessä: {dois}. Lisätietoja saa painamalla Enter.",
@@ -1803,17 +1803,17 @@
     "review": 1
   },
   "popup.findings.label": {
-    "message": "Tämän sivun löydökset",
+    "message": "Tämän sivun tarkistustulokset",
     "source": "Findings on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.none": {
-    "message": "ei löydöksiä",
+    "message": "ei tuloksia",
     "source": "no findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.originals": {
@@ -1931,12 +1931,12 @@
     "review": 1
   },
   "popup.findings.withFindings": {
-    "message": "löydöksiä: {count}",
+    "message": "{count} artikkelissa tuloksia",
     "source": "{count} with findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'löydöksiä: N' loses 'papers with findings'"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.footerLabel": {
     "message": "Lisää",
@@ -1967,12 +1967,12 @@
     "review": 1
   },
   "popup.howItWorks": {
-    "message": "Miten se toimii",
+    "message": "Toimintaperiaate",
     "source": "How it works",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'se' pronoun; 'Toimintaperiaate' more idiomatic"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.openReport": {
     "message": "Avaa raportti",
@@ -2129,12 +2129,12 @@
     "reviewReason": "Instruction; 'asetuksissa' lowercase"
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} on edelleen poissa käytöstä, koska sen ylätason verkkotunnus tai sivustoluokka on estetty – muuta tätä asetuksissa",
+    "message": "ORE on edelleen poissa käytöstä sivustolla {domain}, koska sen ylätason verkkotunnus tai sivustoluokka on estetty – muuta tätä asetuksissa",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.status.unblocked": {
     "message": "Esto poistettu: {domain} – lataa sivu uudelleen, jotta muutos tulee voimaan",
@@ -2245,12 +2245,12 @@
     "review": 1
   },
   "popup.tourPage": {
-    "message": "Esittele tämä sivu",
+    "message": "Sivun esittely",
     "source": "Tour this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Esittele tämä sivu' odd; maybe 'Sivun esittely'"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.troubleshooting": {
     "message": "Vianmääritys",
@@ -2318,12 +2318,12 @@
     "review": 1
   },
   "progress.toast.dismiss": {
-    "message": "Ohita",
+    "message": "Sulje",
     "source": "Dismiss",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Ohita' means skip; 'Sulje' fits dismiss"
+    "reviewReason": "Revised in AI review; please check"
   },
   "progress.toast.doneIn": {
     "message": "Valmis ({duration})",
@@ -2498,12 +2498,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "report.tag.concern": {
-    "message": "Concern",
+    "message": "Huolenaihe",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "report.tag.inAtlas": {
     "message": "Atlasissa",
@@ -2631,12 +2631,12 @@
     "reviewReason": "Select agreement with joined list"
   },
   "search.stage.augmenting": {
-    "message": "Täydennetään {count, plural, one {# tulos} other {# tulosta}} ilman DOI:ta…",
+    "message": "Haetaan DOI {count, plural, one {# tulokselle} other {# tulokselle}} ilman DOI:ta…",
     "source": "Augmenting {count, plural, one {# result} other {# results}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Täydennetään' for augmenting; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.stage.checkingDois": {
     "message": "Tarkistetaan {count, plural, one {# DOI:n} other {# DOI:n}} toimivuus…",
@@ -2655,12 +2655,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "search.stage.markingUp": {
-    "message": "Merkitään {count, plural, one {# tulos} other {# tulosta}}…",
+    "message": "Lisätään tunnisteita {count, plural, one {# tulokseen} other {# tulokseen}}…",
     "source": "Marking up {count, plural, one {# result} other {# results}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Merkitään' vague for marking up"
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.stage.reading": {
     "message": "Luetaan {count, plural, one {# {site}-tulos} other {# {site}-tulosta}}…",
@@ -2997,12 +2997,12 @@
     "review": 1
   },
   "settings.data.intro": {
-    "message": "ORE tarkistaa artikkelit paikallisesta kopiosta, joka on otettu <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> -tietokannasta ja <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a> -kirjastosta. Molemmat päivitetään taustalla viikoittain; ne voi päivittää heti tai aina selaimen käynnistyessä.",
+    "message": "ORE tarkistaa artikkelit paikallisista kopioista, jotka on otettu <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> -tietokannasta ja <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a> -kirjastosta. Molemmat päivitetään taustalla viikoittain; ne voi päivittää heti tai aina selaimen käynnistyessä.",
     "source": "ORE checks papers against a local copy of the <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> database and the <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a> library. Both are refreshed weekly in the background; refresh them now, or every time the browser starts.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Restructured; implies one combined copy, check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.data.loading": {
     "message": "Ladataan…",
@@ -3033,12 +3033,12 @@
     "review": 1
   },
   "settings.data.retractions": {
-    "message": "Takaisinvedot &amp; Expression of Concern -ilmoitukset",
+    "message": "Takaisinvedot ja Expression of Concern -ilmoitukset",
     "source": "Retractions &amp; expressions of concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ampersand unusual in Finnish heading"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.data.startupOff": {
     "message": "Molemmat luettelot päivitetään viikoittain.",
@@ -3062,12 +3062,12 @@
     "review": 1
   },
   "settings.data.title": {
-    "message": "Takaisinvedot &amp; Registered Reports",
+    "message": "Takaisinvedot ja Registered Reports",
     "source": "Retractions &amp; Registered Reports",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ampersand unusual in Finnish heading"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.data.unavailable": {
     "message": "Ei saatavilla",
@@ -3215,10 +3215,10 @@
     "reviewReason": "Instruction; check phrasing"
   },
   "settings.debug.opening": {
-    "message": "Avataan GitHub-virheilmoitus, johon raportti on täytetty valmiiksi.",
+    "message": "Avataan GitHub-lomake, johon raportti on täytetty valmiiksi.",
     "source": "Opening a GitHub issue with the report filled in.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "settings.debug.previewLabel": {
@@ -3251,12 +3251,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "settings.debug.title": {
-    "message": "Vianetsintätila &amp; virheilmoitukset",
+    "message": "Vianetsintätila ja virheilmoitukset",
     "source": "Debug Mode &amp; Issue Reports",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ampersand unusual in Finnish heading"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.debug.toggle": {
     "message": "Vianetsintätila – näytä ORE:n edistyminen jokaisella sivulla",
@@ -3273,12 +3273,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Valitse, miten ORE esittää tutkimusnäytön luettavissa artikkeleissa. Sähköpostiosoite mahdollistaa otsikon ja DOI:n täsmäytyksen sekä avoimen saatavuuden haut; muut DOI-pohjaiset tarkistukset toimivat ilman sitä.",
+    "message": "Valitse, miten ORE näyttää tarkistustulokset luettavissa artikkeleissa. Sähköpostiosoite mahdollistaa otsikon ja DOI:n täsmäytyksen sekä avoimen saatavuuden haut; muut DOI-pohjaiset tarkistukset toimivat ilman sitä.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'tutkimusnäytön' and matching phrasing; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.email.label": {
     "message": "Sähköposti",
@@ -3668,12 +3668,12 @@
     "reviewReason": "'arkistot' for repositories; check term"
   },
   "sites.category.searchDiscovery": {
-    "message": "Tieteellinen haku ja tiedonhaku",
+    "message": "Tieteelliset hakupalvelut",
     "source": "Scholarly search & discovery",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'haku ja tiedonhaku' redundant"
+    "reviewReason": "Revised in AI review; please check"
   },
   "sites.category.shopping": {
     "message": "Ostokset",
@@ -3959,10 +3959,10 @@
     "review": 1
   },
   "tour.pill.articleTitle": {
-    "message": "Tämän artikkelin löydökset",
+    "message": "Tämän artikkelin tarkistustulokset",
     "source": "Findings for this article",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "tour.pill.noPill": {
@@ -3982,12 +3982,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "tour.pill.pointAt": {
-    "message": "Vie osoitin sen päälle, niin ORE:n löydökset näytetään.",
+    "message": "Vie osoitin sen päälle, niin ORE:n tulokset näytetään.",
     "source": "Point at it to see what ORE found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; check phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.pill.recognisedTitle": {
     "message": "Tunniste merkitsee artikkelin, jonka ORE yksilöi",
@@ -4020,20 +4020,20 @@
     "review": 1
   },
   "tour.search.matchedText": {
-    "message": "Tällä tuloksella ei ollut DOI:ta, joten ORE täsmäsi sen otsikon perusteella; tarkista, että artikkeli on oikea.",
+    "message": "Tällä tuloksella ei ollut DOI:ta, joten ORE täsmäytti sen otsikon perusteella; tarkista, että artikkeli on oikea.",
     "source": "This result had no DOI, so ORE matched it by title; check that it is the right paper.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'täsmäsi' verb form; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.search.matchedTitle": {
-    "message": "Pisteviivalla alleviivattu DOI on täsmätty otsikon perusteella",
+    "message": "Pisteviivalla alleviivattu DOI on täsmäytetty otsikon perusteella",
     "source": "A dotted DOI was matched by title",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long for title; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.search.panelTitle": {
     "message": "ORE lisää tämän paneelin jokaiseen tulokseen",
@@ -4117,10 +4117,10 @@
     "reviewReason": "Revised after second review; please check"
   },
   "walkthrough.article.tab": {
-    "message": "Ikkunan oikeassa reunassa oleva <strong>välilehti</strong> avaa metaraportin: kaikki ORE:n löydökset yhdessä paikassa. Vedä sitä ylös tai alas, jos se peittää jotain.",
+    "message": "Ikkunan oikeassa reunassa oleva <strong>välilehti</strong> avaa metaraportin: kaikki ORE:n tulokset yhdessä paikassa. Vedä sitä ylös tai alas, jos se peittää jotain.",
     "source": "A <strong>tab</strong> on the right edge of the window opens the Meta Report: everything ORE found, in one place. Drag it up or down if it covers something.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Instruction; 'välilehti' for side tab"
   },
@@ -4162,12 +4162,12 @@
     "review": 1
   },
   "walkthrough.done.text": {
-    "message": "Käyttöönotto on valmis. Laajennus on valmis käyttöön: ORE tarkistaa artikkelit automaattisesti selaamisen aikana.",
+    "message": "Käyttöönotto on valmis. Laajennus on nyt käytössä: ORE tarkistaa artikkelit automaattisesti selaamisen aikana.",
     "source": "Setup is complete. Start using the plugin: ORE will check papers by itself as you browse.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'valmis' repeated twice"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.done.title": {
     "message": "Kaikki on valmista",
@@ -4338,12 +4338,12 @@
     "reviewReason": "Data-source statement; check"
   },
   "walkthrough.pageTitle": {
-    "message": "FORRT ORE – Miten se toimii",
+    "message": "FORRT ORE – Toimintaperiaate",
     "source": "FORRT ORE — How it Works",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'se' pronoun; maybe 'Toimintaperiaate'"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.pill.board.closed": {
     "message": "Suljettu",
@@ -4361,10 +4361,10 @@
     "reviewReason": "Fragment phrasing; check"
   },
   "walkthrough.pill.board.nothing": {
-    "message": "Ei löydöksiä",
+    "message": "Ei tuloksia",
     "source": "Nothing found",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "walkthrough.pill.board.nothingText": {
@@ -4392,12 +4392,12 @@
     "reviewReason": "Fragment phrasing; check"
   },
   "walkthrough.pill.doi.text": {
-    "message": "Kopioi DOI tai muotoiltu lähdeviite tai avaa artikkeli. Pisteviiva alla tarkoittaa, että artikkeli on täsmätty otsikon perusteella.",
+    "message": "Kopioi DOI tai muotoiltu lähdeviite tai avaa artikkeli. Pisteviiva-alleviivaus tarkoittaa, että artikkeli on täsmäytetty otsikon perusteella.",
     "source": "Copy the DOI or a formatted reference, or open the paper. A dotted underline means it was matched by title.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Pisteviiva alla' awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.pill.doi.title": {
     "message": "DOI – mikä artikkeli on kyseessä",
@@ -4461,12 +4461,12 @@
     "reviewReason": "Defines replication vs reproduction; verify precisely"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl – tutkimus on toistettu",
+    "message": "Rep. – tutkimus on toistettu",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Must match pill label 'Repl'"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.pill.title": {
     "message": "Tunnisteen lukeminen",
@@ -4484,12 +4484,12 @@
     "reviewReason": "'itsestään' register; check"
   },
   "walkthrough.ready.later": {
-    "message": "Myöhemmin voi napsauttaa ORE-painiketta työkalupalkissa ja valita ”Esittele tämä sivu” avoimen sivun esittelyä varten, ”Miten se toimii” tämän oppaan katsomiseksi uudelleen tai ”Asetukset” sivuston estämiseksi.",
+    "message": "Myöhemmin voi napsauttaa ORE-painiketta työkalupalkissa ja valita ”Sivun esittely” avoimen sivun esittelyä varten, ”Toimintaperiaate” tämän oppaan katsomiseksi uudelleen tai ”Asetukset” sivuston estämiseksi.",
     "source": "Later, click the ORE toolbar button and choose “Tour this page” for a tour of the page you are on, “How it works” to see this again, or “Settings” to block a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Quoted UI labels must match; long sentence"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.ready.openSample": {
     "message": "Avaa esimerkkiartikkeli",
@@ -4607,20 +4607,20 @@
     "review": 1
   },
   "walkthrough.search.dotted.text": {
-    "message": "Kahdella artikkelilla voi olla lähes sama otsikko. Jos täsmäys on väärä, kaikki muu paneelissa kuvaa väärää artikkelia. Avaa DOI kerran ja varmista.",
+    "message": "Kahdella artikkelilla voi olla lähes sama otsikko. Jos täsmäytys on väärä, kaikki muu paneelissa kuvaa väärää artikkelia. Avaa DOI kerran ja varmista.",
     "source": "Two papers can have almost the same title. If the match is wrong, everything else in the panel describes the wrong paper. Open the DOI once to confirm.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; check phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.search.dotted.title": {
-    "message": "Tarkista pisteviivalla alleviivattu DOI ennen siihen luottamista",
+    "message": "Tarkista pisteviivalla alleviivattu DOI ennen sen käyttämistä",
     "source": "Check a dotted DOI before you rely on it",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'ennen siihen luottamista' stiff"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.search.panel": {
     "message": "Hakusivustoilla ORE lisää jokaisen tuloksen viereen pienen paneelin, joka helpottaa tulosten silmäilyä. Rivin napsauttaminen avaa artikkelin, kopioi sen lähdeviitteen, etsii avoimesti saatavilla olevan version, avaa keskustelun tai näyttää artikkelin replikaatiot. Rivi, jossa lukee ”Tarkistetaan…”, on vielä kesken; se ei tarkoita, ettei mitään löytynyt.",
@@ -4748,20 +4748,20 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "Avaa DOI-tunnuksia sisältävä laskentataulukko, kuten lukulista tai katsauksen tutkimukset, Google Sheetsissä tai Excel Onlinessa. Google Sheetsissä ORE tarkistaa välilehden jokaisen DOI:n, myös rivit, joille ei ole vielä vieritetty. Excel Online piirtää vain näytöllä näkyvät rivit, joten ORE tarkistaa ne; vieritä, jotta loputkin rivit tarkistetaan. Tulokset näkyvät ponnahdusikkunassa.",
+    "message": "Avaa DOI-tunnuksia sisältävä laskentataulukko, kuten lukulista tai katsauksen tutkimukset, Google Sheetsissä tai Excel Onlinessa. Google Sheetsissä ORE tarkistaa välilehden jokaisen DOI:n, myös rivit, joille ei ole vielä vieritetty. Excel Online lataa vain näytöllä näkyvät rivit, joten ORE tarkistaa ne; vieritä, jotta loputkin rivit tarkistetaan. Tulokset näkyvät ponnahdusikkunassa.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instructions; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.sheets.docs.text": {
-    "message": "Jokainen DOI:n sisältävä lähdeviite saa pienen merkin. Avaa se, niin samat tiedot kuin tunnisteessa näytetään.",
+    "message": "Jokainen DOI:n sisältävä lähdeviite saa pienen merkin. Avaa se, jolloin näkyviin tulevat samat tiedot kuin tunnisteessa.",
     "source": "Each reference with a DOI gets a small marker. Open it for the same details as a pill.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Awkward 'niin samat tiedot ... näytetään'"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.sheets.docs.title": {
     "message": "Kirjoittaminen Google Docsissa tai Word Onlinessa",
@@ -4830,20 +4830,20 @@
     "review": 1
   },
   "walkthrough.tag.articles": {
-    "message": "Artikkelit &amp; muut sivut",
+    "message": "Artikkelit ja muut sivut",
     "source": "Articles &amp; other pages",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ampersand unusual in Finnish"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.tag.notices": {
-    "message": "Takaisin vedetyt &amp; kyseenalaistetut julkaisut",
+    "message": "Takaisin vedetyt ja kyseenalaistetut julkaisut",
     "source": "Withdrawn &amp; questioned work",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Evidence label; ampersand; check nuance"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.tag.pill": {
     "message": "Tunnisteen lukeminen",
@@ -4860,12 +4860,12 @@
     "review": 1
   },
   "walkthrough.tag.sheets": {
-    "message": "Laskentataulukot &amp; asiakirjat",
+    "message": "Laskentataulukot ja asiakirjat",
     "source": "Spreadsheets &amp; documents",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ampersand unusual in Finnish"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.welcome.articles.screens": {
     "message": "Näkymät 3–6",

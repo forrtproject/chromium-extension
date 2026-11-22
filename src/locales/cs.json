@@ -90,12 +90,12 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "notice.feedback.title": {
-    "message": "Jak se vám osvědčuje ORE?",
+    "message": "Jak vám ORE funguje?",
     "source": "How is ORE working for you?",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "'Jak se vám osvědčuje ORE?' sounds unnatural"
+    "reviewReason": "Check naturalness of feedback prompt heading"
   },
   "notice.updated.message": {
     "message": "ORE bylo aktualizováno. Obnovte tuto stránku, aby se spustily kontroly.",
@@ -128,12 +128,12 @@
     "review": 1
   },
   "page.comments.loadFailed": {
-    "message": "Komentáře z PubPeer se zde nepodařilo načíst.",
+    "message": "Komentáře na PubPeer se zde nepodařilo načíst.",
     "source": "PubPeer comments couldn't be loaded here.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Komentáře z PubPeer' differs from agreed term"
+    "reviewReason": "Check wording and naturalness in context"
   },
   "page.comments.loading": {
     "message": "Načítání komentářů…",
@@ -181,10 +181,10 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "Stav diskuse se nepodařilo ověřit. Další dostupná zjištění jsou uvedena výše.",
+    "message": "Stav diskuse se nepodařilo ověřit. Další dostupné výsledky jsou uvedeny výše.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -941,34 +941,34 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "message": "Otevřít podrobnosti výzkumu pro {doi}: zatím bez upozornění. Další informace zobrazíte klávesou Enter.",
+    "message": "Otevřít podrobnosti o výzkumu pro {doi}: zatím bez upozornění. Další informace zobrazíte klávesou Enter.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
   "pill.aria.notice": {
-    "message": "Otevřít podrobnosti výzkumu pro {doi}: {notice, select, concern {Expression of Concern} other {stažený článek}}. Další informace zobrazíte klávesou Enter.",
+    "message": "Otevřít podrobnosti o výzkumu pro {doi}: {notice, select, concern {Expression of Concern} other {stažený článek}}. Další informace zobrazíte klávesou Enter.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Long text; check flow, register and accuracy"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "Otevřít podrobnosti výzkumu pro {doi}: {notice, select, concern {Expression of Concern} other {stažený článek}}, {count, plural, one {# replikační nebo reprodukční studie} few {# replikační nebo reprodukční studie} many {# replikační nebo reprodukční studie} other {# replikačních nebo reprodukčních studií}}. Další informace zobrazíte klávesou Enter.",
+    "message": "Otevřít podrobnosti o výzkumu pro {doi}: {notice, select, concern {Expression of Concern} other {stažený článek}}, {count, plural, one {# replikační nebo reprodukční studie} few {# replikační nebo reprodukční studie} many {# replikační nebo reprodukční studie} other {# replikačních nebo reprodukčních studií}}. Další informace zobrazíte klávesou Enter.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check plural forms and case agreement"
   },
   "pill.aria.studies": {
-    "message": "Otevřít podrobnosti výzkumu pro {doi}: {count, plural, one {# replikační nebo reprodukční studie} few {# replikační nebo reprodukční studie} many {# replikační nebo reprodukční studie} other {# replikačních nebo reprodukčních studií}}. Další informace zobrazíte klávesou Enter.",
+    "message": "Otevřít podrobnosti o výzkumu pro {doi}: {count, plural, one {# replikační nebo reprodukční studie} few {# replikační nebo reprodukční studie} many {# replikační nebo reprodukční studie} other {# replikačních nebo reprodukčních studií}}. Další informace zobrazíte klávesou Enter.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check plural forms and case agreement"
   },
@@ -1137,12 +1137,12 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "pill.marker.empty": {
-    "message": "Nenalezeny žádné doklady o replikaci ani komentáře na PubPeer.",
+    "message": "Nenalezeny žádné údaje o replikacích ani komentáře na PubPeer.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence statement; check doklady o replikaci wording"
+    "reviewReason": "Evidence statement; verify wording"
   },
   "pill.marker.inProgress": {
     "message": "Probíhají kontroly.",
@@ -1365,10 +1365,10 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "Podrobnosti výzkumu pro {doi}",
+    "message": "Podrobnosti o výzkumu pro {doi}",
     "source": "Open research details for {doi}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -1646,12 +1646,12 @@
     "review": 1
   },
   "pill.segment.reps": {
-    "message": "Repl",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Tight 4-5 char space; 'Repl' clarity"
+    "reviewReason": "Tight 4-5 char space; covers both replications and reproductions"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# článek} few {# články} many {# článku} other {# článků}} v tomto bibliografickém odkazu: {dois}. Podrobnosti zobrazíte klávesou Enter.",
@@ -1669,10 +1669,10 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "Podrobnosti výzkumu pro {count, plural, one {# článek} few {# články} many {# článku} other {# článků}}",
+    "message": "Podrobnosti o výzkumu pro {count, plural, one {# článek} few {# články} many {# článku} other {# článků}}",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check plural forms and case agreement"
   },
@@ -1841,18 +1841,18 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "popup.findings.label": {
-    "message": "Zjištění na této stránce",
+    "message": "Výsledky na této stránce",
     "source": "Findings on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
   "popup.findings.none": {
-    "message": "žádná zjištění",
+    "message": "žádné výsledky",
     "source": "no findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -1973,10 +1973,10 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "popup.findings.withFindings": {
-    "message": "se zjištěními: {count}",
+    "message": "s výsledky: {count}",
     "source": "{count} with findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -2144,12 +2144,12 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "popup.status.restored": {
-    "message": "ORE obnoveno",
+    "message": "ORE znovu zobrazeno",
     "source": "ORE restored",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'obnoveno' may read as reloaded"
+    "reviewReason": "Check wording and naturalness in context"
   },
   "popup.status.resumed": {
     "message": "ORE na webu {domain} opět spuštěno – projeví se po obnovení stránky",
@@ -2175,10 +2175,10 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "popup.status.stillBlocked": {
-    "message": "Web {domain} je stále vypnutý kvůli zablokované nadřazené doméně nebo kategorii webů – upravte to v Nastavení",
+    "message": "ORE je na webu {domain} stále vypnuté kvůli zablokované nadřazené doméně nebo kategorii webů – upravte to v Nastavení",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -2299,12 +2299,12 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "popup.tourPage": {
-    "message": "Prohlídka této stránky",
+    "message": "Spustit prohlídku",
     "source": "Tour this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Button uses noun phrase, not infinitive"
+    "reviewReason": "Shortened for 300px popup footer; uses infinitive"
   },
   "popup.troubleshooting": {
     "message": "Řešení problémů",
@@ -2426,10 +2426,10 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Doklady o replikaci jsou výchozím bodem pro úsudek, nikoli verdiktem.",
+    "message": "Údaje o replikacích jsou výchozím bodem pro úsudek, nikoli verdiktem.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Evidence caveat; verify nuance of verdict wording"
   },
@@ -3011,10 +3011,10 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "settings.commenters.unmuteLabel": {
-    "message": "Znovu zobrazit komentující {name}",
+    "message": "Znovu zobrazit komentujícího {name}",
     "source": "Unmute {name}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -3363,10 +3363,10 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Zvolte, jak má ORE zobrazovat doklady u článků, které čtete. E-mail umožňuje párování názvů s DOI a vyhledávání otevřeného přístupu; ostatní kontroly podle DOI fungují i bez něj.",
+    "message": "Zvolte, jak má ORE zobrazovat údaje u článků, které čtete. E-mail umožňuje párování názvů s DOI a vyhledávání otevřeného přístupu; ostatní kontroly podle DOI fungují i bez něj.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Long text; check flow, register and accuracy"
   },
@@ -3760,10 +3760,10 @@
     "review": 1
   },
   "sites.category.searchDiscovery": {
-    "message": "Odborné vyhledávání a objevování",
+    "message": "Vyhledávání odborné literatury",
     "source": "Scholarly search & discovery",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -4054,10 +4054,10 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "tour.pill.articleTitle": {
-    "message": "Zjištění k tomuto článku",
+    "message": "Výsledky k tomuto článku",
     "source": "Findings for this article",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -4568,10 +4568,10 @@
     "reviewReason": "Defines replication vs reproduction; check precision"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl – studie byla zopakována",
+    "message": "Rep. – studie byla zopakována",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check wording and naturalness in context"
   },
@@ -4591,10 +4591,10 @@
     "reviewReason": "Check wording and naturalness in context"
   },
   "walkthrough.ready.later": {
-    "message": "Později můžete kliknout na tlačítko ORE na panelu nástrojů a zvolit „Prohlídka této stránky“ pro prohlídku aktuální stránky, „Jak to funguje“ pro zopakování tohoto průvodce nebo „Nastavení“ pro zablokování webu.",
+    "message": "Později můžete kliknout na tlačítko ORE na panelu nástrojů a zvolit „Spustit prohlídku“ pro prohlídku aktuální stránky, „Jak to funguje“ pro zopakování tohoto průvodce nebo „Nastavení“ pro zablokování webu.",
     "source": "Later, click the ORE toolbar button and choose “Tour this page” for a tour of the page you are on, “How it works” to see this again, or “Settings” to block a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Long text; check flow, register and accuracy"
   },
@@ -4629,18 +4629,18 @@
     "reviewReason": "Long text; check flow, register and accuracy"
   },
   "walkthrough.ready.tryText": {
-    "message": "Podívejte se na ORE u skutečného článku s krátkou prohlídkou s průvodcem.",
+    "message": "Vyzkoušejte ORE na skutečném článku s krátkou prohlídkou.",
     "source": "See ORE on a real paper, with a short guided tour.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Double 's' construction slightly clumsy"
+    "reviewReason": "Check natural phrasing"
   },
   "walkthrough.report.atlas.text": {
-    "message": "Bezplatná databáze spravovaná komunitou FORRT. Shromažďuje studie ze sociálních a behaviorálních věd, které se pokusily replikovat nebo reprodukovat dřívější zjištění (bez ohledu na výsledek), a to, k čemu dospěly. Každý počet replikací v ORE pochází z této databáze a odkazuje na příslušné doklady.",
+    "message": "Bezplatná databáze spravovaná komunitou FORRT. Shromažďuje studie ze sociálních a behaviorálních věd, které se pokusily replikovat nebo reprodukovat dřívější zjištění (bez ohledu na výsledek), a to, k čemu dospěly. Každý počet replikací v ORE pochází z této databáze a odkazuje na příslušné údaje.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Revised after second review; please check"
   },

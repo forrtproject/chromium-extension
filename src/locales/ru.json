@@ -1,11 +1,11 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: полное обновление документа недоступно. В отчёте сохранены результаты последней успешной проверки, недавние правки могут быть не учтены. Повторная попытка будет выполнена автоматически.",
+    "message": "ORE: полное обновление документа недоступно. В отчёте сохранены результаты последней успешной проверки, поэтому недавние правки могут быть не учтены. Повторная попытка будет выполнена автоматически.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Claim about stale report data; long, check accuracy"
+    "reviewReason": "Claim about stale report data; verify accuracy"
   },
   "editor.docs.scanUnavailable": {
     "message": "ORE: полная проверка документа недоступна. Проверены только видимые страницы. Повторная попытка будет выполнена автоматически.",
@@ -30,12 +30,12 @@
     "review": 1
   },
   "notice.error.message": {
-    "message": "На этой странице в работе ORE произошла ошибка.",
+    "message": "В работе ORE на этой странице произошла ошибка.",
     "source": "ORE hit an error on this page.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Word order slightly heavy"
+    "reviewReason": "Check natural phrasing"
   },
   "notice.error.openFailed": {
     "message": "Не удалось открыть форму отчёта об ошибке. Сообщите о ней через меню ORE на панели инструментов.",
@@ -81,12 +81,12 @@
     "review": 1
   },
   "notice.feedback.message": {
-    "message": "Минута вашего времени — расскажите, что работает, а что нет, и это поможет нам улучшить ORE.",
+    "message": "Расскажите за минуту, что работает, а что нет — это поможет нам улучшить ORE.",
     "source": "A minute of feedback on what works and what doesn't helps us improve ORE.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Restructured sentence; check it reads naturally"
+    "reviewReason": "Check natural tone of feedback prompt"
   },
   "notice.feedback.title": {
     "message": "Как вам работа с ORE?",
@@ -126,12 +126,12 @@
     "review": 1
   },
   "page.comments.loadFailed": {
-    "message": "Не удалось загрузить сюда комментарии с PubPeer.",
+    "message": "Не удалось загрузить здесь комментарии с PubPeer.",
     "source": "PubPeer comments couldn't be loaded here.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check naturalness of error message"
   },
   "page.comments.loading": {
     "message": "Загрузка комментариев…",
@@ -176,12 +176,12 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "Не удалось проверить наличие обсуждения. Другие доступные результаты показаны выше.",
+    "message": "Не удалось проверить наличие обсуждения. Остальные найденные сведения показаны выше.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check 'результаты' for findings"
+    "reviewReason": "Check 'сведения' for ORE findings"
   },
   "page.comments.unavailableTitle": {
     "message": "PubPeer недоступен",
@@ -439,20 +439,20 @@
     "reviewReason": "'Unknown' rendered as 'Untitled'; check intent"
   },
   "page.progress.augmentingRefs": {
-    "message": "Дополнение данных для ссылок без DOI: {count, plural, one {# библиографическая ссылка} few {# библиографические ссылки} many {# библиографических ссылок} other {# библиографической ссылки}}…",
+    "message": "Дополнение сведений для {count, plural, one {# библиографической ссылки} few {# библиографических ссылок} many {# библиографических ссылок} other {# библиографической ссылки}} без DOI…",
     "source": "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Plural genitive forms; check clarity"
   },
   "page.progress.exportingSheet": {
-    "message": "Экспорт этой вкладки листа…",
+    "message": "Экспорт этого листа…",
     "source": "Exporting this sheet tab…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'вкладки листа' redundant-sounding"
+    "reviewReason": "Check 'лист' for sheet tab"
   },
   "page.progress.foundDois": {
     "message": "{count, plural, one {На этой странице найден # DOI} few {На этой странице найдено # DOI} many {На этой странице найдено # DOI} other {На этой странице найдено # DOI}}",
@@ -500,12 +500,12 @@
     "review": 1
   },
   "page.progress.markingUpRefs": {
-    "message": "{count, plural, one {Размечается # библиографическая ссылка} few {Размечаются # библиографические ссылки} many {Размечаются # библиографических ссылок} other {Размечаются # библиографической ссылки}}…",
+    "message": "Разметка {count, plural, one {# библиографической ссылки} few {# библиографических ссылок} many {# библиографических ссылок} other {# библиографической ссылки}}…",
     "source": "Marking up {count, plural, one {# reference} other {# references}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Passive progress phrasing; check naturalness"
+    "reviewReason": "Plural genitive forms; check progress phrasing"
   },
   "page.progress.pubpeer": {
     "message": "Проверка на PubPeer: {count, plural, one {# статья} few {# статьи} many {# статей} other {# статьи}}…",
@@ -516,12 +516,12 @@
     "reviewReason": "Colon construction; check naturalness"
   },
   "page.progress.resolvingRefs": {
-    "message": "Распознавание библиографических ссылок без DOI…",
+    "message": "Поиск недостающих DOI для библиографических ссылок…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Распознавание' for resolving; check term"
+    "reviewReason": "Check plain-language phrasing for DOI lookup"
   },
   "page.progress.retractionsDois": {
     "message": "Проверка на отзыв: {count, plural, one {# DOI} few {# DOI} many {# DOI} other {# DOI}}…",
@@ -735,12 +735,12 @@
     "review": 1
   },
   "page.sheets.headlineRetracted": {
-    "message": "{count, plural, one {# отозванная статья} few {# отозванные статьи} many {# отозванных статей} other {# отозванной статьи}} в этом листе",
+    "message": "{count, plural, one {# отозванная статья} few {# отозванные статьи} many {# отозванных статей} other {# отозванной статьи}} на этом листе",
     "source": "{count, plural, one {# retracted paper} other {# retracted papers}} in this sheet",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'на этом листе' more natural than 'в'"
+    "reviewReason": "Has number or variant forms; retraction headline"
   },
   "page.sheets.hide": {
     "message": "Скрыть для этого листа",
@@ -750,10 +750,10 @@
     "review": 1
   },
   "page.sheets.noDois": {
-    "message": "На этой вкладке листа DOI не найдены.",
+    "message": "На этом листе DOI не найдены.",
     "source": "No DOIs found in this sheet tab.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.sheets.notice": {
@@ -937,28 +937,28 @@
     "reviewReason": "Revised after second review; please check"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "Открыть сведения об исследовании для {doi}: {notice, select, concern {выражение обеспокоенности} other {статья отозвана}}, {count, plural, one {# исследование репликации или воспроизведения} few {# исследования репликации или воспроизведения} many {# исследований репликации или воспроизведения} other {# исследования репликации или воспроизведения}}. Нажмите Enter, чтобы узнать больше.",
+    "message": "Открыть сведения об исследовании для {doi}: {notice, select, concern {выражение обеспокоенности} other {статья отозвана}}, {count, plural, one {# репликация или воспроизведение} few {# репликации или воспроизведения} many {# репликаций или воспроизведений} other {# репликации или воспроизведения}}. Нажмите Enter, чтобы узнать больше.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Screen-reader retraction and study count; check plural forms"
   },
   "pill.aria.studies": {
-    "message": "Открыть сведения об исследовании для {doi}: {count, plural, one {# исследование репликации или воспроизведения} few {# исследования репликации или воспроизведения} many {# исследований репликации или воспроизведения} other {# исследования репликации или воспроизведения}}. Нажмите Enter, чтобы узнать больше.",
+    "message": "Открыть сведения об исследовании для {doi}: {count, plural, one {# репликация или воспроизведение} few {# репликации или воспроизведения} many {# репликаций или воспроизведений} other {# репликации или воспроизведения}}. Нажмите Enter, чтобы узнать больше.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long plural; check 'исследование репликации'"
+    "reviewReason": "Screen-reader plural forms; check naturalness"
   },
   "pill.cite.copiedToast": {
-    "message": "Библиографическая ссылка в стиле {style} скопирована",
+    "message": "Библиографическая ссылка ({style}) скопирована",
     "source": "{style} citation copied",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check concise toast phrasing for styles and formats"
   },
   "pill.cite.copy": {
     "message": "Копировать библиографическую ссылку",
@@ -1015,20 +1015,20 @@
     "review": 1
   },
   "pill.cite.fetchingToast": {
-    "message": "Загрузка библиографической ссылки в стиле {style}…",
+    "message": "Загрузка библиографической ссылки ({style})…",
     "source": "Fetching {style} citation…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check toast phrasing for styles and formats"
   },
   "pill.cite.noneToast": {
-    "message": "Для этого DOI нет библиографической ссылки в стиле {style}",
+    "message": "Для этого DOI нет библиографической ссылки ({style})",
     "source": "No {style} citation available for this DOI",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check toast phrasing for styles and formats"
   },
   "pill.cite.unavailable": {
     "message": "Библиографическая ссылка недоступна",
@@ -1415,12 +1415,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "Лимит запросов",
+    "message": "Лимит превышен",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check compact status meaning"
+    "reviewReason": "Compact panel status; verify length fit"
   },
   "pill.pubpeer.unavailableTooltip": {
     "message": "Статус PubPeer недоступен",
@@ -1669,12 +1669,12 @@
     "review": 1
   },
   "popup.block.sub": {
-    "message": "Пока вы не включите его снова",
+    "message": "Пока вы не включите ORE снова",
     "source": "Until you turn it back on",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Pronoun 'его' needs clear antecedent"
+    "reviewReason": "Check phrasing with explicit ORE subject"
   },
   "popup.block.turnOff": {
     "message": "Отключить на этом сайте",
@@ -1714,12 +1714,12 @@
     "reviewReason": "Instruction; check wording"
   },
   "popup.debug.offerCopyLog": {
-    "message": "Предлагать «Копировать журнал» после каждого прохода",
+    "message": "Предлагать «Копировать журнал» после каждой проверки",
     "source": "Offer \"Copy log\" after each pass",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'проход' for pass; check naturalness"
+    "reviewReason": "Check 'проверки' for pass"
   },
   "popup.debug.toggle": {
     "message": "Режим отладки",
@@ -1794,12 +1794,12 @@
     "review": 1
   },
   "popup.findings.label": {
-    "message": "Результаты на этой странице",
+    "message": "Найденные сведения на этой странице",
     "source": "Findings on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Результаты' for findings; check term"
+    "reviewReason": "Aria label; check 'сведения' for findings"
   },
   "popup.findings.none": {
     "message": "ничего не найдено",
@@ -1902,12 +1902,12 @@
     "review": 1
   },
   "popup.findings.scopeReferences": {
-    "message": "Библиографические ссылки",
+    "message": "Список литературы",
     "source": "References",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long label for scope tab; space"
+    "reviewReason": "Scope heading in popup; check fit"
   },
   "popup.findings.scopeSearch": {
     "message": "Результаты поиска",
@@ -1924,10 +1924,10 @@
     "review": 1
   },
   "popup.findings.withFindings": {
-    "message": "с результатами: {count}",
+    "message": "найдены сведения: {count}",
     "source": "{count} with findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Fragment with colon; check fit"
   },
@@ -2067,20 +2067,20 @@
     "review": 1
   },
   "popup.status.logNotAttached": {
-    "message": "Не удалось приложить журнал — возьмите его в настройках",
+    "message": "Не удалось приложить журнал — его можно получить в настройках",
     "source": "Couldn't attach the log — grab it from Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'возьмите' colloquial; instruction"
+    "reviewReason": "Recovery instruction; check wording"
   },
   "popup.status.nothingOnPage": {
-    "message": "Расширение ORE ничего не нашло на этой странице",
+    "message": "На этой странице нет элементов ORE",
     "source": "Nothing from ORE on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Meaning shifted to 'found nothing'"
+    "reviewReason": "Check wording for no injected ORE UI"
   },
   "popup.status.reportFailed": {
     "message": "Не удалось открыть отчёт на этой странице",
@@ -2157,12 +2157,12 @@
     "review": 1
   },
   "popup.tourHelp.noPillsText": {
-    "message": "Обзор показывает метки ORE. Попробуйте его на примере статьи (откроется в новой вкладке).",
+    "message": "Обзор показывает метки ORE. Пройдите его на примере статьи (откроется в новой вкладке).",
     "source": "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Попробуйте его' slightly awkward"
+    "reviewReason": "Check tour invitation wording"
   },
   "popup.tourHelp.noPillsTitle": {
     "message": "На этой странице нет меток",
@@ -2223,10 +2223,10 @@
     "review": 1
   },
   "popup.tourHelp.unavailableText": {
-    "message": "Попробуйте обзор на примере статьи (откроется в новой вкладке).",
+    "message": "Пройдите обзор на примере статьи (откроется в новой вкладке).",
     "source": "Try the tour on a sample article (opens in a new tab).",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.tourHelp.unavailableTitle": {
@@ -2359,10 +2359,10 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Данные о репликациях — отправная точка для собственного суждения, а не окончательный вердикт.",
+    "message": "Данные о репликациях — отправная точка для оценки, а не вердикт.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Statement about meaning of replication evidence"
   },
@@ -2561,12 +2561,12 @@
     "review": 1
   },
   "search.provenance.siteRecord": {
-    "message": "Взято из собственной записи {site} об этой работе",
+    "message": "Взято из собственной записи сервиса {site} об этой работе",
     "source": "Taken from {site}'s own record of this work",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Genitive {site} may not decline"
+    "reviewReason": "Check 'сервиса {site}' phrasing"
   },
   "search.retry.action": {
     "message": "Повторить",
@@ -2598,10 +2598,10 @@
     "reviewReason": "Added 'проверка'; check list agreement"
   },
   "search.retry.retractionChecks": {
-    "message": "проверка на отзыв статей",
+    "message": "проверки на отзыв статей",
     "source": "retraction checks",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "search.retry.title": {
@@ -2620,12 +2620,12 @@
     "reviewReason": "Restructured select; check agreement"
   },
   "search.stage.augmenting": {
-    "message": "Дополнение данных для результатов без DOI: {count, plural, one {# результат} few {# результата} many {# результатов} other {# результата}}…",
+    "message": "Дополнение сведений для {count, plural, one {# результата} few {# результатов} many {# результатов} other {# результата}} без DOI…",
     "source": "Augmenting {count, plural, one {# result} other {# results}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Plural genitive forms; check clarity"
   },
   "search.stage.checkingDois": {
     "message": "Проверка, открываются ли DOI ({count, plural, one {#} few {#} many {#} other {#}})…",
@@ -2644,28 +2644,28 @@
     "reviewReason": "Plural agreement; check all cases"
   },
   "search.stage.markingUp": {
-    "message": "{count, plural, one {Размечается # результат} few {Размечаются # результата} many {Размечаются # результатов} other {Размечаются # результата}}…",
+    "message": "Разметка {count, plural, one {# результата} few {# результатов} many {# результатов} other {# результата}}…",
     "source": "Marking up {count, plural, one {# result} other {# results}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Passive progress phrasing"
+    "reviewReason": "Plural genitive forms; check progress phrasing"
   },
   "search.stage.reading": {
-    "message": "{count, plural, one {Обрабатывается # результат {site}} few {Обрабатываются # результата {site}} many {Обрабатываются # результатов {site}} other {Обрабатываются # результата {site}}}…",
+    "message": "Обработка {count, plural, one {# результата} few {# результатов} many {# результатов} other {# результата}} из {site}…",
     "source": "Reading {count, plural, one {# {site} result} other {# {site} results}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Genitive {site}; check naturalness"
+    "reviewReason": "Plural genitive forms with {site}; check naturalness"
   },
   "search.stage.resolving": {
-    "message": "{count, plural, one {Поиск DOI для # записи {site}} few {Поиск DOI для # записей {site}} many {Поиск DOI для # записей {site}} other {Поиск DOI для # записи {site}}}…",
+    "message": "{count, plural, one {Поиск DOI для # записи из {site}} few {Поиск DOI для # записей из {site}} many {Поиск DOI для # записей из {site}} other {Поиск DOI для # записи из {site}}}…",
     "source": "Resolving {count, plural, one {# {site} record} other {# {site} records}} to DOIs…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Genitive {site}; check plural"
+    "reviewReason": "Plural genitive forms with {site}; check naturalness"
   },
   "settings.blocklist.add": {
     "message": "Отключить для сайта",
@@ -2819,12 +2819,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "settings.citation.intro": {
-    "message": "Выберите стиль, в котором строка <strong>Библиографическая ссылка</strong> в сведениях каждой метки копирует ссылку. Форматирование, например курсив, сохраняется при вставке в Word или Google Docs.",
+    "message": "Выберите стиль для копирования из строки <strong>Библиографическая ссылка</strong> в сведениях каждой метки. Форматирование, например курсив, сохраняется при вставке в Word или Google Docs.",
     "source": "Pick the style the <strong>Citation</strong> row in each pill's details copies. Formatting such as italics survives a paste into Word or Google Docs.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Contains HTML; check label match with pill row"
   },
   "settings.citation.label": {
     "message": "Стиль",
@@ -2878,12 +2878,12 @@
     "review": 1
   },
   "settings.commenters.already": {
-    "message": "Комментарии {name} уже скрыты.",
+    "message": "Комментарии пользователя {name} уже скрыты.",
     "source": "{name} is already muted.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "{name} in genitive slot won't decline"
+    "reviewReason": "Check 'пользователя {name}' phrasing"
   },
   "settings.commenters.empty": {
     "message": "Скрытых авторов нет — показываются все комментарии на PubPeer.",
@@ -2915,12 +2915,12 @@
     "review": 1
   },
   "settings.commenters.muted": {
-    "message": "Комментарии {name} скрыты",
+    "message": "Комментарии пользователя {name} скрыты",
     "source": "Muted {name}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "{name} in genitive slot won't decline"
+    "reviewReason": "Check 'пользователя {name}' phrasing"
   },
   "settings.commenters.title": {
     "message": "Скрытые авторы комментариев",
@@ -2930,20 +2930,20 @@
     "review": 1
   },
   "settings.commenters.unmuteLabel": {
-    "message": "Снова показывать комментарии {name}",
+    "message": "Снова показывать комментарии пользователя {name}",
     "source": "Unmute {name}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long label; {name} genitive slot"
+    "reviewReason": "Check label length with 'пользователя {name}'"
   },
   "settings.commenters.unmuted": {
-    "message": "Комментарии {name} снова показываются",
+    "message": "Комментарии пользователя {name} снова показываются",
     "source": "Unmuted {name}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "{name} in genitive slot won't decline"
+    "reviewReason": "Check 'пользователя {name}' phrasing"
   },
   "settings.data.bundled": {
     "message": "поставляется с ORE",
@@ -3236,12 +3236,12 @@
     "review": 1
   },
   "settings.debug.report": {
-    "message": "Сообщить о проблеме с этим журналом",
+    "message": "Сообщить о проблеме и приложить этот журнал",
     "source": "Report an issue with this log",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ambiguous: problem with the log itself"
+    "reviewReason": "Button label; check length fit"
   },
   "settings.debug.title": {
     "message": "Режим отладки и отчёты о проблемах",
@@ -3288,12 +3288,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "settings.email.removed": {
-    "message": "Адрес электронной почты удалён. Перезагрузите открытые вкладки. Для сопоставления по названию и поиска версий в открытом доступе нужен адрес; остальные проверки работают.",
+    "message": "Адрес электронной почты удалён. Перезагрузите открытые вкладки. Для сопоставления по названию и поиска версий в открытом доступе нужен адрес; остальные проверки продолжают работать.",
     "source": "Email removed. Reload open tabs. Title matching and open-access lookups need an email; other checks still work.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Feature dependencies after email removal; verify accuracy"
   },
   "settings.email.save": {
     "message": "Сохранить контактный адрес",
@@ -3318,12 +3318,12 @@
     "reviewReason": "Instruction; check wording"
   },
   "settings.email.servicesSummary": {
-    "message": "Зачем он нужен этим сервисам",
+    "message": "Зачем этим сервисам нужен адрес",
     "source": "Why these services ask for it",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'он' needs antecedent in heading"
+    "reviewReason": "Collapsible summary heading; check naturalness"
   },
   "settings.email.servicesText": {
     "message": "<a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> и <a href=\"https://api.openalex.org\" target=\"_blank\" rel=\"noopener\">OpenAlex</a> направляют запросы с контактным адресом в <strong>«вежливый» пул доступа (polite pool)</strong>, где выше лимиты и надёжнее поиск. Unpaywall отвечает на запросы об открытом доступе только при наличии адреса.",
@@ -3583,12 +3583,12 @@
     "review": 1
   },
   "sites.add.placeholder": {
-    "message": "Сайт, например journals.example.org",
+    "message": "Сайт для включения, например journals.example.org",
     "source": "Site to turn on, e.g. journals.example.org",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Dropped 'to turn on' from placeholder"
+    "reviewReason": "Input placeholder; check length fit"
   },
   "sites.category.count": {
     "message": "{on} из {total}",
@@ -3612,12 +3612,12 @@
     "review": 1
   },
   "sites.category.medicine": {
-    "message": "Медицинские журналы",
+    "message": "Журналы по медицине и здравоохранению",
     "source": "Medicine & health journals",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Dropped 'health' from category"
+    "reviewReason": "Category label; check length fit"
   },
   "sites.category.messaging": {
     "message": "Почта и мессенджеры",
@@ -3656,12 +3656,12 @@
     "review": 1
   },
   "sites.category.repositories": {
-    "message": "Препринты, репозитории и указатели",
+    "message": "Препринты, репозитории и индексы",
     "source": "Preprints, repositories & indexes",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'указатели' for indexes; check term"
+    "reviewReason": "Category label; check scholarly terminology"
   },
   "sites.category.searchDiscovery": {
     "message": "Научный поиск",
@@ -3953,12 +3953,12 @@
     "review": 1
   },
   "tour.pill.articleTitle": {
-    "message": "Результаты для этой статьи",
+    "message": "Результаты проверки этой статьи",
     "source": "Findings for this article",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Результаты' for findings; check"
+    "reviewReason": "Tour heading; check phrasing for findings"
   },
   "tour.pill.noPill": {
     "message": "Библиографическая ссылка без метки — это ссылка, которую ORE не удалось распознать.",
@@ -4079,12 +4079,12 @@
     "review": 1
   },
   "walkthrough.article.demoNote": {
-    "message": "Метка настоящая, а статья вокруг неё — заглушка.",
+    "message": "Метка настоящая, а статья вокруг неё — пример для демонстрации.",
     "source": "The pill is real; the article around it is a stand-in.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'заглушка' colloquial for stand-in"
+    "reviewReason": "Check naturalness of demo note"
   },
   "walkthrough.article.pill": {
     "message": "Небольшая <strong>метка</strong> появляется рядом с DOI статьи, рядом с каждой статьёй в её списке литературы и рядом с любым другим DOI на странице. Библиографическая ссылка, в которой упомянуты две статьи, получает две метки.",
@@ -4133,12 +4133,12 @@
     "reviewReason": "Instruction; check wording"
   },
   "walkthrough.article.turnOff.title": {
-    "message": "Отключайте там, где оно не нужно",
+    "message": "Отключайте расширение там, где оно не нужно",
     "source": "Turn it off where you don't want it",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'оно' lacks clear antecedent"
+    "reviewReason": "Heading; check naturalness"
   },
   "walkthrough.demo.scanning": {
     "message": "ORE ищет статьи с этой страницы…",
@@ -4155,12 +4155,12 @@
     "review": 1
   },
   "walkthrough.done.text": {
-    "message": "Настройка завершена. Начните пользоваться расширением: расширение ORE будет само проверять статьи, пока вы просматриваете сайты.",
+    "message": "Настройка завершена. Начните пользоваться расширением: ORE будет автоматически проверять статьи, пока вы просматриваете сайты.",
     "source": "Setup is complete. Start using the plugin: ORE will check papers by itself as you browse.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'расширением: расширение' repetition"
+    "reviewReason": "Completion text; check flow"
   },
   "walkthrough.done.title": {
     "message": "Всё готово",
@@ -4315,20 +4315,20 @@
     "reviewReason": "Revised after second review; please check"
   },
   "walkthrough.notices.title": {
-    "message": "Отозвана или под сомнением",
+    "message": "Статья отозвана или под сомнением",
     "source": "Retracted, or under question",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Feminine 'Отозвана' without noun"
+    "reviewReason": "Section heading; check phrasing"
   },
   "walkthrough.notices.where": {
-    "message": "В обоих случаях в конце метки появляется предупреждение, а сведения попадают в метаотчёт. Оба ведут к уведомлению журнала, где можно прочитать причину. Данные предоставляет Retraction Watch.",
+    "message": "В обоих случаях в конце метки появляется предупреждение, а сведения попадают в метаотчёт. Из обоих мест можно перейти к уведомлению журнала и прочитать причину. Данные предоставляет Retraction Watch.",
     "source": "Either one adds a warning to the end of the pill and appears in the Meta Report. Both link to the journal's notice, so you can read the reason. The data comes from Retraction Watch.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Оба ведут' lacks clear antecedent"
+    "reviewReason": "Retraction data attribution and link behaviour; check"
   },
   "walkthrough.pageTitle": {
     "message": "FORRT ORE — как это работает",
@@ -4345,12 +4345,12 @@
     "review": 1
   },
   "walkthrough.pill.board.closedText": {
-    "message": "Всё, что найдено для этой статьи, — с первого взгляда",
+    "message": "Всё найденное для этой статьи — с первого взгляда",
     "source": "Everything found for this paper, at a glance",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Odd comma-dash punctuation"
+    "reviewReason": "Short caption; check naturalness"
   },
   "walkthrough.pill.board.nothing": {
     "message": "Ничего не найдено",
@@ -4511,20 +4511,20 @@
     "reviewReason": "Instruction; check wording"
   },
   "walkthrough.ready.tryText": {
-    "message": "Посмотрите, как ORE работает с настоящей статьёй, — с кратким обзором.",
+    "message": "Посмотрите, как ORE работает с настоящей статьёй, пройдя краткий обзор.",
     "source": "See ORE on a real paper, with a short guided tour.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Odd comma-dash construction"
+    "reviewReason": "Invitation to sample tour; check flow"
   },
   "walkthrough.report.atlas.text": {
-    "message": "Бесплатная база данных сообщества FORRT, в которой собраны исследования в социальных и поведенческих науках, пытавшиеся реплицировать или воспроизвести более ранние результаты (при любом исходе), и их выводы. Все числа репликаций в ORE берутся из неё и ведут к подтверждающим источникам.",
+    "message": "Бесплатная база данных сообщества FORRT, в которой собраны исследования в социальных и поведенческих науках с попытками реплицировать или воспроизвести более ранние результаты (при любом исходе) и их итоги. Все счётчики репликаций в ORE берутся из этой базы и ведут к соответствующим записям.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Describes FLoRA Replication Atlas; verify scientific accuracy"
   },
   "walkthrough.report.atlas.title": {
     "message": "Что такое <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a>",
@@ -4535,12 +4535,12 @@
     "reviewReason": "Contains formatting"
   },
   "walkthrough.report.caution": {
-    "message": "Метки исходов — отправная точка, а не вердикт об исходном исследовании. Они зависят от того, как авторы репликации описывают свои результаты. Неудачная репликация сама по себе не доказывает, что исходный результат ложен или исходное исследование содержало изъяны: репликация может не подтвердить результат и случайно, из-за низкой статистической мощности или проблем в её собственном проведении, а также из-за различий в условиях, ситуациях или контекстах.",
+    "message": "Метки исходов — отправная точка, а не вердикт об исходном исследовании. Они зависят от того, как авторы репликации описывают свои результаты. Неудачная репликация сама по себе не доказывает, что исходный результат ложен или исходное исследование содержало изъяны: репликация может не подтвердить результат и случайно, из-за низкой статистической мощности или проблем при её собственном проведении, а также из-за различий в условиях, ситуациях или контекстах.",
     "source": "Treat outcome labels as a starting point, not a verdict on the original. They depend on how replication authors describe their results. A failed replication does not by itself show that the original finding was false or the original study flawed: a replication can also fail by chance, because of low power or problems in its own conduct, or because conditions, situations, or contexts differed.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Methodological caveat on failed replications; verify accuracy"
   },
   "walkthrough.report.contents": {
     "message": "Боковая вкладка открывает отчёт о статье, которую вы читаете: её репликации и их результаты, отзыв статьи или выражение обеспокоенности, если они есть, обсуждение на PubPeer и то, о каких из её библиографических ссылок есть что сообщить.",
@@ -4567,12 +4567,12 @@
     "reviewReason": "Data-handling claim about uploads"
   },
   "walkthrough.report.share.title": {
-    "message": "Скачайте или поделитесь",
+    "message": "Скачайте отчёт или поделитесь им",
     "source": "Download or share it",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Object missing after 'поделитесь'"
+    "reviewReason": "Heading; check naturalness"
   },
   "walkthrough.report.title": {
     "message": "Метаотчёт: всё в одном месте",
@@ -4582,10 +4582,10 @@
     "review": 1
   },
   "walkthrough.search.copy.text": {
-    "message": "Значок кавычек копирует библиографическое описание в выбранном вами стиле цитирования, с форматированием, — его можно сразу вставить в Word или Google Docs.",
+    "message": "Значок кавычек копирует библиографическое описание в выбранном вами стиле цитирования с сохранением форматирования — его можно сразу вставить в Word или Google Docs.",
     "source": "The quote icon copies the reference in your chosen citation style, formatting included, ready to paste into Word or Google Docs.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check punctuation and wording"
   },
@@ -4613,12 +4613,12 @@
     "reviewReason": "Long title; check fit"
   },
   "walkthrough.search.panel": {
-    "message": "На поисковых сайтах ORE добавляет рядом с каждым результатом небольшую панель, чтобы результаты было проще просматривать. Нажмите на строку, чтобы открыть статью, скопировать её библиографическое описание, найти версию в открытом доступе, прочитать обсуждение или посмотреть репликации. Строка с надписью «Проверка…» ещё выполняется; это не значит, что ничего не найдено.",
+    "message": "На поисковых сайтах ORE добавляет рядом с каждым результатом небольшую панель, чтобы их было проще просматривать. Нажмите на строку, чтобы открыть статью, скопировать её библиографическое описание, найти версию в открытом доступе, прочитать обсуждение или посмотреть репликации. Надпись «Проверка…» означает, что проверка ещё идёт, а не что ничего не найдено.",
     "source": "On search sites, ORE adds a small panel beside each result to help you skim the results. Click a row to open the paper, copy its reference, find an open-access version, read the discussion, or see its replications. A row that says “Checking…” is still running; it does not mean nothing was found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instruction; 'строка выполняется' odd"
+    "reviewReason": "Long instruction; verify quoted status matches pill.status.checking"
   },
   "walkthrough.search.title": {
     "message": "Оцените результат, прежде чем открывать его",
@@ -4687,12 +4687,12 @@
     "review": 1
   },
   "walkthrough.setup.email.removed": {
-    "message": "Адрес электронной почты удалён. Для сопоставления по названию и поиска версий в открытом доступе нужен адрес; остальные проверки работают.",
+    "message": "Адрес электронной почты удалён. Для сопоставления по названию и поиска версий в открытом доступе нужен адрес; остальные проверки продолжают работать.",
     "source": "Email removed. Title matching and open-access lookups need an email; other checks still work.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Feature dependencies after email removal; verify accuracy"
   },
   "walkthrough.setup.email.saved": {
     "message": "Адрес электронной почты сохранён. Перезагрузите открытые вкладки, чтобы он использовался при поиске.",
@@ -4716,12 +4716,12 @@
     "review": 1
   },
   "walkthrough.setup.sites.intro": {
-    "message": "Расширение ORE включено для журналов, издательств, серверов препринтов и документов и отключено для покупок, видео, мессенджеров и веб-поиска. Отметьте категорию флажком или снимите его либо откройте категорию, чтобы выбрать сайты по отдельности.",
+    "message": "Расширение ORE включено для журналов, издательств, серверов препринтов и документов и отключено для покупок, видео, мессенджеров и веб-поиска. Включите или отключите категорию флажком либо откройте её, чтобы выбрать сайты по отдельности.",
     "source": "ORE is on for journals, publishers, preprint servers and documents, and off for shopping, video, messaging and web search. Tick or untick a category, or open it to choose site by site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Clumsy 'отметьте флажком или снимите его'"
+    "reviewReason": "Long instruction; check wording"
   },
   "walkthrough.setup.sites.title": {
     "message": "Где должно работать расширение ORE?",
@@ -4738,12 +4738,12 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "Откройте таблицу с DOI — например, список литературы или исследования для обзора — в Google Sheets или Excel Online. В Google Sheets ORE проверяет все DOI на вкладке, включая строки, до которых вы не прокрутили. Excel Online отображает только строки, видимые на экране, поэтому ORE проверяет только их; прокрутите лист, чтобы проверить остальные. Результаты появляются во всплывающем окне.",
+    "message": "Откройте таблицу с DOI — например, список литературы или исследования для обзора — в Google Sheets или Excel Online. В Google Sheets ORE проверяет все DOI на листе, включая строки, до которых вы не прокрутили. Excel Online отображает только строки, видимые на экране, поэтому ORE проверяет только их; прокрутите лист, чтобы проверить остальные. Результаты появляются во всплывающем окне.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instruction; check wording"
+    "reviewReason": "Long instruction; check spreadsheet terminology"
   },
   "walkthrough.sheets.docs.text": {
     "message": "Каждая библиографическая ссылка с DOI получает небольшой маркер. Откройте его, чтобы увидеть те же сведения, что и в метке.",
@@ -4784,18 +4784,18 @@
     "reviewReason": "Retraction statement; check"
   },
   "walkthrough.sheets.tabs.text": {
-    "message": "Каждая вкладка листа проверяется отдельно. Если закрыть всплывающее окно на одной вкладке, остальные это не затронет.",
+    "message": "Каждый лист проверяется отдельно. Если закрыть всплывающее окно на одном листе, остальные это не затронет.",
     "source": "Each sheet tab is checked on its own. Closing the popup on one tab leaves the others alone.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'вкладка листа' wording"
+    "reviewReason": "Check 'лист' consistency for sheet tabs"
   },
   "walkthrough.sheets.tabs.title": {
-    "message": "По одной вкладке",
+    "message": "По одному листу",
     "source": "One tab at a time",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "walkthrough.sheets.title": {
@@ -4863,12 +4863,12 @@
     "review": 1
   },
   "walkthrough.welcome.articles.text": {
-    "message": "Сама статья, каждая статья из её списка литературы и любой DOI, упомянутый в другом месте страницы.",
+    "message": "Сама статья, каждая работа из её списка литературы и любой DOI, упомянутый в другом месте страницы.",
     "source": "The article, every paper in its reference list, and any DOI mentioned elsewhere on a page.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'статья ... статья' repetition"
+    "reviewReason": "Check flow and terminology"
   },
   "walkthrough.welcome.articles.title": {
     "message": "Статьи и другие страницы",
@@ -4894,12 +4894,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "walkthrough.welcome.intro": {
-    "message": "ORE проверяет каждую статью на странице на наличие репликаций, отзывов, обсуждений на PubPeer и версий в открытом доступе.",
+    "message": "ORE проверяет каждую статью на странице: ищет репликации, отзывы статей, обсуждения на PubPeer и версии в открытом доступе.",
     "source": "ORE checks each paper on a page for replications, retractions, PubPeer discussion and open-access versions.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Double 'на'; check flow"
+    "reviewReason": "Intro sentence; check flow"
   },
   "walkthrough.welcome.search.screens": {
     "message": "Экран 2",

@@ -140,12 +140,12 @@
     "review": 1
   },
   "page.comments.noneText": {
-    "message": "这篇文章尚未在 PubPeer 上被讨论。",
+    "message": "这篇文章在 PubPeer 上暂无讨论。",
     "source": "This article hasn't been discussed on PubPeer.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Passive 被讨论 slightly unnatural"
+    "reviewReason": "Replaced unnatural passive '被讨论' with natural phrasing"
   },
   "page.comments.noneTitle": {
     "message": "暂无 PubPeer 评论",
@@ -226,12 +226,12 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "message": "Excel 只绘制屏幕上显示的行，因此 ORE 只检查这些行。请滚动工作表以检查其余部分。",
+    "message": "Excel 只渲染屏幕上显示的行，因此 ORE 只检查这些行。请滚动工作表以检查其余部分。",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction to user; check 绘制 wording"
+    "reviewReason": "Replaced literal '绘制' with natural '渲染'"
   },
   "page.list.and": {
     "message": "{first}和{last}",
@@ -305,28 +305,28 @@
     "review": 1
   },
   "page.panel.fewerOriginals": {
-    "message": "显示更少原始论文",
+    "message": "收起部分原始论文",
     "source": "Show fewer original papers",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "显示更少 phrasing slightly unidiomatic"
+    "reviewReason": "Replaced literal '显示更少' with idiomatic '收起部分'"
   },
   "page.panel.fewerReplications": {
-    "message": "显示更少重复研究",
+    "message": "收起部分重复研究",
     "source": "Show fewer replications",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "显示更少 phrasing slightly unidiomatic"
+    "reviewReason": "Replaced literal '显示更少' with idiomatic '收起部分'"
   },
   "page.panel.fewerReproductions": {
-    "message": "显示更少复现",
+    "message": "收起部分复现",
     "source": "Show fewer reproductions",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "显示更少复现 awkward without measure word"
+    "reviewReason": "Replaced literal '显示更少' with idiomatic '收起部分'"
   },
   "page.panel.freePdf": {
     "message": "可通过 Unpaywall 获取免费 PDF",
@@ -517,20 +517,20 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.resolvingRefs": {
-    "message": "正在解析无 DOI 的参考文献…",
+    "message": "正在为无 DOI 的参考文献查找 DOI…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Resolving' as 解析; check technical sense"
+    "reviewReason": "Replaced technical calque '解析' with clearer DOI-lookup phrasing"
   },
   "page.progress.retractionsDois": {
-    "message": "正在检查 {count, plural, one {# 个 DOI} other {# 个 DOI}}是否已撤稿…",
+    "message": "正在检查 {count, plural, one {# 个 DOI} other {# 个 DOI}} 是否已撤稿…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} for retractions…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Has number or variant forms"
+    "reviewReason": "Added half-width space between DOI and CJK text"
   },
   "page.progress.retractionsRefs": {
     "message": "正在检查 {count, plural, one {# 条参考文献} other {# 条参考文献}}是否已撤稿…",
@@ -548,12 +548,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "正在检查 {count, plural, one {# 个 DOI} other {# 个 DOI}}能否解析…",
+    "message": "正在检查 {count, plural, one {# 个 DOI} other {# 个 DOI}} 是否有效…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "DOI 能否解析; check technical wording"
+    "reviewReason": "Added half-width space after DOI and replaced technical '能否解析' with '是否有效'"
   },
   "page.refs.comments": {
     "message": "{count, plural, one {# 条评论} other {# 条评论}}",
@@ -595,12 +595,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.refs.showFewer": {
-    "message": "显示更少参考文献",
+    "message": "收起部分参考文献",
     "source": "Show fewer references",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "显示更少 phrasing slightly unidiomatic"
+    "reviewReason": "Replaced literal '显示更少' with idiomatic '收起部分'"
   },
   "page.refs.showMore": {
     "message": "{count, plural, one {再显示 # 条参考文献} other {再显示 # 条参考文献}}",
@@ -759,12 +759,12 @@
     "review": 1
   },
   "page.sheets.notice": {
-    "message": "声明 ↗",
+    "message": "查看声明 ↗",
     "source": "Notice ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Bare 声明 may be vague out of context"
+    "reviewReason": "Clarified bare '声明' to '查看声明 ↗'"
   },
   "page.sheets.noticesHeading": {
     "message": "已撤稿或受到质疑",
@@ -814,12 +814,12 @@
     "reviewReason": "Check claim wording against Retraction Watch"
   },
   "page.sheets.summaryFound": {
-    "message": "在此电子表格中找到 <strong>{count, plural, one {# 个 DOI} other {# 个 DOI}}</strong>的重复研究和复现数据。",
+    "message": "在此电子表格中找到 <strong>{count, plural, one {# 个 DOI} other {# 个 DOI}}</strong> 的重复研究和复现数据。",
     "source": "Found replication &amp; reproduction data for <strong>{count, plural, one {# DOI} other {# DOIs}}</strong> in this spreadsheet.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Markup and spacing around strong tag"
+    "reviewReason": "Added half-width space after DOI closing strong tag"
   },
   "page.sheets.unavailable": {
     "message": "无法加载整个工作表。",
@@ -892,12 +892,12 @@
     "review": 1
   },
   "page.unavailable.several": {
-    "message": "{list}不可用。",
+    "message": "以下项目不可用：{list}。",
     "source": "{list} are unavailable.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "No space when list ends in Latin name"
+    "reviewReason": "Restructured with colon prefix to avoid missing space after Latin items"
   },
   "page.unavailable.title": {
     "message": "部分 ORE 检查未能加载",
@@ -981,20 +981,20 @@
     "review": 1
   },
   "pill.cite.copyFormatted": {
-    "message": "以 {style} 格式复制此参考文献（含格式），可在 ORE 设置中更改引文样式",
+    "message": "按 {style} 样式复制此参考文献（保留排版格式），可在 ORE 设置中更改样式",
     "source": "Copy this reference in {style}, formatting included — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Restructured tooltip; check style vs format wording"
+    "reviewReason": "Distinguished '样式' (style) from '排版格式' (formatting)"
   },
   "pill.cite.copyVerbatim": {
-    "message": "以 {style} 格式复制此参考文献，可在 ORE 设置中更改格式",
+    "message": "以 {style} 格式复制此参考文献，可在 ORE 设置中更改样式",
     "source": "Copy this reference as {style} — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "格式 used for style and format; check clarity"
+    "reviewReason": "Distinguished '格式' from '样式' consistently"
   },
   "pill.cite.fetchFailedToast": {
     "message": "无法获取引文",
@@ -1111,12 +1111,12 @@
     "reviewReason": "Evidence status in tooltip; check fragment style"
   },
   "pill.marker.empty": {
-    "message": "未找到重复研究证据或 PubPeer 评论。",
+    "message": "未找到重复研究数据或 PubPeer 评论。",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence statement: absence of replication evidence"
+    "reviewReason": "Evidence statement; replaced '证据' with neutral '数据'"
   },
   "pill.marker.inProgress": {
     "message": "正在检查。",
@@ -1328,10 +1328,10 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "打开 {doi} 的研究详情",
+    "message": "{doi} 的研究详情",
     "source": "Open research details for {doi}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "pill.provenance.matchedByTitle": {
@@ -1410,12 +1410,12 @@
     "reviewReason": "Check wording of rate-limit wait"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "请求受限",
+    "message": "请求超限",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "请求受限 vs 请求过于频繁 consistency"
+    "reviewReason": "Updated to '请求超限' to clearly indicate rate limit was exceeded"
   },
   "pill.pubpeer.unavailableTooltip": {
     "message": "PubPeer 状态不可用",
@@ -1499,10 +1499,10 @@
     "review": 1
   },
   "pill.rr.listed": {
-    "message": "已列为注册报告",
+    "message": "已收录为注册报告",
     "source": "Listed as a Registered Report",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "pill.rr.listedShort": {
@@ -1624,12 +1624,12 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "打开 {count, plural, one {# 篇论文} other {# 篇论文}}的研究详情",
+    "message": "{count, plural, one {# 篇论文} other {# 篇论文}}的研究详情",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Has number or variant forms"
+    "reviewReason": "Aligned popover accessible name to noun form without '打开'"
   },
   "pill.stack.position": {
     "message": "第 {index} 篇，共 {total} 篇",
@@ -2123,12 +2123,12 @@
     "reviewReason": "Instruction; check wording"
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} 仍因上级域名或网站类别被屏蔽而处于关闭状态，请在设置中修改",
+    "message": "由于上级域名或所属网站类别被屏蔽，ORE 在 {domain} 上仍处于关闭状态，请在设置中修改",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Long instruction with nested cause; check clarity"
+    "reviewReason": "Clarified nested cause-and-effect wording"
   },
   "popup.status.unblocked": {
     "message": "已取消屏蔽 {domain}，重新加载后生效",
@@ -2240,12 +2240,12 @@
     "review": 1
   },
   "popup.tourPage": {
-    "message": "导览此页面",
+    "message": "浏览页面导览",
     "source": "Tour this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "导览 used as verb; slightly awkward"
+    "reviewReason": "Replaced awkward verb use of '导览' (paired with walkthrough.ready.later)"
   },
   "popup.troubleshooting": {
     "message": "故障排除",
@@ -2320,12 +2320,12 @@
     "review": 1
   },
   "progress.toast.doneIn": {
-    "message": "用时 {duration}，已完成",
+    "message": "已完成，用时 {duration}",
     "source": "Done in {duration}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Reordered; 已完成，用时 may read better"
+    "reviewReason": "Reordered for more natural Chinese status phrasing"
   },
   "progress.toast.settling": {
     "message": "即将完成…",
@@ -2363,12 +2363,12 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "重复研究证据是判断的起点，而非定论。",
+    "message": "重复研究数据是判断的起点，而非定论。",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Statement about meaning of replication evidence"
+    "reviewReason": "Statement about meaning of replication data; replaced '证据' with '数据'"
   },
   "report.colophon.compiled": {
     "message": "由 <a href=\"{url}\">FORRT ORE</a> 于 {date} 根据 FORRT Replication Database、Retraction Watch、Unpaywall 和 PubPeer 的数据编制。",
@@ -2410,12 +2410,12 @@
     "reviewReason": "Long attribution; check flow"
   },
   "report.pdf.docTitle": {
-    "message": "{title} — FORRT ORE 元报告",
+    "message": "{title}：FORRT ORE 元报告",
     "source": "{title} — FORRT ORE Meta Report",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Half-width em dash in Chinese title"
+    "reviewReason": "Replaced half-width em dash with full-width colon"
   },
   "report.pdf.pageFooter": {
     "message": "FORRT ORE 元报告 · 第 {page} 页，共 {pages} 页",
@@ -2567,12 +2567,12 @@
     "review": 1
   },
   "search.provenance.siteRecord": {
-    "message": "取自 {site} 自身对该文献的记录",
+    "message": "取自 {site} 对该文献的记录",
     "source": "Taken from {site}'s own record of this work",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "自身对该文献的记录 slightly stiff"
+    "reviewReason": "Removed stiff '自身'"
   },
   "search.retry.action": {
     "message": "重试",
@@ -2617,12 +2617,12 @@
     "review": 1
   },
   "search.retry.unavailable": {
-    "message": "{number, select, plural {{list}不可用。} other {{list}不可用。}}",
+    "message": "{number, select, plural {以下项目不可用：{list}。} other {以下项目不可用：{list}。}}",
     "source": "{number, select, plural {{list} are unavailable.} other {{list} is unavailable.}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "No space when list ends in Latin name"
+    "reviewReason": "Restructured with colon prefix to avoid missing space after Latin items"
   },
   "search.stage.augmenting": {
     "message": "正在补充 {count, plural, one {# 条无 DOI 的结果} other {# 条无 DOI 的结果}}的信息…",
@@ -2633,12 +2633,12 @@
     "reviewReason": "'Augmenting' rendered 补充信息; check meaning"
   },
   "search.stage.checkingDois": {
-    "message": "正在检查 {count, plural, one {# 个 DOI} other {# 个 DOI}}能否解析…",
+    "message": "正在检查 {count, plural, one {# 个 DOI} other {# 个 DOI}} 是否有效…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "DOI 能否解析; check technical wording"
+    "reviewReason": "Added half-width space after DOI and replaced technical '能否解析' with '是否有效'"
   },
   "search.stage.lookingUp": {
     "message": "找到 {count, plural, one {# 个不重复的 DOI} other {# 个不重复的 DOI}}，正在查找…",
@@ -2665,20 +2665,20 @@
     "reviewReason": "Has number or variant forms"
   },
   "search.stage.resolving": {
-    "message": "正在将 {count, plural, one {# 条 {site} 记录} other {# 条 {site} 记录}}解析为 DOI…",
+    "message": "正在为 {count, plural, one {# 条 {site} 记录} other {# 条 {site} 记录}}匹配 DOI…",
     "source": "Resolving {count, plural, one {# {site} record} other {# {site} records}} to DOIs…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "解析为 DOI; check technical wording"
+    "reviewReason": "Replaced technical '解析为 DOI' with clearer '匹配 DOI'"
   },
   "settings.blocklist.add": {
-    "message": "对网站关闭",
+    "message": "关闭该网站",
     "source": "Turn off for site",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "对网站关闭 awkward; 在此网站上关闭 elsewhere"
+    "reviewReason": "Replaced awkward '对网站关闭' with '关闭该网站'"
   },
   "settings.blocklist.already": {
     "message": "{domain} 已被屏蔽。",
@@ -2991,12 +2991,12 @@
     "review": 1
   },
   "settings.data.intro": {
-    "message": "ORE 会对照 <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> 数据库和 <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a> 文献库的本地副本检查论文。两者每周在后台自动更新；也可以立即更新，或在每次启动浏览器时更新。",
+    "message": "ORE 会对照 <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> 数据库和<a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">注册报告</a>文献库的本地副本检查论文。两者每周在后台自动更新；也可以立即更新，或在每次启动浏览器时更新。",
     "source": "ORE checks papers against a local copy of the <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> database and the <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a> library. Both are refreshed weekly in the background; refresh them now, or every time the browser starts.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Registered Reports link name left English; check"
+    "reviewReason": "Localized Registered Reports link text to match glossary"
   },
   "settings.data.loading": {
     "message": "正在加载…",
@@ -3091,12 +3091,12 @@
     "reviewReason": "Background worker as 后台进程; check term"
   },
   "settings.debug.attachFailed": {
-    "message": "无法附加报告。报告已复制到剪贴板，请将其粘贴到问题中。",
+    "message": "无法附加报告。报告已复制到剪贴板，请将其粘贴到问题报告中。",
     "source": "Couldn't attach the report — it's on your clipboard, paste it into the issue.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; issue as 问题 ambiguous"
+    "reviewReason": "Disambiguated 'issue' from bare '问题' to '问题报告'"
   },
   "settings.debug.clear": {
     "message": "清除日志",
@@ -3149,12 +3149,12 @@
     "review": 1
   },
   "settings.debug.downloaded": {
-    "message": "报告已下载，请将文件附加到问题中。",
+    "message": "报告已下载，请将文件附加到问题报告中。",
     "source": "Report downloaded — attach the file to your issue.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Issue as 问题 ambiguous"
+    "reviewReason": "Disambiguated 'issue' from bare '问题' to '问题报告'"
   },
   "settings.debug.eyebrow": {
     "message": "故障排除",
@@ -3172,12 +3172,12 @@
     "reviewReason": "Data-handling: log sent with GitHub report"
   },
   "settings.debug.logPrivacy": {
-    "message": "报告中绝不会包含电子邮箱地址。分享前请先阅读下方报告：GitHub 问题是公开的。",
+    "message": "报告中绝不会包含电子邮箱地址。分享前请先阅读下方报告：GitHub 问题报告是公开的。",
     "source": "Your email address is never included. Read the report below before you share it — a GitHub issue is public.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Privacy claim; public GitHub issue warning"
+    "reviewReason": "Privacy claim; clarified GitHub issue as 'GitHub 问题报告'"
   },
   "settings.debug.logText": {
     "message": "日志记录 ORE 查询过的内容：在所访问页面上找到的 DOI、API 结果以及任何错误。报告中只会显示发起报告的网站；其他页面显示为“页面&nbsp;1”“页面&nbsp;2”，其链接会被移除。超过七天的条目会被删除。日志保存在此计算机上，<strong>不会发送到任何地方</strong>，除非您选择用它创建问题；并且在您按下 GitHub 自己的提交按钮之前，不会提交任何内容。",
@@ -3209,12 +3209,12 @@
     "review": 1
   },
   "settings.debug.opening": {
-    "message": "正在打开已填好报告的 GitHub 问题。",
+    "message": "正在打开已填好报告的 GitHub 问题表单。",
     "source": "Opening a GitHub issue with the report filled in.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check phrasing of prefilled issue"
+    "reviewReason": "Clarified prefilled GitHub issue phrasing"
   },
   "settings.debug.previewLabel": {
     "message": "调试报告预览",
@@ -3266,12 +3266,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "选择 ORE 如何在所阅读的论文上显示证据。电子邮箱用于启用标题到 DOI 的匹配和开放获取查询；其他基于 DOI 的检查无需电子邮箱即可使用。",
+    "message": "选择 ORE 如何在所阅读的论文上显示研究信息。电子邮箱用于启用标题到 DOI 的匹配和开放获取查询；其他基于 DOI 的检查无需电子邮箱即可使用。",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check 显示证据 phrasing and accuracy"
+    "reviewReason": "Replaced '显示证据' with neutral '显示研究信息'"
   },
   "settings.email.label": {
     "message": "电子邮箱",
@@ -3491,12 +3491,12 @@
     "review": 1
   },
   "settings.pageTitle": {
-    "message": "FORRT ORE — 设置",
+    "message": "FORRT ORE：设置",
     "source": "FORRT ORE — Setup",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Half-width em dash in Chinese title"
+    "reviewReason": "Replaced half-width em dash with full-width colon"
   },
   "settings.saveFailed": {
     "message": "保存失败，请重试。",
@@ -3557,12 +3557,12 @@
     "review": 1
   },
   "sites.add.button": {
-    "message": "对网站开启",
+    "message": "开启该网站",
     "source": "Turn on for site",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "对网站开启 awkward button wording"
+    "reviewReason": "Replaced awkward '对网站开启' with '开启该网站'"
   },
   "sites.add.failed": {
     "message": "无法添加 {domain}，请重试。",
@@ -4122,12 +4122,12 @@
     "reviewReason": "Instruction; 标签 for side tab"
   },
   "walkthrough.article.title": {
-    "message": "在文章页面上会出现两样东西",
+    "message": "在文章页面上会出现两项内容",
     "source": "On an article page, two things appear",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "两样东西 colloquial"
+    "reviewReason": "Replaced colloquial '两样东西' with '两项内容'"
   },
   "walkthrough.article.turnOff.text": {
     "message": "点击浏览器工具栏中的 ORE 按钮，可在此页面上隐藏 ORE、在此网站上暂停 ORE，或在该网站上完全关闭 ORE。",
@@ -4159,12 +4159,12 @@
     "review": 1
   },
   "walkthrough.done.text": {
-    "message": "设置已完成。开始使用吧：浏览时 ORE 会自动检查论文。",
+    "message": "设置已完成。现在即可开始使用：浏览时 ORE 会自动检查论文。",
     "source": "Setup is complete. Start using the plugin: ORE will check papers by itself as you browse.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check tone of 开始使用吧"
+    "reviewReason": "Adjusted casual '开始使用吧' to calm instructional tone"
   },
   "walkthrough.done.title": {
     "message": "一切就绪",
@@ -4335,12 +4335,12 @@
     "reviewReason": "Evidence data source and display claims"
   },
   "walkthrough.pageTitle": {
-    "message": "FORRT ORE — 工作原理",
+    "message": "FORRT ORE：工作原理",
     "source": "FORRT ORE — How it Works",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Half-width em dash in Chinese title"
+    "reviewReason": "Replaced half-width em dash with full-width colon"
   },
   "walkthrough.pill.board.closed": {
     "message": "收起",
@@ -4461,12 +4461,12 @@
     "reviewReason": "Defines replication vs reproduction; counting rule"
   },
   "walkthrough.pill.reps.title": {
-    "message": "重复研究：已有研究重复了该研究",
+    "message": "重复研究：该研究已有重复验证",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Removed awkward '重复了该研究' repetition"
   },
   "walkthrough.pill.title": {
     "message": "解读标记",
@@ -4483,12 +4483,12 @@
     "review": 1
   },
   "walkthrough.ready.later": {
-    "message": "之后可点击 ORE 工具栏按钮，选择“导览此页面”浏览当前页面的导览，选择“工作原理”再次查看本介绍，或选择“设置”屏蔽某个网站。",
+    "message": "之后可点击 ORE 工具栏按钮，选择“浏览页面导览”浏览当前页面的导览，选择“工作原理”再次查看本介绍，或选择“设置”屏蔽某个网站。",
     "source": "Later, click the ORE toolbar button and choose “Tour this page” for a tour of the page you are on, “How it works” to see this again, or “Settings” to block a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Quoted menu labels must match popup strings"
+    "reviewReason": "Updated quoted menu label to match updated popup.tourPage"
   },
   "walkthrough.ready.openSample": {
     "message": "打开示例文章",
@@ -4527,12 +4527,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "由 FORRT 社区维护的免费数据库，收录社会科学和行为科学领域中尝试重复或复现早期研究结果的研究（无论结果如何）及其发现。ORE 中的每个重复研究计数都来自该数据库，并链接到相应证据。",
+    "message": "由 FORRT 社区维护的免费数据库，收录社会科学和行为科学领域中尝试重复或复现早期研究结果的研究（无论结果如何）及其发现。ORE 中的每个重复研究计数都来自该数据库，并链接到相应记录。",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Describes evidence database scope and sourcing"
+    "reviewReason": "Describes evidence database scope; replaced '相应证据' with neutral '相应记录'"
   },
   "walkthrough.report.atlas.title": {
     "message": "什么是 <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a>",
@@ -4746,12 +4746,12 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "在 Google 表格或 Excel 网页版中打开一个包含 DOI 的电子表格，例如阅读清单或综述所纳入的研究。在 Google 表格中，ORE 会检查当前标签页中的每个 DOI，包括尚未滚动到的行。Excel 网页版只绘制屏幕上显示的行，因此 ORE 只检查这些行；请滚动以检查其余部分。结果会显示在弹出窗口中。",
+    "message": "在 Google 表格或 Excel 网页版中打开一个包含 DOI 的电子表格，例如阅读清单或综述所纳入的研究。在 Google 表格中，ORE 会检查当前标签页中的每个 DOI，包括尚未滚动到的行。Excel 网页版只渲染屏幕上显示的行，因此 ORE 只检查这些行；请滚动以检查其余部分。结果会显示在弹出窗口中。",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Long instructions; Sheets vs Excel behaviour"
+    "reviewReason": "Long instructions; replaced literal '绘制' with '渲染'"
   },
   "walkthrough.sheets.docs.text": {
     "message": "每条带 DOI 的参考文献都会有一个小标识。打开它可查看与标记相同的详情。",

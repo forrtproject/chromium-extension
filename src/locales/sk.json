@@ -1,9 +1,9 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: Obnovenie celého dokumentu nie je k dispozícii. Správa obsahuje výsledky poslednej úspešnej kontroly a nemusí zahŕňať najnovšie úpravy. Nový pokus prebehne automaticky.",
+    "message": "ORE: Obnovenie celého dokumentu nie je k dispozícii. Správa zachováva výsledky poslednej úspešnej kontroly a nemusí zahŕňať nedávne úpravy. Nový pokus prebehne automaticky.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Long status; check scan wording"
   },
@@ -88,12 +88,12 @@
     "reviewReason": "Check natural phrasing"
   },
   "notice.feedback.title": {
-    "message": "Ako sa vám osvedčuje ORE?",
+    "message": "Ako vám ORE funguje?",
     "source": "How is ORE working for you?",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'osvedčuje' slightly unnatural for 'working for you'"
+    "reviewReason": "Check naturalness of feedback prompt heading"
   },
   "notice.updated.message": {
     "message": "ORE bolo aktualizované. Obnovte túto stránku, aby sa spustili kontroly.",
@@ -175,10 +175,10 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "Stav diskusie sa nepodarilo overiť. Ostatné dostupné zistenia sú zobrazené vyššie.",
+    "message": "Stav diskusie sa nepodarilo overiť. Ostatné dostupné výsledky sú zobrazené vyššie.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check phrasing"
   },
@@ -204,12 +204,12 @@
     "review": 1
   },
   "page.common.openInAtlas": {
-    "message": "Otvoriť vo FLoRA Atlas",
+    "message": "Otvoriť vo FLoRA Atlase",
     "source": "Open in FLoRA Atlas",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'vo FLoRA Atlas' declension"
+    "reviewReason": "Check Atlas locative declension"
   },
   "page.common.retry": {
     "message": "Skúsiť znova",
@@ -226,12 +226,12 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "message": "Excel vykresľuje iba riadky na obrazovke, preto ORE kontroluje len tie. Ak chcete skontrolovať aj zvyšok, posuňte hárok.",
+    "message": "Excel vykresľuje iba riadky na obrazovke, preto ORE kontroluje len tie. Zvyšok hárka skontrolujete posúvaním.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Instruction users must follow; check scroll wording"
+    "reviewReason": "Instruction users must follow; verify clarity"
   },
   "page.list.and": {
     "message": "{first} a {last}",
@@ -522,20 +522,20 @@
     "reviewReason": "'Resolving' rendered 'dohľadávajú'"
   },
   "page.progress.retractionsDois": {
-    "message": "{count, plural, one {Stiahnutia sa kontrolujú pri # DOI…} few {Stiahnutia sa kontrolujú pri # DOI…} many {Stiahnutia sa kontrolujú pri # DOI…} other {Stiahnutia sa kontrolujú pri # DOI…}}",
+    "message": "Kontrola stiahnutí pre {count, plural, one {# DOI} few {# DOI} many {# DOI} other {# DOI}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} for retractions…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Awkward word order"
+    "reviewReason": "Plural forms check"
   },
   "page.progress.retractionsRefs": {
-    "message": "{count, plural, one {Stiahnutia sa kontrolujú pri # bibliografickom odkaze…} few {Stiahnutia sa kontrolujú pri # bibliografických odkazoch…} many {Stiahnutia sa kontrolujú pri # bibliografického odkazu…} other {Stiahnutia sa kontrolujú pri # bibliografických odkazoch…}}",
+    "message": "Kontrola stiahnutí pre {count, plural, one {# bibliografický odkaz} few {# bibliografické odkazy} many {# bibliografického odkazu} other {# bibliografických odkazov}}…",
     "source": "Checking {count, plural, one {# reference} other {# references}} for retractions…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Locative plural forms check"
+    "reviewReason": "Plural forms check"
   },
   "page.progress.scanning": {
     "message": "Na stránke sa hľadajú DOI…",
@@ -918,34 +918,34 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "message": "Podrobnosti o otvorenom výskume pre {doi}: zatiaľ bez upozornení. Ďalšie informácie zobrazíte klávesom Enter.",
+    "message": "Otvoriť podrobnosti o výskume pre {doi}: zatiaľ bez upozornení. Ďalšie informácie zobrazíte klávesom Enter.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Open research' read as adjective; verify"
+    "reviewReason": "Screen-reader label; check phrasing"
   },
   "pill.aria.notice": {
-    "message": "Podrobnosti o otvorenom výskume pre {doi}: {notice, select, concern {Expression of Concern} other {stiahnutie}}. Ďalšie informácie zobrazíte klávesom Enter.",
+    "message": "Otvoriť podrobnosti o výskume pre {doi}: {notice, select, concern {Expression of Concern} other {stiahnutý článok}}. Ďalšie informácie zobrazíte klávesom Enter.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Screen-reader label with retraction status; check phrasing"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "Podrobnosti o otvorenom výskume pre {doi}: {notice, select, concern {Expression of Concern} other {stiahnutie}}, {count, plural, one {# replikačná alebo reprodukčná štúdia} few {# replikačné alebo reprodukčné štúdie} many {# replikačnej alebo reprodukčnej štúdie} other {# replikačných alebo reprodukčných štúdií}}. Ďalšie informácie zobrazíte klávesom Enter.",
+    "message": "Otvoriť podrobnosti o výskume pre {doi}: {notice, select, concern {Expression of Concern} other {stiahnutý článok}}, {count, plural, one {# replikačná alebo reprodukčná štúdia} few {# replikačné alebo reprodukčné štúdie} many {# replikačnej alebo reprodukčnej štúdie} other {# replikačných alebo reprodukčných štúdií}}. Ďalšie informácie zobrazíte klávesom Enter.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Screen-reader label with retraction status and plural forms"
   },
   "pill.aria.studies": {
-    "message": "Podrobnosti o otvorenom výskume pre {doi}: {count, plural, one {# replikačná alebo reprodukčná štúdia} few {# replikačné alebo reprodukčné štúdie} many {# replikačnej alebo reprodukčnej štúdie} other {# replikačných alebo reprodukčných štúdií}}. Ďalšie informácie zobrazíte klávesom Enter.",
+    "message": "Otvoriť podrobnosti o výskume pre {doi}: {count, plural, one {# replikačná alebo reprodukčná štúdia} few {# replikačné alebo reprodukčné štúdie} many {# replikačnej alebo reprodukčnej štúdie} other {# replikačných alebo reprodukčných štúdií}}. Ďalšie informácie zobrazíte klávesom Enter.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Screen-reader phrasing"
   },
@@ -1107,12 +1107,12 @@
     "review": 1
   },
   "pill.marker.empty": {
-    "message": "Nenašli sa žiadne doklady o replikácii ani komentáre na PubPeer.",
+    "message": "Nenašli sa žiadne údaje o replikáciách ani komentáre na PubPeer.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence statement: 'doklady o replikácii'"
+    "reviewReason": "Evidence statement; verify wording"
   },
   "pill.marker.inProgress": {
     "message": "Prebiehajú kontroly.",
@@ -1160,12 +1160,12 @@
     "reviewReason": "EoC 'bolo vydané' phrasing"
   },
   "pill.notice.concernLabel": {
-    "message": "Concern",
+    "message": "Výhrady",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Tight space; short Slovak label for Expression of Concern"
   },
   "pill.notice.concernTitle": {
     "message": "Expression of Concern",
@@ -1219,10 +1219,10 @@
     "review": 1
   },
   "pill.oa.freeShort": {
-    "message": "Zadarmo",
+    "message": "Bezplatne",
     "source": "Free",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "pill.oa.location.fallback": {
@@ -1291,12 +1291,12 @@
     "review": 1
   },
   "pill.oa.version.submitted": {
-    "message": "odoslaná",
+    "message": "predložená",
     "source": "submitted",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'odoslaná' odd for submitted version"
+    "reviewReason": "Compact version label; check academic terminology"
   },
   "pill.oa.versions": {
     "message": "{count, plural, one {# verzia s otvoreným prístupom} few {# verzie s otvoreným prístupom} many {# verzie s otvoreným prístupom} other {# verzií s otvoreným prístupom}}",
@@ -1322,12 +1322,12 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "Podrobnosti o otvorenom výskume pre {doi}",
+    "message": "Podrobnosti o výskume pre {doi}",
     "source": "Open research details for {doi}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Ambiguous 'Open research details'; translation guessed"
+    "reviewReason": "Accessible popup name; check phrasing"
   },
   "pill.provenance.matchedByTitle": {
     "message": "Priradené podľa názvu – overte, či ide o správny článok",
@@ -1405,12 +1405,12 @@
     "reviewReason": "Check plural and phrasing"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "Limit požiadaviek",
+    "message": "Limit prekročený",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Limit požiadaviek' unclear as status"
+    "reviewReason": "Compact panel status; check UI fit"
   },
   "pill.pubpeer.unavailableTooltip": {
     "message": "Stav PubPeer nie je k dispozícii",
@@ -1434,12 +1434,12 @@
     "review": 1
   },
   "pill.reps.noneTitle": {
-    "message": "Replikácie / reprodukcie",
+    "message": "Údaje o replikáciách / reprodukciách",
     "source": "Replication / Reproduction data",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Dropped 'data'"
+    "reviewReason": "Check heading length and fit"
   },
   "pill.reps.replicationsRecorded": {
     "message": "{count, plural, one {# zaznamenaná replikácia} few {# zaznamenané replikácie} many {# zaznamenanej replikácie} other {# zaznamenaných replikácií}}",
@@ -1595,12 +1595,12 @@
     "reviewReason": "Kept English 'OA'; clarity for Slovak readers"
   },
   "pill.segment.reps": {
-    "message": "Repl.",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Repl.' abbreviation; tight space"
+    "reviewReason": "Tight 4-5 char space; covers both replications and reproductions"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# článok} few {# články} many {# článku} other {# článkov}} v tomto bibliografickom odkaze: {dois}. Podrobnosti zobrazíte klávesom Enter.",
@@ -1618,10 +1618,10 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "Podrobnosti o otvorenom výskume pre {count, plural, one {# článok} few {# články} many {# článku} other {# článkov}}",
+    "message": "Podrobnosti o výskume pre {count, plural, one {# článok} few {# články} many {# článku} other {# článkov}}",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Has number or variant forms"
   },
@@ -1763,12 +1763,12 @@
     "review": 1
   },
   "popup.findings.checkingCount": {
-    "message": "Kontroluje sa: {count}…",
+    "message": "Kontroluje sa ({count})…",
     "source": "Checking {count}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Kontroluje sa: 5…' awkward"
+    "reviewReason": "Check compact progress phrasing"
   },
   "popup.findings.checkingProgress": {
     "message": "Kontroluje sa… {checked} z {total}",
@@ -1785,17 +1785,17 @@
     "review": 1
   },
   "popup.findings.label": {
-    "message": "Zistenia na tejto stránke",
+    "message": "Výsledky na tejto stránke",
     "source": "Findings on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.none": {
-    "message": "žiadne zistenia",
+    "message": "žiadne výsledky",
     "source": "no findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.originals": {
@@ -1839,12 +1839,12 @@
     "reviewReason": "Neuter plural fragment fit"
   },
   "popup.findings.othersUnavailable": {
-    "message": "nie úplne skontrolované ({count})",
+    "message": "neúplne skontrolované ({count})",
     "source": "{count} not fully checked",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'nie úplne skontrolované' awkward"
+    "reviewReason": "Check fragment fit after scope label"
   },
   "popup.findings.pubpeerComments": {
     "message": "{count, plural, one {# komentár na PubPeer} few {# komentáre na PubPeer} many {# komentára na PubPeer} other {# komentárov na PubPeer}}",
@@ -1913,10 +1913,10 @@
     "review": 1
   },
   "popup.findings.withFindings": {
-    "message": "So zisteniami: {count}",
+    "message": "s výsledkami: {count}",
     "source": "{count} with findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Colon format"
   },
@@ -2077,10 +2077,10 @@
     "review": 1
   },
   "popup.status.restored": {
-    "message": "ORE bolo obnovené",
+    "message": "ORE je opäť zobrazené",
     "source": "ORE restored",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.status.resumed": {
@@ -2107,10 +2107,10 @@
     "reviewReason": "Check phrasing"
   },
   "popup.status.stillBlocked": {
-    "message": "Web {domain} je stále vypnutý, pretože je zablokovaná nadradená doména alebo kategória webov – upravte to v Nastaveniach",
+    "message": "ORE na webe {domain} zostáva vypnuté, pretože je zablokovaná nadradená doména alebo kategória webov – upravte to v Nastaveniach",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Long; check meaning"
   },
@@ -2122,10 +2122,10 @@
     "review": 1
   },
   "popup.subtitle": {
-    "message": "Rozšírenie pre otvorený výskum",
+    "message": "Open Research Extension",
     "source": "Open Research Extension",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.tourHelp.checkingText": {
@@ -2223,12 +2223,12 @@
     "review": 1
   },
   "popup.tourPage": {
-    "message": "Spustiť prehliadku stránky",
+    "message": "Spustiť prehliadku",
     "source": "Tour this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Spustiť prehliadku stránky'; quoted elsewhere"
+    "reviewReason": "Shortened for 300px popup footer; quoted elsewhere"
   },
   "popup.troubleshooting": {
     "message": "Riešenie problémov",
@@ -2346,10 +2346,10 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Doklady o replikácii sú východiskom pre vlastný úsudok, nie verdiktom.",
+    "message": "Údaje o replikáciách sú východiskom pre vlastný úsudok, nie verdiktom.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Evidence caveat; check register"
   },
@@ -2474,12 +2474,12 @@
     "reviewReason": "Stat label plural forms under number"
   },
   "report.tag.concern": {
-    "message": "Concern",
+    "message": "Výhrady",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Tight space; short Slovak label for Expression of Concern"
   },
   "report.tag.inAtlas": {
     "message": "V Atlase",
@@ -2549,12 +2549,12 @@
     "reviewReason": "Check phrasing"
   },
   "search.provenance.siteRecord": {
-    "message": "Prevzaté z vlastného záznamu stránky {site} o tomto diele",
+    "message": "Prevzaté z vlastného záznamu tohto diela na webe {site}",
     "source": "Taken from {site}'s own record of this work",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'stránky' vs agreed term 'web'"
+    "reviewReason": "Check wording and naturalness"
   },
   "search.retry.action": {
     "message": "Skúsiť znova",
@@ -2585,12 +2585,12 @@
     "review": 1
   },
   "search.retry.retractionChecks": {
-    "message": "kontrola stiahnutí",
+    "message": "kontroly stiahnutí",
     "source": "retraction checks",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Singular 'kontrola' inconsistent with 'kontroly'"
+    "reviewReason": "Consistent plural with page.unavailable.itemRetractions"
   },
   "search.retry.title": {
     "message": "Niektoré kontroly ORE sa nenačítali",
@@ -2600,12 +2600,12 @@
     "review": 1
   },
   "search.retry.unavailable": {
-    "message": "{number, select, plural {{list} nie sú k dispozícii.} other {{list} nie je k dispozícii.}}",
+    "message": "{number, select, plural {Nedostupné: {list}.} other {Nedostupné: {list}.}}",
     "source": "{number, select, plural {{list} are unavailable.} other {{list} is unavailable.}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Agreement depends on list"
+    "reviewReason": "Number-neutral phrasing; verify display"
   },
   "search.stage.augmenting": {
     "message": "{count, plural, one {Dopĺňajú sa údaje pre # výsledok} few {Dopĺňajú sa údaje pre # výsledky} many {Dopĺňajú sa údaje pre # výsledku} other {Dopĺňajú sa údaje pre # výsledkov}} bez DOI…",
@@ -3250,12 +3250,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Vyberte, ako má ORE zobrazovať doklady pri článkoch, ktoré čítate. E-mail umožňuje priraďovanie DOI podľa názvu a vyhľadávanie otvoreného prístupu; ostatné kontroly založené na DOI fungujú aj bez neho.",
+    "message": "Vyberte, ako má ORE zobrazovať údaje pri článkoch, ktoré čítate. E-mail umožňuje priraďovanie DOI podľa názvu a vyhľadávanie otvoreného prístupu; ostatné kontroly založené na DOI fungujú aj bez neho.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'doklady' for evidence; long"
+    "reviewReason": "Long intro; check phrasing"
   },
   "settings.email.label": {
     "message": "E-mail",
@@ -3317,10 +3317,10 @@
     "reviewReason": "Data-sharing explanation; 'polite pool' gloss"
   },
   "settings.email.title": {
-    "message": "FORRT ORE – rozšírenie pre otvorený výskum",
+    "message": "FORRT ORE – Open Research Extension",
     "source": "FORRT ORE — Open Research Extension",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "settings.email.whyText": {
@@ -3495,10 +3495,10 @@
     "review": 1
   },
   "settings.sites.intro": {
-    "message": "ORE beží na weboch časopisov, vydavateľov, serverov preprintov a dokumentov a na všetkých weboch, ktoré tu nie sú uvedené. Nakupovanie, video, správy a webové vyhľadávanie sú na začiatku vypnuté. Zrušením začiarknutia kategórie vypnete ORE na všetkých jej weboch; po jej otvorení môžete vyberať jednotlivé weby. Zmeny sa prejavia pri ďalšom načítaní stránky.",
+    "message": "ORE beží na weboch časopisov, vydavateľov, serverov preprintov a dokumentov a na všetkých weboch, ktoré tu nie sú uvedené. Nakupovanie, video, komunikácia a webové vyhľadávanie sú na začiatku vypnuté. Zrušením začiarknutia kategórie vypnete ORE na všetkých jej weboch; po jej otvorení môžete vyberať jednotlivé weby. Zmeny sa prejavia pri ďalšom načítaní stránky.",
     "source": "ORE runs on journals, publishers, preprint servers and documents, and on any site not listed here. Shopping, video, messaging and web search start switched off. Untick a category to turn ORE off on all of its sites, or open it to choose site by site. Changes apply when a page is next loaded.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Instructions; long; category names"
   },
@@ -3510,10 +3510,10 @@
     "review": 1
   },
   "settings.subtitle": {
-    "message": "Rozšírenie pre otvorený výskum",
+    "message": "Open Research Extension",
     "source": "Open Research Extension",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "settings.topbar.about": {
@@ -3601,12 +3601,12 @@
     "review": 1
   },
   "sites.category.messaging": {
-    "message": "E-mail a správy",
+    "message": "E-mail a komunikácia",
     "source": "Email & messaging",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'správy' ambiguous messages/news"
+    "reviewReason": "Category name; check phrasing"
   },
   "sites.category.news": {
     "message": "Spravodajstvo",
@@ -3644,12 +3644,12 @@
     "review": 1
   },
   "sites.category.searchDiscovery": {
-    "message": "Odborné vyhľadávanie a objavovanie",
+    "message": "Vyhľadávanie odbornej literatúry",
     "source": "Scholarly search & discovery",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'objavovanie' calque for discovery"
+    "reviewReason": "Category name; check phrasing"
   },
   "sites.category.shopping": {
     "message": "Nakupovanie",
@@ -3935,10 +3935,10 @@
     "review": 1
   },
   "tour.pill.articleTitle": {
-    "message": "Zistenia k tomuto článku",
+    "message": "Výsledky k tomuto článku",
     "source": "Findings for this article",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "tour.pill.noPill": {
@@ -4439,10 +4439,10 @@
     "reviewReason": "Defines replication vs reproduction"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl. – štúdia bola zopakovaná",
+    "message": "Rep. – štúdia bola zopakovaná",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Claim 'study was repeated'"
   },
@@ -4461,10 +4461,10 @@
     "review": 1
   },
   "walkthrough.ready.later": {
-    "message": "Neskôr kliknite na tlačidlo ORE na paneli nástrojov a vyberte „Spustiť prehliadku stránky“ pre prehliadku aktuálnej stránky, „Ako to funguje“, ak si to chcete pozrieť znova, alebo „Nastavenia“, ak chcete zablokovať web.",
+    "message": "Neskôr kliknite na tlačidlo ORE na paneli nástrojov a vyberte „Spustiť prehliadku“ pre prehliadku aktuálnej stránky, „Ako to funguje“, ak si to chcete pozrieť znova, alebo „Nastavenia“, ak chcete zablokovať web.",
     "source": "Later, click the ORE toolbar button and choose “Tour this page” for a tour of the page you are on, “How it works” to see this again, or “Settings” to block a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Quoted UI labels must match actual buttons"
   },
@@ -4506,10 +4506,10 @@
     "reviewReason": "Dropped 'guided'"
   },
   "walkthrough.report.atlas.text": {
-    "message": "Bezplatná databáza spravovaná komunitou FORRT. Obsahuje štúdie zo sociálnych a behaviorálnych vied, ktoré sa pokúsili replikovať alebo reprodukovať skoršie zistenia, bez ohľadu na výsledok, a uvádza, k čomu dospeli. Každý počet replikácií v ORE pochádza z nej a odkazuje na príslušné doklady.",
+    "message": "Bezplatná databáza spravovaná komunitou FORRT. Obsahuje štúdie zo sociálnych a behaviorálnych vied, ktoré sa pokúsili replikovať alebo reprodukovať skoršie zistenia, bez ohľadu na výsledok, a uvádza, k čomu dospeli. Každý počet replikácií v ORE pochádza z nej a odkazuje na príslušné údaje.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Evidence-source description; split sentences"
   },
@@ -4703,10 +4703,10 @@
     "review": 1
   },
   "walkthrough.setup.sites.intro": {
-    "message": "ORE je zapnuté na weboch časopisov, vydavateľov, serverov preprintov a dokumentov a vypnuté pri nakupovaní, videu, správach a webovom vyhľadávaní. Začiarknite alebo zrušte začiarknutie kategórie, prípadne ju otvorte a vyberajte jednotlivé weby.",
+    "message": "ORE je zapnuté na weboch časopisov, vydavateľov, serverov preprintov a dokumentov a vypnuté pri nakupovaní, videu, komunikácii a webovom vyhľadávaní. Začiarknite alebo zrušte začiarknutie kategórie, prípadne ju otvorte a vyberajte jednotlivé weby.",
     "source": "ORE is on for journals, publishers, preprint servers and documents, and off for shopping, video, messaging and web search. Tick or untick a category, or open it to choose site by site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Check phrasing"
   },
@@ -4725,10 +4725,10 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "Otvorte tabuľku s DOI, napríklad zoznam literatúry na čítanie alebo štúdie pre prehľadový článok, v Tabuľkách Google alebo v Excel Online. V Tabuľkách Google ORE kontroluje každé DOI v hárku vrátane riadkov, na ktoré ste sa ešte neposunuli. Excel Online vykresľuje iba riadky na obrazovke, preto ORE kontroluje len tie; ak chcete skontrolovať zvyšok, posuňte sa nižšie. Výsledky sa zobrazia v kontextovom okne.",
+    "message": "Otvorte tabuľku s DOI, napríklad zoznam literatúry na čítanie alebo štúdie pre prehľadový článok, v Tabuľkách Google alebo v Excel Online. V Tabuľkách Google ORE kontroluje každé DOI v hárku vrátane riadkov, na ktoré ste sa ešte neposunuli. Excel Online vykresľuje iba riadky na obrazovke, preto ORE kontroluje len tie; zvyšok skontrolujete posúvaním. Výsledky sa zobrazia v kontextovom okne.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Revised after second review; please check"
   },
@@ -4801,10 +4801,10 @@
     "review": 1
   },
   "walkthrough.subtitle": {
-    "message": "Rozšírenie pre otvorený výskum",
+    "message": "Open Research Extension",
     "source": "Open Research Extension",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "walkthrough.tag.articles": {

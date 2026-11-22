@@ -1,17 +1,17 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: odświeżenie całego dokumentu jest niedostępne. Raport zawiera wyniki ostatniego udanego skanowania i może nie uwzględniać najnowszych zmian. Ponowna próba nastąpi automatycznie.",
+    "message": "ORE: Odświeżenie całego dokumentu jest niedostępne. Raport zachowuje wyniki ostatniego udanego skanowania i może nie uwzględniać ostatnich zmian. Ponowna próba nastąpi automatycznie.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Longer sentence; check phrasing"
   },
   "editor.docs.scanUnavailable": {
-    "message": "ORE: skanowanie całego dokumentu jest niedostępne. Sprawdzono tylko widoczne strony. Ponowna próba nastąpi automatycznie.",
+    "message": "ORE: Skanowanie całego dokumentu jest niedostępne. Sprawdzono tylko widoczne strony. Ponowna próba nastąpi automatycznie.",
     "source": "ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Longer sentence; check phrasing"
   },
@@ -81,10 +81,10 @@
     "review": 1
   },
   "notice.feedback.message": {
-    "message": "Minuta opinii o tym, co działa, a co nie, pomoże nam ulepszyć ORE.",
+    "message": "Minuta na opinię o tym, co działa, a co nie, pomoże nam ulepszyć ORE.",
     "source": "A minute of feedback on what works and what doesn't helps us improve ORE.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Longer sentence; check phrasing"
   },
@@ -543,12 +543,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "Sprawdzanie poprawności {count, plural, one {# DOI} few {# DOI} many {# DOI} other {# DOI}}…",
+    "message": "Sprawdzanie, czy {count, plural, one {# DOI działa} few {# DOI działają} many {# DOI działa} other {# DOI działa}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"resolve\" meaning lost as \"poprawności\""
+    "reviewReason": "Plural forms; check agreement"
   },
   "page.refs.comments": {
     "message": "{count, plural, one {# komentarz} few {# komentarze} many {# komentarzy} other {# komentarza}}",
@@ -604,12 +604,12 @@
     "reviewReason": "Plural forms; check agreement"
   },
   "page.refs.viewInAtlas": {
-    "message": "Zobacz w Atlas",
+    "message": "Zobacz w Atlasie",
     "source": "View in Atlas",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Zobacz w Atlas\" uninflected"
+    "reviewReason": "Check Atlas locative declension"
   },
   "page.refs.viewOnPubPeer": {
     "message": "Zobacz w PubPeer",
@@ -920,18 +920,18 @@
     "reviewReason": "Longer sentence; check phrasing"
   },
   "pill.aria.notice": {
-    "message": "Otwórz informacje o badaniach dla {doi}: {notice, select, concern {Expression of Concern} other {wycofany}}. Więcej informacji po naciśnięciu klawisza Enter.",
+    "message": "Otwórz informacje o badaniach dla {doi}: {notice, select, concern {Expression of Concern} other {artykuł wycofany}}. Więcej informacji po naciśnięciu klawisza Enter.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Screen-reader label; \"wycofany\" agreement"
+    "reviewReason": "Screen-reader label; check phrasing"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "Otwórz informacje o badaniach dla {doi}: {notice, select, concern {Expression of Concern} other {wycofany}}, {count, plural, one {# badanie replikacyjne lub reprodukcyjne} few {# badania replikacyjne lub reprodukcyjne} many {# badań replikacyjnych lub reprodukcyjnych} other {# badania replikacyjnego lub reprodukcyjnego}}. Więcej informacji po naciśnięciu klawisza Enter.",
+    "message": "Otwórz informacje o badaniach dla {doi}: {notice, select, concern {Expression of Concern} other {artykuł wycofany}}, {count, plural, one {# badanie replikacyjne lub reprodukcyjne} few {# badania replikacyjne lub reprodukcyjne} many {# badań replikacyjnych lub reprodukcyjnych} other {# badania replikacyjnego lub reprodukcyjnego}}. Więcej informacji po naciśnięciu klawisza Enter.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Screen-reader label; long plural phrase"
   },
@@ -1102,12 +1102,12 @@
     "review": 1
   },
   "pill.marker.empty": {
-    "message": "Nie znaleziono dowodów replikacji ani komentarzy w PubPeer.",
+    "message": "Nie znaleziono danych o replikacjach ani komentarzy w PubPeer.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"dowodów replikacji\" phrasing for replication evidence"
+    "reviewReason": "Evidence statement; check wording"
   },
   "pill.marker.inProgress": {
     "message": "Trwa sprawdzanie.",
@@ -1211,12 +1211,12 @@
     "review": 1
   },
   "pill.oa.freeShort": {
-    "message": "Bezpłatny",
+    "message": "Bezpłatnie",
     "source": "Free",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Masculine \"Bezpłatny\" as standalone status"
+    "reviewReason": "Compact panel status; check UI fit"
   },
   "pill.oa.location.fallback": {
     "message": "Wersja w otwartym dostępie",
@@ -1268,10 +1268,10 @@
     "review": 1
   },
   "pill.oa.version.accepted": {
-    "message": "zaakceptowana",
+    "message": "przyjęta",
     "source": "accepted",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "pill.oa.version.published": {
@@ -1395,10 +1395,10 @@
     "reviewReason": "Plural forms; check agreement"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "Limit zapytań",
+    "message": "Limit przekroczony",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "pill.pubpeer.unavailableTooltip": {
@@ -1460,12 +1460,12 @@
     "review": 1
   },
   "pill.reps.viewInAtlas": {
-    "message": "Zobacz w Atlas",
+    "message": "Zobacz w Atlasie",
     "source": "View in Atlas",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Zobacz w Atlas\" uninflected"
+    "reviewReason": "Check Atlas locative declension"
   },
   "pill.row.noneShort": {
     "message": "Brak",
@@ -1489,12 +1489,12 @@
     "review": 1
   },
   "pill.rr.listedShort": {
-    "message": "Na liście",
+    "message": "W bazie",
     "source": "Listed",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Na liście\" vague for Registered Report status"
+    "reviewReason": "Compact panel status; check UI fit"
   },
   "pill.rr.notListed": {
     "message": "Brak w bazie danych Registered Reports",
@@ -1581,12 +1581,12 @@
     "review": 1
   },
   "pill.segment.reps": {
-    "message": "Repl.",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "\"Repl.\" ambiguous for replications/reproductions; tight space"
+    "reviewReason": "Tight 4-5 char space; covers both replications and reproductions"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# artykuł} few {# artykuły} many {# artykułów} other {# artykułu}} w tej pozycji bibliograficznej: {dois}. Szczegóły po naciśnięciu klawisza Enter.",
@@ -2081,10 +2081,10 @@
     "review": 1
   },
   "popup.status.stillBlocked": {
-    "message": "Witryna {domain} pozostaje wyłączona przez zablokowaną domenę nadrzędną lub kategorię witryn – można to zmienić w Ustawieniach",
+    "message": "ORE w witrynie {domain} pozostaje wyłączone z powodu zablokowanej domeny nadrzędnej lub kategorii witryn – można to zmienić w Ustawieniach",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Long status; check phrasing"
   },
@@ -2318,10 +2318,10 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Dowody replikacji są punktem wyjścia do oceny, a nie werdyktem.",
+    "message": "Dane o replikacjach są punktem wyjścia do oceny, a nie werdyktem.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Statement about meaning of replication evidence"
   },
@@ -2452,12 +2452,12 @@
     "reviewReason": "\"Zastrzeżenia\" differs from agreed EoC term; short label"
   },
   "report.tag.inAtlas": {
-    "message": "W Atlas",
+    "message": "W Atlasie",
     "source": "In the Atlas",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"W Atlas\" uninflected; maybe \"W Atlasie\""
+    "reviewReason": "Check Atlas locative declension"
   },
   "report.tag.pubpeerComments": {
     "message": "{count, plural, one {# komentarz w PubPeer} few {# komentarze w PubPeer} many {# komentarzy w PubPeer} other {# komentarza w PubPeer}}",
@@ -2585,12 +2585,12 @@
     "reviewReason": "Plural forms; check agreement"
   },
   "search.stage.checkingDois": {
-    "message": "Sprawdzanie poprawności {count, plural, one {# DOI} few {# DOI} many {# DOI} other {# DOI}}…",
+    "message": "Sprawdzanie, czy {count, plural, one {# DOI działa} few {# DOI działają} many {# DOI działa} other {# DOI działa}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"resolve\" meaning lost as \"poprawności\""
+    "reviewReason": "Plural forms; check agreement"
   },
   "search.stage.lookingUp": {
     "message": "Znaleziono {count, plural, one {# unikalny DOI} few {# unikalne DOI} many {# unikalnych DOI} other {# unikalnego DOI}} – trwa wyszukiwanie…",
@@ -2896,10 +2896,10 @@
     "review": 1
   },
   "settings.data.bundled": {
-    "message": "dołączona do ORE",
+    "message": "w pakiecie z ORE",
     "source": "bundled with ORE",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "settings.data.entries": {
@@ -3215,10 +3215,10 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Tutaj ustala się, jak ORE pokazuje dowody przy czytanych artykułach. Adres e-mail umożliwia dopasowywanie DOI po tytule i wyszukiwanie wersji w otwartym dostępie; pozostałe sprawdzenia oparte na DOI działają bez niego.",
+    "message": "Tutaj ustala się, jak ORE pokazuje informacje o badaniach przy czytanych artykułach. Adres e-mail umożliwia dopasowywanie DOI po tytule i wyszukiwanie wersji w otwartym dostępie; pozostałe sprawdzenia oparte na DOI działają bez niego.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Longer sentence; check phrasing"
   },
@@ -3581,12 +3581,12 @@
     "review": 1
   },
   "sites.category.openAccess": {
-    "message": "Wydawcy w otwartym dostępie",
+    "message": "Wydawcy otwartego dostępu",
     "source": "Open-access publishers",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Wydawcy w otwartym dostępie\" awkward"
+    "reviewReason": "Category name; check phrasing"
   },
   "sites.category.publishers": {
     "message": "Główni wydawcy i wydawnictwa uniwersyteckie",
@@ -4389,10 +4389,10 @@
     "reviewReason": "Defines replication vs reproduction; scientific accuracy"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl. – badanie zostało powtórzone",
+    "message": "Rep. – badanie zostało powtórzone",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "walkthrough.pill.title": {
@@ -4448,18 +4448,18 @@
     "reviewReason": "Longer sentence; check phrasing"
   },
   "walkthrough.ready.tryText": {
-    "message": "ORE na prawdziwym artykule, z krótkim przewodnikiem.",
+    "message": "Można zobaczyć ORE na prawdziwym artykule z krótkim przewodnikiem.",
     "source": "See ORE on a real paper, with a short guided tour.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Verbless fragment; check natural"
+    "reviewReason": "Check natural phrasing"
   },
   "walkthrough.report.atlas.text": {
-    "message": "Bezpłatna baza danych prowadzona przez społeczność FORRT, obejmująca badania z nauk społecznych i behawioralnych, w których próbowano zreplikować lub zreprodukować wcześniejsze wyniki – niezależnie od rezultatu – wraz z ich ustaleniami. Każda liczba replikacji w ORE pochodzi z tej bazy i prowadzi do dowodów.",
+    "message": "Bezpłatna baza danych prowadzona przez społeczność FORRT, obejmująca badania z nauk społecznych i behawioralnych, w których próbowano zreplikować lub zreprodukować wcześniejsze wyniki – niezależnie od rezultatu – wraz z ich ustaleniami. Każda liczba replikacji w ORE pochodzi z tej bazy i prowadzi do danych źródłowych.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Describes database scope and evidence; long sentence"
   },

@@ -1,19 +1,19 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: A teljes dokumentum frissítése nem érhető el. A jelentés az utolsó sikeres vizsgálat eredményét őrzi, és a legutóbbi módosítások hiányozhatnak belőle. Az újrapróbálkozás automatikus.",
+    "message": "ORE: A teljes dokumentum frissítése nem érhető el. A jelentés az utolsó sikeres vizsgálat eredményét őrzi, így a legutóbbi módosítások hiányozhatnak belőle. Az ORE automatikusan újrapróbálkozik.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Last sentence awkward; check data-completeness claim"
+    "reviewReason": "Check data-completeness claim and tone"
   },
   "editor.docs.scanUnavailable": {
-    "message": "ORE: A teljes dokumentum vizsgálata nem érhető el. Csak a látható oldalak ellenőrzése történt meg. Az újrapróbálkozás automatikus.",
+    "message": "ORE: A teljes dokumentum vizsgálata nem érhető el. Az ORE csak a látható oldalakat ellenőrizte, és automatikusan újrapróbálkozik.",
     "source": "ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Passive, awkward phrasing of retry message"
+    "reviewReason": "Check coverage claim and natural flow"
   },
   "editor.title.googleDocFallback": {
     "message": "Google-dokumentum",
@@ -140,12 +140,12 @@
     "review": 1
   },
   "page.comments.noneText": {
-    "message": "Ezt a cikket még nem vitatták meg a PubPeer-en.",
+    "message": "Ezt a cikket még nem vitatták meg a PubPeeren.",
     "source": "This article hasn't been discussed on PubPeer.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Added 'még'; check suffix PubPeer-en"
+    "reviewReason": "Check PubPeeren spelling and naturalness"
   },
   "page.comments.noneTitle": {
     "message": "Még nincs PubPeer-hozzászólás",
@@ -155,33 +155,33 @@
     "review": 1
   },
   "page.comments.onlyOnPubPeer": {
-    "message": "Ezek a hozzászólások csak a PubPeer-en olvashatók.",
+    "message": "Ezek a hozzászólások csak a PubPeeren olvashatók.",
     "source": "These comments can only be read on PubPeer.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.comments.reply": {
-    "message": "Válasz a PubPeer-en ↗",
+    "message": "Válasz a PubPeeren ↗",
     "source": "Reply on PubPeer ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.comments.startDiscussion": {
-    "message": "Beszélgetés indítása a PubPeer-en",
+    "message": "Beszélgetés indítása a PubPeeren",
     "source": "Start a discussion on PubPeer",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "A beszélgetés állapota nem ellenőrizhető. A többi elérhető eredmény fent látható.",
+    "message": "Nem sikerült ellenőrizni a beszélgetés állapotát. A többi elérhető adat fent látható.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'eredmény' for findings; check consistency"
+    "reviewReason": "Check 'adat' for ORE findings"
   },
   "page.comments.unavailableTitle": {
     "message": "A PubPeer nem érhető el",
@@ -191,10 +191,10 @@
     "review": 1
   },
   "page.comments.viewOnPubPeer": {
-    "message": "Hozzászólások megtekintése a PubPeer-en ↗",
+    "message": "Hozzászólások megtekintése a PubPeeren ↗",
     "source": "View comments on PubPeer ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.common.close": {
@@ -400,12 +400,12 @@
     "review": 1
   },
   "page.panel.openTab": {
-    "message": "A FORRT ORE-panel megnyitása",
+    "message": "A FORRT ORE panel megnyitása",
     "source": "Open the FORRT ORE panel",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check compound spacing with multi-word product name"
   },
   "page.panel.originalsHeading": {
     "message": "{count, plural, one {Eredeti tanulmány} other {Eredeti tanulmányok}} ({count})",
@@ -515,36 +515,36 @@
     "reviewReason": "'megjelölése' for marking up; check"
   },
   "page.progress.pubpeer": {
-    "message": "{count, plural, one {# tanulmány ellenőrzése a PubPeer-en…} other {# tanulmány ellenőrzése a PubPeer-en…}}",
+    "message": "{count, plural, one {# tanulmány ellenőrzése a PubPeeren…} other {# tanulmány ellenőrzése a PubPeeren…}}",
     "source": "Checking PubPeer for {count, plural, one {# paper} other {# papers}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.resolvingRefs": {
-    "message": "DOI nélküli hivatkozások feloldása…",
+    "message": "Hiányzó DOI-k keresése a hivatkozásokhoz…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'feloldása' technical; check naturalness"
+    "reviewReason": "Check plain-language phrasing for DOI lookup"
   },
   "page.progress.retractionsDois": {
-    "message": "{count, plural, one {# DOI ellenőrzése visszavonások szempontjából…} other {# DOI ellenőrzése visszavonások szempontjából…}}",
+    "message": "{count, plural, one {Visszavonások ellenőrzése (# DOI)…} other {Visszavonások ellenőrzése (# DOI)…}}",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} for retractions…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long 'szempontjából' phrasing; check"
+    "reviewReason": "Has number or variant forms; check progress phrasing"
   },
   "page.progress.retractionsRefs": {
-    "message": "{count, plural, one {# hivatkozás ellenőrzése visszavonások szempontjából…} other {# hivatkozás ellenőrzése visszavonások szempontjából…}}",
+    "message": "{count, plural, one {Visszavonások ellenőrzése (# hivatkozás)…} other {Visszavonások ellenőrzése (# hivatkozás)…}}",
     "source": "Checking {count, plural, one {# reference} other {# references}} for retractions…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long 'szempontjából' phrasing; check"
+    "reviewReason": "Has number or variant forms; check progress phrasing"
   },
   "page.progress.scanning": {
     "message": "DOI-k keresése ezen az oldalon…",
@@ -554,12 +554,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "{count, plural, one {# DOI feloldhatóságának ellenőrzése…} other {# DOI feloldhatóságának ellenőrzése…}}",
+    "message": "{count, plural, one {# DOI elérhetőségének ellenőrzése…} other {# DOI elérhetőségének ellenőrzése…}}",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'feloldhatóságának' clunky; check"
+    "reviewReason": "Has number or variant forms; check clarity"
   },
   "page.refs.comments": {
     "message": "{count, plural, one {# hozzászólás} other {# hozzászólás}}",
@@ -625,10 +625,10 @@
     "reviewReason": "Suffix on name without hyphen: Atlasban"
   },
   "page.refs.viewOnPubPeer": {
-    "message": "Megtekintés a PubPeer-en",
+    "message": "Megtekintés a PubPeeren",
     "source": "View on PubPeer",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.rr.action": {
@@ -812,20 +812,20 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.sheets.summaryChecked": {
-    "message": "A munkafüzetben szereplő DOI-k ellenőrzése a Retraction Watch adatbázisában megtörtént.",
+    "message": "A táblázatban szereplő DOI-kat az ORE összevetette a Retraction Watch adatbázisával.",
     "source": "Checked the DOIs in this spreadsheet against the Retraction Watch database.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Passive phrasing; check 'munkafüzet' vs 'munkalap'"
+    "reviewReason": "Evidence statement; check 'táblázat' term"
   },
   "page.sheets.summaryFound": {
-    "message": "Replikációs és reprodukciós adatok találhatók a munkafüzet <strong>{count, plural, one {# DOI-jához} other {# DOI-jához}}</strong>.",
+    "message": "Ebben a táblázatban <strong>{count, plural, one {# DOI-hoz} other {# DOI-hoz}}</strong> találhatók replikációs és reprodukciós adatok.",
     "source": "Found replication &amp; reproduction data for <strong>{count, plural, one {# DOI} other {# DOIs}}</strong> in this spreadsheet.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Evidence claim; check DOI-jához construction"
+    "reviewReason": "Evidence claim with HTML and plural; check phrasing"
   },
   "page.sheets.unavailable": {
     "message": "A teljes munkalap nem tölthető be.",
@@ -964,12 +964,12 @@
     "reviewReason": "Screen-reader sentence restructured; check flow"
   },
   "pill.cite.copiedToast": {
-    "message": "{style}-hivatkozás vágólapra másolva",
+    "message": "Hivatkozás másolva ({style})",
     "source": "{style} citation copied",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check concise toast phrasing for styles and formats"
   },
   "pill.cite.copy": {
     "message": "Hivatkozás másolása",
@@ -1023,20 +1023,20 @@
     "review": 1
   },
   "pill.cite.fetchingToast": {
-    "message": "{style}-hivatkozás lekérése…",
+    "message": "Hivatkozás lekérése ({style})…",
     "source": "Fetching {style} citation…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check toast phrasing for styles and formats"
   },
   "pill.cite.noneToast": {
-    "message": "Ehhez a DOI-hoz nem érhető el {style}-hivatkozás",
+    "message": "Ehhez a DOI-hoz nem érhető el hivatkozás ({style})",
     "source": "No {style} citation available for this DOI",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check toast phrasing for styles and formats"
   },
   "pill.cite.unavailable": {
     "message": "A hivatkozás nem érhető el",
@@ -1126,12 +1126,12 @@
     "reviewReason": "Bare EoC term as sentence"
   },
   "pill.marker.empty": {
-    "message": "Nem található replikációs bizonyíték vagy PubPeer-hozzászólás.",
+    "message": "Nem található replikációs adat vagy PubPeer-hozzászólás.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Evidence statement; check wording"
+    "reviewReason": "Evidence statement; verify wording"
   },
   "pill.marker.inProgress": {
     "message": "Ellenőrzés folyamatban.",
@@ -1350,12 +1350,12 @@
     "review": 1
   },
   "pill.provenance.matchedByTitle": {
-    "message": "Cím alapján egyeztetve. Érdemes ellenőrizni, hogy a megfelelő tanulmányról van-e szó",
+    "message": "Cím alapján egyeztetve – ellenőrizze, hogy a megfelelő tanulmányról van-e szó",
     "source": "Matched by title — check it is the right paper",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Érdemes' softens instruction"
+    "reviewReason": "Verification instruction; check tone"
   },
   "pill.provenance.page": {
     "message": "Ezen az oldalon található",
@@ -1365,12 +1365,12 @@
     "review": 1
   },
   "pill.provenance.search": {
-    "message": "Keresés alapján egyeztetve (cím, első szerző és év szerint). Érdemes ellenőrizni, hogy a megfelelő tanulmányról van-e szó.",
+    "message": "Keresés alapján egyeztetve (cím, első szerző és év szerint). Ellenőrizze, hogy a megfelelő tanulmányról van-e szó.",
     "source": "Matched by search — looked up by title, first author and year. Check it is the right paper.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Érdemes' softens instruction"
+    "reviewReason": "Verification instruction; check tone"
   },
   "pill.pubpeer.checkingTooltip": {
     "message": "PubPeer ellenőrzése…",
@@ -1388,10 +1388,10 @@
     "reviewReason": "Has number or variant forms"
   },
   "pill.pubpeer.commentsTooltip": {
-    "message": "{count, plural, one {# hozzászólás a PubPeer-en} other {# hozzászólás a PubPeer-en}}",
+    "message": "{count, plural, one {# hozzászólás a PubPeeren} other {# hozzászólás a PubPeeren}}",
     "source": "{count, plural, one {# comment} other {# comments}} on PubPeer",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Has number or variant forms"
   },
@@ -1410,12 +1410,12 @@
     "review": 1
   },
   "pill.pubpeer.notCheckedTooltip": {
-    "message": "A PubPeer ellenőrzése nem történt meg",
+    "message": "A PubPeer nincs ellenőrizve",
     "source": "PubPeer not checked",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Wordy passive phrasing"
+    "reviewReason": "Check concise status wording"
   },
   "pill.pubpeer.rateLimited": {
     "message": "Túl sok kérés. Próbálja újra {seconds, plural, one {# másodperc múlva} other {# másodperc múlva}}",
@@ -1530,12 +1530,12 @@
     "reviewReason": "'Szerepel' alone; check fit"
   },
   "pill.rr.notListed": {
-    "message": "Nem szerepel a Registered Reports adatbázisban",
+    "message": "Nem szerepel a Registered Reports adatbázisában",
     "source": "Not in the Registered Reports database",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Compound with name; check hyphenation"
+    "reviewReason": "Check possessive phrasing with product name"
   },
   "pill.rr.stage1": {
     "message": "1. szakaszú protokoll",
@@ -1617,12 +1617,12 @@
     "review": 1
   },
   "pill.segment.reps": {
-    "message": "Repl.",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Tight space; check 'Repl.' abbreviation"
+    "reviewReason": "Tight space; verify 'Rep.' covers both replikáció and reprodukció"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# tanulmány} other {# tanulmány}} ebben a hivatkozásban: {dois}. A részletekért nyomja meg az Enter billentyűt.",
@@ -1640,12 +1640,12 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "{count, plural, one {Kutatási részletek # tanulmányhoz} other {Kutatási részletek # tanulmányhoz}}",
+    "message": "{count, plural, one {Kutatási részletek: # tanulmány} other {Kutatási részletek: # tanulmány}}",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check case construction"
+    "reviewReason": "Has number or variant forms; check accessible label"
   },
   "pill.stack.position": {
     "message": "{index}/{total}. tanulmány",
@@ -1839,10 +1839,10 @@
     "reviewReason": "Count fragment; check reading"
   },
   "popup.findings.othersPubpeer": {
-    "message": "{count} megvitatva a PubPeer-en",
+    "message": "{count} megvitatva a PubPeeren",
     "source": "{count} discussed on PubPeer",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Count fragment; check reading"
   },
@@ -2081,12 +2081,12 @@
     "review": 1
   },
   "popup.status.logNotAttached": {
-    "message": "A napló nem csatolható. A Beállításokban letölthető",
+    "message": "A napló nem csatolható. A Beállításokban érhető el",
     "source": "Couldn't attach the log — grab it from Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'letölthető' narrows 'grab'; check"
+    "reviewReason": "Recovery instruction; check wording"
   },
   "popup.status.nothingOnPage": {
     "message": "Az ORE semmit sem jelölt ezen az oldalon",
@@ -2324,12 +2324,12 @@
     "review": 1
   },
   "progress.toast.dismiss": {
-    "message": "Elvetés",
+    "message": "Bezárás",
     "source": "Dismiss",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Elvetés' unusual; 'Bezárás' more natural?"
+    "reviewReason": "Check toast close button label"
   },
   "progress.toast.doneIn": {
     "message": "Kész ({duration})",
@@ -2375,10 +2375,10 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "A replikációs bizonyíték a mérlegelés kiindulópontja, nem ítélet.",
+    "message": "A replikációs adatok a mérlegelés kiindulópontját jelentik, nem ítéletet.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Statement about meaning of replication evidence"
   },
@@ -2632,12 +2632,12 @@
     "review": 1
   },
   "search.retry.unavailable": {
-    "message": "{number, select, plural {{list} nem érhetők el.} other {{list} nem érhető el.}}",
+    "message": "{number, select, plural {Nem érhetők el: {list}.} other {Nem érhető el: {list}.}}",
     "source": "{number, select, plural {{list} are unavailable.} other {{list} is unavailable.}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Verb agreement with joined list"
+    "reviewReason": "Select agreement with joined list"
   },
   "search.stage.augmenting": {
     "message": "{count, plural, one {# DOI nélküli találat kiegészítése…} other {# DOI nélküli találat kiegészítése…}}",
@@ -2648,12 +2648,12 @@
     "reviewReason": "'kiegészítése' for augmenting; check"
   },
   "search.stage.checkingDois": {
-    "message": "{count, plural, one {# DOI feloldhatóságának ellenőrzése…} other {# DOI feloldhatóságának ellenőrzése…}}",
+    "message": "{count, plural, one {# DOI elérhetőségének ellenőrzése…} other {# DOI elérhetőségének ellenőrzése…}}",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'feloldhatóságának' clunky"
+    "reviewReason": "Has number or variant forms; check clarity"
   },
   "search.stage.lookingUp": {
     "message": "{count, plural, one {# egyedi DOI található, keresésük folyamatban…} other {# egyedi DOI található, keresésük folyamatban…}}",
@@ -2672,20 +2672,20 @@
     "reviewReason": "Has number or variant forms"
   },
   "search.stage.reading": {
-    "message": "{count, plural, one {# {site}-találat beolvasása…} other {# {site}-találat beolvasása…}}",
+    "message": "{count, plural, one {# találat beolvasása ({site})…} other {# találat beolvasása ({site})…}}",
     "source": "Reading {count, plural, one {# {site} result} other {# {site} results}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Hyphen compound with site name; check"
+    "reviewReason": "Has number or variant forms; parenthetical site name"
   },
   "search.stage.resolving": {
-    "message": "{count, plural, one {# {site}-rekord DOI-jának feloldása…} other {# {site}-rekord DOI-jának feloldása…}}",
+    "message": "{count, plural, one {DOI keresése # rekordhoz ({site})…} other {DOI keresése # rekordhoz ({site})…}}",
     "source": "Resolving {count, plural, one {# {site} record} other {# {site} records}} to DOIs…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Hyphen compound with site name; check"
+    "reviewReason": "Has number or variant forms; plain-language DOI lookup"
   },
   "settings.blocklist.add": {
     "message": "Kikapcsolás a webhelyen",
@@ -2869,12 +2869,12 @@
     "review": 1
   },
   "settings.citation.sourceText": {
-    "message": "A hivatkozások a <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> szolgáltatásból származnak (tartalékként a doi.org-ról), és az ORE csak akkor kéri le őket, amikor Ön kér egyet. Az alábbi minta is egy ilyen lekérés.",
+    "message": "A hivatkozások a <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> szolgáltatásból származnak (tartalékként a doi.org-ról), és az ORE csak kérésre tölti le őket. Az alábbi minta is egy ilyen lekérés.",
     "source": "Citations come from <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a>, with doi.org as a fallback, and are fetched only when you ask for one. The sample below is one such request.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Data-fetching explanation with link; check accuracy"
   },
   "settings.citation.title": {
     "message": "Hivatkozási stílus",
@@ -2884,12 +2884,12 @@
     "review": 1
   },
   "settings.citation.unavailable": {
-    "message": "A minta nem érhető el, mert a Crossref nem elérhető.",
+    "message": "A minta nem tölthető be, mert a Crossref nem érhető el.",
     "source": "Sample unavailable — Crossref could not be reached.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'nem érhető el... nem elérhető' repetitive"
+    "reviewReason": "Check natural phrasing"
   },
   "settings.commenters.add": {
     "message": "Némítás",
@@ -2963,12 +2963,12 @@
     "review": 1
   },
   "settings.data.bundled": {
-    "message": "az ORE-val együtt telepítve",
+    "message": "az ORE-vel együtt telepítve",
     "source": "bundled with ORE",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Check suffix harmony and fit after entry count"
   },
   "settings.data.entries": {
     "message": "{count, plural, one {# bejegyzés} other {# bejegyzés}}",
@@ -2987,20 +2987,20 @@
     "reviewReason": "'Referenciaadatok' term; check"
   },
   "settings.data.failedBoth": {
-    "message": "A visszavonások és a Registered Reports nem tölthetők le. Továbbra is a korábbi példány van használatban.",
+    "message": "A visszavonási lista és a Registered Reports lista nem tölthető le. Továbbra is a korábbi példány van használatban.",
     "source": "Couldn't download retractions or Registered Reports — the previous copy is still in use.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Name as plural subject; check agreement"
+    "reviewReason": "Check list naming and agreement"
   },
   "settings.data.failedRegisteredReports": {
-    "message": "A Registered Reports nem tölthető le. Továbbra is a korábbi példány van használatban.",
+    "message": "A Registered Reports lista nem tölthető le. Továbbra is a korábbi példány van használatban.",
     "source": "Couldn't download Registered Reports — the previous copy is still in use.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Name as subject; check agreement"
+    "reviewReason": "Check list naming and agreement"
   },
   "settings.data.failedRetractions": {
     "message": "A visszavonások nem tölthetők le. Továbbra is a korábbi példány van használatban.",
@@ -3089,12 +3089,12 @@
     "review": 1
   },
   "settings.data.upToDate": {
-    "message": "A visszavonások és a Registered Reports naprakészek.",
+    "message": "A visszavonási lista és a Registered Reports lista naprakész.",
     "source": "Retractions and Registered Reports are up to date.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Name as plural subject; check agreement"
+    "reviewReason": "Check list naming and agreement"
   },
   "settings.data.updated": {
     "message": "frissítve: {date}",
@@ -3200,12 +3200,12 @@
     "reviewReason": "Privacy claim; GitHub public warning"
   },
   "settings.debug.logText": {
-    "message": "A napló azt rögzíti, mit keresett meg az ORE: a felkeresett oldalakon talált DOI-kat, az API-hívások eredményét és az esetleges hibákat. A jelentés csak azt a webhelyet nevezi meg, ahonnan a bejelentés történik; a többi oldal „1.&nbsp;oldal”, „2.&nbsp;oldal” néven szerepel, a hivatkozásaik pedig törlődnek. A hét napnál régebbi bejegyzések törlődnek. A napló ezen a számítógépen marad, és az ORE <strong>sehová sem küldi el</strong>, amíg Ön úgy nem dönt, hogy hibajelentést nyit vele – és semmit sem küld be, amíg meg nem nyomja a GitHub saját gombját.",
+    "message": "A napló azt rögzíti, mit keresett meg az ORE: a felkeresett oldalakon talált DOI-kat, az API-hívások eredményét és az esetleges hibákat. A jelentés csak azt a webhelyet nevezi meg, ahonnan a bejelentés történik; a többi oldal „1.&nbsp;oldal”, „2.&nbsp;oldal” néven szerepel, a linkjeiket pedig az ORE eltávolítja. A hét napnál régebbi bejegyzések törlődnek. A napló ezen a számítógépen marad, és az ORE <strong>sehová sem küldi el</strong>, amíg úgy nem dönt, hogy hibajelentést nyit vele – és semmit sem küld be, amíg meg nem nyomja a GitHub saját gombját.",
     "source": "The log records what ORE looked up: DOIs found on the pages you visit, API outcomes and any errors. A report names only the site you report from; other pages appear as “page&nbsp;1”, “page&nbsp;2” and their links are removed. Entries older than seven days are deleted. The log stays on this computer and is <strong>never sent anywhere</strong> until you choose to open an issue with it — and nothing is submitted until you press GitHub's own button.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Long privacy claim with HTML; verify accuracy"
   },
   "settings.debug.logTitle": {
     "message": "Mit tartalmaz a napló",
@@ -3215,12 +3215,12 @@
     "review": 1
   },
   "settings.debug.off": {
-    "message": "Hibakeresési mód kikapcsolva. A figyelmeztetések és hibák naplózása továbbra is történik.",
+    "message": "Hibakeresési mód kikapcsolva. A figyelmeztetések és hibák továbbra is bekerülnek a naplóba.",
     "source": "Debug mode off. Warnings and errors are still logged.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Wordy passive second sentence"
+    "reviewReason": "Check natural phrasing"
   },
   "settings.debug.on": {
     "message": "Hibakeresési mód bekapcsolva. Töltsön újra egy oldalt az ORE folyamatjelzőjének megtekintéséhez.",
@@ -3287,12 +3287,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Itt állítható be, hogyan jelenítse meg az ORE a bizonyítékokat az olvasott tanulmányokon. Az e-mail-cím a cím alapján történő DOI-egyeztetéshez és a nyílt hozzáférés kereséséhez szükséges; a többi DOI-alapú ellenőrzés nélküle is működik.",
+    "message": "Itt állítható be, hogyan jelenítse meg az ORE az adatokat az olvasott tanulmányokon. Az e-mail-cím a cím alapján történő DOI-egyeztetéshez és a nyílt hozzáférés kereséséhez szükséges; a többi DOI-alapú ellenőrzés nélküle is működik.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Data-use explanation; check"
+    "reviewReason": "Data-use explanation; check wording"
   },
   "settings.email.label": {
     "message": "E-mail-cím",
@@ -3332,12 +3332,12 @@
     "review": 1
   },
   "settings.email.saved": {
-    "message": "Az e-mail-cím mentve. A keresésekhez való használatához töltse újra a megnyitott lapokat.",
+    "message": "Az e-mail-cím mentve. Töltse újra a megnyitott lapokat, hogy a keresések már ezt használják.",
     "source": "Email saved. Reload open tabs to use it for lookups.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Clunky 'használatához' construction"
+    "reviewReason": "User instruction; check naturalness"
   },
   "settings.email.servicesSummary": {
     "message": "Miért kérik ezt a szolgáltatások",
@@ -3412,12 +3412,12 @@
     "review": 1
   },
   "settings.language.intro": {
-    "message": "Az ORE menüinek, címkéinek és jelentéseinek nyelve. A már megnyitott oldalak újratöltéskor váltanak.",
+    "message": "Az ORE menüinek, címkéinek és jelentéseinek nyelve. A már megnyitott oldalak újratöltéskor váltanak nyelvet.",
     "source": "The language of ORE's menus, pills and reports. Pages that are already open switch when you reload them.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'váltanak' slightly vague; check"
+    "reviewReason": "Check clarity of language-switch behaviour"
   },
   "settings.language.label": {
     "message": "Nyelv",
@@ -3533,12 +3533,12 @@
     "review": 1
   },
   "settings.sites.intro": {
-    "message": "Az ORE folyóiratok, kiadók, preprint-szerverek és dokumentumok oldalain fut, valamint minden olyan webhelyen, amely itt nem szerepel. A vásárlási, videós, üzenetküldő és webes keresőoldalakon alapértelmezés szerint ki van kapcsolva. Egy kategória jelölésének törlésével az ORE annak összes webhelyén kikapcsol; a kategóriát megnyitva webhelyenként is választhat. A módosítások az oldal következő betöltésekor lépnek életbe.",
+    "message": "Az ORE folyóiratok, kiadók, preprintszerverek és dokumentumok oldalain fut, valamint minden olyan webhelyen, amely itt nem szerepel. A vásárlási, videós, üzenetküldő és webes keresőoldalakon alapértelmezés szerint ki van kapcsolva. Egy kategória jelölésének törlésével kikapcsolhatja az ORE-t annak összes webhelyén, a kategóriát megnyitva pedig webhelyenként is választhat. A módosítások az oldal következő betöltésekor lépnek életbe.",
     "source": "ORE runs on journals, publishers, preprint servers and documents, and on any site not listed here. Shopping, video, messaging and web search start switched off. Untick a category to turn ORE off on all of its sites, or open it to choose site by site. Changes apply when a page is next loaded.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instructions; mixed impersonal/formal"
+    "reviewReason": "Long instructions; check consistent register"
   },
   "settings.sites.title": {
     "message": "Webhelyek kategóriák szerint",
@@ -3562,12 +3562,12 @@
     "review": 1
   },
   "sites.add.added": {
-    "message": "Az ORE futni fog itt: {domain}.",
+    "message": "Az ORE futni fog ezen a domainen: {domain}.",
     "source": "ORE will run on {domain}.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'futni fog itt' slightly clunky"
+    "reviewReason": "Check phrasing with {domain}"
   },
   "sites.add.alreadyListed": {
     "message": "A(z) {domain} már szerepel a(z) {category} kategóriában.",
@@ -3661,12 +3661,12 @@
     "review": 1
   },
   "sites.category.publishers": {
-    "message": "Nagy kiadók és egyetemi kiadók",
+    "message": "Nagy és egyetemi kiadók",
     "source": "Major publishers & university presses",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'kiadók' repeated; check"
+    "reviewReason": "Category label; check conciseness"
   },
   "sites.category.regional": {
     "message": "Regionális és egyetemi folyóiratok",
@@ -4035,12 +4035,12 @@
     "review": 1
   },
   "tour.search.matchedText": {
-    "message": "Ennek a találatnak nem volt DOI-ja, ezért az ORE cím alapján egyeztette. Érdemes ellenőrizni, hogy a megfelelő tanulmányról van-e szó.",
+    "message": "Ennek a találatnak nem volt DOI-ja, ezért az ORE cím alapján egyeztette; ellenőrizze, hogy a megfelelő tanulmányról van-e szó.",
     "source": "This result had no DOI, so ORE matched it by title; check that it is the right paper.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Érdemes' softens instruction"
+    "reviewReason": "Verification instruction; check tone"
   },
   "tour.search.matchedTitle": {
     "message": "A pontozott aláhúzású DOI cím alapján lett egyeztetve",
@@ -4116,12 +4116,12 @@
     "reviewReason": "Long explanation; check"
   },
   "walkthrough.article.recognised.text": {
-    "message": "Ha egy hivatkozáson nincs címke, az ORE nem tudta azonosítani, így semmit sem ellenőrzött hozzá.",
+    "message": "Ha egy hivatkozás mellett nincs címke, az ORE nem tudta azonosítani, ezért nem végzett hozzá ellenőrzést.",
     "source": "No pill on a reference means ORE could not identify it, so nothing was checked for it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check 'ellenőrzött hozzá'"
+    "reviewReason": "Check natural phrasing"
   },
   "walkthrough.article.recognised.title": {
     "message": "A címke azt jelenti, hogy az ORE felismerte a tanulmányt",
@@ -4176,12 +4176,12 @@
     "review": 1
   },
   "walkthrough.done.text": {
-    "message": "A beállítás kész. A bővítmény használatra kész: az ORE böngészés közben magától ellenőrzi a tanulmányokat.",
+    "message": "A beállítás elkészült. Kezdheti használni a bővítményt: az ORE böngészés közben magától ellenőrzi a tanulmányokat.",
     "source": "Setup is complete. Start using the plugin: ORE will check papers by itself as you browse.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'kész' repeated; check"
+    "reviewReason": "Completion text; check flow"
   },
   "walkthrough.done.title": {
     "message": "Minden készen áll",
@@ -4306,12 +4306,12 @@
     "review": 1
   },
   "walkthrough.notices.board.retractedText": {
-    "message": "A közleményt visszavonták.",
+    "message": "A tanulmányt visszavonták.",
     "source": "Withdrawn from the record.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Retraction explanation; check consistency"
   },
   "walkthrough.notices.local.text": {
     "message": "Az ORE saját példányt tart a visszavonási listáról, és hetente frissíti, így egyetlen szerver sem tudja meg, mit olvas.",
@@ -4475,12 +4475,12 @@
     "reviewReason": "Defines replication/reproduction; Atlasban suffix unhyphenated"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl. – a vizsgálatot megismételték",
+    "message": "Rep. – a vizsgálatot megismételték",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Evidence statement"
+    "reviewReason": "Matches pill.segment.reps; evidence statement"
   },
   "walkthrough.pill.title": {
     "message": "A címke értelmezése",
@@ -4497,12 +4497,12 @@
     "review": 1
   },
   "walkthrough.ready.later": {
-    "message": "Később az eszköztár ORE-gombjára kattintva választhatja „Az oldal bemutatója” lehetőséget az aktuális oldal bemutatójához, a „Hogyan működik?” lehetőséget ennek újbóli megtekintéséhez, vagy a „Beállítások” lehetőséget egy webhely letiltásához.",
+    "message": "Később az eszköztár ORE-gombjára kattintva megnyithatja „Az oldal bemutatója” funkciót az aktuális oldalhoz, a „Hogyan működik?” útmutatót ennek újbóli megtekintéséhez, vagy a „Beállítások” oldalt egy webhely letiltásához.",
     "source": "Later, click the ORE toolbar button and choose “Tour this page” for a tour of the page you are on, “How it works” to see this again, or “Settings” to block a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Verify quoted labels match UI strings"
   },
   "walkthrough.ready.openSample": {
     "message": "Mintacikk megnyitása",
@@ -4542,12 +4542,12 @@
     "reviewReason": "Noun phrase; check tone"
   },
   "walkthrough.report.atlas.text": {
-    "message": "A FORRT-közösség által fenntartott ingyenes adatbázis azokról a társadalom- és viselkedéstudományi vizsgálatokról, amelyek korábbi eredmények replikálására vagy reprodukálására tettek kísérletet, kimeneteltől függetlenül, valamint arról, hogy mire jutottak. Az ORE összes replikációs száma ebből származik, és a bizonyítékokra mutat.",
+    "message": "A FORRT-közösség által fenntartott ingyenes adatbázis azokról a társadalom- és viselkedéstudományi vizsgálatokról, amelyek korábbi eredmények replikálására vagy reprodukálására tettek kísérletet, kimeneteltől függetlenül, valamint arról, hogy mire jutottak. Az ORE összes replikációs száma ebből az adatbázisból származik, és az ottani adatokra mutat.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Describes FLoRA Replication Atlas; verify scientific accuracy"
   },
   "walkthrough.report.atlas.title": {
     "message": "Mi a <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a>?",
@@ -4582,10 +4582,10 @@
     "reviewReason": "Revised after second review; please check"
   },
   "walkthrough.report.share.text": {
-    "message": "A <strong>Letöltés</strong> PDF-ként menti a jelentést. A <strong>Link másolása</strong> a teljes jelentést magában a linkben osztja meg, így semmi sem kerül feltöltésre.",
+    "message": "A <strong>Letöltés</strong> PDF-ként menti a jelentést. A <strong>Link másolása</strong> a teljes jelentést magában a linkben osztja meg, így semmi sem töltődik fel.",
     "source": "<strong>Download</strong> saves the report as a PDF. <strong>Copy link</strong> shares the whole report in the link itself, so nothing is uploaded.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Privacy claim: nothing uploaded"
   },
@@ -4619,20 +4619,20 @@
     "review": 1
   },
   "walkthrough.search.dotted.text": {
-    "message": "Két tanulmánynak szinte azonos lehet a címe. Ha az egyeztetés téves, a panel minden további adata rossz tanulmányra vonatkozik. Az ellenőrzéshez érdemes egyszer megnyitni a DOI-t.",
+    "message": "Két tanulmánynak szinte azonos lehet a címe. Ha az egyeztetés téves, a panel minden további adata rossz tanulmányra vonatkozik. Az ellenőrzéshez nyissa meg egyszer a DOI-t.",
     "source": "Two papers can have almost the same title. If the match is wrong, everything else in the panel describes the wrong paper. Open the DOI once to confirm.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction softened with 'érdemes'"
+    "reviewReason": "Verification instruction; check tone"
   },
   "walkthrough.search.dotted.title": {
-    "message": "A pontozott aláhúzású DOI-t érdemes ellenőrizni, mielőtt támaszkodna rá",
+    "message": "Ellenőrizze a pontozott aláhúzású DOI-t, mielőtt támaszkodna rá",
     "source": "Check a dotted DOI before you rely on it",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Verification heading; check tone"
   },
   "walkthrough.search.panel": {
     "message": "Keresőoldalakon az ORE minden találat mellé egy kis panelt helyez el, hogy könnyebb legyen átfutni a találatokat. Egy sorra kattintva megnyitható a tanulmány, másolható a hivatkozása, kereshető nyílt hozzáférésű változat, elolvasható a beszélgetés, vagy megtekinthetők a replikációk. Az „Ellenőrzés…” feliratú sor még fut; ez nem jelenti azt, hogy nem található semmi.",
@@ -4680,12 +4680,12 @@
     "review": 1
   },
   "walkthrough.setup.email.help": {
-    "message": "A nyílt hozzáférésű változatok kereséséhez szükséges: az Unpaywall kapcsolattartási címet kér. Az ORE a tanulmányok keresésekor a Crossrefnek, az OpenAlexnek és az NCBI-nak is megadja. Bármikor eltávolítható.",
+    "message": "A nyílt hozzáférésű változatok kereséséhez szükséges: az Unpaywall kapcsolattartási címet kér. Az ORE a tanulmányok keresésekor a Crossrefnek, az OpenAlexnek és az NCBI-nek is megadja. Bármikor eltávolítható.",
     "source": "Needed to find open-access versions: Unpaywall asks for a contact address. ORE also gives it to Crossref, OpenAlex and NCBI when it looks papers up. Remove it any time.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Privacy claim; unhyphenated suffixes Crossrefnek, OpenAlexnek"
+    "reviewReason": "Privacy claim; verify suffix harmony"
   },
   "walkthrough.setup.email.invalid": {
     "message": "Ez nem tűnik érvényes e-mail-címnek.",
@@ -4718,20 +4718,20 @@
     "reviewReason": "Feature claim; check"
   },
   "walkthrough.setup.email.saved": {
-    "message": "Az e-mail-cím mentve. A keresésekhez való használatához töltse újra a megnyitott lapokat.",
+    "message": "Az e-mail-cím mentve. Töltse újra a megnyitott lapokat, hogy a keresések már ezt használják.",
     "source": "Email saved. Reload open tabs to use it for lookups.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Clunky 'használatához' construction"
+    "reviewReason": "User instruction; check naturalness"
   },
   "walkthrough.setup.intro": {
-    "message": "A beállítások azonnal mentésre kerülnek, és bármikor módosíthatók a Beállításokban.",
+    "message": "A választások azonnal elmentődnek, és bármikor módosíthatók a Beállításokban.",
     "source": "Your choices are saved as soon as you make them, and you can change them any time in Settings.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Bureaucratic 'mentésre kerülnek'"
+    "reviewReason": "Check natural phrasing"
   },
   "walkthrough.setup.saveFailed": {
     "message": "A mentés nem sikerült. Próbálja újra.",
@@ -4741,12 +4741,12 @@
     "review": 1
   },
   "walkthrough.setup.sites.intro": {
-    "message": "Az ORE be van kapcsolva a folyóiratok, kiadók, preprint-szerverek és dokumentumok oldalain, és ki van kapcsolva a vásárlási, videós, üzenetküldő és webes keresőoldalakon. Egy kategória be- vagy kijelölhető, illetve megnyitva webhelyenként is választhat.",
+    "message": "Az ORE be van kapcsolva a folyóiratok, kiadók, preprintszerverek és dokumentumok oldalain, és ki van kapcsolva a vásárlási, videós, üzenetküldő és webes keresőoldalakon. Be- vagy kikapcsolhat egy teljes kategóriát, illetve megnyitva webhelyenként is választhat.",
     "source": "ORE is on for journals, publishers, preprint servers and documents, and off for shopping, video, messaging and web search. Tick or untick a category, or open it to choose site by site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Mixed impersonal and address; check"
+    "reviewReason": "Long instructions; check consistent register"
   },
   "walkthrough.setup.sites.title": {
     "message": "Hol fusson az ORE?",
@@ -4763,10 +4763,10 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "Nyisson meg egy DOI-kat tartalmazó táblázatot – például olvasmánylistát vagy egy áttekintés tanulmányait – a Google Táblázatokban vagy az Excel Online-ban. A Google Táblázatokban az ORE a lap minden DOI-ját ellenőrzi, azokat a sorokat is, amelyekhez még nem görgetett. Az Excel Online csak a képernyőn látható sorokat jeleníti meg, ezért az ORE ezeket ellenőrzi; a többihez görgessen tovább. Az eredmények egy felugró ablakban jelennek meg.",
+    "message": "Nyisson meg egy DOI-kat tartalmazó táblázatot – például olvasmánylistát vagy egy áttekintés tanulmányait – a Google Táblázatokban vagy az Excel Online-ban. A Google Táblázatokban az ORE a munkalap minden DOI-ját ellenőrzi, azokat a sorokat is, amelyekhez még nem görgetett. Az Excel Online csak a képernyőn látható sorokat jeleníti meg, ezért az ORE ezeket ellenőrzi; a többihez görgessen tovább. Az eredmények egy felugró ablakban jelennek meg.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
     "reviewReason": "Product name localized: Google Táblázatok; instructions"
   },
@@ -4809,12 +4809,12 @@
     "reviewReason": "Retraction listing; check"
   },
   "walkthrough.sheets.tabs.text": {
-    "message": "Minden munkalap ellenőrzése külön történik. Ha az egyik lapon bezárja a felugró ablakot, a többi nem változik.",
+    "message": "Az ORE minden munkalapot külön ellenőriz. Ha az egyik munkalapon bezárja a felugró ablakot, az a többit nem érinti.",
     "source": "Each sheet tab is checked on its own. Closing the popup on one tab leaves the others alone.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Tab vs sheet terms; check"
+    "reviewReason": "Check consistent 'munkalap' terminology"
   },
   "walkthrough.sheets.tabs.title": {
     "message": "Egyszerre egy munkalap",

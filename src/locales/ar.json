@@ -81,12 +81,12 @@
     "review": 1
   },
   "notice.feedback.message": {
-    "message": "دقيقة واحدة من الملاحظات حول ما ينجح وما لا ينجح تساعدنا على تحسين ORE.",
+    "message": "دقيقة واحدة من الملاحظات حول ما يعمل جيدًا وما يحتاج إلى تحسين تساعدنا على تحسين ORE.",
     "source": "A minute of feedback on what works and what doesn't helps us improve ORE.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Literal 'what works and what doesn't'; check naturalness"
+    "reviewReason": "Replaced literal 'ما ينجح وما لا ينجح' with natural Arabic phrasing"
   },
   "notice.feedback.title": {
     "message": "كيف هي تجربة استخدام ORE؟",
@@ -241,12 +241,12 @@
     "reviewReason": "List joiner; check comma-list combination in Arabic"
   },
   "page.notice.viewConcern": {
-    "message": "عرض إشعار بيان القلق",
+    "message": "عرض بيان القلق",
     "source": "View the expression-of-concern notice",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'إشعار بيان القلق' slightly redundant; check"
+    "reviewReason": "Removed redundant 'إشعار' before 'بيان القلق'"
   },
   "page.notice.viewRetraction": {
     "message": "عرض إشعار السحب",
@@ -379,12 +379,12 @@
     "reviewReason": "Plural forms; check agreement"
   },
   "page.panel.moreReproductions": {
-    "message": "{count, plural, zero {لا توجد عمليات إعادة إنتاج إضافية} one {عرض عملية إعادة إنتاج إضافية واحدة} two {عرض عمليتي إعادة إنتاج إضافيتين} few {عرض # عمليات إعادة إنتاج إضافية} many {عرض # عمليةً إضافية لإعادة الإنتاج} other {عرض # عملية إعادة إنتاج إضافية}}",
+    "message": "{count, plural, zero {لا توجد عمليات إعادة إنتاج إضافية} one {عرض عملية إعادة إنتاج إضافية واحدة} two {عرض عمليتي إعادة إنتاج إضافيتين} few {عرض # عمليات إعادة إنتاج إضافية} many {عرض # عمليةَ إعادة إنتاج إضافية} other {عرض # عملية إعادة إنتاج إضافية}}",
     "source": "{count, plural, one {Show # more reproduction} other {Show # more reproductions}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Many form reorders phrase unlike other forms"
+    "reviewReason": "Standardized many form word order to match other plural branches"
   },
   "page.panel.openInFlora": {
     "message": "فتح في FLoRA",
@@ -455,12 +455,12 @@
     "reviewReason": "Awkward 'tab from the table'; check sheet terminology"
   },
   "page.progress.foundDois": {
-    "message": "{count, plural, zero {لم يُعثر على أي معرّف DOI} one {تم العثور على معرّف DOI واحد} two {تم العثور على معرّفَي DOI} few {تم العثور على # معرّفات DOI} many {تم العثور على # معرّفًا من نوع DOI} other {تم العثور على # معرّف DOI}} في هذه الصفحة",
+    "message": "{count, plural, zero {لم يُعثر على أي معرّف DOI} one {تم العثور على معرّف DOI واحد} two {تم العثور على معرّفَي DOI} few {تم العثور على # معرّفات DOI} many {تم العثور على # معرّفَ DOI} other {تم العثور على # معرّف DOI}} في هذه الصفحة",
     "source": "Found {count, plural, one {# DOI} other {# DOIs}} on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Plural forms; many uses 'من نوع DOI' unlike others"
+    "reviewReason": "Standardized many form to clean idafa '# معرّفَ DOI'"
   },
   "page.progress.generatingReport": {
     "message": "جارٍ إنشاء التقرير…",
@@ -477,12 +477,12 @@
     "review": 1
   },
   "page.progress.lookupDois": {
-    "message": "جارٍ البحث عن {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفًا من نوع DOI} other {# معرّف DOI}} في FLoRA…",
+    "message": "جارٍ البحث عن {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفَ DOI} other {# معرّف DOI}} في FLoRA…",
     "source": "Looking up {count, plural, one {# DOI} other {# DOIs}} in FLoRA…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Plural forms; check genitive agreement"
+    "reviewReason": "Standardized many form to clean idafa '# معرّفَ DOI'"
   },
   "page.progress.lookupRefs": {
     "message": "جارٍ البحث عن {count, plural, zero {المراجع} one {مرجع واحد} two {مرجعين} few {# مراجع} many {# مرجعًا} other {# مرجع}} في FLoRA…",
@@ -516,20 +516,20 @@
     "reviewReason": "Plural forms; check phrasing بشأن"
   },
   "page.progress.resolvingRefs": {
-    "message": "جارٍ تحديد المراجع التي لا تحمل DOI…",
+    "message": "جارٍ البحث عن معرّفات DOI للمراجع التي لا تحمل DOI…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Resolving' as تحديد; check technical meaning"
+    "reviewReason": "Clarified technical 'تحديد المراجع' to explicit DOI lookup"
   },
   "page.progress.retractionsDois": {
-    "message": "جارٍ فحص {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفًا من نوع DOI} other {# معرّف DOI}} بحثًا عن عمليات سحب…",
+    "message": "جارٍ فحص {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفَ DOI} other {# معرّف DOI}} بحثًا عن عمليات سحب…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} for retractions…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Standardized many form to clean idafa '# معرّفَ DOI'"
   },
   "page.progress.retractionsRefs": {
     "message": "جارٍ فحص {count, plural, zero {المراجع} one {مرجع واحد} two {مرجعين} few {# مراجع} many {# مرجعًا} other {# مرجع}} بحثًا عن عمليات سحب…",
@@ -547,12 +547,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "جارٍ التحقق من صلاحية {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفًا من نوع DOI} other {# معرّف DOI}}…",
+    "message": "جارٍ التحقق من صلاحية {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفَ DOI} other {# معرّف DOI}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'resolve' rendered صلاحية (validity); check meaning"
+    "reviewReason": "Standardized many form to clean idafa '# معرّفَ DOI'"
   },
   "page.refs.comments": {
     "message": "{count, plural, zero {لا توجد تعليقات} one {تعليق واحد} two {تعليقان} few {# تعليقات} many {# تعليقًا} other {# تعليق}}",
@@ -586,12 +586,12 @@
     "reviewReason": "Short tag plurals; zero 'لا تكرارات' terse"
   },
   "page.refs.reproductionsTag": {
-    "message": "{count, plural, zero {لا إعادة إنتاج} one {إعادة إنتاج واحدة} two {إعادتا إنتاج} few {# عمليات إعادة إنتاج} many {# عمليةَ إعادة إنتاج} other {# عملية إعادة إنتاج}}",
+    "message": "{count, plural, zero {لا إعادة إنتاج} one {عملية إعادة إنتاج واحدة} two {عمليتا إعادة إنتاج} few {# عمليات إعادة إنتاج} many {# عمليةَ إعادة إنتاج} other {# عملية إعادة إنتاج}}",
     "source": "{count, plural, one {# Reproduction} other {# Reproductions}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Dual 'إعادتا إنتاج' unusual; check forms"
+    "reviewReason": "Standardized one/two forms with 'عملية/عمليتا إعادة إنتاج'"
   },
   "page.refs.showFewer": {
     "message": "عرض عدد أقل من المراجع",
@@ -813,12 +813,12 @@
     "reviewReason": "Retraction check statement; check 'مقارنةً ب'"
   },
   "page.sheets.summaryFound": {
-    "message": "{count, plural, zero {لم يُعثر على بيانات التكرار وإعادة الإنتاج لأي <strong>معرّف DOI</strong> في هذا الجدول.} one {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong>معرّف DOI واحد</strong> في هذا الجدول.} two {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong>معرّفَي DOI</strong> في هذا الجدول.} few {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong># معرّفات DOI</strong> في هذا الجدول.} many {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong># معرّفًا من نوع DOI</strong> في هذا الجدول.} other {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong># معرّف DOI</strong> في هذا الجدول.}}",
+    "message": "{count, plural, zero {لم يُعثر على بيانات التكرار وإعادة الإنتاج لأي <strong>معرّف DOI</strong> في هذا الجدول.} one {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong>معرّف DOI واحد</strong> في هذا الجدول.} two {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong>معرّفَي DOI</strong> في هذا الجدول.} few {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong># معرّفات DOI</strong> في هذا الجدول.} many {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong># معرّفَ DOI</strong> في هذا الجدول.} other {تم العثور على بيانات التكرار وإعادة الإنتاج لـ<strong># معرّف DOI</strong> في هذا الجدول.}}",
     "source": "Found replication &amp; reproduction data for <strong>{count, plural, one {# DOI} other {# DOIs}}</strong> in this spreadsheet.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Standardized many form to clean idafa '# معرّفَ DOI'"
   },
   "page.sheets.unavailable": {
     "message": "تعذّر تحميل الجدول بالكامل.",
@@ -894,12 +894,12 @@
     "review": 1
   },
   "page.unavailable.several": {
-    "message": "{list} غير متاحة.",
+    "message": "الخدمات التالية غير متاحة: {list}.",
     "source": "{list} are unavailable.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Feminine agreement may not fit every list"
+    "reviewReason": "Prefixed with 'الخدمات التالية' for reliable feminine agreement matching search.retry.unavailable"
   },
   "page.unavailable.title": {
     "message": "تعذّر تحميل بعض عمليات الفحص في ORE",
@@ -939,20 +939,20 @@
     "reviewReason": "Retraction status; masculine مسحوب agreement with paper"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "فتح تفاصيل البحث للمعرّف {doi}: {notice, select, concern {بيان قلق} other {مسحوب}}، {count, plural, zero {لا توجد دراسات تكرار أو إعادة إنتاج} one {دراسة تكرار أو إعادة إنتاج واحدة} two {دراستا تكرار أو إعادة إنتاج} few {# دراسات تكرار أو إعادة إنتاج} many {# دراسةً للتكرار أو إعادة الإنتاج} other {# دراسة تكرار أو إعادة إنتاج}}. يُرجى الضغط على Enter لمزيد من التفاصيل.",
+    "message": "فتح تفاصيل البحث للمعرّف {doi}: {notice, select, concern {بيان قلق} other {مسحوب}}، {count, plural, zero {لا توجد دراسات تكرار أو إعادة إنتاج} one {دراسة تكرار أو إعادة إنتاج واحدة} two {دراستا تكرار أو إعادة إنتاج} few {# دراسات تكرار أو إعادة إنتاج} many {# دراسةَ تكرار أو إعادة إنتاج} other {# دراسة تكرار أو إعادة إنتاج}}. يُرجى الضغط على Enter لمزيد من التفاصيل.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Retraction plus study counts; check plurals and agreement"
+    "reviewReason": "Retraction plus study counts; standardized many form to match other branches"
   },
   "pill.aria.studies": {
-    "message": "فتح تفاصيل البحث للمعرّف {doi}: {count, plural, zero {لا توجد دراسات تكرار أو إعادة إنتاج} one {دراسة تكرار أو إعادة إنتاج واحدة} two {دراستا تكرار أو إعادة إنتاج} few {# دراسات تكرار أو إعادة إنتاج} many {# دراسةً للتكرار أو إعادة الإنتاج} other {# دراسة تكرار أو إعادة إنتاج}}. يُرجى الضغط على Enter لمزيد من التفاصيل.",
+    "message": "فتح تفاصيل البحث للمعرّف {doi}: {count, plural, zero {لا توجد دراسات تكرار أو إعادة إنتاج} one {دراسة تكرار أو إعادة إنتاج واحدة} two {دراستا تكرار أو إعادة إنتاج} few {# دراسات تكرار أو إعادة إنتاج} many {# دراسةَ تكرار أو إعادة إنتاج} other {# دراسة تكرار أو إعادة إنتاج}}. يُرجى الضغط على Enter لمزيد من التفاصيل.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Plural forms; many form phrased differently"
+    "reviewReason": "Standardized many form to match other plural branches"
   },
   "pill.cite.copiedToast": {
     "message": "تم نسخ الاستشهاد بنمط {style}",
@@ -1020,12 +1020,12 @@
     "review": 1
   },
   "pill.cite.noneToast": {
-    "message": "لا يتوفر استشهاد بنمط {style} لهذا المعرّف DOI",
+    "message": "لا يتوفر استشهاد بنمط {style} لمعرّف DOI هذا",
     "source": "No {style} citation available for this DOI",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'لهذا المعرّف DOI' word order awkward"
+    "reviewReason": "Fixed demonstrative word order to 'لمعرّف DOI هذا'"
   },
   "pill.cite.unavailable": {
     "message": "الاستشهاد غير متاح",
@@ -1114,12 +1114,12 @@
     "reviewReason": "Evidence status label; quick check"
   },
   "pill.marker.empty": {
-    "message": "لم يُعثر على أدلة تكرار أو تعليقات على PubPeer.",
+    "message": "لم يُعثر على بيانات تكرار أو تعليقات على PubPeer.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence statement; 'أدلة تكرار' wording"
+    "reviewReason": "Evidence statement; replaced 'أدلة تكرار' with neutral 'بيانات تكرار'"
   },
   "pill.marker.inProgress": {
     "message": "عمليات الفحص جارية.",
@@ -1332,10 +1332,10 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "فتح تفاصيل البحث للمعرّف {doi}",
+    "message": "تفاصيل البحث للمعرّف {doi}",
     "source": "Open research details for {doi}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "pill.provenance.matchedByTitle": {
@@ -1406,12 +1406,12 @@
     "review": 1
   },
   "pill.pubpeer.rateLimited": {
-    "message": "تم تجاوز حد الطلبات. يُرجى إعادة المحاولة بعد {seconds, plural, zero {لحظات} one {ثانية واحدة} two {ثانيتين} few {# ثوانٍ} many {# ثانيةً} other {# ثانية}}",
+    "message": "تم تجاوز حد الطلبات. يُرجى إعادة المحاولة بعد {seconds, plural, zero {أقل من ثانية} one {ثانية واحدة} two {ثانيتين} few {# ثوانٍ} many {# ثانيةً} other {# ثانية}}",
     "source": "Rate limited — try again in {seconds, plural, one {# second} other {# seconds}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Plural forms; zero 'لحظات' check"
+    "reviewReason": "Aligned zero branch to 'أقل من ثانية' for consistency with other time plurals"
   },
   "pill.pubpeer.rateLimitedShort": {
     "message": "تجاوز حد الطلبات",
@@ -1625,12 +1625,12 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "{count, plural, zero {فتح تفاصيل البحث} one {فتح تفاصيل البحث لورقة واحدة} two {فتح تفاصيل البحث لورقتين} few {فتح تفاصيل البحث لـ# أوراق} many {فتح تفاصيل البحث لـ# ورقةً} other {فتح تفاصيل البحث لـ# ورقة}}",
+    "message": "{count, plural, zero {تفاصيل البحث} one {تفاصيل البحث لورقة واحدة} two {تفاصيل البحث لورقتين} few {تفاصيل البحث لـ# أوراق} many {تفاصيل البحث لـ# ورقةً} other {تفاصيل البحث لـ# ورقة}}",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Aligned popover accessible name to noun form without 'فتح'"
   },
   "pill.stack.position": {
     "message": "الورقة {index} من {total}",
@@ -1711,12 +1711,12 @@
     "review": 1
   },
   "popup.debug.offerCopyLog": {
-    "message": "عرض خيار «نسخ السجل» بعد كل جولة فحص",
+    "message": "عرض خيار «نسخ السجل» بعد كل عملية فحص",
     "source": "Offer \"Copy log\" after each pass",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'pass' as جولة conflicts with tour term"
+    "reviewReason": "Replaced 'جولة فحص' with 'عملية فحص' to avoid clashing with glossary 'tour'"
   },
   "popup.debug.toggle": {
     "message": "وضع التصحيح",
@@ -2300,12 +2300,12 @@
     "review": 1
   },
   "progress.toast.dismiss": {
-    "message": "تجاهل",
+    "message": "إغلاق",
     "source": "Dismiss",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "تجاهل may read as imperative; check"
+    "reviewReason": "Replaced masculine-reading 'تجاهل' with neutral verbal noun 'إغلاق'"
   },
   "progress.toast.doneIn": {
     "message": "اكتمل خلال {duration}",
@@ -2350,12 +2350,12 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "أدلة التكرار نقطة انطلاق لتكوين الرأي، وليست حكمًا نهائيًا.",
+    "message": "بيانات التكرار نقطة انطلاق لتكوين الرأي، وليست حكمًا نهائيًا.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Statement about what replication evidence means"
+    "reviewReason": "Statement about replication data; replaced 'أدلة التكرار' with 'بيانات التكرار'"
   },
   "report.colophon.compiled": {
     "message": "أعدّه <a href=\"{url}\">FORRT ORE</a> بتاريخ {date} استنادًا إلى FORRT Replication Database وRetraction Watch وUnpaywall وPubPeer.",
@@ -2471,12 +2471,12 @@
     "reviewReason": "Count-less label forms; check fit under number"
   },
   "report.stat.reproductions": {
-    "message": "{count, plural, zero {عمليات إعادة إنتاج} one {إعادة إنتاج} two {عمليتا إعادة إنتاج} few {عمليات إعادة إنتاج} many {عمليةَ إعادة إنتاج} other {عملية إعادة إنتاج}}",
+    "message": "{count, plural, zero {عمليات إعادة إنتاج} one {عملية إعادة إنتاج} two {عمليتا إعادة إنتاج} few {عمليات إعادة إنتاج} many {عمليةَ إعادة إنتاج} other {عملية إعادة إنتاج}}",
     "source": "{count, plural, one {Reproduction} other {Reproductions}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Count-less label; one form lacks عملية"
+    "reviewReason": "Added 'عملية' to one form for consistency across plural branches"
   },
   "report.tag.concern": {
     "message": "بيان قلق",
@@ -2509,12 +2509,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "report.tag.reproductions": {
-    "message": "{count, plural, zero {لا توجد عمليات إعادة إنتاج} one {إعادة إنتاج واحدة} two {عمليتا إعادة إنتاج} few {# عمليات إعادة إنتاج} many {# عمليةَ إعادة إنتاج} other {# عملية إعادة إنتاج}}",
+    "message": "{count, plural, zero {لا توجد عمليات إعادة إنتاج} one {عملية إعادة إنتاج واحدة} two {عمليتا إعادة إنتاج} few {# عمليات إعادة إنتاج} many {# عمليةَ إعادة إنتاج} other {# عملية إعادة إنتاج}}",
     "source": "{count, plural, one {# reproduction} other {# reproductions}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "One form lacks عملية unlike others"
+    "reviewReason": "Added 'عملية' to one form for consistency across plural branches"
   },
   "report.tag.retracted": {
     "message": "مسحوب",
@@ -2619,20 +2619,20 @@
     "reviewReason": "'Augmenting' as استكمال بيانات; check"
   },
   "search.stage.checkingDois": {
-    "message": "جارٍ التحقق من صلاحية {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفًا من نوع DOI} other {# معرّف DOI}}…",
+    "message": "جارٍ التحقق من صلاحية {count, plural, zero {معرّفات DOI} one {معرّف DOI واحد} two {معرّفَي DOI} few {# معرّفات DOI} many {# معرّفَ DOI} other {# معرّف DOI}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'resolve' rendered صلاحية (validity); check meaning"
+    "reviewReason": "Standardized many form to clean idafa '# معرّفَ DOI'"
   },
   "search.stage.lookingUp": {
-    "message": "{count, plural, zero {لم يُعثر على أي معرّف DOI فريد} one {تم العثور على معرّف DOI فريد واحد، وجارٍ البحث عنه…} two {تم العثور على معرّفَي DOI فريدين، وجارٍ البحث عنهما…} few {تم العثور على # معرّفات DOI فريدة، وجارٍ البحث عنها…} many {تم العثور على # معرّفًا فريدًا من نوع DOI، وجارٍ البحث عنها…} other {تم العثور على # معرّف DOI فريد، وجارٍ البحث عنها…}}",
+    "message": "{count, plural, zero {لم يُعثر على أي معرّف DOI فريد} one {تم العثور على معرّف DOI فريد واحد، وجارٍ البحث عنه…} two {تم العثور على معرّفَي DOI فريدين، وجارٍ البحث عنهما…} few {تم العثور على # معرّفات DOI فريدة، وجارٍ البحث عنها…} many {تم العثور على # معرّفَ DOI فريدًا، وجارٍ البحث عنها…} other {تم العثور على # معرّف DOI فريد، وجارٍ البحث عنها…}}",
     "source": "Found {count, plural, one {# unique DOI} other {# unique DOIs}} — looking them up…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Plural forms with pronoun agreement; check"
+    "reviewReason": "Standardized many form to clean idafa '# معرّفَ DOI فريدًا'"
   },
   "search.stage.markingUp": {
     "message": "جارٍ وضع العلامات على {count, plural, zero {النتائج} one {نتيجة واحدة} two {نتيجتين} few {# نتائج} many {# نتيجةً} other {# نتيجة}}…",
@@ -2787,12 +2787,12 @@
     "review": 1
   },
   "settings.cache.title": {
-    "message": "حد تخزين ذاكرة التخزين المؤقت",
+    "message": "حد ذاكرة التخزين المؤقت",
     "source": "Cache Storage Limit",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Redundant تخزين twice; check wording"
+    "reviewReason": "Removed redundant 'تخزين'"
   },
   "settings.cache.unlimited": {
     "message": "تمت إزالة حد التخزين، وأصبحت ذاكرة التخزين المؤقت غير محدودة.",
@@ -3068,12 +3068,12 @@
     "review": 1
   },
   "settings.data.workerUnreachable": {
-    "message": "تعذّر الاتصال بالعامل الخلفي في ORE. يُرجى إعادة المحاولة.",
+    "message": "تعذّر الاتصال بالخدمة الخلفية في ORE. يُرجى إعادة المحاولة.",
     "source": "Couldn't reach ORE's background worker — try again.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'العامل الخلفي' technical term; check"
+    "reviewReason": "Replaced literal 'العامل الخلفي' with natural 'الخدمة الخلفية'"
   },
   "settings.debug.attachFailed": {
     "message": "تعذّر إرفاق التقرير. تم نسخه إلى الحافظة، ويُرجى لصقه في البلاغ.",
@@ -3146,12 +3146,12 @@
     "review": 1
   },
   "settings.debug.intro": {
-    "message": "عند ملاحظة خلل ما، يُرجى إعادة إنتاج المشكلة ثم الإبلاغ عنها. يضيف ORE سجل التحذيرات والأخطاء إلى نموذج GitHub، ويمكن قراءة السجل أدناه قبل الإرسال. يحتفظ وضع التصحيح بسجل أكثر تفصيلًا.",
+    "message": "عند ملاحظة خلل ما، يُرجى تكرار حدوث المشكلة ثم الإبلاغ عنها. يضيف ORE سجل التحذيرات والأخطاء إلى نموذج GitHub، ويمكن قراءة السجل أدناه قبل الإرسال. يحتفظ وضع التصحيح بسجل أكثر تفصيلًا.",
     "source": "If something looks wrong, reproduce the problem, then report it. ORE adds its log of warnings and errors to the GitHub form, and you can read the log below before sending. Debug mode keeps a more detailed log.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'إعادة إنتاج المشكلة' clashes with reproduction term"
+    "reviewReason": "Replaced 'إعادة إنتاج المشكلة' to avoid clashing with glossary 'reproduction'"
   },
   "settings.debug.logPrivacy": {
     "message": "لا يُضمَّن البريد الإلكتروني أبدًا. يُرجى قراءة التقرير أدناه قبل مشاركته، فبلاغات GitHub علنية.",
@@ -3191,12 +3191,12 @@
     "review": 1
   },
   "settings.debug.opening": {
-    "message": "جارٍ فتح بلاغ على GitHub مع ملء التقرير.",
+    "message": "جارٍ فتح بلاغ على GitHub يتضمن التقرير.",
     "source": "Opening a GitHub issue with the report filled in.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'مع ملء التقرير' slightly awkward"
+    "reviewReason": "Replaced awkward 'مع ملء التقرير' with 'يتضمن التقرير'"
   },
   "settings.debug.previewLabel": {
     "message": "معاينة تقرير التصحيح",
@@ -3220,12 +3220,12 @@
     "review": 1
   },
   "settings.debug.report": {
-    "message": "الإبلاغ عن مشكلة مع هذا السجل",
+    "message": "الإبلاغ عن مشكلة وإرفاق هذا السجل",
     "source": "Report an issue with this log",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'مع هذا السجل' ambiguous attachment"
+    "reviewReason": "Clarified log attachment phrasing"
   },
   "settings.debug.title": {
     "message": "وضع التصحيح وبلاغات المشكلات",
@@ -3249,12 +3249,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "يُحدَّد هنا كيف يعرض ORE الأدلة على الأوراق المقروءة. يتيح البريد الإلكتروني مطابقة العناوين بمعرّفات DOI والبحث عن نسخ الوصول المفتوح، أما عمليات الفحص الأخرى المعتمدة على DOI فتعمل من دونه.",
+    "message": "يُحدَّد هنا كيف يعرض ORE بيانات البحث على الأوراق المقروءة. يتيح البريد الإلكتروني مطابقة العناوين بمعرّفات DOI والبحث عن نسخ الوصول المفتوح، أما عمليات الفحص الأخرى المعتمدة على DOI فتعمل من دونه.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Email data-use claim; check phrasing"
+    "reviewReason": "Email data-use claim; replaced 'الأدلة' with neutral 'بيانات البحث'"
   },
   "settings.email.label": {
     "message": "البريد الإلكتروني",
@@ -3563,12 +3563,12 @@
     "review": 1
   },
   "sites.add.placeholder": {
-    "message": "الموقع المراد تشغيله، مثل journals.example.org",
+    "message": "الموقع المراد تشغيل ORE عليه، مثل journals.example.org",
     "source": "Site to turn on, e.g. journals.example.org",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'الموقع المراد تشغيله' says turning the site on"
+    "reviewReason": "Clarified placeholder so it refers to running ORE on the site"
   },
   "sites.category.count": {
     "message": "{on} من {total}",
@@ -4340,12 +4340,12 @@
     "review": 1
   },
   "walkthrough.pill.board.nothingText": {
-    "message": "كلها باهتة: يؤدي فتحها إلى التأكد من اكتمال جميع عمليات البحث",
+    "message": "كلها باهتة: يمكن فتحها للتحقق من اكتمال جميع عمليات البحث",
     "source": "All faded: open it to check every lookup finished",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Awkward causal construction; check meaning"
+    "reviewReason": "Replaced awkward causal phrasing with clear instructional wording"
   },
   "walkthrough.pill.board.open": {
     "message": "مفتوحة",
@@ -4362,12 +4362,12 @@
     "review": 1
   },
   "walkthrough.pill.doi.text": {
-    "message": "نسخ DOI أو مرجع منسّق، أو فتح الورقة. ويعني الخط المنقّط أسفله أنه طوبق بالعنوان.",
+    "message": "نسخ DOI أو مرجع منسّق، أو فتح الورقة. ويعني الخط المنقّط أسفله أنه تمت مطابقته بالعنوان.",
     "source": "Copy the DOI or a formatted reference, or open the paper. A dotted underline means it was matched by title.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'طوبق' rare passive form; check"
+    "reviewReason": "Replaced rare passive 'طوبق' with 'تمت مطابقته'"
   },
   "walkthrough.pill.doi.title": {
     "message": "DOI: هوية الورقة",
@@ -4499,12 +4499,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "قاعدة بيانات مجانية يديرها مجتمع FORRT، تضم دراسات في العلوم الاجتماعية والسلوكية سعت إلى تكرار نتائج سابقة أو إعادة إنتاجها، أيًّا كانت النتيجة، وما توصلت إليه. وكل عدد للتكرارات في ORE مصدره هذه القاعدة ويرتبط بالأدلة.",
+    "message": "قاعدة بيانات مجانية يديرها مجتمع FORRT، تضم دراسات في العلوم الاجتماعية والسلوكية سعت إلى تكرار نتائج سابقة أو إعادة إنتاجها، أيًّا كانت النتيجة، وما توصلت إليه. وكل عدد للتكرارات في ORE مصدره هذه القاعدة ويرتبط بالدراسات المعنية.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Describes evidence database scope and outcomes"
+    "reviewReason": "Describes evidence database scope; replaced 'بالأدلة' with neutral 'بالدراسات المعنية'"
   },
   "walkthrough.report.atlas.title": {
     "message": "ما هو <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a>",
@@ -4702,12 +4702,12 @@
     "reviewReason": "Default-sites description; check"
   },
   "walkthrough.setup.sites.title": {
-    "message": "أين يعمل ORE؟",
+    "message": "أين ينبغي أن يعمل ORE؟",
     "source": "Where should ORE run?",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Where should' became 'where does'"
+    "reviewReason": "Preserved 'should' modality in heading"
   },
   "walkthrough.setup.title": {
     "message": "إعداد ORE",
@@ -4920,11 +4920,11 @@
     "review": 1
   },
   "walkthrough.welcome.title": {
-    "message": "معرفة ما هو معروف عن الورقة أثناء قراءتها",
+    "message": "الاطلاع على ما هو معروف عن الورقة أثناء قراءتها",
     "source": "See what is known about a paper while you read",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Verbal-noun title; check tone"
+    "reviewReason": "Removed repetitive 'معرفة ... معروف' root echo while keeping gender-neutral verbal noun"
   }
 }

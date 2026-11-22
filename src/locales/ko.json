@@ -1,11 +1,11 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: 전체 문서를 새로고침할 수 없어요. 보고서는 마지막으로 성공한 검사 결과를 유지하므로 최근 수정 사항이 빠져 있을 수 있어요. 자동으로 다시 시도하고 있어요.",
+    "message": "ORE: 전체 문서를 새로고침할 수 없어요. 보고서에는 마지막으로 성공한 검사 결과가 그대로 표시되므로 최근 수정 사항이 반영되지 않았을 수 있어요. 자동으로 다시 시도하고 있어요.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long status message; check flow of 검사 결과를 유지"
+    "reviewReason": "Long status message; replaced literal '검사 결과를 유지' with natural phrasing"
   },
   "editor.docs.scanUnavailable": {
     "message": "ORE: 전체 문서를 검사할 수 없어요. 화면에 보이는 페이지만 확인했어요. 자동으로 다시 시도하고 있어요.",
@@ -73,12 +73,12 @@
     "review": 1
   },
   "notice.feedback.decline": {
-    "message": "괜찮아요",
+    "message": "아니요, 괜찮아요",
     "source": "No thanks",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "괜찮아요 is ambiguous (yes/no); maybe 다음에요"
+    "reviewReason": "Disambiguated decline button from ambiguous '괜찮아요'"
   },
   "notice.feedback.message": {
     "message": "잘 되는 점과 아쉬운 점에 대해 1분만 의견을 주시면 ORE 개선에 큰 도움이 돼요.",
@@ -224,12 +224,12 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "message": "Excel은 화면에 보이는 행만 그리기 때문에 ORE도 그 행만 확인해요. 나머지도 확인하려면 시트를 스크롤하세요.",
+    "message": "Excel은 화면에 보이는 행만 표시하기 때문에 ORE도 그 행만 확인해요. 나머지도 확인하려면 시트를 스크롤하세요.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Explanation plus instruction; check 그리기 wording"
+    "reviewReason": "Replaced literal '그리기' with natural '표시하기'"
   },
   "page.list.and": {
     "message": "{first} 및 {last}",
@@ -512,10 +512,10 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.resolvingRefs": {
-    "message": "DOI가 없는 참고문헌을 확인하는 중…",
+    "message": "DOI가 없는 참고문헌의 DOI를 찾는 중…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.progress.retractionsDois": {
@@ -728,12 +728,12 @@
     "reviewReason": "Headline as full sentence; noun form may suit better"
   },
   "page.sheets.headlineRetracted": {
-    "message": "이 시트에 {count, plural, one {철회된 논문 #편} other {철회된 논문 #편}}",
+    "message": "이 시트에 {count, plural, one {철회된 논문 #편} other {철회된 논문 #편}}이 있어요",
     "source": "{count, plural, one {# retracted paper} other {# retracted papers}} in this sheet",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Fragment lacks predicate (있어요); reads unfinished"
+    "reviewReason": "Completed unfinished headline fragment with predicate"
   },
   "page.sheets.hide": {
     "message": "이 시트에서 숨기기",
@@ -971,20 +971,20 @@
     "review": 1
   },
   "pill.cite.copyFormatted": {
-    "message": "이 참고문헌을 서식을 포함한 {style} 형식으로 복사 — 스타일은 ORE 설정에서 바꿀 수 있어요",
+    "message": "서식을 포함해 이 참고문헌을 {style} 형식으로 복사해요. 스타일은 ORE 설정에서 바꿀 수 있어요",
     "source": "Copy this reference in {style}, formatting included — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Mixes noun-form fragment with 해요체 clause; awkward order"
+    "reviewReason": "Unified register to consistent 해요체"
   },
   "pill.cite.copyVerbatim": {
-    "message": "이 참고문헌을 {style} 형식으로 복사 — 형식은 ORE 설정에서 바꿀 수 있어요",
+    "message": "이 참고문헌을 {style} 형식으로 복사해요. 형식은 ORE 설정에서 바꿀 수 있어요",
     "source": "Copy this reference as {style} — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Mixed fragment/sentence structure; check flow"
+    "reviewReason": "Unified register to consistent 해요체"
   },
   "pill.cite.fetchFailedToast": {
     "message": "인용을 가져올 수 없어요",
@@ -1100,12 +1100,12 @@
     "review": 1
   },
   "pill.marker.empty": {
-    "message": "반복 연구 근거나 PubPeer 댓글을 찾지 못했어요.",
+    "message": "반복 연구 데이터나 PubPeer 댓글을 찾지 못했어요.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Evidence statement; check 반복 연구 근거 wording"
+    "reviewReason": "Evidence statement; replaced '근거' with neutral '데이터'"
   },
   "pill.marker.inProgress": {
     "message": "확인 중이에요.",
@@ -1236,12 +1236,12 @@
     "review": 1
   },
   "pill.oa.notConfirmed": {
-    "message": "오픈 액세스 확인되지 않음",
+    "message": "오픈 액세스로 확인되지 않음",
     "source": "Not confirmed open access",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Word order; 오픈 액세스로 확인되지 않음 clearer"
+    "reviewReason": "Clarified phrasing to '오픈 액세스로 확인되지 않음'"
   },
   "pill.oa.notIndexed": {
     "message": "Unpaywall에 색인되지 않음",
@@ -1312,10 +1312,10 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "{doi}의 연구 정보 열기",
+    "message": "{doi}의 연구 정보",
     "source": "Open research details for {doi}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "pill.provenance.matchedByTitle": {
@@ -1480,20 +1480,20 @@
     "review": 1
   },
   "pill.rr.listed": {
-    "message": "Registered Report로 등록됨",
+    "message": "Registered Report로 등재됨",
     "source": "Listed as a Registered Report",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "등록됨 may read as preregistered rather than listed"
+    "reviewReason": "Replaced '등록됨' with '등재됨' to avoid confusion with preregistration"
   },
   "pill.rr.listedShort": {
-    "message": "등록됨",
+    "message": "등재됨",
     "source": "Listed",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "등록됨 may read as preregistered rather than listed"
+    "reviewReason": "Replaced '등록됨' with '등재됨' to avoid confusion with preregistration"
   },
   "pill.rr.notListed": {
     "message": "Registered Reports 데이터베이스에 없음",
@@ -1604,12 +1604,12 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "{count, plural, one {논문 #편} other {논문 #편}}의 연구 정보 열기",
+    "message": "{count, plural, one {논문 #편} other {논문 #편}}의 연구 정보",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Has number or variant forms"
+    "reviewReason": "Aligned popover accessible name to noun form without '열기'"
   },
   "pill.stack.position": {
     "message": "논문 {index}/{total}",
@@ -2082,12 +2082,12 @@
     "reviewReason": "Instruction to report via Settings; check phrasing"
   },
   "popup.status.stillBlocked": {
-    "message": "차단된 상위 도메인이나 사이트 분류 때문에 {domain}이(가) 여전히 꺼져 있어요. 설정에서 수정하세요",
+    "message": "차단된 상위 도메인이나 사이트 분류 때문에 {domain}에서는 ORE가 여전히 꺼져 있어요. 설정에서 변경하세요",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instruction; check 사이트 분류 and 이(가)"
+    "reviewReason": "Removed '이(가)' and clarified ORE remains off on the domain"
   },
   "popup.status.unblocked": {
     "message": "{domain} 차단 해제됨 — 적용하려면 새로고침하세요",
@@ -2318,12 +2318,12 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "반복 연구 근거는 판단의 출발점일 뿐, 최종 판정이 아니에요.",
+    "message": "반복 연구 데이터는 판단의 출발점일 뿐, 최종 판정이 아니에요.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Key statement on how to interpret replication evidence"
+    "reviewReason": "Key statement on interpreting replication data; replaced '근거' with '데이터'"
   },
   "report.colophon.compiled": {
     "message": "{date}에 <a href=\"{url}\">FORRT ORE</a>가 FORRT Replication Database, Retraction Watch, Unpaywall, PubPeer의 데이터로 작성했어요.",
@@ -2758,12 +2758,12 @@
     "review": 1
   },
   "settings.cache.unlimited": {
-    "message": "저장 용량 제한을 없앴어요. 캐시 용량에 제한이 없어요.",
+    "message": "저장 용량 제한을 해제했어요. 이제 캐시를 무제한으로 사용해요.",
     "source": "Storage limit removed — cache is unlimited.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Repetitive 제한 phrasing"
+    "reviewReason": "Removed repetitive '제한' phrasing"
   },
   "settings.citation.eyebrow": {
     "message": "인용 복사",
@@ -2802,12 +2802,12 @@
     "review": 1
   },
   "settings.citation.sourceText": {
-    "message": "인용 정보는 <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a>에서 가져오며, 실패하면 doi.org를 사용해요. 요청할 때만 가져오며, 아래 예시도 그런 요청 중 하나예요.",
+    "message": "인용 정보는 <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a>에서 가져오며, 실패하면 doi.org를 대신 사용해요. 요청할 때만 불러오며, 아래 예시도 그런 요청 중 하나예요.",
     "source": "Citations come from <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a>, with doi.org as a fallback, and are fetched only when you ask for one. The sample below is one such request.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Data-request claim; repeated 가져오며 is clunky"
+    "reviewReason": "Data-request claim; removed repeated '가져오며'"
   },
   "settings.citation.title": {
     "message": "인용 스타일",
@@ -3033,12 +3033,12 @@
     "review": 1
   },
   "settings.data.workerUnreachable": {
-    "message": "ORE 백그라운드 작업자에 연결할 수 없어요. 다시 시도하세요.",
+    "message": "ORE 백그라운드 서비스에 연결할 수 없어요. 다시 시도하세요.",
     "source": "Couldn't reach ORE's background worker — try again.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "작업자 is a literal rendering of background worker"
+    "reviewReason": "Replaced literal '작업자' with '서비스'"
   },
   "settings.debug.attachFailed": {
     "message": "보고서를 첨부할 수 없어요. 클립보드에 복사되어 있으니 이슈에 붙여 넣으세요.",
@@ -3111,12 +3111,12 @@
     "review": 1
   },
   "settings.debug.intro": {
-    "message": "문제가 있어 보이면 문제를 재현한 다음 신고하세요. ORE가 경고와 오류 로그를 GitHub 양식에 추가하며, 보내기 전에 아래에서 로그를 읽어 볼 수 있어요. 디버그 모드에서는 더 자세한 로그가 기록돼요.",
+    "message": "이상이 있어 보이면 해당 문제를 재현한 다음 신고하세요. ORE가 경고와 오류 로그를 GitHub 양식에 추가하며, 보내기 전에 아래에서 로그를 읽어 볼 수 있어요. 디버그 모드에서는 더 자세한 로그가 기록돼요.",
     "source": "If something looks wrong, reproduce the problem, then report it. ORE adds its log of warnings and errors to the GitHub form, and you can read the log below before sending. Debug mode keeps a more detailed log.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Reporting steps; repeated 문제 slightly stiff"
+    "reviewReason": "Reporting steps; removed repeated '문제'"
   },
   "settings.debug.logPrivacy": {
     "message": "이메일 주소는 절대 포함되지 않아요. GitHub 이슈는 공개되므로 공유하기 전에 아래 보고서를 읽어 보세요.",
@@ -3213,12 +3213,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "읽는 논문에 ORE가 근거를 어떻게 표시할지 선택하세요. 이메일이 있으면 제목으로 DOI를 찾는 기능과 오픈 액세스 조회를 사용할 수 있어요. 다른 DOI 기반 확인은 이메일 없이도 작동해요.",
+    "message": "읽는 논문에 ORE가 연구 정보를 어떻게 표시할지 선택하세요. 이메일이 있으면 제목으로 DOI를 찾는 기능과 오픈 액세스 조회를 사용할 수 있어요. 다른 DOI 기반 확인은 이메일 없이도 작동해요.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Explains what email enables; check accuracy"
+    "reviewReason": "Explains what email enables; replaced '근거' with neutral '연구 정보'"
   },
   "settings.email.label": {
     "message": "이메일",
@@ -4092,12 +4092,12 @@
     "review": 1
   },
   "walkthrough.done.text": {
-    "message": "설정이 완료되었어요. 이제 사용을 시작하세요. 웹을 탐색하는 동안 ORE가 알아서 논문을 확인해요.",
+    "message": "설정이 완료되었어요. 이제 바로 사용할 수 있어요. 웹을 탐색하는 동안 ORE가 알아서 논문을 확인해요.",
     "source": "Setup is complete. Start using the plugin: ORE will check papers by itself as you browse.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check tone of 사용을 시작하세요"
+    "reviewReason": "Softened stiff '사용을 시작하세요' to natural 해요체"
   },
   "walkthrough.done.title": {
     "message": "준비가 끝났어요",
@@ -4310,12 +4310,12 @@
     "review": 1
   },
   "walkthrough.pill.board.openText": {
-    "message": "부분마다 한 행씩, 각 행은 링크 또는 동작",
+    "message": "항목마다 한 행씩, 각 행은 링크 또는 동작",
     "source": "One row per part, each a link or an action",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "부분마다 for 'per part' is vague"
+    "reviewReason": "Replaced vague '부분마다' with '항목마다'"
   },
   "walkthrough.pill.doi.text": {
     "message": "DOI나 서식이 적용된 참고문헌을 복사하거나 논문을 열 수 있어요. 점선 밑줄은 제목으로 일치시켰다는 뜻이에요.",
@@ -4363,12 +4363,12 @@
     "reviewReason": "Explains coloured/faded meaning; check clarity"
   },
   "walkthrough.pill.pubpeer.text": {
-    "message": "PubPeer는 연구자들이 출판된 논문에 댓글을 다는 사이트로, 주로 문제를 지적하는 데 쓰여요. 숫자는 댓글 수이고, 이 행을 누르면 스레드가 열려요.",
+    "message": "PubPeer는 연구자들이 출판된 논문에 댓글을 다는 사이트로, 문제점을 지적하는 경우가 많아요. 숫자는 댓글 수이고, 이 행을 누르면 스레드가 열려요.",
     "source": "PubPeer is a site where researchers comment on published papers, often to point out problems. The number is the comment count; the row opens the thread.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Describes PubPeer purpose; check nuance of 주로"
+    "reviewReason": "Replaced '주로' (mainly) with '경우가 많아요' (often) to match source nuance"
   },
   "walkthrough.pill.pubpeer.title": {
     "message": "PubPeer — 연구자들이 논의하고 있어요",
@@ -4451,12 +4451,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "FORRT 커뮤니티가 운영하는 무료 데이터베이스예요. 사회과학 및 행동과학 분야에서 이전 연구 결과를 반복하거나 재현하려 한 연구를 결과와 관계없이 모으고, 각 연구가 무엇을 발견했는지 기록해요. ORE의 모든 반복 연구 수는 이 데이터베이스에서 가져오며 근거 자료로 연결돼요.",
+    "message": "FORRT 커뮤니티가 운영하는 무료 데이터베이스예요. 사회과학 및 행동과학 분야에서 이전 연구 결과를 반복하거나 재현하려 한 연구를 결과와 관계없이 모으고, 각 연구가 무엇을 발견했는지 기록해요. ORE의 모든 반복 연구 수는 이 데이터베이스에서 가져오며 관련 자료로 연결돼요.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Replaced '근거 자료' with neutral '관련 자료'"
   },
   "walkthrough.report.atlas.title": {
     "message": "<a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a>란?",
@@ -4527,12 +4527,12 @@
     "review": 1
   },
   "walkthrough.search.dotted.text": {
-    "message": "두 논문의 제목이 거의 같을 수 있어요. 일치 결과가 잘못되었다면 패널의 다른 모든 내용도 엉뚱한 논문에 대한 것이에요. DOI를 한 번 열어 확인하세요.",
+    "message": "두 논문의 제목이 거의 같을 수 있어요. 일치 결과가 잘못되었다면 패널의 다른 모든 내용도 다른 논문에 대한 것이에요. DOI를 한 번 열어 확인하세요.",
     "source": "Two papers can have almost the same title. If the match is wrong, everything else in the panel describes the wrong paper. Open the DOI once to confirm.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "엉뚱한 slightly colloquial; instruction to verify"
+    "reviewReason": "Replaced colloquial '엉뚱한' with neutral '다른'"
   },
   "walkthrough.search.dotted.title": {
     "message": "점선 DOI는 신뢰하기 전에 확인하세요",
@@ -4665,12 +4665,12 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "읽기 목록이나 문헌 고찰 대상 연구처럼 DOI가 담긴 스프레드시트를 Google Sheets나 Excel Online에서 여세요. Google Sheets에서는 아직 스크롤하지 않은 행을 포함해 탭의 모든 DOI를 확인해요. Excel Online은 화면에 보이는 행만 그리기 때문에 ORE도 그 행만 확인해요. 나머지도 확인하려면 스크롤하세요. 결과는 팝업에 표시돼요.",
+    "message": "읽기 목록이나 문헌 고찰 대상 연구처럼 DOI가 담긴 스프레드시트를 Google Sheets나 Excel Online에서 여세요. Google Sheets에서는 아직 스크롤하지 않은 행을 포함해 탭의 모든 DOI를 확인해요. Excel Online은 화면에 보이는 행만 표시하기 때문에 ORE도 그 행만 확인해요. 나머지도 확인하려면 스크롤하세요. 결과는 팝업에 표시돼요.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instructions; check flow"
+    "reviewReason": "Long instructions; replaced literal '그리기' with '표시하기'"
   },
   "walkthrough.sheets.docs.text": {
     "message": "DOI가 있는 각 참고문헌에 작은 표시가 붙어요. 표시를 열면 배지와 같은 세부 정보를 볼 수 있어요.",

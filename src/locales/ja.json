@@ -239,20 +239,20 @@
     "reviewReason": "'and' rendered as comma; check list joining"
   },
   "page.notice.viewConcern": {
-    "message": "懸念表明の通知を表示",
+    "message": "懸念表明の告知を表示",
     "source": "View the expression-of-concern notice",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Notice as 通知; check research usage"
+    "reviewReason": "Replaced 通知 with publishing term 告知 for journal notice"
   },
   "page.notice.viewRetraction": {
-    "message": "撤回の通知を表示",
+    "message": "撤回告知を表示",
     "source": "View the retraction notice",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Notice as 通知; check research usage"
+    "reviewReason": "Replaced 通知 with publishing term 告知 for retraction notice"
   },
   "page.panel.articleFallback": {
     "message": "論文",
@@ -304,28 +304,28 @@
     "review": 1
   },
   "page.panel.fewerOriginals": {
-    "message": "元の研究の表示を減らす",
+    "message": "元の研究を折りたたむ",
     "source": "Show fewer original papers",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "表示を減らす slightly literal"
+    "reviewReason": "Replaced literal 表示を減らす with idiomatic 折りたたむ"
   },
   "page.panel.fewerReplications": {
-    "message": "追試の表示を減らす",
+    "message": "追試を折りたたむ",
     "source": "Show fewer replications",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "表示を減らす slightly literal"
+    "reviewReason": "Replaced literal 表示を減らす with idiomatic 折りたたむ"
   },
   "page.panel.fewerReproductions": {
-    "message": "再現の表示を減らす",
+    "message": "再現を折りたたむ",
     "source": "Show fewer reproductions",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "表示を減らす slightly literal"
+    "reviewReason": "Replaced literal 表示を減らす with idiomatic 折りたたむ"
   },
   "page.panel.freePdf": {
     "message": "Unpaywall で無料の PDF を入手可能",
@@ -517,12 +517,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.resolvingRefs": {
-    "message": "DOI のない参考文献を特定しています…",
+    "message": "DOI のない参考文献の DOI を検索しています…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Technical progress wording; check naturalness"
+    "reviewReason": "Clarified progress message to state DOI lookup for references without a DOI"
   },
   "page.progress.retractionsDois": {
     "message": "{count, plural, one {# 件の DOI} other {# 件の DOI}} について撤回の有無を確認しています…",
@@ -548,12 +548,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "{count, plural, one {# 件の DOI} other {# 件の DOI}} が解決できるか確認しています…",
+    "message": "{count, plural, one {# 件の DOI} other {# 件の DOI}} が有効か確認しています…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Technical progress wording; check naturalness"
+    "reviewReason": "Replaced literal 解決できるか with natural 有効か確認しています"
   },
   "page.refs.comments": {
     "message": "{count, plural, one {コメント # 件} other {コメント # 件}}",
@@ -595,12 +595,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.refs.showFewer": {
-    "message": "参考文献の表示を減らす",
+    "message": "参考文献を折りたたむ",
     "source": "Show fewer references",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "表示を減らす slightly literal"
+    "reviewReason": "Replaced literal 表示を減らす with idiomatic 折りたたむ"
   },
   "page.refs.showMore": {
     "message": "{count, plural, one {参考文献をさらに # 件表示} other {参考文献をさらに # 件表示}}",
@@ -758,12 +758,12 @@
     "review": 1
   },
   "page.sheets.notice": {
-    "message": "通知 ↗",
+    "message": "告知 ↗",
     "source": "Notice ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Notice as 通知; check research usage"
+    "reviewReason": "Replaced 通知 with publishing term 告知"
   },
   "page.sheets.noticesHeading": {
     "message": "撤回または疑義のある論文",
@@ -1110,12 +1110,12 @@
     "reviewReason": "Short status label; check tone"
   },
   "pill.marker.empty": {
-    "message": "追試のエビデンスや PubPeer のコメントは見つかりませんでした。",
+    "message": "追試データや PubPeer のコメントは見つかりませんでした。",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence statement; check エビデンス wording"
+    "reviewReason": "Evidence statement; replaced エビデンス with neutral 追試データ"
   },
   "pill.marker.inProgress": {
     "message": "チェック中です。",
@@ -1193,12 +1193,12 @@
     "review": 1
   },
   "pill.notice.view": {
-    "message": "通知を表示",
+    "message": "告知を表示",
     "source": "View notice",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Notice as 通知; check research usage"
+    "reviewReason": "Replaced 通知 with publishing term 告知"
   },
   "pill.oa.checkingTooltip": {
     "message": "オープンアクセス版を確認しています…",
@@ -1259,20 +1259,20 @@
     "reviewReason": "Check phrasing of not confirmed"
   },
   "pill.oa.notIndexed": {
-    "message": "Unpaywall に未登録",
+    "message": "Unpaywall に未収録",
     "source": "Not indexed by Unpaywall",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "indexed as 登録; consider 収録"
+    "reviewReason": "Standardized indexed term to 未収録 (consistent with Registered Reports)"
   },
   "pill.oa.notIndexedShort": {
-    "message": "未登録",
+    "message": "未収録",
     "source": "Not indexed",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "indexed as 登録; consider 収録"
+    "reviewReason": "Standardized indexed term to 未収録 (consistent with Registered Reports)"
   },
   "pill.oa.title": {
     "message": "オープンアクセス",
@@ -1282,12 +1282,12 @@
     "review": 1
   },
   "pill.oa.version.accepted": {
-    "message": "受理版",
+    "message": "著者最終稿",
     "source": "accepted",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Version term; check common usage (著者最終稿?)"
+    "reviewReason": "Updated to standard Japanese OA/JPCOAR term 著者最終稿"
   },
   "pill.oa.version.published": {
     "message": "出版社版",
@@ -1411,12 +1411,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "制限中",
+    "message": "上限到達",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "制限中 terse; check meaning clear"
+    "reviewReason": "Replaced terse 制限中 with 上限到達 so rate-limit state is clear"
   },
   "pill.pubpeer.unavailableTooltip": {
     "message": "PubPeer の状況を取得できません",
@@ -1625,12 +1625,12 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "{count, plural, one {論文 # 件} other {論文 # 件}}の研究詳細を開く",
+    "message": "{count, plural, one {論文 # 件} other {論文 # 件}}の研究詳細",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Has number or variant forms"
+    "reviewReason": "Aligned popover accessible name to noun form matching pill.popover.label"
   },
   "pill.stack.position": {
     "message": "論文 {index} / {total}",
@@ -1690,12 +1690,12 @@
     "review": 1
   },
   "popup.debug.chip": {
-    "message": "デバッグ オン",
+    "message": "デバッグオン",
     "source": "Debug on",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Space inside デバッグ オン unusual"
+    "reviewReason": "Removed unusual space between katakana words"
   },
   "popup.debug.hintOff": {
     "message": "各ページで ORE の進行状況を表示し、問題報告に詳細なログを追加します。",
@@ -1826,12 +1826,12 @@
     "review": 1
   },
   "popup.findings.othersReplications": {
-    "message": "追試研究あり {count} 件",
+    "message": "追試あり {count} 件",
     "source": "{count} with replication studies",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "追試研究 vs agreed term 追試"
+    "reviewReason": "Aligned to glossary term 追試"
   },
   "popup.findings.othersRetracted": {
     "message": "撤回済み {count} 件",
@@ -1857,12 +1857,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "popup.findings.replications": {
-    "message": "{count, plural, one {追試研究 # 件} other {追試研究 # 件}}",
+    "message": "{count, plural, one {追試 # 件} other {追試 # 件}}",
     "source": "{count, plural, one {# replication study} other {# replication studies}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "追試研究 vs agreed term 追試"
+    "reviewReason": "Aligned to glossary term 追試"
   },
   "popup.findings.reproductions": {
     "message": "{count, plural, one {再現 # 件} other {再現 # 件}}",
@@ -2078,12 +2078,12 @@
     "review": 1
   },
   "popup.status.restored": {
-    "message": "ORE を元に戻しました",
+    "message": "ORE を再表示しました",
     "source": "ORE restored",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check meaning of status wording"
+    "reviewReason": "Clarified restored UI status as 再表示しました"
   },
   "popup.status.resumed": {
     "message": "{domain} で再開しました。反映するには再読み込みしてください",
@@ -2301,20 +2301,20 @@
     "review": 1
   },
   "progress.toast.doneIn": {
-    "message": "{duration}で完了",
+    "message": "{duration} で完了",
     "source": "Done in {duration}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check placeholder insertion and spacing"
+    "reviewReason": "Added half-width space after placeholder per Japanese spacing rules"
   },
   "progress.toast.settling": {
-    "message": "仕上げています…",
+    "message": "最終処理中…",
     "source": "Finishing up…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "仕上げています odd; consider 最終処理中"
+    "reviewReason": "Replaced awkward 仕上げています… with 最終処理中…"
   },
   "pubpeer.comment.anonymous": {
     "message": "匿名",
@@ -2345,12 +2345,12 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "追試のエビデンスは判断の出発点であり、結論ではありません。",
+    "message": "追試データは判断の出発点であり、結論ではありません。",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence caveat: starting point, not verdict"
+    "reviewReason": "Evidence caveat; replaced エビデンス with neutral 追試データ"
   },
   "report.colophon.compiled": {
     "message": "{date} に FORRT Replication Database、Retraction Watch、Unpaywall、PubPeer のデータをもとに <a href=\"{url}\">FORRT ORE</a> が作成しました。",
@@ -2369,12 +2369,12 @@
     "reviewReason": "Evidence statement on article status"
   },
   "report.notice.read": {
-    "message": "通知を読む ↗",
+    "message": "告知を読む ↗",
     "source": "Read the notice ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Notice as 通知; check research usage"
+    "reviewReason": "Replaced 通知 with publishing term 告知"
   },
   "report.notice.retracted": {
     "message": "この論文は撤回されています。",
@@ -2407,12 +2407,12 @@
     "review": 1
   },
   "report.pdf.readNotice": {
-    "message": "通知を読む",
+    "message": "告知を読む",
     "source": "Read the notice",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Notice as 通知; check research usage"
+    "reviewReason": "Replaced 通知 with publishing term 告知"
   },
   "report.section.flaggedRefs": {
     "message": "フラグ付きの参考文献",
@@ -2618,12 +2618,12 @@
     "reviewReason": "Technical progress wording; check naturalness"
   },
   "search.stage.checkingDois": {
-    "message": "{count, plural, one {# 件の DOI} other {# 件の DOI}} が解決できるか確認しています…",
+    "message": "{count, plural, one {# 件の DOI} other {# 件の DOI}} が有効か確認しています…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Technical progress wording; check naturalness"
+    "reviewReason": "Replaced literal 解決できるか with natural 有効か確認しています"
   },
   "search.stage.lookingUp": {
     "message": "{count, plural, one {重複のない DOI # 件} other {重複のない DOI # 件}}が見つかりました。照会しています…",
@@ -2658,12 +2658,12 @@
     "reviewReason": "Technical progress wording; check naturalness"
   },
   "settings.blocklist.add": {
-    "message": "サイトでオフにする",
+    "message": "指定サイトでオフにする",
     "source": "Turn off for site",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Button wording slightly vague"
+    "reviewReason": "Clarified button wording to 指定サイトでオフにする"
   },
   "settings.blocklist.already": {
     "message": "{domain} はすでにブロックされています。",
@@ -3072,12 +3072,12 @@
     "review": 1
   },
   "settings.debug.attachFailed": {
-    "message": "レポートを添付できませんでした。レポートはクリップボードにコピーされているため、issue に貼り付けてください。",
+    "message": "レポートを添付できませんでした。レポートはクリップボードにコピーされているため、問題報告（Issue）に貼り付けてください。",
     "source": "Couldn't attach the report — it's on your clipboard, paste it into the issue.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "issue left in English; check"
+    "reviewReason": "Clarified and capitalized GitHub Issue wording"
   },
   "settings.debug.clear": {
     "message": "ログを消去",
@@ -3129,12 +3129,12 @@
     "review": 1
   },
   "settings.debug.downloaded": {
-    "message": "レポートをダウンロードしました。ファイルを issue に添付してください。",
+    "message": "レポートをダウンロードしました。ファイルを問題報告（Issue）に添付してください。",
     "source": "Report downloaded — attach the file to your issue.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "issue left in English; check"
+    "reviewReason": "Clarified and capitalized GitHub Issue wording"
   },
   "settings.debug.eyebrow": {
     "message": "トラブルシューティング",
@@ -3152,20 +3152,20 @@
     "reviewReason": "Data-handling instructions for issue logs"
   },
   "settings.debug.logPrivacy": {
-    "message": "メールアドレスが含まれることはありません。GitHub の issue は公開されるため、共有する前に下のレポートを確認してください。",
+    "message": "メールアドレスが含まれることはありません。GitHub の Issue は公開されるため、共有する前に下のレポートを確認してください。",
     "source": "Your email address is never included. Read the report below before you share it — a GitHub issue is public.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Privacy claims about log contents and sending"
+    "reviewReason": "Privacy claims about log contents and sending; capitalized Issue"
   },
   "settings.debug.logText": {
-    "message": "ログには、ORE が照会した内容（閲覧したページで見つかった DOI、API の結果、エラー）が記録されます。レポートに名前が記載されるのは報告元のサイトのみで、その他のページは「page&nbsp;1」「page&nbsp;2」のように表示され、リンクは削除されます。7 日以上前のエントリーは削除されます。ログはこのコンピューターに保存され、ログを添えて issue を作成することを選ぶまで<strong>どこにも送信されません</strong>。また、GitHub 自体のボタンを押すまで何も送信されません。",
+    "message": "ログには、ORE が照会した内容（閲覧したページで見つかった DOI、API の結果、エラー）が記録されます。レポートに名前が記載されるのは報告元のサイトのみで、その他のページは「page&nbsp;1」「page&nbsp;2」のように表示され、リンクは削除されます。7 日以上前のエントリーは削除されます。ログはこのコンピューターに保存され、ログを添えて Issue を作成することを選ぶまで<strong>どこにも送信されません</strong>。また、GitHub 自体のボタンを押すまで何も送信されません。",
     "source": "The log records what ORE looked up: DOIs found on the pages you visit, API outcomes and any errors. A report names only the site you report from; other pages appear as “page&nbsp;1”, “page&nbsp;2” and their links are removed. Entries older than seven days are deleted. The log stays on this computer and is <strong>never sent anywhere</strong> until you choose to open an issue with it — and nothing is submitted until you press GitHub's own button.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Privacy claims about log contents and sending"
+    "reviewReason": "Privacy claims about log contents and sending; capitalized Issue"
   },
   "settings.debug.logTitle": {
     "message": "ログの内容",
@@ -3189,12 +3189,12 @@
     "review": 1
   },
   "settings.debug.opening": {
-    "message": "レポートを入力した状態で GitHub の issue を開いています。",
+    "message": "レポートを入力した状態で GitHub の Issue を開いています。",
     "source": "Opening a GitHub issue with the report filled in.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "issue left in English; check"
+    "reviewReason": "Capitalized GitHub Issue consistently"
   },
   "settings.debug.previewLabel": {
     "message": "デバッグレポートのプレビュー",
@@ -3246,12 +3246,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "閲覧する論文に ORE がエビデンスをどのように表示するかを選択してください。メールアドレスを設定すると、タイトルから DOI への照合とオープンアクセスの検索が有効になります。その他の DOI に基づくチェックは、メールアドレスがなくても機能します。",
+    "message": "閲覧する論文に ORE が研究情報をどのように表示するかを選択してください。メールアドレスを設定すると、タイトルから DOI への照合とオープンアクセスの検索が有効になります。その他の DOI に基づくチェックは、メールアドレスがなくても機能します。",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Privacy claim about where email is sent"
+    "reviewReason": "Privacy claim about where email is sent; replaced エビデンス with neutral 研究情報"
   },
   "settings.email.label": {
     "message": "メールアドレス",
@@ -3537,12 +3537,12 @@
     "review": 1
   },
   "sites.add.button": {
-    "message": "サイトでオンにする",
+    "message": "指定サイトでオンにする",
     "source": "Turn on for site",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Button wording slightly vague"
+    "reviewReason": "Clarified button wording to 指定サイトでオンにする"
   },
   "sites.add.failed": {
     "message": "{domain} を追加できませんでした。もう一度お試しください。",
@@ -3882,12 +3882,12 @@
     "review": 1
   },
   "tour.notice.concernText": {
-    "message": "学術誌が未解決の問題を指摘しています。警告を開くと、学術誌の通知を読めます。",
+    "message": "学術誌が未解決の問題を指摘しています。警告を開くと、学術誌の告知を読めます。",
     "source": "The journal has flagged a problem that is not yet resolved. Open the warning to read the journal's notice.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence statement on article status"
+    "reviewReason": "Evidence statement on article status; replaced 通知 with 告知"
   },
   "tour.notice.concernTitle": {
     "message": "この論文には懸念表明が出されています",
@@ -3898,12 +3898,12 @@
     "reviewReason": "Evidence statement on article status"
   },
   "tour.notice.retractedText": {
-    "message": "この論文は取り下げられました。通常、重大な誤りや研究不正が理由です。警告を開くと、学術誌の通知を読めます。",
+    "message": "この論文は取り下げられました。通常、重大な誤りや研究不正が理由です。警告を開くと、学術誌の告知を読めます。",
     "source": "It was withdrawn, usually because of serious errors or misconduct. Open the warning to read the journal's notice.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence statement on article status"
+    "reviewReason": "Evidence statement on article status; replaced 通知 with 告知"
   },
   "tour.notice.retractedTitle": {
     "message": "この論文は撤回されています",
@@ -4303,12 +4303,12 @@
     "reviewReason": "Heading wording; check nuance"
   },
   "walkthrough.notices.where": {
-    "message": "どちらの場合も、バッジの末尾に警告が追加され、メタレポートにも表示されます。どちらも学術誌の通知にリンクしているため、理由を確認できます。データは Retraction Watch から取得しています。",
+    "message": "どちらの場合も、バッジの末尾に警告が追加され、メタレポートにも表示されます。どちらも学術誌の告知にリンクしているため、理由を確認できます。データは Retraction Watch から取得しています。",
     "source": "Either one adds a warning to the end of the pill and appears in the Meta Report. Both link to the journal's notice, so you can read the reason. The data comes from Retraction Watch.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Walkthrough explanation; check flow"
+    "reviewReason": "Walkthrough explanation; replaced 通知 with 告知"
   },
   "walkthrough.pageTitle": {
     "message": "FORRT ORE：仕組み",
@@ -4501,12 +4501,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "FORRT コミュニティが運営する無料のデータベースで、社会科学・行動科学において過去の知見の追試や再現を試みた研究を、成否にかかわらず、その結果とともに収録しています。ORE の追試の件数はすべてこのデータベースに基づいており、エビデンスへのリンクが付いています。",
+    "message": "FORRT コミュニティが運営する無料のデータベースで、社会科学・行動科学において過去の知見の追試や再現を試みた研究を、成否にかかわらず、その結果とともに収録しています。ORE の追試の件数はすべてこのデータベースに基づいており、関連研究へのリンクが付いています。",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Replaced エビデンスへのリンク with neutral 関連研究へのリンク"
   },
   "walkthrough.report.atlas.title": {
     "message": "<a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a> とは",
@@ -4761,12 +4761,12 @@
     "review": 1
   },
   "walkthrough.sheets.retracted": {
-    "message": "<strong>撤回済みの論文は最初に表示され</strong>、それぞれに通知へのリンクが付きます。ほかに何も見つからなかった場合でも、撤回済みの論文があればポップアップが表示されます。",
+    "message": "<strong>撤回済みの論文は最初に表示され</strong>、それぞれに告知へのリンクが付きます。ほかに何も見つからなかった場合でも、撤回済みの論文があればポップアップが表示されます。",
     "source": "<strong>Retracted papers are listed first</strong>, each with a link to its notice, and the popup appears for them even if nothing else was found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Walkthrough explanation; check flow"
+    "reviewReason": "Walkthrough explanation; replaced 通知 with 告知"
   },
   "walkthrough.sheets.tabs.text": {
     "message": "シートタブはそれぞれ個別にチェックされます。あるタブでポップアップを閉じても、ほかのタブには影響しません。",

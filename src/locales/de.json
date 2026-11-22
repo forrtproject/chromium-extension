@@ -8,12 +8,12 @@
     "reviewReason": "Retaining a scan sounds unnatural; clarify that previous results remain."
   },
   "editor.docs.scanUnavailable": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "ORE: Scan des gesamten Dokuments nicht verfügbar. Es wurden nur sichtbare Seiten geprüft. Automatischer neuer Versuch läuft.",
+    "by": "ai-review",
+    "message": "ORE: Prüfung des gesamten Dokuments nicht verfügbar. Es wurden nur sichtbare Seiten geprüft. Es wird automatisch erneut versucht.",
     "source": "ORE: Full-document scan unavailable. Only visible pages have been checked. Retrying automatically.",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check scan terminology and automatic retry phrasing."
+    "reviewReason": "Revised in AI review (replaced 'Scan' with 'Prüfung' and smoothed retry phrasing); please check."
   },
   "editor.title.googleDocFallback": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -448,12 +448,12 @@
     "review": 1
   },
   "page.progress.augmentingRefs": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count, plural, one {# Literaturangabe ohne DOI wird} other {# Literaturangaben ohne DOI werden}} ergänzt…",
+    "by": "ai-review",
+    "message": "{count, plural, one {Für # Literaturangabe ohne DOI wird eine DOI gesucht…} other {Für # Literaturangaben ohne DOI werden DOIs gesucht…}}",
     "source": "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check whether ergänzt clearly describes reference metadata enrichment."
+    "reviewReason": "Revised in AI review (clarified DOI lookup instead of vague 'ergänzt'); please check."
   },
   "page.progress.exportingSheet": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -478,28 +478,28 @@
     "review": 1
   },
   "page.progress.lookingUpArticle": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Dieser Artikel wird nachgeschlagen…",
+    "by": "ai-review",
+    "message": "Daten zu diesem Artikel werden abgefragt…",
     "source": "Looking up this article…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Nachgeschlagen may sound awkward for an automated article lookup."
+    "reviewReason": "Revised in AI review (replaced 'nachgeschlagen' with database query phrasing); please check."
   },
   "page.progress.lookupDois": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count, plural, one {# DOI wird} other {# DOIs werden}} in FLoRA nachgeschlagen…",
+    "by": "ai-review",
+    "message": "{count, plural, one {# DOI wird} other {# DOIs werden}} in FLoRA abgefragt…",
     "source": "Looking up {count, plural, one {# DOI} other {# DOIs}} in FLoRA…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check nachgeschlagen for natural database lookup terminology."
+    "reviewReason": "Revised in AI review (replaced 'nachgeschlagen' with 'abgefragt'); please check."
   },
   "page.progress.lookupRefs": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count, plural, one {# Literaturangabe wird} other {# Literaturangaben werden}} in FLoRA nachgeschlagen…",
+    "by": "ai-review",
+    "message": "{count, plural, one {# Literaturangabe wird} other {# Literaturangaben werden}} in FLoRA abgefragt…",
     "source": "Looking up {count, plural, one {# reference} other {# references}} in FLoRA…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check nachgeschlagen for natural database lookup terminology."
+    "reviewReason": "Revised in AI review (replaced 'nachgeschlagen' with 'abgefragt'); please check."
   },
   "page.progress.markingUp": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -556,12 +556,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count, plural, one {# DOI wird} other {# DOIs werden}} auf Auflösbarkeit geprüft…",
+    "by": "ai-review",
+    "message": "{count, plural, one {# DOI wird} other {# DOIs werden}} auf Gültigkeit geprüft…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Auflösbarkeit is technical; check clarity for general users."
+    "reviewReason": "Revised in AI review (replaced technical 'Auflösbarkeit' with 'Gültigkeit'); please check."
   },
   "page.refs.comments": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -713,12 +713,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.setup.title": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Optionale E-Mail-Einrichtung",
+    "by": "ai-review",
+    "message": "E-Mail-Adresse angeben (optional)",
     "source": "Optional email setup",
     "status": "machine",
     "review": 2,
-    "reviewReason": "E-Mail-Einrichtung may suggest configuring email rather than supplying an address."
+    "reviewReason": "Revised in AI review (avoided 'E-Mail-Einrichtung'); please check."
   },
   "page.sheets.goToRow": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1088,12 +1088,12 @@
     "review": 1
   },
   "pill.forrt.checking": {
-    "by": "codex-review",
-    "message": "FORRT wird geprüft…",
+    "by": "ai-review",
+    "message": "FORRT wird abgefragt…",
     "source": "Checking FORRT…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Could suggest auditing FORRT rather than querying it."
+    "reviewReason": "Revised in AI review (clarified querying FORRT rather than auditing it); please check."
   },
   "pill.forrt.unavailable": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1372,8 +1372,8 @@
     "reviewReason": "Verification instruction; Erstautorenschaft may obscure the author matching criterion."
   },
   "pill.pubpeer.checkingTooltip": {
-    "by": "codex-review",
-    "message": "PubPeer wird geprüft…",
+    "by": "ai-review",
+    "message": "PubPeer wird abgefragt…",
     "source": "Checking PubPeer…",
     "status": "machine",
     "review": 1
@@ -1711,12 +1711,12 @@
     "review": 1
   },
   "popup.debug.chip": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Debug an",
+    "by": "ai-review",
+    "message": "Debug aktiv",
     "source": "Debug on",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Debug an sounds clipped; check naturalness as a status chip."
+    "reviewReason": "Revised in AI review ('Debug aktiv' for natural status chip); please check."
   },
   "popup.debug.hintOff": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1793,12 +1793,12 @@
     "review": 1
   },
   "popup.findings.checkingCount": {
-    "by": "codex-review",
-    "message": "{count} werden geprüft…",
+    "by": "ai-review",
+    "message": "Prüfung läuft ({count})…",
     "source": "Checking {count}…",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Plural verb werden is incorrect when count equals one."
+    "reviewReason": "Revised in AI review (number-neutral phrasing to avoid singular/plural verb mismatch); please check."
   },
   "popup.findings.checkingProgress": {
     "by": "codex-review",
@@ -1816,36 +1816,36 @@
     "reviewReason": "Scientific warning status; verify untranslated terminology is appropriate."
   },
   "popup.findings.label": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Befunde auf dieser Seite",
+    "by": "ai-review",
+    "message": "Hinweise auf dieser Seite",
     "source": "Findings on this page",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Befunde may imply scientific results rather than extension detections."
+    "reviewReason": "Revised in AI review (replaced 'Befunde' with 'Hinweise' for extension detections); please check."
   },
   "popup.findings.none": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "keine Befunde",
+    "by": "ai-review",
+    "message": "keine Hinweise",
     "source": "no findings",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Befunde may imply absence of scientific results rather than detections."
+    "reviewReason": "Revised in AI review (replaced 'Befunde' with 'Hinweise' for extension detections); please check."
   },
   "popup.findings.originals": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Repliziert {count, plural, one {# Originalstudie} other {# Originalstudien}}",
+    "by": "ai-review",
+    "message": "Replikation von {count, plural, one {# Originalstudie} other {# Originalstudien}}",
     "source": "Replicates {count, plural, one {# original study} other {# original studies}}",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Scientific replication relationship; wording could imply successful replication."
+    "reviewReason": "Revised in AI review (noun phrase avoids implying successful replication); please check."
   },
   "popup.findings.othersConcern": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count} mit einer Expression of Concern",
+    "by": "ai-review",
+    "message": "{count} mit Expression of Concern",
     "source": "{count} with an expression of concern",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Scientific warning status; verify terminology and mixed-language phrasing."
+    "reviewReason": "Revised in AI review (dropped singular 'einer' so wording fits plural counts); verify scientific terminology."
   },
   "popup.findings.othersPubpeer": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1945,12 +1945,12 @@
     "review": 1
   },
   "popup.findings.withFindings": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count} mit Befunden",
+    "by": "ai-review",
+    "message": "{count} mit Hinweisen",
     "source": "{count} with findings",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Befunde may imply scientific results rather than extension detections."
+    "reviewReason": "Revised in AI review (replaced 'Befunde' with 'Hinweise' for extension detections); please check."
   },
   "popup.footerLabel": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2089,20 +2089,20 @@
     "review": 1
   },
   "popup.status.logNotAttached": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Protokoll konnte nicht angehängt werden – es ist in den Einstellungen abrufbar",
+    "by": "ai-review",
+    "message": "Protokoll konnte nicht angehängt werden – in den Einstellungen abrufen",
     "source": "Couldn't attach the log — grab it from Settings",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Recovery instruction becomes availability statement; verify required retrieval remains clear."
+    "reviewReason": "Revised in AI review (restored clear infinitive instruction); please check."
   },
   "popup.status.nothingOnPage": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Nichts von ORE auf dieser Seite",
+    "by": "ai-review",
+    "message": "Keine ORE-Elemente auf dieser Seite",
     "source": "Nothing from ORE on this page",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Literal phrasing sounds vague; check naturalness and intended status meaning."
+    "reviewReason": "Revised in AI review (clarified status message); please check."
   },
   "popup.status.reportFailed": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2119,12 +2119,12 @@
     "review": 1
   },
   "popup.status.resumed": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Auf {domain} fortgesetzt – zum Anwenden neu laden",
+    "by": "ai-review",
+    "message": "Auf {domain} fortgesetzt – zum Anwenden Seite neu laden",
     "source": "Resumed on {domain} — reload to apply",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Reload instruction must clearly convey when the change takes effect."
+    "reviewReason": "Revised in AI review (aligned reload phrasing with blockedReload/unblocked); please check."
   },
   "popup.status.sampleFailed": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2134,20 +2134,20 @@
     "review": 1
   },
   "popup.status.startFailed": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "ORE konnte nicht gestartet werden – zum Melden siehe Einstellungen",
+    "by": "ai-review",
+    "message": "ORE konnte nicht gestartet werden – Fehler in den Einstellungen melden",
     "source": "ORE couldn't start — see Settings to report it",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Reporting instruction uses awkward phrasing and unclear navigation."
+    "reviewReason": "Revised in AI review (clearer infinitive reporting instruction); please check."
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} bleibt weiterhin deaktiviert, da eine übergeordnete Domain oder eine Website-Kategorie blockiert ist – Bearbeitung in den Einstellungen",
+    "message": "{domain} bleibt deaktiviert, da eine übergeordnete Domain oder eine Website-Kategorie blockiert ist – Blockierung in den Einstellungen ändern",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "anthropic/claude-sonnet-5.5",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Ambiguous editing target; nominalized instruction may obscure the required action."
+    "reviewReason": "Revised in AI review (replaced nominalized ending with infinitive instruction and clear target); please check."
   },
   "popup.status.unblocked": {
     "message": "{domain} freigegeben – zum Anwenden Seite neu laden",
@@ -2165,12 +2165,12 @@
     "review": 1
   },
   "popup.tourHelp.checkingText": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Die Tour startet, sobald ORE fertig ist.",
+    "by": "ai-review",
+    "message": "Die Tour startet, sobald ORE mit der Prüfung fertig ist.",
     "source": "The tour starts as soon as ORE has finished.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "English leaves unspecified what ORE must finish; translation preserves ambiguity."
+    "reviewReason": "Revised in AI review (clarified what ORE must finish); please check."
   },
   "popup.tourHelp.checkingTitle": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2180,12 +2180,12 @@
     "review": 1
   },
   "popup.tourHelp.noPillsText": {
-    "by": "codex-review",
-    "message": "Die Tour erklärt die Markierungen von ORE. Sie lässt sich an einem Beispielartikel ausprobieren (öffnet sich in einem neuen Tab).",
+    "by": "ai-review",
+    "message": "Die Tour erklärt die Markierungen von ORE. Sie lässt sich an einem Beispielartikel ausprobieren (der Artikel öffnet sich in einem neuen Tab).",
     "source": "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
     "status": "machine",
     "review": 3,
-    "reviewReason": "New-tab parenthetical ambiguously refers to the tour rather than article."
+    "reviewReason": "Revised in AI review (clarified that the sample article opens in a new tab); please check."
   },
   "popup.tourHelp.noPillsTitle": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2224,12 +2224,12 @@
     "review": 1
   },
   "popup.tourHelp.pausedText": {
-    "by": "codex-review",
-    "message": "ORE ist hier ausgeblendet, pausiert oder deaktiviert. Oben wieder aktivieren oder einen Beispielartikel öffnen.",
+    "by": "ai-review",
+    "message": "ORE ist hier ausgeblendet, pausiert oder ausgeschaltet. Oben wieder einschalten oder einen Beispielartikel öffnen.",
     "source": "It's hidden, snoozed or turned off here. Turn it back on above, or try a sample article.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Recovery instructions conflate hidden, snoozed, and disabled states."
+    "reviewReason": "Revised in AI review (aligned 'ausgeschaltet'/'einschalten' with popup controls); please check."
   },
   "popup.tourHelp.pausedTitle": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2246,20 +2246,20 @@
     "review": 1
   },
   "popup.tourHelp.unavailableText": {
-    "by": "codex-review",
-    "message": "Die Tour an einem Beispielartikel ausprobieren (öffnet sich in einem neuen Tab).",
+    "by": "ai-review",
+    "message": "Die Tour an einem Beispielartikel ausprobieren (der Artikel öffnet sich in einem neuen Tab).",
     "source": "Try the tour on a sample article (opens in a new tab).",
     "status": "machine",
     "review": 3,
-    "reviewReason": "New-tab parenthetical has an unclear referent in this instruction."
+    "reviewReason": "Revised in AI review (clarified that the sample article opens in a new tab); please check."
   },
   "popup.tourHelp.unavailableTitle": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "ORE funktioniert nicht auf Browserseiten",
+    "by": "ai-review",
+    "message": "ORE funktioniert nicht auf internen Browserseiten",
     "source": "ORE can't run on browser pages",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check whether Browserseiten clearly means internal browser pages."
+    "reviewReason": "Revised in AI review (clarified internal browser pages); please check."
   },
   "popup.tourPage": {
     "by": "codex-review",
@@ -2344,12 +2344,12 @@
     "review": 1
   },
   "progress.toast.doneIn": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Fertig in {duration}",
+    "by": "ai-review",
+    "message": "Fertig nach {duration}",
     "source": "Done in {duration}",
     "status": "machine",
     "review": 3,
-    "reviewReason": "German can suggest future completion rather than elapsed processing time."
+    "reviewReason": "Revised in AI review ('nach' instead of 'in' so duration reads as elapsed time, not ETA); please check."
   },
   "progress.toast.settling": {
     "by": "codex-review",
@@ -2366,12 +2366,12 @@
     "review": 1
   },
   "pubpeer.comment.authorResponse": {
-    "by": "codex-review",
-    "message": "Antwort der Autorenschaft",
+    "by": "ai-review",
+    "message": "Antwort der Autorinnen und Autoren",
     "source": "Author response",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Collective wording may imply all authors rather than one commenting author."
+    "reviewReason": "Revised in AI review (paired forms per style guide instead of abstract 'Autorenschaft'); check badge length."
   },
   "pubpeer.comment.editorResponse": {
     "by": "codex-review",
@@ -2389,20 +2389,20 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Belege aus Replikationen sind ein Ausgangspunkt für die eigene Beurteilung, kein endgültiges Urteil.",
+    "by": "ai-review",
+    "message": "Replikationsergebnisse sind ein Ausgangspunkt für die Beurteilung, kein Urteil.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Interprets replication evidence; adds personal judgement and finality qualifiers."
+    "reviewReason": "Revised in AI review (replaced 'Belege aus Replikationen' and removed added qualifiers); please check."
   },
   "report.colophon.compiled": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Erstellt von <a href=\"{url}\">FORRT ORE</a> am {date} aus der FORRT Replication Database, Retraction Watch, Unpaywall und PubPeer.",
+    "by": "ai-review",
+    "message": "Erstellt von <a href=\"{url}\">FORRT ORE</a> am {date} mit Daten aus der FORRT Replication Database sowie von Retraction Watch, Unpaywall und PubPeer.",
     "source": "Compiled by <a href=\"{url}\">FORRT ORE</a> on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Source attribution phrasing deserves a naturalness check."
+    "reviewReason": "Revised in AI review (fixed article agreement across named sources); please check."
   },
   "report.notice.concern": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2428,12 +2428,12 @@
     "reviewReason": "Retraction status requires careful review against required English terminology."
   },
   "report.pdf.compiled": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Erstellt von FORRT ORE am {date} aus der FORRT Replication Database, Retraction Watch, Unpaywall und PubPeer.",
+    "by": "ai-review",
+    "message": "Erstellt von FORRT ORE am {date} mit Daten aus der FORRT Replication Database sowie von Retraction Watch, Unpaywall und PubPeer.",
     "source": "Compiled by FORRT ORE on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Source attribution phrasing deserves a naturalness check."
+    "reviewReason": "Revised in AI review (fixed article agreement across named sources); please check."
   },
   "report.pdf.docTitle": {
     "by": "codex-review",
@@ -2657,28 +2657,28 @@
     "reviewReason": "Single list item Prüfungen auf Retractions requires plural verb agreement."
   },
   "search.stage.augmenting": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count, plural, one {# Ergebnis ohne DOI wird} other {# Ergebnisse ohne DOI werden}} ergänzt…",
+    "by": "ai-review",
+    "message": "{count, plural, one {Für # Ergebnis ohne DOI wird eine DOI gesucht…} other {Für # Ergebnisse ohne DOI werden DOIs gesucht…}}",
     "source": "Augmenting {count, plural, one {# result} other {# results}} without a DOI…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check whether ergänzt clearly describes metadata enrichment."
+    "reviewReason": "Revised in AI review (clarified DOI lookup instead of vague 'ergänzt'); please check."
   },
   "search.stage.checkingDois": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Auflösung von {count, plural, one {# DOI} other {# DOIs}} wird geprüft…",
+    "by": "ai-review",
+    "message": "{count, plural, one {# DOI wird} other {# DOIs werden}} auf Gültigkeit geprüft…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Technical Auflösung phrasing deserves a naturalness check."
+    "reviewReason": "Revised in AI review (replaced technical 'Auflösung' with 'Gültigkeit'); please check."
   },
   "search.stage.lookingUp": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count, plural, one {# eindeutige DOI} other {# eindeutige DOIs}} gefunden – Abfrage läuft…",
+    "by": "ai-review",
+    "message": "{count, plural, one {# DOI} other {# verschiedene DOIs}} gefunden – Abfrage läuft…",
     "source": "Found {count, plural, one {# unique DOI} other {# unique DOIs}} — looking them up…",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Unique likely means distinct, not unambiguous; eindeutige may mislead."
+    "reviewReason": "Revised in AI review (replaced misleading 'eindeutige' with distinct-count wording); please check."
   },
   "search.stage.markingUp": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2697,12 +2697,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "search.stage.resolving": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "{count, plural, one {# {site}-Eintrag wird} other {# {site}-Einträge werden}} zu DOIs aufgelöst…",
+    "by": "ai-review",
+    "message": "{count, plural, one {DOI für # {site}-Eintrag wird ermittelt…} other {DOIs für # {site}-Einträge werden ermittelt…}}",
     "source": "Resolving {count, plural, one {# {site} record} other {# {site} records}} to DOIs…",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Einträge zu DOIs aufgelöst sounds unnatural and may obscure matching."
+    "reviewReason": "Revised in AI review (replaced awkward 'zu DOIs aufgelöst' with natural lookup phrasing); please check."
   },
   "settings.blocklist.add": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2799,12 +2799,12 @@
     "reviewReason": "Makes a claim about local data storage."
   },
   "settings.cache.intro": {
-    "by": "codex-review",
-    "message": "ORE speichert Abfrageergebnisse auf diesem Computer, damit Seiten bei erneuten Besuchen schneller laden. Mindestens <strong>10</strong> MB; für keine Begrenzung <strong>0</strong> eingeben. Die Einstellungen, das Diagnoseprotokoll und die Liste zurückgezogener Artikel zählen nicht dazu.",
+    "by": "ai-review",
+    "message": "ORE speichert Abfrageergebnisse auf diesem Computer, damit Seiten bei erneuten Besuchen schneller laden. Mindestens <strong>10</strong> MB; für unbegrenzten Speicher <strong>0</strong> eingeben. Die Einstellungen, das Diagnoseprotokoll und die Retraction-Liste zählen nicht dazu.",
     "source": "ORE keeps lookup results on this computer so repeat visits load faster. Minimum <strong>10</strong> MB; enter <strong>0</strong> for no limit. Your settings, the diagnostic log and the retraction list do not count towards it.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Storage claims, exact numeric instructions, and translated Retraction terminology require review."
+    "reviewReason": "Revised in AI review (smoothed numeric instruction and aligned Retraction-Liste with glossary); verify storage claims."
   },
   "settings.cache.label": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2943,12 +2943,12 @@
     "reviewReason": "Explains filtering defaults, replication-data rationale, and instructions for restoring comments."
   },
   "settings.commenters.label": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Kommentierende Person",
+    "by": "ai-review",
+    "message": "Anzeigename",
     "source": "Commenter",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Person-based label may not fit organizational display names such as FORRT."
+    "reviewReason": "Revised in AI review (fits both people and organizational/bot names like FORRT or Statcheck); please check."
   },
   "settings.commenters.muted": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -2979,12 +2979,12 @@
     "review": 1
   },
   "settings.data.bundled": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "in ORE enthalten",
+    "by": "ai-review",
+    "message": "mit ORE ausgeliefert",
     "source": "bundled with ORE",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check whether wording adequately distinguishes bundled data from refreshed data."
+    "reviewReason": "Revised in AI review (better distinguishes bundled data from refreshed data); please check."
   },
   "settings.data.entries": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3062,12 +3062,12 @@
     "review": 1
   },
   "settings.data.retractions": {
-    "by": "codex-review",
-    "message": "Retractions &amp; Expressions of Concern",
+    "by": "ai-review",
+    "message": "Retractions und Expressions of Concern",
     "source": "Retractions &amp; expressions of concern",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check preferred German terminology for Expressions of Concern."
+    "reviewReason": "Revised in AI review (replaced '&amp;' with 'und'); please check."
   },
   "settings.data.startupOff": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3086,16 +3086,16 @@
     "reviewReason": "States when automatic reference-data downloads occur."
   },
   "settings.data.startupToggle": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Bei jedem Öffnen des Browsers automatisch aktualisieren",
+    "by": "ai-review",
+    "message": "Bei jedem Start des Browsers automatisch aktualisieren",
     "source": "Update automatically every time the browser opens",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Controls automatic data updates; opening versus starting merits precision."
+    "reviewReason": "Revised in AI review (aligned 'Start des Browsers' with intro and status text); please check."
   },
   "settings.data.title": {
-    "by": "codex-review",
-    "message": "Retractions &amp; Registered Reports",
+    "by": "ai-review",
+    "message": "Retractions und Registered Reports",
     "source": "Retractions &amp; Registered Reports",
     "status": "machine",
     "review": 1
@@ -3129,12 +3129,12 @@
     "review": 1
   },
   "settings.debug.attachFailed": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Der Bericht konnte nicht angehängt werden – er befindet sich in der Zwischenablage und kann in das Issue eingefügt werden.",
+    "by": "ai-review",
+    "message": "Der Bericht konnte nicht angehängt werden – er befindet sich in der Zwischenablage; bitte in das Issue einfügen.",
     "source": "Couldn't attach the report — it's on your clipboard, paste it into the issue.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Required paste instruction becomes optional; clipboard handling claim also needs review."
+    "reviewReason": "Revised in AI review (restored clear paste instruction); please check."
   },
   "settings.debug.clear": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3249,12 +3249,12 @@
     "reviewReason": "Reload instruction and translation of toast need verification."
   },
   "settings.debug.opening": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Ein GitHub-Issue mit ausgefülltem Bericht wird geöffnet.",
+    "by": "ai-review",
+    "message": "Ein GitHub-Issue mit eingefügtem Bericht wird geöffnet.",
     "source": "Opening a GitHub issue with the report filled in.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Ausgefülltem Bericht sounds unnatural and may misrepresent report insertion."
+    "reviewReason": "Revised in AI review (replaced 'ausgefülltem' with 'eingefügtem' Bericht); please check."
   },
   "settings.debug.previewLabel": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3278,16 +3278,16 @@
     "review": 1
   },
   "settings.debug.report": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Problem mit diesem Protokoll melden",
+    "by": "ai-review",
+    "message": "Problem melden (mit diesem Protokoll)",
     "source": "Report an issue with this log",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Could mean reporting a problem with the log itself."
+    "reviewReason": "Revised in AI review (removed ambiguity about reporting a problem with the log itself); please check."
   },
   "settings.debug.title": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Debug-Modus &amp; Fehlerberichte",
+    "by": "ai-review",
+    "message": "Debug-Modus und Fehlerberichte",
     "source": "Debug Mode &amp; Issue Reports",
     "status": "machine",
     "review": 1
@@ -3308,12 +3308,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "by": "codex-review",
-    "message": "Hier lässt sich festlegen, wie ORE Befunde zu Artikeln anzeigt. Mit einer E-Mail-Adresse sind der Abgleich von Titeln mit DOIs und Open-Access-Abfragen möglich; andere DOI-basierte Prüfungen funktionieren auch ohne.",
+    "by": "ai-review",
+    "message": "Hier lässt sich festlegen, wie ORE Informationen zu Artikeln anzeigt. Mit einer E-Mail-Adresse sind der Abgleich von Titeln mit DOIs und die Suche nach Open-Access-Versionen möglich; andere DOI-basierte Prüfungen funktionieren auch ohne.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Evidence terminology and email-dependent functionality require careful review."
+    "reviewReason": "Revised in AI review (replaced 'Befunde' and 'Open-Access-Abfragen'); verify email-dependent feature claims."
   },
   "settings.email.label": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3331,12 +3331,12 @@
     "reviewReason": "Email transmission, storage, removal instructions, and renamed service require review."
   },
   "settings.email.removed": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "E-Mail-Adresse entfernt. Geöffnete Tabs neu laden. Titelabgleich und Open-Access-Abfragen benötigen eine E-Mail-Adresse; andere Prüfungen funktionieren weiterhin.",
+    "by": "ai-review",
+    "message": "E-Mail-Adresse entfernt. Geöffnete Tabs neu laden. Der Titelabgleich und die Suche nach Open-Access-Versionen benötigen eine E-Mail-Adresse; andere Prüfungen funktionieren weiterhin.",
     "source": "Email removed. Reload open tabs. Title matching and open-access lookups need an email; other checks still work.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Reload instruction and email-dependent functionality require careful review."
+    "reviewReason": "Revised in AI review (replaced 'Open-Access-Abfragen'); verify reload and feature-dependency claims."
   },
   "settings.email.save": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3368,12 +3368,12 @@
     "review": 1
   },
   "settings.email.servicesText": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "<a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> und <a href=\"https://api.openalex.org\" target=\"_blank\" rel=\"noopener\">OpenAlex</a> ordnen Anfragen mit Kontaktadresse ihrem <strong>Polite-Access-Pool</strong> zu, der großzügigere Ratenbegrenzungen und zuverlässigere Abfragen bietet. Unpaywall benötigt eine Adresse, um Open-Access-Abfragen zu beantworten.",
+    "by": "ai-review",
+    "message": "<a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> und <a href=\"https://api.openalex.org\" target=\"_blank\" rel=\"noopener\">OpenAlex</a> ordnen Anfragen mit Kontaktadresse ihrem <strong>Polite-Access-Pool</strong> zu, der höhere Anfragelimits und zuverlässigere Abfragen bietet. Unpaywall benötigt eine Adresse, um Anfragen zu Open-Access-Versionen zu beantworten.",
     "source": "<a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> and <a href=\"https://api.openalex.org\" target=\"_blank\" rel=\"noopener\">OpenAlex</a> place requests that include a contact address in their <strong>polite-access pool</strong>, which has faster rate limits and more reliable lookups. Unpaywall needs an address to answer open-access lookups.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Explains contact-address processing; rate-limit terminology also needs verification."
+    "reviewReason": "Revised in AI review (replaced 'Ratenbegrenzungen' and 'Open-Access-Abfragen'); verify service descriptions."
   },
   "settings.email.title": {
     "by": "codex-review",
@@ -3383,12 +3383,12 @@
     "review": 1
   },
   "settings.email.whyText": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Crossref, OpenAlex und Unpaywall verlangen bei jeder Abfrage eine Kontaktadresse. Ohne sie kann ORE weder nach Open-Access-Versionen suchen noch Artikel anhand des Titels zuordnen.",
+    "by": "ai-review",
+    "message": "Crossref, OpenAlex und Unpaywall bitten bei jeder Abfrage um eine Kontaktadresse. Ohne eine solche Adresse kann ORE weder nach Open-Access-Versionen suchen noch Artikel anhand des Titels zuordnen.",
     "source": "Crossref, OpenAlex and Unpaywall ask for a contact address with each lookup. Without one, ORE can't look for open-access versions or match papers by title.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Claims about services requiring contact addresses and resulting functionality need review."
+    "reviewReason": "Revised in AI review ('bitten um' matches English 'ask for' and clarified pronoun referent); please check."
   },
   "settings.email.whyTitle": {
     "by": "codex-review",
@@ -3433,12 +3433,12 @@
     "review": 1
   },
   "settings.language.intro": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Die Sprache der Menüs, Markierungen und Berichte von ORE. Bereits geöffnete Seiten wechseln die Sprache, sobald sie neu geladen werden.",
+    "by": "ai-review",
+    "message": "Die Sprache der Menüs, Markierungen und Berichte von ORE. Auf bereits geöffneten Seiten wird die neue Sprache nach dem Neuladen übernommen.",
     "source": "The language of ORE's menus, pills and reports. Pages that are already open switch when you reload them.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Reload instruction requires precision; wording suggests entire pages change language."
+    "reviewReason": "Revised in AI review (clarified that ORE's UI language updates on reload, not the host page); please check."
   },
   "settings.language.label": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3626,12 +3626,12 @@
     "reviewReason": "Domain-entry instruction must match accepted input exactly."
   },
   "sites.add.placeholder": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Zu aktivierende Website, z. B. journals.example.org",
+    "by": "ai-review",
+    "message": "Website hinzufügen, z. B. journals.example.org",
     "source": "Site to turn on, e.g. journals.example.org",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Wording suggests activating the website rather than ORE on it."
+    "reviewReason": "Revised in AI review (avoided implying activation of the website itself); please check."
   },
   "sites.category.count": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3648,23 +3648,23 @@
     "review": 1
   },
   "sites.category.documents": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Dokumente & Tabellen",
+    "by": "ai-review",
+    "message": "Dokumente und Tabellen",
     "source": "Documents & spreadsheets",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check whether Tabellen sufficiently conveys spreadsheets in this category."
+    "reviewReason": "Revised in AI review (replaced '&' with 'und'); check whether 'Tabellen' sufficiently conveys spreadsheets."
   },
   "sites.category.medicine": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Zeitschriften für Medizin & Gesundheit",
+    "by": "ai-review",
+    "message": "Zeitschriften für Medizin und Gesundheit",
     "source": "Medicine & health journals",
     "status": "machine",
     "review": 1
   },
   "sites.category.messaging": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "E-Mail & Messaging",
+    "by": "ai-review",
+    "message": "E-Mail und Messaging",
     "source": "Email & messaging",
     "status": "machine",
     "review": 1
@@ -3684,19 +3684,19 @@
     "review": 1
   },
   "sites.category.publishers": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Große Verlage & Universitätsverlage",
+    "by": "ai-review",
+    "message": "Große Verlage und Universitätsverlage",
     "source": "Major publishers & university presses",
     "status": "machine",
     "review": 1
   },
   "sites.category.regional": {
-    "by": "codex-review",
-    "message": "Regionale Fachzeitschriften & Universitätszeitschriften",
+    "by": "ai-review",
+    "message": "Regionale und universitäre Fachzeitschriften",
     "source": "Regional & university journals",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check naturalness and intended scope of Universitätszeitschriften."
+    "reviewReason": "Revised in AI review (replaced '&' and smoothed compound phrasing); please check."
   },
   "sites.category.repositories": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3881,12 +3881,12 @@
     "reviewReason": "Check pluralized sentence rendering and terminology for academic papers."
   },
   "toolbar.title.clear": {
-    "by": "codex-review",
-    "message": "{incomplete, select, yes {FORRT ORE – keine Markierungen: {count, plural, one {# Artikel} other {# Artikel}} geprüft – einige Prüfungen nicht verfügbar, Ergebnisse unvollständig} other {FORRT ORE – keine Markierungen: {count, plural, one {# Artikel} other {# Artikel}} geprüft}}",
+    "by": "ai-review",
+    "message": "{incomplete, select, yes {FORRT ORE – keine Hinweise: {count, plural, one {# Artikel} other {# Artikel}} geprüft – einige Prüfungen nicht verfügbar, Ergebnisse unvollständig} other {FORRT ORE – keine Hinweise: {count, plural, one {# Artikel} other {# Artikel}} geprüft}}",
     "source": "{incomplete, select, yes {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}} — some checks unavailable, results incomplete} other {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}}}}",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Scientific screening status and incomplete-results caveat require careful review."
+    "reviewReason": "Revised in AI review (replaced 'keine Markierungen' with 'keine Hinweise' so flags are not confused with pills); please check."
   },
   "toolbar.title.error": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3896,12 +3896,12 @@
     "review": 1
   },
   "toolbar.title.flagged": {
-    "by": "codex-review",
-    "message": "{incomplete, select, yes {FORRT ORE – {count, plural, one {# Artikel} other {# Artikel}} markiert – einige Prüfungen nicht verfügbar, Ergebnisse unvollständig} other {FORRT ORE – {count, plural, one {# Artikel} other {# Artikel}} markiert}}",
+    "by": "ai-review",
+    "message": "{incomplete, select, yes {FORRT ORE – {count, plural, one {# Artikel} other {# Artikel}} mit Hinweisen – einige Prüfungen nicht verfügbar, Ergebnisse unvollständig} other {FORRT ORE – {count, plural, one {# Artikel} other {# Artikel}} mit Hinweisen}}",
     "source": "{incomplete, select, yes {FORRT ORE — {count, plural, one {# paper} other {# papers}} flagged — some checks unavailable, results incomplete} other {FORRT ORE — {count, plural, one {# paper} other {# papers}} flagged}}",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Scientific screening status and incomplete-results caveat require careful review."
+    "reviewReason": "Revised in AI review (replaced 'markiert' with 'mit Hinweisen' so flagged papers are not confused with pills); please check."
   },
   "toolbar.title.inactive": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3932,12 +3932,12 @@
     "review": 1
   },
   "tour.foot": {
-    "by": "codex-review",
-    "message": "Diese Einführung lässt sich jederzeit über die ORE-Schaltfläche in der Browser-Symbolleiste erneut aufrufen.",
+    "by": "ai-review",
+    "message": "Diese Tour lässt sich jederzeit über die ORE-Schaltfläche in der Browser-Symbolleiste erneut aufrufen.",
     "source": "See this again any time from the ORE button in your browser toolbar.",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check longer instructional phrasing and browser toolbar terminology."
+    "reviewReason": "Revised in AI review (aligned 'Tour' with glossary instead of 'Einführung'); please check."
   },
   "tour.next": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -3947,12 +3947,12 @@
     "review": 1
   },
   "tour.notice.concernText": {
-    "by": "codex-review",
-    "message": "Die Zeitschrift hat ein noch ungeklärtes Problem gemeldet. Den Hinweis öffnen, um die Mitteilung der Zeitschrift zu lesen.",
+    "by": "ai-review",
+    "message": "Die Zeitschrift hat ein noch ungeklärtes Problem gemeldet. Die Warnung öffnen, um die Mitteilung der Zeitschrift zu lesen.",
     "source": "The journal has flagged a problem that is not yet resolved. Open the warning to read the journal's notice.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Explains an unresolved scientific concern and accessing the journal notice."
+    "reviewReason": "Revised in AI review (aligned 'Warnung' with walkthrough wording); verify scientific concern explanation."
   },
   "tour.notice.concernTitle": {
     "by": "codex-review",
@@ -3963,12 +3963,12 @@
     "reviewReason": "Scientific concern status requires careful terminology review."
   },
   "tour.notice.retractedText": {
-    "by": "codex-review",
-    "message": "Der Artikel wurde zurückgezogen, meist wegen schwerwiegender Fehler oder wissenschaftlichen Fehlverhaltens. Den Hinweis öffnen, um die Mitteilung der Zeitschrift zu lesen.",
+    "by": "ai-review",
+    "message": "Der Artikel wurde zurückgezogen, meist wegen schwerwiegender Fehler oder wissenschaftlichen Fehlverhaltens. Die Warnung öffnen, um die Mitteilung der Zeitschrift zu lesen.",
     "source": "It was withdrawn, usually because of serious errors or misconduct. Open the warning to read the journal's notice.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Explains retraction reasons, including serious errors and scientific misconduct."
+    "reviewReason": "Revised in AI review (aligned 'Warnung' with walkthrough wording); verify retraction explanation."
   },
   "tour.notice.retractedTitle": {
     "by": "codex-review",
@@ -4003,12 +4003,12 @@
     "reviewReason": "Check natural phrasing for adding markers to reference entries."
   },
   "tour.pill.articleTitle": {
-    "by": "codex-review",
-    "message": "Befunde zu diesem Artikel",
+    "by": "ai-review",
+    "message": "Ergebnisse zu diesem Artikel",
     "source": "Findings for this article",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Befunde may imply scientific findings rather than extension lookup results."
+    "reviewReason": "Revised in AI review (replaced 'Befunde' with 'Ergebnisse' for extension lookup results); please check."
   },
   "tour.pill.noPill": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4027,12 +4027,12 @@
     "reviewReason": "Check explanatory flow and phrasing around markers beside DOIs."
   },
   "tour.pill.pointAt": {
-    "by": "codex-review",
-    "message": "Mit dem Mauszeiger darauf zeigen, um die Befunde von ORE zu sehen.",
+    "by": "ai-review",
+    "message": "Mit dem Mauszeiger darauf zeigen, um zu sehen, was ORE gefunden hat.",
     "source": "Point at it to see what ORE found.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Hover instruction needs precision; Befunde may mischaracterize lookup results."
+    "reviewReason": "Revised in AI review (replaced 'Befunde' with natural direct phrasing); please check."
   },
   "tour.pill.recognisedTitle": {
     "by": "codex-review",
@@ -4133,12 +4133,12 @@
     "review": 1
   },
   "walkthrough.article.demoNote": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Die Markierung ist echt; der Artikel drumherum ist nur ein Platzhalter.",
+    "by": "ai-review",
+    "message": "Die Markierung ist echt; der Artikel selbst ist nur ein Platzhalter.",
     "source": "The pill is real; the article around it is a stand-in.",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check colloquial drumherum and placeholder terminology for the demo."
+    "reviewReason": "Revised in AI review (replaced colloquial 'drumherum'); please check."
   },
   "walkthrough.article.pill": {
     "by": "codex-review",
@@ -4180,20 +4180,20 @@
     "reviewReason": "Zwei Dinge is vague; check suitability as an onboarding heading."
   },
   "walkthrough.article.turnOff.text": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Ein Klick auf die ORE-Schaltfläche in der Browser-Symbolleiste blendet ORE auf dieser Seite aus, pausiert es auf dieser Website oder schaltet es für die Website vollständig ab.",
+    "by": "ai-review",
+    "message": "Auf die ORE-Schaltfläche in der Browser-Symbolleiste klicken, um ORE auf dieser Seite auszublenden, auf dieser Website zu pausieren oder für die Website vollständig auszuschalten.",
     "source": "Click the ORE button in your browser toolbar to hide it on this page, snooze it on this site, or turn it off for the site entirely.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Suggests clicking directly disables ORE rather than opening action choices."
+    "reviewReason": "Revised in AI review (clarified menu options instead of implying immediate toggle); please check."
   },
   "walkthrough.article.turnOff.title": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Dort ausschalten, wo es nicht gewünscht ist",
+    "by": "ai-review",
+    "message": "Ausschalten, wo ORE nicht gebraucht wird",
     "source": "Turn it off where you don't want it",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Impersonal phrasing sounds stiff; check heading naturalness."
+    "reviewReason": "Revised in AI review (more natural impersonal heading); please check."
   },
   "walkthrough.demo.scanning": {
     "by": "codex-review",
@@ -4210,12 +4210,12 @@
     "review": 1
   },
   "walkthrough.done.text": {
-    "by": "codex-review",
-    "message": "Die Einrichtung ist abgeschlossen. ORE prüft Artikel beim Surfen automatisch.",
+    "by": "ai-review",
+    "message": "Die Einrichtung ist abgeschlossen. ORE ist einsatzbereit und prüft Artikel beim Surfen automatisch.",
     "source": "Setup is complete. Start using the plugin: ORE will check papers by itself as you browse.",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Usage invitation omitted; check whether shortened onboarding message remains adequate."
+    "reviewReason": "Revised in AI review (restored readiness phrasing); please check."
   },
   "walkthrough.done.title": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4344,20 +4344,20 @@
     "reviewReason": "Retraction status; check terminology against the English Retraction rule."
   },
   "walkthrough.notices.board.retractedText": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Aus der wissenschaftlichen Literatur entfernt.",
+    "by": "ai-review",
+    "message": "Aus der wissenschaftlichen Literatur zurückgezogen.",
     "source": "Withdrawn from the record.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Suggests physical removal from literature rather than formal retraction."
+    "reviewReason": "Revised in AI review (replaced 'entfernt' with 'zurückgezogen' to avoid implying physical deletion); please check."
   },
   "walkthrough.notices.local.text": {
-    "by": "codex-review",
-    "message": "ORE führt eine eigene Kopie der Liste zurückgezogener Artikel und aktualisiert sie wöchentlich, sodass kein Server erfährt, welche Artikel gelesen werden.",
+    "by": "ai-review",
+    "message": "ORE führt eine eigene Kopie der Retraction-Liste und aktualisiert sie wöchentlich, sodass kein Server erfährt, welche Artikel gelesen werden.",
     "source": "ORE keeps its own copy of the retraction list and refreshes it weekly, so no server learns what you are reading.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Privacy and data-handling claims require careful verification."
+    "reviewReason": "Revised in AI review (aligned 'Retraction-Liste' with glossary); verify privacy claim."
   },
   "walkthrough.notices.local.title": {
     "by": "codex-review",
@@ -4566,12 +4566,12 @@
     "review": 1
   },
   "walkthrough.ready.toolbar": {
-    "by": "codex-review",
-    "message": "Die ORE-Schaltfläche in der Browser-Symbolleiste zeigt eine Zahl an, wenn zu Artikeln auf der Seite etwas zu melden ist. Ein Klick darauf öffnet das Menü, um ORE auf einer Website zu pausieren oder auszuschalten.",
+    "by": "ai-review",
+    "message": "Die ORE-Schaltfläche in der Browser-Symbolleiste zeigt eine Zahl an, wenn zu Artikeln auf der Seite Hinweise vorliegen. Ein Klick darauf öffnet das Menü, um ORE auf einer Website zu pausieren oder auszuschalten.",
     "source": "The ORE button in your browser toolbar shows a number when papers on the page have something to report. Click it to pause or turn off ORE on a site.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Instructions for pausing or disabling ORE require behavioral verification."
+    "reviewReason": "Revised in AI review (replaced literal 'etwas zu melden ist' with 'Hinweise vorliegen'); please check."
   },
   "walkthrough.ready.tryText": {
     "by": "codex-review",
@@ -4582,12 +4582,12 @@
     "reviewReason": "Check naturalness of echten Artikel and geführten Tour."
   },
   "walkthrough.report.atlas.text": {
-    "message": "Eine frei zugängliche Datenbank der FORRT-Community mit Studien aus den Sozial- und Verhaltenswissenschaften, die frühere Befunde zu replizieren oder zu reproduzieren versuchten, unabhängig vom Ergebnis, sowie mit deren Befunden. Jede Replikationszahl in ORE stammt von dort und verlinkt auf die Belege.",
+    "message": "Eine frei zugängliche Datenbank der FORRT-Community für Studien aus den Sozial- und Verhaltenswissenschaften, die frühere Befunde zu replizieren oder zu reproduzieren versuchten – unabhängig vom Ausgang – einschließlich der jeweiligen Ergebnisse. Jede Replikationszahl in ORE stammt von dort und verlinkt auf die zugehörigen Nachweise.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "anthropic/claude-sonnet-5.5",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Describes scientific evidence coverage and provenance; syntax also needs review."
+    "reviewReason": "Revised in AI review (fixed repeated 'Befunde' and unclear syntax); verify scientific framing."
   },
   "walkthrough.report.atlas.title": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4606,12 +4606,12 @@
     "reviewReason": "Explains scientific uncertainty and limits of interpreting failed replications."
   },
   "walkthrough.report.contents": {
-    "by": "codex-review",
-    "message": "Der seitliche Tab öffnet einen Bericht zum aktuellen Artikel: seine Replikationen und deren Ergebnisse, etwaige Retractions oder Expressions of Concern, die PubPeer-Diskussion sowie die Literaturangaben, zu denen es etwas zu berichten gibt.",
+    "by": "ai-review",
+    "message": "Der seitliche Tab öffnet einen Bericht zum aktuellen Artikel: seine Replikationen und deren Ergebnisse, etwaige Retractions oder Expressions of Concern, die PubPeer-Diskussion sowie die Literaturangaben, zu denen Hinweise vorliegen.",
     "source": "The side tab opens a report on the article you are reading: its replications and what they found, any retraction or concern, its PubPeer discussion, and which of its references have something to report.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Describes replication evidence, retractions, and concerns; terminology needs careful review."
+    "reviewReason": "Revised in AI review (replaced literal 'etwas zu berichten gibt' with 'Hinweise vorliegen'); please check."
   },
   "walkthrough.report.original": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4691,12 +4691,12 @@
     "review": 1
   },
   "walkthrough.search.titleMatch": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Zeigt ein Treffer keine DOI an, sucht ORE den Titel in Crossref und OpenAlex und wählt anhand von Autorenschaft und Jahr die beste Übereinstimmung. Eine auf diese Weise gefundene DOI ist <strong>mit Punkten unterstrichen</strong>.",
+    "by": "ai-review",
+    "message": "Zeigt ein Treffer keine DOI an, sucht ORE den Titel in Crossref und OpenAlex und wählt anhand der Autorinnen und Autoren sowie des Erscheinungsjahres die beste Übereinstimmung. Eine auf diese Weise gefundene DOI ist <strong>gepunktet unterstrichen</strong>.",
     "source": "When a result doesn't show a DOI, ORE looks the title up in Crossref and OpenAlex and picks the closest match by author and year. A DOI found this way is <strong>underlined with dots</strong>.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Explains external title lookups and potentially uncertain DOI matching."
+    "reviewReason": "Revised in AI review (replaced 'Autorenschaft' with paired forms per style guide and aligned 'gepunktet unterstrichen'); please check."
   },
   "walkthrough.setup.citation.help": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4749,12 +4749,12 @@
     "review": 1
   },
   "walkthrough.setup.email.removed": {
-    "by": "codex-review",
-    "message": "E-Mail-Adresse entfernt. Titelabgleich und Open-Access-Abfragen benötigen eine E-Mail-Adresse; andere Prüfungen funktionieren weiterhin.",
+    "by": "ai-review",
+    "message": "E-Mail-Adresse entfernt. Der Titelabgleich und die Suche nach Open-Access-Versionen benötigen eine E-Mail-Adresse; andere Prüfungen funktionieren weiterhin.",
     "source": "Email removed. Title matching and open-access lookups need an email; other checks still work.",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Confirms personal data removal and explains resulting feature limitations."
+    "reviewReason": "Revised in AI review (replaced 'Open-Access-Abfragen'); verify feature-dependency wording."
   },
   "walkthrough.setup.email.saved": {
     "by": "codex-review",
@@ -4802,12 +4802,12 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "In Google Sheets oder Excel Online eine Tabelle mit DOIs öffnen, etwa eine Leseliste oder die Studien für ein Review. In Google Sheets prüft ORE jede DOI im Tabellenblatt, auch in Zeilen, zu denen noch nicht gescrollt wurde. Excel Online stellt nur die Zeilen auf dem Bildschirm dar, daher prüft ORE nur diese; zum Abdecken der übrigen weiter scrollen. Die Ergebnisse erscheinen in einem Popup.",
+    "message": "In Google Sheets oder Excel Online eine Tabelle mit DOIs öffnen, etwa eine Leseliste oder die Studien für ein Review. In Google Sheets prüft ORE jede DOI im Tabellenblatt, auch in Zeilen, zu denen noch nicht gescrollt wurde. Excel Online stellt nur die sichtbaren Zeilen dar, daher prüft ORE nur diese; weiter scrollen, um auch die übrigen Zeilen zu prüfen. Die Ergebnisse erscheinen in einem Popup.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "anthropic/claude-sonnet-5.5",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Exact scrolling instructions determine whether all DOIs get checked."
+    "reviewReason": "Revised in AI review (replaced clunky 'zum Abdecken der übrigen' with clear infinitive instruction); please check."
   },
   "walkthrough.sheets.docs.text": {
     "by": "codex-review",
@@ -4856,12 +4856,12 @@
     "reviewReason": "Check naturalness and clarity of independent worksheet popup behavior."
   },
   "walkthrough.sheets.tabs.title": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Ein Tabellenblatt nach dem anderen",
+    "by": "ai-review",
+    "message": "Jedes Tabellenblatt für sich",
     "source": "One tab at a time",
     "status": "machine",
     "review": 2,
-    "reviewReason": "May imply sequential checking rather than independent worksheet handling."
+    "reviewReason": "Revised in AI review (clarified independent per-tab checking); please check."
   },
   "walkthrough.sheets.title": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4885,19 +4885,19 @@
     "review": 1
   },
   "walkthrough.tag.articles": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Artikel &amp; andere Seiten",
+    "by": "ai-review",
+    "message": "Artikel und andere Seiten",
     "source": "Articles &amp; other pages",
     "status": "machine",
     "review": 1
   },
   "walkthrough.tag.notices": {
-    "by": "codex-review",
-    "message": "Zurückgezogene &amp; angezweifelte Artikel",
+    "by": "ai-review",
+    "message": "Zurückgezogene und angezweifelte Publikationen",
     "source": "Withdrawn &amp; questioned work",
     "status": "machine",
     "review": 3,
-    "reviewReason": "Scientific status wording; work becomes articles, potentially narrowing scope."
+    "reviewReason": "Revised in AI review (replaced '&amp;' with 'und' and broadened 'Artikel' to 'Publikationen' for 'work'); please check."
   },
   "walkthrough.tag.pill": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -4914,8 +4914,8 @@
     "review": 1
   },
   "walkthrough.tag.sheets": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Tabellen &amp; Dokumente",
+    "by": "ai-review",
+    "message": "Tabellen und Dokumente",
     "source": "Spreadsheets &amp; documents",
     "status": "machine",
     "review": 1
@@ -4929,12 +4929,12 @@
     "reviewReason": "Screens becomes steps; verify intended walkthrough terminology."
   },
   "walkthrough.welcome.articles.text": {
-    "by": "codex-review",
-    "message": "Der Artikel, jeder Artikel in seinem Literaturverzeichnis und jede an anderer Stelle auf einer Seite genannte DOI.",
+    "by": "ai-review",
+    "message": "Der Artikel selbst, alle Einträge im Literaturverzeichnis und jede weitere auf der Seite genannte DOI.",
     "source": "The article, every paper in its reference list, and any DOI mentioned elsewhere on a page.",
     "status": "machine",
     "review": 2,
-    "reviewReason": "Check repetitive Artikel and phrasing of DOI detection scope."
+    "reviewReason": "Revised in AI review (removed repeated 'Artikel'); please check."
   },
   "walkthrough.welcome.articles.title": {
     "by": "anthropic/claude-sonnet-5.5",

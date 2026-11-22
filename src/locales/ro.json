@@ -81,12 +81,12 @@
     "review": 1
   },
   "notice.feedback.message": {
-    "message": "Un minut de feedback despre ce funcționează și ce nu funcționează ne ajută să îmbunătățim ORE.",
+    "message": "Un minut de feedback despre ce funcționează și ce nu ne ajută să îmbunătățim ORE.",
     "source": "A minute of feedback on what works and what doesn't helps us improve ORE.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Removed 'funcționează' repetition"
   },
   "notice.feedback.title": {
     "message": "Cum vi se pare ORE?",
@@ -176,12 +176,12 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "Starea discuției nu a putut fi verificată. Celelalte rezultate disponibile sunt afișate mai sus.",
+    "message": "Starea discuției nu a putut fi verificată. Celelalte informații disponibile sunt afișate mai sus.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"rezultate\" for findings may clash with search results"
+    "reviewReason": "Avoided ambiguous 'rezultate'"
   },
   "page.comments.unavailableTitle": {
     "message": "PubPeer indisponibil",
@@ -226,12 +226,12 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "message": "Excel afișează doar rândurile de pe ecran, așa că ORE le verifică doar pe acestea. Derulați foaia pentru a acoperi restul.",
+    "message": "Excel încarcă doar rândurile vizibile pe ecran, așa că ORE le verifică numai pe acestea. Derulați foaia pentru a verifica și restul.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "User instruction about scrolling; check clarity"
+    "reviewReason": "Removed repetition and literal 'a acoperi restul'"
   },
   "page.list.and": {
     "message": "{first} și {last}",
@@ -440,12 +440,12 @@
     "reviewReason": "Gender of \"Necunoscut\" depends on entry noun"
   },
   "page.progress.augmentingRefs": {
-    "message": "Se completează {count, plural, one {# referință} few {# referințe} other {# de referințe}} fără DOI…",
+    "message": "Se caută DOI-uri pentru {count, plural, one {# referință} few {# referințe} other {# de referințe}} fără DOI…",
     "source": "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Augmenting\" rendered as \"se completează\"; check meaning"
+    "reviewReason": "Clearer than 'Se completează'"
   },
   "page.progress.exportingSheet": {
     "message": "Se exportă această filă a foii…",
@@ -923,12 +923,12 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "message": "Deschideți detaliile de cercetare pentru {doi}: niciun semnal deocamdată. Apăsați Enter pentru mai multe.",
+    "message": "Deschideți detaliile de cercetare pentru {doi}: nicio semnalare deocamdată. Apăsați Enter pentru mai multe.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Screen-reader label; \"semnal\" for flags, check"
+    "reviewReason": "Replaced 'semnal' with 'semnalare'"
   },
   "pill.aria.notice": {
     "message": "Deschideți detaliile de cercetare pentru {doi}: {notice, select, concern {Expression of Concern} other {retras}}. Apăsați Enter pentru mai multe.",
@@ -983,20 +983,20 @@
     "review": 1
   },
   "pill.cite.copyFormatted": {
-    "message": "Copiați această referință în stilul {style}, cu formatare. Stilul se poate schimba în setările ORE",
+    "message": "Copiați această referință în stilul {style}, cu formatare. Stilul se poate schimba în Setările ORE",
     "source": "Copy this reference in {style}, formatting included — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Tooltip restructured; check phrasing"
+    "reviewReason": "Consistent capitalization of 'Setările'"
   },
   "pill.cite.copyVerbatim": {
-    "message": "Copiați această referință în formatul {style}. Formatul se poate schimba în setările ORE",
+    "message": "Copiați această referință în formatul {style}. Stilul se poate schimba în Setările ORE",
     "source": "Copy this reference as {style} — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Style rendered as \"formatul\"; check consistency"
+    "reviewReason": "Consistent setting reference"
   },
   "pill.cite.fetchFailedToast": {
     "message": "Citarea nu a putut fi obținută",
@@ -1114,12 +1114,12 @@
     "reviewReason": "Concern status in marker tooltip"
   },
   "pill.marker.empty": {
-    "message": "Nu au fost găsite dovezi de replicare sau comentarii PubPeer.",
+    "message": "Nu au fost găsite date despre replicări sau comentarii PubPeer.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Statement that no evidence was found"
+    "reviewReason": "Replaced 'dovezi de replicare' with 'date despre replicări'"
   },
   "pill.marker.inProgress": {
     "message": "Verificări în curs.",
@@ -1415,12 +1415,12 @@
     "reviewReason": "Rate limit rephrased as \"too many requests\""
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "Prea multe solicitări",
+    "message": "Limită atinsă",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Compact status; may be too long"
+    "reviewReason": "Compact status label (13 chars vs 21)"
   },
   "pill.pubpeer.unavailableTooltip": {
     "message": "Starea PubPeer nu este disponibilă",
@@ -1504,20 +1504,20 @@
     "review": 1
   },
   "pill.rr.listed": {
-    "message": "Listat ca Registered Report",
+    "message": "Figurează ca Registered Report",
     "source": "Listed as a Registered Report",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Listat\" anglicism; check"
+    "reviewReason": "Replaced anglicism 'Listat'"
   },
   "pill.rr.listedShort": {
-    "message": "Listat",
+    "message": "Inclus",
     "source": "Listed",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Listat\" anglicism; check"
+    "reviewReason": "Compact status; replaced anglicism 'Listat'"
   },
   "pill.rr.notListed": {
     "message": "Nu se află în baza de date Registered Reports",
@@ -1608,12 +1608,12 @@
     "review": 1
   },
   "pill.segment.reps": {
-    "message": "Repl",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Tight space abbreviation \"Repl\"; check recognisable"
+    "reviewReason": "Tight 4-char pill space; 'Rep.' covers replications and reproductions"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# lucrare} few {# lucrări} other {# de lucrări}} în această referință: {dois}. Apăsați Enter pentru detalii.",
@@ -1813,12 +1813,12 @@
     "reviewReason": "\"rezultat\" for findings; ambiguous with search results"
   },
   "popup.findings.originals": {
-    "message": "Replică {count, plural, one {# studiu original} few {# studii originale} other {# de studii originale}}",
+    "message": "Replicare pentru {count, plural, one {# studiu original} few {# studii originale} other {# de studii originale}}",
     "source": "Replicates {count, plural, one {# original study} other {# original studies}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence claim; \"Replică\" verb choice and agreement"
+    "reviewReason": "Avoided verb/noun ambiguity of 'Replică'"
   },
   "popup.findings.othersConcern": {
     "message": "{count} cu Expression of Concern",
@@ -2078,12 +2078,12 @@
     "review": 1
   },
   "popup.status.nothingOnPage": {
-    "message": "ORE nu a găsit nimic pe această pagină",
+    "message": "Nu există elemente ORE pe această pagină",
     "source": "Nothing from ORE on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Rephrased as \"ORE found nothing\"; check meaning"
+    "reviewReason": "Fixed meaning shift"
   },
   "popup.status.reportFailed": {
     "message": "Raportul nu a putut fi deschis pe această pagină",
@@ -2122,12 +2122,12 @@
     "reviewReason": "Instruction where to report; check"
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} este în continuare dezactivat de un domeniu părinte blocat sau de o categorie de site-uri. Modificați acest lucru în Setări",
+    "message": "{domain} este în continuare dezactivat din cauza unui domeniu principal blocat sau a unei categorii de site-uri. Modificați această opțiune în Setări",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long status; check clarity"
+    "reviewReason": "Clarified parent domain and causal phrasing"
   },
   "popup.status.unblocked": {
     "message": "{domain} a fost deblocat. Reîncărcați pentru a aplica",
@@ -2285,20 +2285,20 @@
     "review": 1
   },
   "progress.tab.clearSummary": {
-    "message": "{count, plural, one {Niciun semnal pentru această lucrare. A fost verificată # lucrare: nicio retragere, Expression of Concern, replicare sau reproducere.} few {Niciun semnal pe această pagină. Au fost verificate # lucrări: nicio retragere, Expression of Concern, replicare sau reproducere.} other {Niciun semnal pe această pagină. Au fost verificate # de lucrări: nicio retragere, Expression of Concern, replicare sau reproducere.}}",
+    "message": "{count, plural, one {Nicio semnalare pentru această lucrare. A fost verificată # lucrare: nicio retragere, Expression of Concern, replicare sau reproducere.} few {Nicio semnalare pe această pagină. Au fost verificate # lucrări: nicio retragere, Expression of Concern, replicare sau reproducere.} other {Nicio semnalare pe această pagină. Au fost verificate # de lucrări: nicio retragere, Expression of Concern, replicare sau reproducere.}}",
     "source": "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications or reproductions.} other {No flags on this page — Checked # papers: no retractions, concerns, replications or reproductions.}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "No-evidence summary with plurals; long tooltip"
+    "reviewReason": "Replaced 'semnal' with 'semnalare'"
   },
   "progress.tab.clearSummaryPubPeer": {
-    "message": "{count, plural, one {Niciun semnal pentru această lucrare. A fost verificată # lucrare: nicio retragere, Expression of Concern, replicare, reproducere sau comentariu PubPeer.} few {Niciun semnal pe această pagină. Au fost verificate # lucrări: nicio retragere, Expression of Concern, replicare, reproducere sau comentariu PubPeer.} other {Niciun semnal pe această pagină. Au fost verificate # de lucrări: nicio retragere, Expression of Concern, replicare, reproducere sau comentariu PubPeer.}}",
+    "message": "{count, plural, one {Nicio semnalare pentru această lucrare. A fost verificată # lucrare: nicio retragere, Expression of Concern, replicare, reproducere și niciun comentariu PubPeer.} few {Nicio semnalare pe această pagină. Au fost verificate # lucrări: nicio retragere, Expression of Concern, replicare, reproducere și niciun comentariu PubPeer.} other {Nicio semnalare pe această pagină. Au fost verificate # de lucrări: nicio retragere, Expression of Concern, replicare, reproducere și niciun comentariu PubPeer.}}",
     "source": "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications, reproductions or PubPeer comments.} other {No flags on this page — Checked # papers: no retractions, concerns, replications, reproductions or PubPeer comments.}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "No-evidence summary with plurals; long tooltip"
+    "reviewReason": "Replaced 'semnal' and fixed gender agreement on 'comentariu'"
   },
   "progress.toast.defaultLabel": {
     "message": "ORE caută lucrările de pe această pagină…",
@@ -2357,12 +2357,12 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Dovezile de replicare sunt un punct de plecare pentru evaluare, nu un verdict.",
+    "message": "Datele despre replicări sunt un punct de plecare pentru evaluare, nu un verdict.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Caveat about meaning of replication evidence"
+    "reviewReason": "Replaced 'Dovezile de replicare' with 'Datele despre replicări'"
   },
   "report.colophon.compiled": {
     "message": "Compilat de <a href=\"{url}\">FORRT ORE</a> la {date} din FORRT Replication Database, Retraction Watch, Unpaywall și PubPeer.",
@@ -2621,12 +2621,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "search.stage.augmenting": {
-    "message": "Se completează {count, plural, one {# rezultat} few {# rezultate} other {# de rezultate}} fără DOI…",
+    "message": "Se caută DOI-uri pentru {count, plural, one {# rezultat} few {# rezultate} other {# de rezultate}} fără DOI…",
     "source": "Augmenting {count, plural, one {# result} other {# results}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Augmenting\" as \"se completează\"; check"
+    "reviewReason": "Clearer than 'Se completează'"
   },
   "search.stage.checkingDois": {
     "message": "Se verifică dacă {count, plural, one {# DOI este valid} few {# DOI-uri sunt valide} other {# de DOI-uri sunt valide}}…",
@@ -2653,20 +2653,20 @@
     "reviewReason": "\"Marking up\" as \"se marchează\"; check"
   },
   "search.stage.reading": {
-    "message": "Se citesc {count, plural, one {# rezultat {site}} few {# rezultate {site}} other {# de rezultate {site}}}…",
+    "message": "{count, plural, one {Se citește # rezultat de pe {site}} few {Se citesc # rezultate de pe {site}} other {Se citesc # de rezultate de pe {site}}}…",
     "source": "Reading {count, plural, one {# {site} result} other {# {site} results}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"rezultat {site}\" construction; check"
+    "reviewReason": "Fixed singular/plural verb agreement and 'de pe {site}'"
   },
   "search.stage.resolving": {
-    "message": "Se asociază DOI-uri pentru {count, plural, one {# înregistrare {site}} few {# înregistrări {site}} other {# de înregistrări {site}}}…",
+    "message": "Se asociază DOI-uri pentru {count, plural, one {# înregistrare de pe {site}} few {# înregistrări de pe {site}} other {# de înregistrări de pe {site}}}…",
     "source": "Resolving {count, plural, one {# {site} record} other {# {site} records}} to DOIs…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Restructured resolving phrase; check"
+    "reviewReason": "Smoother 'de pe {site}' phrasing"
   },
   "settings.blocklist.add": {
     "message": "Dezactivați pentru site",
@@ -2760,12 +2760,12 @@
     "review": 1
   },
   "settings.cache.intro": {
-    "message": "ORE păstrează rezultatele căutărilor pe acest computer, astfel încât vizitele repetate se încarcă mai repede. Minimum <strong>10</strong> MB; introduceți <strong>0</strong> pentru nicio limită. Setările, jurnalul de diagnosticare și lista de retrageri nu sunt incluse în această limită.",
+    "message": "ORE păstrează rezultatele căutărilor pe acest computer, astfel încât vizitele repetate se încarcă mai repede. Minimum <strong>10</strong> MB; introduceți <strong>0</strong> pentru stocare nelimitată. Setările, jurnalul de diagnosticare și lista de retrageri nu sunt incluse în această limită.",
     "source": "ORE keeps lookup results on this computer so repeat visits load faster. Minimum <strong>10</strong> MB; enter <strong>0</strong> for no limit. Your settings, the diagnostic log and the retraction list do not count towards it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Storage explanation; \"pentru nicio limită\" phrasing"
+    "reviewReason": "Fixed ungrammatical 'pentru nicio limită'"
   },
   "settings.cache.label": {
     "message": "Limită (MB)",
@@ -2897,12 +2897,12 @@
     "review": 1
   },
   "settings.commenters.intro": {
-    "message": "Comentariile cu aceste nume afișate sunt ascunse în raportul ORE. FORRT este ascuns implicit, deoarece raportul afișează deja datele de replicare FLoRA. Eliminați un nume de mai jos pentru a-i vedea din nou comentariile.",
+    "message": "Comentariile publicate sub aceste nume afișate sunt ascunse în raportul ORE. FORRT este ascuns implicit, deoarece raportul afișează deja datele despre replicări din FLoRA. Eliminați un nume de mai jos pentru a-i vedea din nou comentariile.",
     "source": "Comments by these display names are hidden in ORE's report. FORRT is muted by default because the report already shows FLoRA's replication data. Remove a name below to see its comments again.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Comentariile cu aceste nume afișate\" awkward"
+    "reviewReason": "Clarified 'Comentariile publicate sub aceste nume'"
   },
   "settings.commenters.label": {
     "message": "Comentator",
@@ -3257,12 +3257,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Alegeți cum afișează ORE dovezile pentru lucrările pe care le citiți. Adresa de e-mail permite potrivirea titlurilor cu DOI-uri și căutarea versiunilor în acces deschis; celelalte verificări bazate pe DOI funcționează și fără ea.",
+    "message": "Alegeți cum afișează ORE informațiile pentru lucrările pe care le citiți. Adresa de e-mail permite potrivirea titlurilor cu DOI-uri și căutarea versiunilor în acces deschis; celelalte verificări bazate pe DOI funcționează și fără ea.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Explains what email enables; check"
+    "reviewReason": "Replaced 'dovezile' with 'informațiile'"
   },
   "settings.email.label": {
     "message": "E-mail",
@@ -3499,12 +3499,12 @@
     "review": 1
   },
   "settings.sites.intro": {
-    "message": "ORE rulează pe site-urile revistelor, editurilor, serverelor de preprinturi și documentelor, precum și pe orice site care nu este listat aici. Cumpărăturile, video, mesageria și căutarea web sunt dezactivate inițial. Debifați o categorie pentru a dezactiva ORE pe toate site-urile ei sau deschideți-o pentru a alege site cu site. Modificările se aplică la următoarea încărcare a unei pagini.",
+    "message": "ORE rulează pe site-urile revistelor, editurilor, serverelor de preprinturi și documentelor, precum și pe orice site care nu figurează aici. Cumpărăturile, video, mesageria și căutarea web sunt dezactivate inițial. Debifați o categorie pentru a dezactiva ORE pe toate site-urile ei sau deschideți-o pentru a alege site cu site. Modificările se aplică la următoarea încărcare a unei pagini.",
     "source": "ORE runs on journals, publishers, preprint servers and documents, and on any site not listed here. Shopping, video, messaging and web search start switched off. Untick a category to turn ORE off on all of its sites, or open it to choose site by site. Changes apply when a page is next loaded.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instruction on categories; check"
+    "reviewReason": "Replaced anglicism 'listat'"
   },
   "settings.sites.title": {
     "message": "Site-uri pe categorii",
@@ -3535,12 +3535,12 @@
     "review": 1
   },
   "sites.add.alreadyListed": {
-    "message": "{domain} este deja listat la {category}.",
+    "message": "{domain} figurează deja în categoria {category}.",
     "source": "{domain} is already listed under {category}.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"listat la {category}\"; check preposition"
+    "reviewReason": "Replaced 'listat la'"
   },
   "sites.add.button": {
     "message": "Activați pentru site",
@@ -3818,12 +3818,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "toolbar.title.clear": {
-    "message": "{incomplete, select, yes {FORRT ORE: niciun semnal; {count, plural, one {# lucrare verificată} few {# lucrări verificate} other {# de lucrări verificate}}. Unele verificări nu sunt disponibile, rezultatele sunt incomplete} other {FORRT ORE: niciun semnal; {count, plural, one {# lucrare verificată} few {# lucrări verificate} other {# de lucrări verificate}}}}",
+    "message": "{incomplete, select, yes {FORRT ORE: nicio semnalare; {count, plural, one {# lucrare verificată} few {# lucrări verificate} other {# de lucrări verificate}}. Unele verificări nu sunt disponibile, rezultatele sunt incomplete} other {FORRT ORE: nicio semnalare; {count, plural, one {# lucrare verificată} few {# lucrări verificate} other {# de lucrări verificate}}}}",
     "source": "{incomplete, select, yes {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}} — some checks unavailable, results incomplete} other {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}}}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Nested select/plural; no-evidence and incomplete-results claim"
+    "reviewReason": "Replaced 'semnal' with 'semnalare'"
   },
   "toolbar.title.error": {
     "message": "FORRT ORE: a apărut o problemă. Faceți clic pentru a raporta o eroare",
@@ -4331,12 +4331,12 @@
     "review": 1
   },
   "walkthrough.pill.board.nothing": {
-    "message": "Nimic găsit",
+    "message": "Nu s-a găsit nimic",
     "source": "Nothing found",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Nimic găsit\" slightly unnatural"
+    "reviewReason": "Replaced unnatural 'Nimic găsit'"
   },
   "walkthrough.pill.board.nothingText": {
     "message": "Totul estompat: deschideți-o pentru a verifica dacă fiecare căutare s-a încheiat",
@@ -4408,12 +4408,12 @@
     "reviewReason": "Explains meaning of pill parts; check"
   },
   "walkthrough.pill.pubpeer.text": {
-    "message": "PubPeer este un site pe care cercetătorii comentează lucrări publicate, adesea pentru a semnala probleme. Numărul indică numărul de comentarii; rândul deschide discuția.",
+    "message": "PubPeer este un site pe care cercetătorii comentează lucrări publicate, adesea pentru a semnala probleme. Cifra indică numărul de comentarii; rândul deschide discuția.",
     "source": "PubPeer is a site where researchers comment on published papers, often to point out problems. The number is the comment count; the row opens the thread.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Numărul indică numărul\" repetitive"
+    "reviewReason": "Removed 'Numărul indică numărul' repetition"
   },
   "walkthrough.pill.pubpeer.title": {
     "message": "PubPeer: cercetătorii discută lucrarea",
@@ -4431,12 +4431,12 @@
     "reviewReason": "Defines replication vs reproduction"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl: studiul a fost repetat",
+    "message": "Rep.: studiul a fost repetat",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Repl\" must match pill segment label"
+    "reviewReason": "Synced 'Rep.' with pill.segment.reps"
   },
   "walkthrough.pill.title": {
     "message": "Citirea etichetei",
@@ -4482,12 +4482,12 @@
     "review": 1
   },
   "walkthrough.ready.toolbar": {
-    "message": "Butonul ORE din bara de instrumente a browserului afișează un număr atunci când lucrările de pe pagină au ceva de semnalat. Faceți clic pe el pentru a întrerupe sau a dezactiva ORE pe un site.",
+    "message": "Butonul ORE din bara de instrumente a browserului afișează un număr atunci când lucrările de pe pagină au ceva de semnalat. Faceți clic pe el pentru a întrerupe temporar sau a dezactiva ORE pe un site.",
     "source": "The ORE button in your browser toolbar shows a number when papers on the page have something to report. Click it to pause or turn off ORE on a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"pause\" as \"întrerupe\"; check snooze term"
+    "reviewReason": "Aligned with glossary 'întrerupe temporar'"
   },
   "walkthrough.ready.tryText": {
     "message": "Vedeți ORE pe o lucrare reală, cu un scurt tur ghidat.",
@@ -4497,12 +4497,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "O bază de date gratuită, administrată de comunitatea FORRT, cu studii din științele sociale și comportamentale care au încercat să replice sau să reproducă constatări anterioare, indiferent de rezultat, și cu ceea ce au descoperit. Fiecare număr de replicări din ORE provine din această bază de date și trimite la dovezi.",
+    "message": "O bază de date gratuită, administrată de comunitatea FORRT, cu studii din științele sociale și comportamentale care au încercat să replice sau să reproducă constatări anterioare, indiferent de rezultat, și cu ceea ce au descoperit. Fiecare număr de replicări din ORE provine din această bază de date și oferă linkuri către datele corespunzătoare.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Avoided bare 'dovezi'"
   },
   "walkthrough.report.atlas.title": {
     "message": "Ce este <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a>",
@@ -4513,12 +4513,12 @@
     "reviewReason": "Contains formatting"
   },
   "walkthrough.report.caution": {
-    "message": "Considerați etichetele de rezultat un punct de plecare, nu un verdict asupra studiului original. Ele depind de modul în care autorii replicărilor își descriu rezultatele. O replicare eșuată nu arată în sine că rezultatul original a fost fals sau că studiul original a avut defecte: o replicare poate eșua și din întâmplare, din cauza puterii statistice scăzute sau a unor probleme în propria desfășurare, ori pentru că condițiile, situațiile sau contextele au fost diferite.",
+    "message": "Considerați etichetele de rezultat un punct de plecare, nu un verdict asupra studiului original. Ele depind de modul în care autorii replicărilor își descriu rezultatele. O replicare eșuată nu arată în sine că rezultatul original a fost fals sau că studiul original a avut defecte: o replicare poate eșua și din întâmplare, din cauza puterii statistice scăzute sau a unor probleme în propria desfășurare, ori deoarece condițiile, situațiile sau contextele au fost diferite.",
     "source": "Treat outcome labels as a starting point, not a verdict on the original. They depend on how replication authors describe their results. A failed replication does not by itself show that the original finding was false or the original study flawed: a replication can also fail by chance, because of low power or problems in its own conduct, or because conditions, situations, or contexts differed.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Key caveat on interpreting failed replications"
+    "reviewReason": "Fixed cacophony 'pentru că condițiile'"
   },
   "walkthrough.report.contents": {
     "message": "Fila laterală deschide un raport despre articolul pe care îl citiți: replicările sale și ce au constatat acestea, orice retragere sau Expression of Concern, discuția de pe PubPeer și care dintre referințele sale au ceva de semnalat.",
@@ -4537,12 +4537,12 @@
     "reviewReason": "Replication/original relationship statement"
   },
   "walkthrough.report.share.text": {
-    "message": "<strong>Descărcați</strong> salvează raportul ca PDF. <strong>Copiați linkul</strong> partajează întregul raport în linkul propriu-zis, așa că nu se încarcă nimic.",
+    "message": "<strong>Descărcați</strong> salvează raportul ca PDF. <strong>Copiați linkul</strong> partajează întregul raport în linkul propriu-zis, așa că nu se încarcă nimic pe vreun server.",
     "source": "<strong>Download</strong> saves the report as a PDF. <strong>Copy link</strong> shares the whole report in the link itself, so nothing is uploaded.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Privacy claim: nothing uploaded"
+    "reviewReason": "Clarified 'nothing is uploaded'"
   },
   "walkthrough.report.share.title": {
     "message": "Descărcați-l sau partajați-l",
@@ -4712,12 +4712,12 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "Deschideți o foaie de calcul cu DOI-uri, de exemplu o listă de lecturi sau studiile pentru o sinteză, în Google Sheets sau Excel Online. În Google Sheets, ORE verifică fiecare DOI din filă, inclusiv rândurile până la care nu ați derulat. Excel Online afișează doar rândurile de pe ecran, așa că ORE le verifică doar pe acestea; derulați pentru a acoperi restul. Rezultatele apar într-o fereastră pop-up.",
+    "message": "Deschideți o foaie de calcul cu DOI-uri, de exemplu o listă de lecturi sau studiile pentru o sinteză, în Google Sheets sau Excel Online. În Google Sheets, ORE verifică fiecare DOI din filă, inclusiv rândurile până la care nu ați derulat. Excel Online încarcă doar rândurile vizibile pe ecran, așa că ORE le verifică numai pe acestea; derulați pentru a verifica și restul. Rezultatele apar într-o fereastră pop-up.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instructions; check"
+    "reviewReason": "Clarified Excel visible-row loading"
   },
   "walkthrough.sheets.docs.text": {
     "message": "Fiecare referință cu DOI primește un mic marcaj. Deschideți-l pentru aceleași detalii ca într-o etichetă.",
@@ -4734,12 +4734,12 @@
     "review": 1
   },
   "walkthrough.sheets.hide.text": {
-    "message": "<strong>Ascundeți pentru această foaie</strong> închide cardul pentru această foaie. <strong>Întrerupeți</strong> îl ascunde timp de zece minute.",
+    "message": "<strong>Ascundeți pentru această foaie</strong> închide cardul pentru această foaie. <strong>Întrerupeți temporar</strong> îl ascunde timp de zece minute.",
     "source": "<strong>Hide for this sheet</strong> closes the card for this sheet. <strong>Snooze</strong> hides it for ten minutes.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Bare \"Întrerupeți\" for snooze; must match button"
+    "reviewReason": "Synced with page.sheets.snooze and glossary"
   },
   "walkthrough.sheets.hide.title": {
     "message": "Ascundeți sau întrerupeți temporar",
@@ -4749,12 +4749,12 @@
     "review": 1
   },
   "walkthrough.sheets.retracted": {
-    "message": "<strong>Lucrările retrase sunt listate primele</strong>, fiecare cu un link către notificarea sa, iar fereastra pop-up apare pentru ele chiar dacă nu s-a găsit nimic altceva.",
+    "message": "<strong>Lucrările retrase sunt afișate primele</strong>, fiecare cu un link către notificarea sa, iar fereastra pop-up apare pentru ele chiar dacă nu s-a găsit nimic altceva.",
     "source": "<strong>Retracted papers are listed first</strong>, each with a link to its notice, and the popup appears for them even if nothing else was found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Retraction behaviour statement; check"
+    "reviewReason": "Replaced anglicism 'listate'"
   },
   "walkthrough.sheets.tabs.text": {
     "message": "Fiecare filă a foii este verificată separat. Închiderea ferestrei pop-up într-o filă nu le afectează pe celelalte.",

@@ -1,11 +1,11 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: Belgenin tamamı yenilenemiyor. Rapor son başarılı taramayı koruyor ve son düzenlemeleri içermeyebilir. Otomatik olarak yeniden deneniyor.",
+    "message": "ORE: Belgenin tamamı yenilenemiyor. Rapor son başarılı taramanın sonuçlarını göstermeye devam ediyor ve son düzenlemeleri içermeyebilir. Otomatik olarak yeniden deneniyor.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long status message; check natural phrasing of 'koruyor'"
+    "reviewReason": "Long status message; replaced literal 'koruyor' with natural phrasing"
   },
   "editor.docs.scanUnavailable": {
     "message": "ORE: Belgenin tamamı taranamıyor. Yalnızca görünür sayfalar kontrol edildi. Otomatik olarak yeniden deneniyor.",
@@ -172,10 +172,10 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "Tartışma durumu kontrol edilemedi. Mevcut diğer bulgular yukarıda gösteriliyor.",
+    "message": "Tartışma durumu kontrol edilemedi. Mevcut diğer sonuçlar yukarıda gösteriliyor.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.comments.unavailableTitle": {
@@ -221,12 +221,12 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "message": "Excel yalnızca ekrandaki satırları çizdiği için ORE yalnızca bunları kontrol eder. Geri kalanını da kapsamak için çalışma sayfasını kaydırın.",
+    "message": "Excel yalnızca ekrandaki satırları görüntülediği için ORE bunları kontrol eder. Geri kalanını da kapsamak için çalışma sayfasını kaydırın.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Repeated 'yalnızca'; check 'çizdiği' for render"
+    "reviewReason": "Removed repeated 'yalnızca' and replaced literal 'çizdiği' with 'görüntülediği'"
   },
   "page.list.and": {
     "message": "{first} ve {last}",
@@ -432,12 +432,12 @@
     "review": 1
   },
   "page.progress.augmentingRefs": {
-    "message": "DOI'si olmayan {count, plural, one {# kaynak} other {# kaynak}} zenginleştiriliyor…",
+    "message": "DOI'si olmayan {count, plural, one {# kaynağın} other {# kaynağın}} bilgileri tamamlanıyor…",
     "source": "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'zenginleştiriliyor' for augmenting; check meaning"
+    "reviewReason": "Replaced literal 'zenginleştiriliyor' with clearer phrasing"
   },
   "page.progress.exportingSheet": {
     "message": "Bu tablo sekmesi dışa aktarılıyor…",
@@ -508,12 +508,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.resolvingRefs": {
-    "message": "DOI'si olmayan kaynaklar çözümleniyor…",
+    "message": "DOI'si olmayan kaynaklar için DOI aranıyor…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'çözümleniyor' for resolving references; check term"
+    "reviewReason": "Replaced technical calque 'çözümleniyor' with clearer phrasing"
   },
   "page.progress.retractionsDois": {
     "message": "{count, plural, one {# DOI} other {# DOI}} geri çekme açısından kontrol ediliyor…",
@@ -539,12 +539,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "{count, plural, one {# DOI'nin} other {# DOI'nin}} çözümlenip çözümlenmediği kontrol ediliyor…",
+    "message": "{count, plural, one {# DOI'nin} other {# DOI'nin}} geçerliliği kontrol ediliyor…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Awkward 'DOI'nin çözümlenip çözümlenmediği' construction"
+    "reviewReason": "Simplified awkward 'çözümlenip çözümlenmediği' phrasing"
   },
   "page.refs.comments": {
     "message": "{count, plural, one {# yorum} other {# yorum}}",
@@ -911,36 +911,36 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "message": "{doi} için açık araştırma ayrıntıları: henüz uyarı yok. Daha fazlası için Enter'a basın.",
+    "message": "{doi} için araştırma ayrıntılarını aç: henüz uyarı yok. Daha fazlası için Enter'a basın.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Ambiguous 'Open research details'; verb or adjective guessed"
+    "reviewReason": "Fixed 'Open research details' mistranslation (verb 'Open', not 'open science')"
   },
   "pill.aria.notice": {
-    "message": "{doi} için açık araştırma ayrıntıları: {notice, select, concern {endişe bildirimi} other {geri çekilmiş}}. Daha fazlası için Enter'a basın.",
+    "message": "{doi} için araştırma ayrıntılarını aç: {notice, select, concern {endişe bildirimi} other {geri çekilmiş}}. Daha fazlası için Enter'a basın.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Retraction status in aria label; ambiguous 'Open research'"
+    "reviewReason": "Retraction status in aria label; fixed 'Open research details' mistranslation"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "{doi} için açık araştırma ayrıntıları: {notice, select, concern {endişe bildirimi} other {geri çekilmiş}}, {count, plural, one {# replikasyon veya yeniden üretim çalışması} other {# replikasyon veya yeniden üretim çalışması}}. Daha fazlası için Enter'a basın.",
+    "message": "{doi} için araştırma ayrıntılarını aç: {notice, select, concern {endişe bildirimi} other {geri çekilmiş}}, {count, plural, one {# replikasyon veya yeniden üretim çalışması} other {# replikasyon veya yeniden üretim çalışması}}. Daha fazlası için Enter'a basın.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Retraction status in aria label; ambiguous 'Open research'"
+    "reviewReason": "Retraction status in aria label; fixed 'Open research details' mistranslation"
   },
   "pill.aria.studies": {
-    "message": "{doi} için açık araştırma ayrıntıları: {count, plural, one {# replikasyon veya yeniden üretim çalışması} other {# replikasyon veya yeniden üretim çalışması}}. Daha fazlası için Enter'a basın.",
+    "message": "{doi} için araştırma ayrıntılarını aç: {count, plural, one {# replikasyon veya yeniden üretim çalışması} other {# replikasyon veya yeniden üretim çalışması}}. Daha fazlası için Enter'a basın.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ambiguous 'Open research details' rendering"
+    "reviewReason": "Fixed 'Open research details' mistranslation (verb 'Open', not 'open science')"
   },
   "pill.cite.copiedToast": {
     "message": "Atıf kopyalandı ({style})",
@@ -971,20 +971,20 @@
     "review": 1
   },
   "pill.cite.copyFormatted": {
-    "message": "Bu kaynağı biçimlendirmesiyle birlikte {style} stilinde kopyala – stili ORE'nin ayarlarından değiştirebilirsiniz",
+    "message": "Bu kaynağı biçimlendirmesiyle birlikte {style} stilinde kopyalayın – stili ORE'nin ayarlarından değiştirebilirsiniz",
     "source": "Copy this reference in {style}, formatting included — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Mixes bare imperative with siz form; check flow"
+    "reviewReason": "Unified register to siz imperative throughout"
   },
   "pill.cite.copyVerbatim": {
-    "message": "Bu kaynağı {style} biçiminde kopyala – biçimi ORE'nin ayarlarından değiştirebilirsiniz",
+    "message": "Bu kaynağı {style} biçiminde kopyalayın – biçimi ORE'nin ayarlarından değiştirebilirsiniz",
     "source": "Copy this reference as {style} — change the style in ORE's settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Mixes bare imperative with siz form; check flow"
+    "reviewReason": "Unified register to siz imperative throughout"
   },
   "pill.cite.fetchFailedToast": {
     "message": "Atıf alınamadı",
@@ -1101,12 +1101,12 @@
     "reviewReason": "Evidence label; check standalone sentence"
   },
   "pill.marker.empty": {
-    "message": "Replikasyon kanıtı veya PubPeer yorumu bulunamadı.",
+    "message": "Replikasyon verisi veya PubPeer yorumu bulunamadı.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Evidence statement; absence of findings phrasing"
+    "reviewReason": "Evidence statement; replaced 'kanıtı' with neutral 'verisi'"
   },
   "pill.marker.inProgress": {
     "message": "Kontroller sürüyor.",
@@ -1242,12 +1242,12 @@
     "review": 1
   },
   "pill.oa.notConfirmed": {
-    "message": "Açık erişim doğrulanmadı",
+    "message": "Açık erişim olduğu doğrulanmadı",
     "source": "Not confirmed open access",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Meaning shift: 'OA not verified' vs not confirmed OA"
+    "reviewReason": "Clarified phrasing so it means open-access status is not confirmed"
   },
   "pill.oa.notIndexed": {
     "message": "Unpaywall'da dizinlenmemiş",
@@ -1318,12 +1318,12 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "{doi} için açık araştırma ayrıntıları",
+    "message": "{doi} için araştırma ayrıntıları",
     "source": "Open research details for {doi}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ambiguous 'Open research details' rendering"
+    "reviewReason": "Fixed 'Open research details' mistranslation (research details, not open science)"
   },
   "pill.provenance.matchedByTitle": {
     "message": "Başlıkla eşleştirildi – doğru makale olup olmadığını kontrol edin",
@@ -1401,12 +1401,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "İstek sınırı",
+    "message": "Sınır aşıldı",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'İstek sınırı' alone loses 'limited' meaning"
+    "reviewReason": "Short label updated so it clearly states the limit was reached"
   },
   "pill.pubpeer.unavailableTooltip": {
     "message": "PubPeer durumu kullanılamıyor",
@@ -1610,12 +1610,12 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "{count, plural, one {# makale} other {# makale}} için açık araştırma ayrıntıları",
+    "message": "{count, plural, one {# makale} other {# makale}} için araştırma ayrıntıları",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Ambiguous 'Open research details' rendering"
+    "reviewReason": "Fixed 'Open research details' mistranslation (research details, not open science)"
   },
   "pill.stack.position": {
     "message": "Makale {index}/{total}",
@@ -1653,12 +1653,12 @@
     "review": 1
   },
   "popup.block.sub": {
-    "message": "Yeniden açana kadar",
+    "message": "Siz yeniden açana kadar",
     "source": "Until you turn it back on",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Subject-less 'açana kadar'; check clarity"
+    "reviewReason": "Added explicit 'Siz' subject for clarity"
   },
   "popup.block.turnOff": {
     "message": "Bu sitede kapat",
@@ -1829,12 +1829,12 @@
     "reviewReason": "Retraction count fragment"
   },
   "popup.findings.othersUnavailable": {
-    "message": "{count} tam kontrol edilemeyen",
+    "message": "{count} tam kontrol edilmemiş",
     "source": "{count} not fully checked",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Fragment; 'tam kontrol edilemeyen' slightly shifts meaning"
+    "reviewReason": "Changed 'edilemeyen' to 'edilmemiş' to match 'not fully checked'"
   },
   "popup.findings.pubpeerComments": {
     "message": "{count, plural, one {# PubPeer yorumu} other {# PubPeer yorumu}}",
@@ -2068,12 +2068,12 @@
     "review": 1
   },
   "popup.status.restored": {
-    "message": "ORE geri yüklendi",
+    "message": "ORE yeniden gösteriliyor",
     "source": "ORE restored",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'geri yüklendi' may suggest reinstall; check"
+    "reviewReason": "Replaced 'geri yüklendi' to avoid implying reinstall or backup restore"
   },
   "popup.status.resumed": {
     "message": "{domain} için devam ettirildi – uygulamak için sayfayı yeniden yükleyin",
@@ -2332,12 +2332,12 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Replikasyon kanıtı bir hüküm değil, değerlendirme için bir başlangıç noktasıdır.",
+    "message": "Replikasyon verileri kesin bir hüküm değil, değerlendirme için bir başlangıç noktasıdır.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Statement about what replication evidence means"
+    "reviewReason": "Statement about what replication data means; replaced 'kanıtı' with 'verileri'"
   },
   "report.colophon.compiled": {
     "message": "<a href=\"{url}\">FORRT ORE</a> tarafından {date} tarihinde FORRT Replication Database, Retraction Watch, Unpaywall ve PubPeer verilerinden derlenmiştir.",
@@ -2356,12 +2356,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "report.notice.read": {
-    "message": "Bildirimi okuyun ↗",
+    "message": "Bildirimi oku ↗",
     "source": "Read the notice ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Link uses siz imperative; bare stem may be expected"
+    "reviewReason": "Aligned link label to bare imperative stem used across action links"
   },
   "report.notice.retracted": {
     "message": "Bu makale geri çekilmiş.",
@@ -2394,12 +2394,12 @@
     "review": 1
   },
   "report.pdf.readNotice": {
-    "message": "Bildirimi okuyun",
+    "message": "Bildirimi oku",
     "source": "Read the notice",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Uses siz imperative; bare stem may be expected"
+    "reviewReason": "Aligned link label to bare imperative stem used across action links"
   },
   "report.section.flaggedRefs": {
     "message": "İşaretlenen kaynaklar",
@@ -2538,12 +2538,12 @@
     "review": 1
   },
   "search.provenance.siteRecord": {
-    "message": "{site} sitesinin bu esere ait kendi kaydından alındı",
+    "message": "Bu çalışmanın {site} kaydından alındı",
     "source": "Taken from {site}'s own record of this work",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Wordy 'sitesinin ... kendi kaydından'; check fluency"
+    "reviewReason": "Tightened wordy phrasing and dropped 'sitesinin' for non-site names"
   },
   "search.retry.action": {
     "message": "Yeniden dene",
@@ -2598,20 +2598,20 @@
     "reviewReason": "Has number or variant forms"
   },
   "search.stage.augmenting": {
-    "message": "DOI'si olmayan {count, plural, one {# sonuç} other {# sonuç}} zenginleştiriliyor…",
+    "message": "DOI'si olmayan {count, plural, one {# sonucun} other {# sonucun}} bilgileri tamamlanıyor…",
     "source": "Augmenting {count, plural, one {# result} other {# results}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'zenginleştiriliyor' for augmenting; check meaning"
+    "reviewReason": "Replaced literal 'zenginleştiriliyor' with clearer phrasing"
   },
   "search.stage.checkingDois": {
-    "message": "{count, plural, one {# DOI'nin} other {# DOI'nin}} çözümlenip çözümlenmediği kontrol ediliyor…",
+    "message": "{count, plural, one {# DOI'nin} other {# DOI'nin}} geçerliliği kontrol ediliyor…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Awkward 'çözümlenip çözümlenmediği' construction"
+    "reviewReason": "Simplified awkward 'çözümlenip çözümlenmediği' phrasing"
   },
   "search.stage.lookingUp": {
     "message": "{count, plural, one {# benzersiz DOI} other {# benzersiz DOI}} bulundu – sorgulanıyor…",
@@ -2646,12 +2646,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "settings.blocklist.add": {
-    "message": "Sitede kapat",
+    "message": "Site için kapat",
     "source": "Turn off for site",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Sitede kapat' terse; 'for site' meaning check"
+    "reviewReason": "Clarified button wording to match 'Turn off for site'"
   },
   "settings.blocklist.already": {
     "message": "{domain} zaten engellenmiş.",
@@ -2825,12 +2825,12 @@
     "review": 1
   },
   "settings.citation.sourceText": {
-    "message": "Atıflar, yedek olarak doi.org kullanılarak <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> üzerinden alınır ve yalnızca siz istediğinizde getirilir. Aşağıdaki örnek de böyle bir istektir.",
+    "message": "Atıflar <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a> üzerinden, ulaşılamadığında ise yedek olarak doi.org üzerinden alınır ve yalnızca siz istediğinizde getirilir. Aşağıdaki örnek de böyle bir istektir.",
     "source": "Citations come from <a href=\"https://api.crossref.org\" target=\"_blank\" rel=\"noopener\">Crossref</a>, with doi.org as a fallback, and are fetched only when you ask for one. The sample below is one such request.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Data-request claim; fallback clause reordered, check meaning"
+    "reviewReason": "Data-request claim; clarified Crossref primary and doi.org fallback order"
   },
   "settings.citation.title": {
     "message": "Atıf Stili",
@@ -2904,20 +2904,20 @@
     "review": 1
   },
   "settings.commenters.unmuteLabel": {
-    "message": "Sesi aç: {name}",
+    "message": "Sessize almayı kaldır: {name}",
     "source": "Unmute {name}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Sesi aç' for unmute person; check idiom"
+    "reviewReason": "Replaced audio idiom 'Sesi aç' with 'Sessize almayı kaldır'"
   },
   "settings.commenters.unmuted": {
-    "message": "{name} artık sessizde değil",
+    "message": "{name} için sessize alma kaldırıldı",
     "source": "Unmuted {name}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'artık sessizde değil' awkward"
+    "reviewReason": "Replaced awkward 'artık sessizde değil' phrasing"
   },
   "settings.data.bundled": {
     "message": "ORE ile birlikte gelen",
@@ -3049,12 +3049,12 @@
     "review": 1
   },
   "settings.data.updated": {
-    "message": "güncellenme: {date}",
+    "message": "son güncelleme: {date}",
     "source": "updated {date}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'güncellenme:' label form; check naturalness"
+    "reviewReason": "Improved naturalness of updated-date label"
   },
   "settings.data.workerUnreachable": {
     "message": "ORE'nin arka plan işlemine ulaşılamadı – yeniden deneyin.",
@@ -3235,12 +3235,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "ORE'nin okuduğunuz makalelerde kanıtları nasıl göstereceğini seçin. E-posta adresi, başlıktan DOI eşleştirmeyi ve açık erişim sorgularını etkinleştirir; DOI tabanlı diğer kontroller e-posta adresi olmadan da çalışır.",
+    "message": "ORE'nin okuduğunuz makalelerde araştırma bilgilerini nasıl göstereceğini seçin. E-posta adresi, başlığa göre DOI eşleştirmeyi ve açık erişim sorgularını etkinleştirir; DOI tabanlı diğer kontroller e-posta adresi olmadan da çalışır.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long; check 'başlıktan DOI eşleştirme'"
+    "reviewReason": "Replaced 'kanıtları' with neutral 'araştırma bilgilerini' and standardized 'başlığa göre'"
   },
   "settings.email.label": {
     "message": "E-posta",
@@ -3521,12 +3521,12 @@
     "review": 1
   },
   "sites.add.button": {
-    "message": "Sitede aç",
+    "message": "Site için aç",
     "source": "Turn on for site",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Sitede aç' terse; 'for site' meaning check"
+    "reviewReason": "Clarified button wording to match 'Turn on for site'"
   },
   "sites.add.failed": {
     "message": "Eklenemedi: {domain}. Yeniden deneyin.",
@@ -3925,20 +3925,20 @@
     "review": 1
   },
   "tour.pill.noPill": {
-    "message": "Etiketi olmayan bir kaynak, ORE'nin tanımlayamadığı bir kaynaktır.",
+    "message": "Bir kaynakta etiket yoksa ORE onu tanımlayamamıştır.",
     "source": "A reference without a pill is one ORE could not identify.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Repeated 'kaynak'; check fluency"
+    "reviewReason": "Removed repeated 'kaynak' for natural flow"
   },
   "tour.pill.noPillAlsoLoose": {
-    "message": "Etiketi olmayan bir kaynak, ORE'nin tanımlayamadığı bir kaynaktır. ORE aynı etiketi metinde geçen her DOI'ye ekler.",
+    "message": "Bir kaynakta etiket yoksa ORE onu tanımlayamamıştır. ORE aynı etiketi metinde geçen her DOI'ye ekler.",
     "source": "A reference without a pill is one ORE could not identify. ORE adds the same pill to each DOI mentioned in the text.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Repeated 'kaynak'; check fluency"
+    "reviewReason": "Removed repeated 'kaynak' for natural flow"
   },
   "tour.pill.pointAt": {
     "message": "ORE'nin ne bulduğunu görmek için imleci üzerine getirin.",
@@ -4072,12 +4072,12 @@
     "review": 1
   },
   "walkthrough.article.tab": {
-    "message": "Pencerenin sağ kenarındaki bir <strong>sekme</strong>, ORE'nin bulduğu her şeyi tek bir yerde toplayan Meta Raporu açar. Bir şeyi kapatıyorsa sekmeyi yukarı veya aşağı sürükleyin.",
+    "message": "Pencerenin sağ kenarındaki bir <strong>sekme</strong>, ORE'nin bulduğu her şeyi tek bir yerde toplayan Meta Rapor'u açar. Bir şeyi kapatıyorsa sekmeyi yukarı veya aşağı sürükleyin.",
     "source": "A <strong>tab</strong> on the right edge of the window opens the Meta Report: everything ORE found, in one place. Drag it up or down if it covers something.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Meta Raporu' accusative may read as compound"
+    "reviewReason": "Added proper-noun apostrophe in 'Meta Rapor'u'"
   },
   "walkthrough.article.title": {
     "message": "Bir makale sayfasında iki şey görünür",
@@ -4116,12 +4116,12 @@
     "review": 1
   },
   "walkthrough.done.text": {
-    "message": "Kurulum tamamlandı. Eklentiyi kullanmaya başlayın: ORE, siz gezinirken makaleleri kendiliğinden kontrol eder.",
+    "message": "Kurulum tamamlandı. Uzantıyı kullanmaya başlayın: ORE, siz gezinirken makaleleri kendiliğinden kontrol eder.",
     "source": "Setup is complete. Start using the plugin: ORE will check papers by itself as you browse.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Eklenti' inconsistent with 'uzantı' elsewhere"
+    "reviewReason": "Standardized 'Eklenti' to 'Uzantı' for consistency"
   },
   "walkthrough.done.title": {
     "message": "Her şey hazır",
@@ -4145,12 +4145,12 @@
     "review": 1
   },
   "walkthrough.dots.pill": {
-    "message": "Etiketi okumak",
+    "message": "Etiketi okuma",
     "source": "Reading the pill",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Etiketi okumak' infinitive; check as label"
+    "reviewReason": "Changed infinitive heading to verbal-noun label"
   },
   "walkthrough.dots.ready": {
     "message": "Hazırsınız",
@@ -4285,12 +4285,12 @@
     "reviewReason": "Evidence heading; 'sorgulanan' for under question"
   },
   "walkthrough.notices.where": {
-    "message": "Her ikisi de etiketin sonuna bir uyarı ekler ve Meta Raporda görünür. Her ikisi de derginin bildirimine bağlantı verir, böylece gerekçeyi okuyabilirsiniz. Veriler Retraction Watch'tan gelir.",
+    "message": "Her ikisi de etiketin sonuna bir uyarı ekler ve Meta Rapor'da görünür. Her ikisi de derginin bildirimine bağlantı verir, böylece gerekçeyi okuyabilirsiniz. Veriler Retraction Watch'tan gelir.",
     "source": "Either one adds a warning to the end of the pill and appears in the Meta Report. Both link to the journal's notice, so you can read the reason. The data comes from Retraction Watch.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Data source statement; check 'Meta Raporda'"
+    "reviewReason": "Data source statement; added proper-noun apostrophe in 'Meta Rapor'da'"
   },
   "walkthrough.pageTitle": {
     "message": "FORRT ORE – Nasıl Çalışır?",
@@ -4350,12 +4350,12 @@
     "review": 1
   },
   "walkthrough.pill.doi.title": {
-    "message": "DOI: bu hangi makale",
+    "message": "DOI: makalenin kimliği",
     "source": "DOI — which paper this is",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'bu hangi makale' awkward as title"
+    "reviewReason": "Improved awkward title 'bu hangi makale'"
   },
   "walkthrough.pill.oa.text": {
     "message": "Açık Erişim: Unpaywall aracılığıyla bulunan, yasal bir açık erişim sürümü çevrimiçi olarak mevcut. Satır en iyi sürümü açar; yanındaki ok diğerlerini listeler.",
@@ -4390,12 +4390,12 @@
     "reviewReason": "Explains faded/coloured meaning; check clarity"
   },
   "walkthrough.pill.pubpeer.text": {
-    "message": "PubPeer, araştırmacıların yayımlanmış makaleler hakkında, çoğunlukla sorunlara dikkat çekmek için yorum yaptığı bir sitedir. Sayı, yorum sayısını gösterir; satır tartışmayı açar.",
+    "message": "PubPeer, araştırmacıların yayımlanmış makaleler hakkında, sıklıkla sorunlara dikkat çekmek için yorum yaptığı bir sitedir. Sayı, yorum sayısını gösterir; satır tartışmayı açar.",
     "source": "PubPeer is a site where researchers comment on published papers, often to point out problems. The number is the comment count; the row opens the thread.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Describes PubPeer purpose; check nuance"
+    "reviewReason": "Changed 'çoğunlukla' (mostly) to 'sıklıkla' (often) to match source nuance"
   },
   "walkthrough.pill.pubpeer.title": {
     "message": "PubPeer: araştırmacılar bu makaleyi tartışıyor",
@@ -4422,12 +4422,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "walkthrough.pill.title": {
-    "message": "Etiketi okumak",
+    "message": "Etiketi okuma",
     "source": "Reading the pill",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Etiketi okumak' infinitive as title; check"
+    "reviewReason": "Changed infinitive heading to verbal-noun title"
   },
   "walkthrough.ready.automatic": {
     "message": "ORE siz gezinirken kendiliğinden çalışır. Bir sayfayı kontrol ederken köşede küçük bir not görünür ve ardından kaybolur.",
@@ -4480,12 +4480,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "FORRT topluluğu tarafından yürütülen ücretsiz bir veritabanıdır. Sosyal ve davranış bilimlerinde, sonucu ne olursa olsun önceki bulguları replike etmeye veya yeniden üretmeye çalışan çalışmaları ve bu çalışmaların ne bulduğunu içerir. ORE'deki her replikasyon sayısı buradan gelir ve kanıta bağlantı verir.",
+    "message": "FORRT topluluğu tarafından yürütülen ücretsiz bir veritabanıdır. Sosyal ve davranış bilimlerinde, sonucu ne olursa olsun önceki bulguları replike etmeye veya yeniden üretmeye çalışan çalışmaları ve bu çalışmaların ne bulduğunu içerir. ORE'deki her replikasyon sayısı buradan gelir ve ilgili çalışmalara bağlantı verir.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Describes evidence database scope; split sentences, verify"
+    "reviewReason": "Describes evidence database scope; replaced 'kanıta' with 'ilgili çalışmalara'"
   },
   "walkthrough.report.atlas.title": {
     "message": "<a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a> nedir?",
@@ -4587,12 +4587,12 @@
     "review": 1
   },
   "walkthrough.search.titleMatch": {
-    "message": "Bir sonuçta DOI görünmüyorsa ORE başlığı Crossref ve OpenAlex'te arar ve yazar ile yıla göre en yakın eşleşmeyi seçer. Bu şekilde bulunan bir DOI'nin <strong>altı noktalı çizgiyle çizilir</strong>.",
+    "message": "Bir sonuçta DOI görünmüyorsa ORE başlığı Crossref ve OpenAlex'te arar ve yazar ile yıla göre en yakın eşleşmeyi seçer. Bu şekilde bulunan bir DOI, <strong>noktalı alt çizgiyle gösterilir</strong>.",
     "source": "When a result doesn't show a DOI, ORE looks the title up in Crossref and OpenAlex and picks the closest match by author and year. A DOI found this way is <strong>underlined with dots</strong>.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'altı noktalı çizgiyle çizilir' check fluency"
+    "reviewReason": "Improved fluency of dotted-underline description"
   },
   "walkthrough.setup.citation.help": {
     "message": "Kopyala düğmesinin kullandığı biçim: APA, Vancouver, BibTeX ve sekiz biçim daha.",
@@ -4696,12 +4696,12 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "Okuma listesi veya bir derleme için çalışmalar gibi DOI'ler içeren bir tabloyu Google Sheets'te veya Excel Online'da açın. Google Sheets'te ORE, henüz kaydırmadığınız satırlar dahil sekmedeki her DOI'yi kontrol eder. Excel Online yalnızca ekrandaki satırları çizdiği için ORE yalnızca bunları kontrol eder; geri kalanını da kapsamak için kaydırın. Sonuçlar bir açılır pencerede görünür.",
+    "message": "Okuma listesi veya bir derleme için çalışmalar gibi DOI'ler içeren bir tabloyu Google Sheets'te veya Excel Online'da açın. Google Sheets'te ORE, henüz kaydırmadığınız satırlar dahil sekmedeki her DOI'yi kontrol eder. Excel Online yalnızca ekrandaki satırları görüntülediği için ORE bunları kontrol eder; geri kalanını da kapsamak için kaydırın. Sonuçlar bir açılır pencerede görünür.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instructions; check flow"
+    "reviewReason": "Long instructions; replaced 'çizdiği' with 'görüntülediği' and removed repeated 'yalnızca'"
   },
   "walkthrough.sheets.docs.text": {
     "message": "DOI'si olan her kaynağa küçük bir işaret eklenir. Bir etiketteki ayrıntıların aynısını görmek için işareti açın.",
@@ -4791,12 +4791,12 @@
     "reviewReason": "Evidence heading; 'sorgulanan' for questioned"
   },
   "walkthrough.tag.pill": {
-    "message": "Etiketi okumak",
+    "message": "Etiketi okuma",
     "source": "Reading the pill",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "'Etiketi okumak' infinitive as tag; check"
+    "reviewReason": "Changed infinitive tag to verbal-noun label"
   },
   "walkthrough.tag.search": {
     "message": "Arama sonuçları",
@@ -4834,12 +4834,12 @@
     "review": 1
   },
   "walkthrough.welcome.doi": {
-    "message": "ORE bir makaleyi <strong>DOI</strong>'sinden tanır: DOI, çoğu araştırma makalesinde basılı olan kalıcı kimliktir (ör. 10.1177/0956797610383437). ORE üç yerde çalışır.",
+    "message": "ORE bir makaleyi <strong>DOI</strong> numarasından tanır: DOI, çoğu araştırma makalesinde basılı olan kalıcı kimliktir (ör. 10.1177/0956797610383437). ORE üç yerde çalışır.",
     "source": "ORE recognises a paper by its <strong>DOI</strong> — the permanent ID printed on most research papers, such as 10.1177/0956797610383437. It works in three places.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Suffix after closing strong tag; check rendering"
+    "reviewReason": "Avoided agglutinative suffix directly after closing strong tag"
   },
   "walkthrough.welcome.footnote": {
     "message": "ORE'nin gösterdikleri, bir makale hakkında bir hüküm değil, kendi değerlendirmeniz için bir başlangıç noktasıdır.",

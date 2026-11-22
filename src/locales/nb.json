@@ -1,11 +1,11 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: Oppdatering av hele dokumentet er ikke tilgjengelig. Rapporten beholder den siste vellykkede skanningen og kan mangle nylige endringer. Prøver igjen automatisk.",
+    "message": "ORE: Oppdatering av hele dokumentet er ikke tilgjengelig. Rapporten viser fortsatt resultatene fra den siste vellykkede skanningen og kan mangle nylige endringer. Prøver igjen automatisk.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long status message; check fluency"
+    "reviewReason": "Revised in AI review; please check"
   },
   "editor.docs.scanUnavailable": {
     "message": "ORE: Skanning av hele dokumentet er ikke tilgjengelig. Bare synlige sider er sjekket. Prøver igjen automatisk.",
@@ -175,12 +175,12 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "Diskusjonsstatusen kunne ikke sjekkes. Andre tilgjengelige funn vises ovenfor.",
+    "message": "Diskusjonsstatusen kunne ikke sjekkes. Andre tilgjengelige kontrollresultater vises ovenfor.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.comments.unavailableTitle": {
     "message": "PubPeer er utilgjengelig",
@@ -225,12 +225,12 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "message": "Excel tegner bare radene som vises på skjermen, så ORE sjekker dem. Rull gjennom arket for å dekke resten.",
+    "message": "Excel viser bare radene på skjermen, så ORE sjekker dem. Rull gjennom arket for å dekke resten.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Instruction; check \"tegner\" for draws"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.list.and": {
     "message": "{first} og {last}",
@@ -438,12 +438,12 @@
     "review": 1
   },
   "page.progress.augmentingRefs": {
-    "message": "Supplerer {count, plural, one {# referanse} other {# referanser}} uten DOI…",
+    "message": "Henter DOI for {count, plural, one {# referanse} other {# referanser}} uten DOI…",
     "source": "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Supplerer\" for augmenting; check meaning"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.exportingSheet": {
     "message": "Eksporterer denne arkfanen…",
@@ -491,20 +491,20 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.markingUp": {
-    "message": "Merker siden…",
+    "message": "Legger til merker på siden…",
     "source": "Marking up the page…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Merker\" also means pills; ambiguous"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.markingUpRefs": {
-    "message": "Merker {count, plural, one {# referanse} other {# referanser}}…",
+    "message": "Legger til merker på {count, plural, one {# referanse} other {# referanser}}…",
     "source": "Marking up {count, plural, one {# reference} other {# references}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Merker\" also means pills; ambiguous"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.pubpeer": {
     "message": "Sjekker PubPeer for {count, plural, one {# artikkel} other {# artikler}}…",
@@ -756,10 +756,10 @@
     "review": 1
   },
   "page.sheets.notice": {
-    "message": "Melding ↗",
+    "message": "Kunngjøring ↗",
     "source": "Notice ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.sheets.noticesHeading": {
@@ -921,36 +921,36 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "message": "Forskningsdetaljer for {doi}: ingen funn ennå. Trykk Enter for mer.",
+    "message": "Åpne forskningsdetaljer for {doi}: ingen merknader ennå. Trykk Enter for mer.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Drops \"Open\"; screen-reader label"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.aria.notice": {
-    "message": "Forskningsdetaljer for {doi}: {notice, select, concern {Expression of Concern} other {trukket tilbake}}. Trykk Enter for mer.",
+    "message": "Åpne forskningsdetaljer for {doi}: {notice, select, concern {Expression of Concern} other {trukket tilbake}}. Trykk Enter for mer.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Drops \"Open\"; check select branches"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "Forskningsdetaljer for {doi}: {notice, select, concern {Expression of Concern} other {trukket tilbake}}, {count, plural, one {# replikasjons- eller reproduksjonsstudie} other {# replikasjons- eller reproduksjonsstudier}}. Trykk Enter for mer.",
+    "message": "Åpne forskningsdetaljer for {doi}: {notice, select, concern {Expression of Concern} other {trukket tilbake}}, {count, plural, one {# replikasjons- eller reproduksjonsstudie} other {# replikasjons- eller reproduksjonsstudier}}. Trykk Enter for mer.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Drops \"Open\"; complex ICU"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.aria.studies": {
-    "message": "Forskningsdetaljer for {doi}: {count, plural, one {# replikasjons- eller reproduksjonsstudie} other {# replikasjons- eller reproduksjonsstudier}}. Trykk Enter for mer.",
+    "message": "Åpne forskningsdetaljer for {doi}: {count, plural, one {# replikasjons- eller reproduksjonsstudie} other {# replikasjons- eller reproduksjonsstudier}}. Trykk Enter for mer.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Drops \"Open\"; screen-reader label"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.cite.copiedToast": {
     "message": "{style}-referansen er kopiert",
@@ -1114,20 +1114,20 @@
     "review": 1
   },
   "pill.marker.empty": {
-    "message": "Fant ingen replikasjoner eller PubPeer-kommentarer.",
+    "message": "Fant ingen replikasjonsdata eller PubPeer-kommentarer.",
     "source": "No replication evidence or PubPeer comments found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.marker.inProgress": {
-    "message": "Sjekker pågår.",
+    "message": "Kontroller pågår.",
     "source": "Checks in progress.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Sjekker pågår\" reads oddly"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.marker.openDetails": {
     "message": "Åpne artikkeldetaljer",
@@ -1166,12 +1166,12 @@
     "review": 1
   },
   "pill.notice.concernLabel": {
-    "message": "Concern",
+    "message": "Bekymring",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.notice.concernTitle": {
     "message": "Expression of Concern",
@@ -1413,12 +1413,12 @@
     "reviewReason": "Check phrasing"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "message": "For mange forespørsler",
+    "message": "Grense nådd",
     "source": "Rate limited",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Short status; length"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.pubpeer.unavailableTooltip": {
     "message": "PubPeer-status er utilgjengelig",
@@ -1605,12 +1605,12 @@
     "reviewReason": "Tight space; abbreviation kept"
   },
   "pill.segment.reps": {
-    "message": "Repl",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Tight space; check \"Repl\" is understood"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# artikkel} other {# artikler}} i denne referansen: {dois}. Trykk Enter for detaljer.",
@@ -1795,17 +1795,17 @@
     "review": 1
   },
   "popup.findings.label": {
-    "message": "Funn på denne siden",
+    "message": "Kontrollresultater på denne siden",
     "source": "Findings on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.none": {
-    "message": "ingen funn",
+    "message": "ingen merknader",
     "source": "no findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.originals": {
@@ -1920,10 +1920,10 @@
     "review": 1
   },
   "popup.findings.withFindings": {
-    "message": "{count} med funn",
+    "message": "{count} med merknader",
     "source": "{count} with findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.footerLabel": {
@@ -2117,12 +2117,12 @@
     "reviewReason": "Changes \"see Settings\" to imperative"
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} er fortsatt slått av fordi et overordnet domene eller en nettstedskategori er blokkert – endre dette i Innstillinger",
+    "message": "ORE er fortsatt slått av på {domain} fordi et overordnet domene eller en nettstedskategori er blokkert – endre dette i Innstillinger",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long, complex status"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.status.unblocked": {
     "message": "{domain} er ikke lenger blokkert – last inn på nytt for å bruke endringen",
@@ -2283,20 +2283,20 @@
     "review": 1
   },
   "progress.tab.clearSummary": {
-    "message": "{count, plural, one {Ingen funn for denne artikkelen – sjekket # artikkel: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner eller reproduksjoner.} other {Ingen funn på denne siden – sjekket # artikler: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner eller reproduksjoner.}}",
+    "message": "{count, plural, one {Ingen merknader for denne artikkelen – sjekket # artikkel: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner eller reproduksjoner.} other {Ingen merknader på denne siden – sjekket # artikler: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner eller reproduksjoner.}}",
     "source": "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications or reproductions.} other {No flags on this page — Checked # papers: no retractions, concerns, replications or reproductions.}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long tooltip; English plural inside"
+    "reviewReason": "Revised in AI review; please check"
   },
   "progress.tab.clearSummaryPubPeer": {
-    "message": "{count, plural, one {Ingen funn for denne artikkelen – sjekket # artikkel: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner, reproduksjoner eller PubPeer-kommentarer.} other {Ingen funn på denne siden – sjekket # artikler: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner, reproduksjoner eller PubPeer-kommentarer.}}",
+    "message": "{count, plural, one {Ingen merknader for denne artikkelen – sjekket # artikkel: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner, reproduksjoner eller PubPeer-kommentarer.} other {Ingen merknader på denne siden – sjekket # artikler: ingen tilbaketrekkinger, Expressions of Concern, replikasjoner, reproduksjoner eller PubPeer-kommentarer.}}",
     "source": "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications, reproductions or PubPeer comments.} other {No flags on this page — Checked # papers: no retractions, concerns, replications, reproductions or PubPeer comments.}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long tooltip; English plural inside"
+    "reviewReason": "Revised in AI review; please check"
   },
   "progress.toast.defaultLabel": {
     "message": "ORE slår opp artiklene på denne siden…",
@@ -2424,12 +2424,12 @@
     "review": 1
   },
   "report.section.flaggedRefs": {
-    "message": "Referanser med funn",
+    "message": "Referanser med merknader",
     "source": "Flagged references",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"med funn\" for flagged"
+    "reviewReason": "Revised in AI review; please check"
   },
   "report.section.originals": {
     "message": "Originalartikler",
@@ -2485,12 +2485,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "report.tag.concern": {
-    "message": "Concern",
+    "message": "Bekymring",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "report.tag.inAtlas": {
     "message": "I Atlas",
@@ -2561,12 +2561,12 @@
     "reviewReason": "Check phrasing"
   },
   "search.provenance.siteRecord": {
-    "message": "Hentet fra posten for dette verket hos {site}",
+    "message": "Hentet fra oppføringen for dette verket hos {site}",
     "source": "Taken from {site}'s own record of this work",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"posten for dette verket\" awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.retry.action": {
     "message": "Prøv igjen",
@@ -2620,12 +2620,12 @@
     "reviewReason": "Check select branches"
   },
   "search.stage.augmenting": {
-    "message": "Supplerer {count, plural, one {# resultat} other {# resultater}} uten DOI…",
+    "message": "Henter DOI for {count, plural, one {# resultat} other {# resultater}} uten DOI…",
     "source": "Augmenting {count, plural, one {# result} other {# results}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Supplerer\" for augmenting"
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.stage.checkingDois": {
     "message": "Sjekker at {count, plural, one {# DOI} other {# DOI-er}} kan slås opp…",
@@ -2644,10 +2644,10 @@
     "reviewReason": "Has number or variant forms"
   },
   "search.stage.markingUp": {
-    "message": "Merker {count, plural, one {# resultat} other {# resultater}}…",
+    "message": "Legger til merker på {count, plural, one {# resultat} other {# resultater}}…",
     "source": "Marking up {count, plural, one {# result} other {# results}}…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Has number or variant forms"
   },
@@ -3207,12 +3207,12 @@
     "reviewReason": "\"fremdriftsvarselet\" for toast"
   },
   "settings.debug.opening": {
-    "message": "Oppretter en GitHub-sak med rapporten fylt inn.",
+    "message": "Åpner et GitHub-skjema med rapporten fylt inn.",
     "source": "Opening a GitHub issue with the report filled in.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Oppretter\" but only opens form"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.debug.previewLabel": {
     "message": "Forhåndsvisning av feilsøkingsrapport",
@@ -3265,12 +3265,12 @@
     "review": 1
   },
   "settings.email.intro": {
-    "message": "Velg hvordan ORE viser funn på artiklene du leser. E-postadressen gjør det mulig å finne DOI ut fra tittel og slå opp åpen tilgang; andre DOI-baserte sjekker fungerer uten.",
+    "message": "Velg hvordan ORE viser kontrollresultater på artiklene du leser. E-postadressen gjør det mulig å finne DOI ut fra tittel og slå opp åpen tilgang; andre DOI-baserte sjekker fungerer uten.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Data-handling explanation of email use"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.email.label": {
     "message": "E-post",
@@ -3469,12 +3469,12 @@
     "review": 1
   },
   "settings.nav.label": {
-    "message": "Deler av Innstillinger",
+    "message": "Avsnitt i Innstillinger",
     "source": "Settings sections",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Deler av Innstillinger\" awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.nav.language": {
     "message": "Språk",
@@ -3569,12 +3569,12 @@
     "review": 1
   },
   "sites.add.inputLabel": {
-    "message": "Nettsted ORE skal slås på for",
+    "message": "Nettsted der ORE skal slås på",
     "source": "Site to turn ORE on for",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Awkward preposition at end"
+    "reviewReason": "Revised in AI review; please check"
   },
   "sites.add.invalid": {
     "message": "Skriv inn et domene, for eksempel journals.example.org.",
@@ -3665,12 +3665,12 @@
     "reviewReason": "English plural \"Preprints\""
   },
   "sites.category.searchDiscovery": {
-    "message": "Faglig søk og oppdagelse",
+    "message": "Faglig søk og utforsking",
     "source": "Scholarly search & discovery",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"oppdagelse\" for discovery"
+    "reviewReason": "Revised in AI review; please check"
   },
   "sites.category.shopping": {
     "message": "Netthandel",
@@ -3838,12 +3838,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "toolbar.title.clear": {
-    "message": "{incomplete, select, yes {FORRT ORE – ingen funn: sjekket {count, plural, one {# artikkel} other {# artikler}} – noen sjekker er utilgjengelige, resultatene er ufullstendige} other {FORRT ORE – ingen funn: sjekket {count, plural, one {# artikkel} other {# artikler}}}}",
+    "message": "{incomplete, select, yes {FORRT ORE – ingen merknader: sjekket {count, plural, one {# artikkel} other {# artikler}} – noen sjekker er utilgjengelige, resultatene er ufullstendige} other {FORRT ORE – ingen merknader: sjekket {count, plural, one {# artikkel} other {# artikler}}}}",
     "source": "{incomplete, select, yes {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}} — some checks unavailable, results incomplete} other {FORRT ORE — no flags: checked {count, plural, one {# paper} other {# papers}}}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Complex ICU; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "toolbar.title.error": {
     "message": "FORRT ORE – noe gikk galt. Klikk for å rapportere en feil",
@@ -3853,12 +3853,12 @@
     "review": 1
   },
   "toolbar.title.flagged": {
-    "message": "{incomplete, select, yes {FORRT ORE – {count, plural, one {# artikkel} other {# artikler}} med funn – noen sjekker er utilgjengelige, resultatene er ufullstendige} other {FORRT ORE – {count, plural, one {# artikkel} other {# artikler}} med funn}}",
+    "message": "{incomplete, select, yes {FORRT ORE – {count, plural, one {# artikkel} other {# artikler}} med merknader – noen sjekker er utilgjengelige, resultatene er ufullstendige} other {FORRT ORE – {count, plural, one {# artikkel} other {# artikler}} med merknader}}",
     "source": "{incomplete, select, yes {FORRT ORE — {count, plural, one {# paper} other {# papers}} flagged — some checks unavailable, results incomplete} other {FORRT ORE — {count, plural, one {# paper} other {# papers}} flagged}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Complex ICU; \"med funn\" for flagged"
+    "reviewReason": "Revised in AI review; please check"
   },
   "toolbar.title.inactive": {
     "message": "FORRT ORE – inaktiv på denne siden",
@@ -3957,27 +3957,27 @@
     "review": 1
   },
   "tour.pill.articleTitle": {
-    "message": "Funn for denne artikkelen",
+    "message": "Resultater for denne artikkelen",
     "source": "Findings for this article",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "tour.pill.noPill": {
-    "message": "En referanse uten merke er en som ORE ikke kunne identifisere.",
+    "message": "En referanse uten merke betyr at ORE ikke kunne identifisere den.",
     "source": "A reference without a pill is one ORE could not identify.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.pill.noPillAlsoLoose": {
-    "message": "En referanse uten merke er en som ORE ikke kunne identifisere. ORE legger til det samme merket på hver DOI som nevnes i teksten.",
+    "message": "En referanse uten merke betyr at ORE ikke kunne identifisere den. ORE legger til det samme merket på hver DOI som nevnes i teksten.",
     "source": "A reference without a pill is one ORE could not identify. ORE adds the same pill to each DOI mentioned in the text.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Check phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.pill.pointAt": {
     "message": "Hold pekeren over det for å se hva ORE fant.",
@@ -4459,12 +4459,12 @@
     "reviewReason": "Defines replication vs reproduction"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl – studien er gjentatt",
+    "message": "Rep. – studien er gjentatt",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Matches \"Repl\" segment; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.pill.title": {
     "message": "Slik leser du merket",
@@ -4526,12 +4526,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "En gratis database, drevet av FORRT-fellesskapet, over studier i samfunns- og atferdsvitenskapene som har forsøkt å replikere eller reprodusere tidligere funn, uansett utfall, og hva de fant. Alle replikasjonstall i ORE kommer herfra og lenker til dokumentasjonen.",
+    "message": "En gratis database, drevet av FORRT-fellesskapet, over studier i samfunns- og atferdsvitenskapene som har forsøkt å replikere eller reprodusere tidligere funn, uansett utfall, og hva de fant. Alle replikasjonstall i ORE kommer herfra og lenker til studiene.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Describes database scope and evidence"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.report.atlas.title": {
     "message": "Hva <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a> er",
@@ -4744,12 +4744,12 @@
     "review": 1
   },
   "walkthrough.sheets.check": {
-    "message": "Åpne et regneark med DOI-er, for eksempel en leseliste eller studiene til en oversiktsartikkel, i Google Sheets eller Excel Online. I Google Sheets sjekker ORE alle DOI-er i fanen, også rader du ikke har rullet til. Excel Online tegner bare radene som vises på skjermen, så ORE sjekker dem; rull for å dekke resten. Resultatene vises i et popup-vindu.",
+    "message": "Åpne et regneark med DOI-er, for eksempel en leseliste eller studiene til en oversiktsartikkel, i Google Sheets eller Excel Online. I Google Sheets sjekker ORE alle DOI-er i fanen, også rader du ikke har rullet til. Excel Online viser bare radene på skjermen, så ORE sjekker dem; rull for å dekke resten. Resultatene vises i et popup-vindu.",
     "source": "Open a spreadsheet of DOIs, such as a reading list or the studies for a review, in Google Sheets or Excel Online. In Google Sheets, ORE checks every DOI in the tab, including rows you have not scrolled to. Excel Online only draws the rows on screen, so ORE checks those; scroll to cover the rest. Results appear in a popup.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long instructions; check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.sheets.docs.text": {
     "message": "Hver referanse med DOI får en liten markør. Åpne den for å få de samme detaljene som i et merke.",
@@ -4884,12 +4884,12 @@
     "review": 1
   },
   "walkthrough.welcome.doi": {
-    "message": "ORE gjenkjenner en artikkel på <strong>DOI-en</strong> – den permanente ID-en som står på de fleste forskningsartikler, for eksempel 10.1177/0956797610383437. Det fungerer tre steder.",
+    "message": "ORE gjenkjenner en artikkel på <strong>DOI-en</strong> – den permanente ID-en som står på de fleste forskningsartikler, for eksempel 10.1177/0956797610383437. ORE fungerer tre steder.",
     "source": "ORE recognises a paper by its <strong>DOI</strong> — the permanent ID printed on most research papers, such as 10.1177/0956797610383437. It works in three places.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Pronoun \"Det\" for ORE"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.welcome.footnote": {
     "message": "Det ORE viser, er et utgangspunkt for din egen vurdering, ikke en dom over en artikkel.",

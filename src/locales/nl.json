@@ -1,11 +1,11 @@
 {
   "editor.docs.refreshUnavailable": {
-    "message": "ORE: vernieuwen van het volledige document niet beschikbaar. Het rapport toont de laatste geslaagde scan en mist mogelijk recente wijzigingen. Er wordt automatisch opnieuw geprobeerd.",
+    "message": "ORE: vernieuwen van het volledige document niet beschikbaar. Het rapport toont nog de resultaten van de laatste geslaagde scan en mist mogelijk recente wijzigingen. Er wordt automatisch opnieuw geprobeerd.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"toont\" for \"retains\"; long status message phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "editor.docs.scanUnavailable": {
     "message": "ORE: scan van het volledige document niet beschikbaar. Alleen de zichtbare pagina’s zijn gecontroleerd. Er wordt automatisch opnieuw geprobeerd.",
@@ -79,12 +79,12 @@
     "review": 1
   },
   "notice.feedback.message": {
-    "message": "Een minuutje feedback over wat wel en niet werkt, helpt ons ORE te verbeteren.",
+    "message": "Een minuut feedback over wat wel en niet werkt helpt ons ORE te verbeteren.",
     "source": "A minute of feedback on what works and what doesn't helps us improve ORE.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Comma before \"helpt\" and \"minuutje\" register"
+    "reviewReason": "Revised in AI review; please check"
   },
   "notice.feedback.title": {
     "message": "Hoe bevalt ORE?",
@@ -172,10 +172,10 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "message": "De discussiestatus kon niet worden gecontroleerd. De overige beschikbare bevindingen staan hierboven.",
+    "message": "De discussiestatus kon niet worden gecontroleerd. De overige beschikbare controleresultaten staan hierboven.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.comments.unavailableTitle": {
@@ -214,12 +214,12 @@
     "review": 1
   },
   "page.common.retrying": {
-    "message": "Opnieuw proberen…",
+    "message": "Bezig met opnieuw proberen…",
     "source": "Retrying…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Identical to Retry button; progress state unclear"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.excel.visibleOnly": {
     "message": "Excel laadt alleen de rijen die op het scherm staan, dus ORE controleert alleen die. Scrol door het blad om ook de rest te controleren.",
@@ -237,12 +237,12 @@
     "review": 1
   },
   "page.notice.viewConcern": {
-    "message": "De Expression of Concern bekijken",
+    "message": "De melding van de Expression of Concern bekijken",
     "source": "View the expression-of-concern notice",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Drops \"notice\"; views the notice, not EoC itself"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.notice.viewRetraction": {
     "message": "De intrekkingsmelding bekijken",
@@ -434,20 +434,20 @@
     "review": 1
   },
   "page.progress.augmentingRefs": {
-    "message": "{count, plural, one {# literatuurverwijzing} other {# literatuurverwijzingen}} zonder DOI aanvullen…",
+    "message": "DOI’s zoeken voor {count, plural, one {# literatuurverwijzing} other {# literatuurverwijzingen}} zonder DOI…",
     "source": "Augmenting {count, plural, one {# reference} other {# references}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"aanvullen\" for augmenting; check meaning"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.exportingSheet": {
-    "message": "Dit tabblad van het werkblad exporteren…",
+    "message": "Dit tabblad exporteren…",
     "source": "Exporting this sheet tab…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Wordy \"tabblad van het werkblad\""
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.foundDois": {
     "message": "{count, plural, one {# DOI} other {# DOI’s}} gevonden op deze pagina",
@@ -511,12 +511,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.progress.resolvingRefs": {
-    "message": "Literatuurverwijzingen zonder DOI herleiden…",
+    "message": "Literatuurverwijzingen zonder DOI identificeren…",
     "source": "Resolving references without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"herleiden\" for resolving references is unusual"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.progress.retractionsDois": {
     "message": "{count, plural, one {# DOI} other {# DOI’s}} controleren op intrekkingen…",
@@ -542,12 +542,12 @@
     "review": 1
   },
   "page.progress.validating": {
-    "message": "Controleren of {count, plural, one {# DOI} other {# DOI’s}} kunnen worden herleid…",
+    "message": "Controleren of {count, plural, one {# DOI werkt} other {# DOI’s werken}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"herleid\" for DOI resolve; technical term choice"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.refs.comments": {
     "message": "{count, plural, one {# reactie} other {# reacties}}",
@@ -752,10 +752,10 @@
     "review": 1
   },
   "page.sheets.notice": {
-    "message": "Melding ↗",
+    "message": "Kennisgeving ↗",
     "source": "Notice ↗",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "page.sheets.noticesHeading": {
@@ -799,12 +799,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.sheets.summaryChecked": {
-    "message": "De DOI’s in dit werkblad zijn vergeleken met de database van Retraction Watch.",
+    "message": "De DOI’s in dit werkblad zijn gecontroleerd aan de hand van de database van Retraction Watch.",
     "source": "Checked the DOIs in this spreadsheet against the Retraction Watch database.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Retraction check claim; \"vergeleken met\" wording"
+    "reviewReason": "Revised in AI review; please check"
   },
   "page.sheets.summaryFound": {
     "message": "Replicatie- en reproductiegegevens gevonden voor <strong>{count, plural, one {# DOI} other {# DOI’s}}</strong> in dit werkblad.",
@@ -914,34 +914,34 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "message": "Onderzoeksgegevens openen voor {doi}: nog niets gesignaleerd. Druk op Enter voor meer.",
+    "message": "Onderzoeksdetails openen voor {doi}: nog niets gesignaleerd. Druk op Enter voor meer.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.aria.notice": {
-    "message": "Onderzoeksgegevens openen voor {doi}: {notice, select, concern {Expression of Concern} other {ingetrokken}}. Druk op Enter voor meer.",
+    "message": "Onderzoeksdetails openen voor {doi}: {notice, select, concern {Expression of Concern} other {ingetrokken}}. Druk op Enter voor meer.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Screen-reader label mixing EoC and ingetrokken"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "Onderzoeksgegevens openen voor {doi}: {notice, select, concern {Expression of Concern} other {ingetrokken}}, {count, plural, one {# replicatie- of reproductiestudie} other {# replicatie- of reproductiestudies}}. Druk op Enter voor meer.",
+    "message": "Onderzoeksdetails openen voor {doi}: {notice, select, concern {Expression of Concern} other {ingetrokken}}, {count, plural, one {# replicatie- of reproductiestudie} other {# replicatie- of reproductiestudies}}. Druk op Enter voor meer.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long screen-reader label; check flow"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.aria.studies": {
-    "message": "Onderzoeksgegevens openen voor {doi}: {count, plural, one {# replicatie- of reproductiestudie} other {# replicatie- of reproductiestudies}}. Druk op Enter voor meer.",
+    "message": "Onderzoeksdetails openen voor {doi}: {count, plural, one {# replicatie- of reproductiestudie} other {# replicatie- of reproductiestudies}}. Druk op Enter voor meer.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Has number or variant forms"
   },
@@ -1155,12 +1155,12 @@
     "reviewReason": "Rephrased to \"is gepubliceerd\"; check accuracy"
   },
   "pill.notice.concernLabel": {
-    "message": "Concern",
+    "message": "Bedenkingen",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "English \"Concern\" alone may be unclear to Dutch readers"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.notice.concernTitle": {
     "message": "Expression of Concern",
@@ -1315,12 +1315,12 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "Onderzoeksgegevens voor {doi}",
+    "message": "Onderzoeksdetails voor {doi}",
     "source": "Open research details for {doi}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Drops \"Open\"; fine for popup name but verify"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.provenance.matchedByTitle": {
     "message": "Gekoppeld op titel: controleer of dit het juiste artikel is",
@@ -1337,12 +1337,12 @@
     "review": 1
   },
   "pill.provenance.search": {
-    "message": "Gekoppeld via zoeken: opgezocht op titel, eerste auteur en jaar. Controleer of dit het juiste artikel is.",
+    "message": "Gekoppeld via zoekopdracht: opgezocht op titel, eerste auteur en jaar. Controleer of dit het juiste artikel is.",
     "source": "Matched by search — looked up by title, first author and year. Check it is the right paper.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "User check instruction; \"gekoppeld via zoeken\" phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.pubpeer.checkingTooltip": {
     "message": "PubPeer controleren…",
@@ -1586,12 +1586,12 @@
     "review": 1
   },
   "pill.segment.reps": {
-    "message": "Repl",
+    "message": "Rep.",
     "source": "Reps",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Tight 4-5 char space; \"Repl\" abbreviation clarity"
+    "reviewReason": "Revised in AI review; please check"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# artikel} other {# artikelen}} in deze literatuurverwijzing: {dois}. Druk op Enter voor details.",
@@ -1609,10 +1609,10 @@
     "review": 1
   },
   "pill.stack.popoverLabel": {
-    "message": "Onderzoeksgegevens voor {count, plural, one {# artikel} other {# artikelen}}",
+    "message": "Onderzoeksdetails voor {count, plural, one {# artikel} other {# artikelen}}",
     "source": "Open research details for {count, plural, one {# paper} other {# papers}}",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
     "reviewReason": "Has number or variant forms"
   },
@@ -1694,12 +1694,12 @@
     "review": 1
   },
   "popup.debug.offerCopyLog": {
-    "message": "Na elke ronde “Logboek kopiëren” aanbieden",
+    "message": "Na elke controle “Logboek kopiëren” aanbieden",
     "source": "Offer \"Copy log\" after each pass",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"ronde\" for pass is vague"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.debug.toggle": {
     "message": "Debugmodus",
@@ -1772,17 +1772,17 @@
     "review": 1
   },
   "popup.findings.label": {
-    "message": "Bevindingen op deze pagina",
+    "message": "Controleresultaten op deze pagina",
     "source": "Findings on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.none": {
-    "message": "geen bevindingen",
+    "message": "geen resultaten",
     "source": "no findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.findings.originals": {
@@ -1895,10 +1895,10 @@
     "review": 1
   },
   "popup.findings.withFindings": {
-    "message": "{count} met bevindingen",
+    "message": "{count} met resultaten",
     "source": "{count} with findings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "popup.footerLabel": {
@@ -2043,12 +2043,12 @@
     "review": 1
   },
   "popup.status.nothingOnPage": {
-    "message": "Niets van ORE op deze pagina",
+    "message": "ORE toont niets op deze pagina",
     "source": "Nothing from ORE on this page",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Literal \"Niets van ORE\" sounds awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.status.reportFailed": {
     "message": "Het rapport kon op deze pagina niet worden geopend",
@@ -2086,12 +2086,12 @@
     "review": 1
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} is nog steeds uitgeschakeld door een geblokkeerd bovenliggend domein of een geblokkeerde websitecategorie: pas dit aan in Instellingen",
+    "message": "ORE is nog steeds uitgeschakeld op {domain} door een geblokkeerd bovenliggend domein of een geblokkeerde websitecategorie: pas dit aan in Instellingen",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long status; parent-domain wording"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.status.unblocked": {
     "message": "{domain} gedeblokkeerd: laad de pagina opnieuw om dit toe te passen",
@@ -2122,12 +2122,12 @@
     "review": 1
   },
   "popup.tourHelp.noPillsText": {
-    "message": "De rondleiding wijst u op de labels van ORE. Probeer het met een voorbeeldartikel (opent in een nieuw tabblad).",
+    "message": "De rondleiding laat zien hoe de labels van ORE werken. Probeer het met een voorbeeldartikel (opent in een nieuw tabblad).",
     "source": "The tour points out ORE's pills. Try it on a sample article (opens in a new tab).",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"wijst u op de labels\" phrasing"
+    "reviewReason": "Revised in AI review; please check"
   },
   "popup.tourHelp.noPillsTitle": {
     "message": "Geen labels op deze pagina",
@@ -2322,20 +2322,20 @@
     "review": 1
   },
   "report.colophon.caveat": {
-    "message": "Bewijs uit replicaties is een vertrekpunt voor een eigen oordeel, geen eindoordeel.",
+    "message": "Replicatiegegevens zijn een vertrekpunt voor een eigen oordeel, geen eindoordeel.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Statement about meaning of replication evidence"
+    "reviewReason": "Revised in AI review; please check"
   },
   "report.colophon.compiled": {
-    "message": "Samengesteld door <a href=\"{url}\">FORRT ORE</a> op {date} op basis van de FORRT Replication Database, Retraction Watch, Unpaywall en PubPeer.",
+    "message": "Samengesteld door <a href=\"{url}\">FORRT ORE</a> op {date} met gegevens uit de FORRT Replication Database, Retraction Watch, Unpaywall en PubPeer.",
     "source": "Compiled by <a href=\"{url}\">FORRT ORE</a> on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Data-source attribution; \"op {date} op basis\" repetition"
+    "reviewReason": "Revised in AI review; please check"
   },
   "report.notice.concern": {
     "message": "Voor dit artikel is een Expression of Concern gepubliceerd.",
@@ -2360,12 +2360,12 @@
     "review": 1
   },
   "report.pdf.compiled": {
-    "message": "Samengesteld door FORRT ORE op {date} op basis van de FORRT Replication Database, Retraction Watch, Unpaywall en PubPeer.",
+    "message": "Samengesteld door FORRT ORE op {date} met gegevens uit de FORRT Replication Database, Retraction Watch, Unpaywall en PubPeer.",
     "source": "Compiled by FORRT ORE on {date} from the FORRT Replication Database, Retraction Watch, Unpaywall and PubPeer.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Data-source attribution; \"op {date} op basis\" repetition"
+    "reviewReason": "Revised in AI review; please check"
   },
   "report.pdf.docTitle": {
     "message": "{title} – FORRT ORE-metarapport",
@@ -2449,12 +2449,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "report.tag.concern": {
-    "message": "Concern",
+    "message": "Bedenkingen",
     "source": "Concern",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "English \"Concern\" alone may be unclear to Dutch readers"
+    "reviewReason": "Revised in AI review; please check"
   },
   "report.tag.inAtlas": {
     "message": "In de Atlas",
@@ -2516,20 +2516,20 @@
     "review": 1
   },
   "search.item.noDoiOnRecord": {
-    "message": "geen DOI geregistreerd",
+    "message": "geen DOI vermeld",
     "source": "no DOI on record",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"geregistreerd\" may suggest DOI not registered at all"
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.provenance.siteRecord": {
-    "message": "Overgenomen uit de eigen registratie van dit werk bij {site}",
+    "message": "Overgenomen uit de vermelding van dit werk bij {site}",
     "source": "Taken from {site}'s own record of this work",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Awkward \"eigen registratie van dit werk bij\""
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.retry.action": {
     "message": "Opnieuw proberen",
@@ -2582,20 +2582,20 @@
     "reviewReason": "ICU select; verify syntax and agreement"
   },
   "search.stage.augmenting": {
-    "message": "{count, plural, one {# resultaat} other {# resultaten}} zonder DOI aanvullen…",
+    "message": "DOI’s zoeken voor {count, plural, one {# resultaat} other {# resultaten}} zonder DOI…",
     "source": "Augmenting {count, plural, one {# result} other {# results}} without a DOI…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"aanvullen\" for augmenting; check meaning"
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.stage.checkingDois": {
-    "message": "Controleren of {count, plural, one {# DOI} other {# DOI’s}} kunnen worden herleid…",
+    "message": "Controleren of {count, plural, one {# DOI werkt} other {# DOI’s werken}}…",
     "source": "Checking {count, plural, one {# DOI} other {# DOIs}} resolve…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"herleid\" for DOI resolve; technical term choice"
+    "reviewReason": "Revised in AI review; please check"
   },
   "search.stage.lookingUp": {
     "message": "{count, plural, one {# unieke DOI} other {# unieke DOI’s}} gevonden: bezig met opzoeken…",
@@ -2622,12 +2622,12 @@
     "reviewReason": "Has number or variant forms"
   },
   "search.stage.resolving": {
-    "message": "{count, plural, one {# record van {site}} other {# records van {site}}} herleiden naar DOI’s…",
+    "message": "DOI’s zoeken voor {count, plural, one {# vermelding van {site}} other {# vermeldingen van {site}}}…",
     "source": "Resolving {count, plural, one {# {site} record} other {# {site} records}} to DOIs…",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"records\" and \"herleiden\" terminology"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.blocklist.add": {
     "message": "Uitschakelen voor website",
@@ -2949,12 +2949,12 @@
     "review": 1
   },
   "settings.data.intro": {
-    "message": "ORE controleert artikelen aan de hand van een lokale kopie van de database van <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> en de bibliotheek van <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a>. Beide worden wekelijks op de achtergrond vernieuwd; u kunt ze nu vernieuwen of bij elke start van de browser.",
+    "message": "ORE controleert artikelen aan de hand van een lokale kopie van de database van <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> en de bibliotheek van <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a>. Beide worden wekelijks op de achtergrond vernieuwd; u kunt ze nu vernieuwen of instellen dat ze bij elke start van de browser worden vernieuwd.",
     "source": "ORE checks papers against a local copy of the <a href=\"https://retractionwatch.com/\" target=\"_blank\" rel=\"noopener\">Retraction Watch</a> database and the <a href=\"https://www.zotero.org/groups/5937153/registered_reports\" target=\"_blank\" rel=\"noopener\">Registered Reports</a> library. Both are refreshed weekly in the background; refresh them now, or every time the browser starts.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Long; \"u kunt ze nu vernieuwen of bij elke start\" elliptical"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.data.loading": {
     "message": "Laden…",
@@ -3194,12 +3194,12 @@
     "review": 1
   },
   "settings.debug.report": {
-    "message": "Een probleem melden met dit logboek",
+    "message": "Probleem melden met dit logboek als bijlage",
     "source": "Report an issue with this log",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"melden met dit logboek\" slightly ambiguous"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.debug.title": {
     "message": "Debugmodus en probleemmeldingen",
@@ -3216,20 +3216,20 @@
     "review": 1
   },
   "settings.email.eyebrow": {
-    "message": "Extensie instellen",
+    "message": "Extensie-instellingen",
     "source": "Extension Setup",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Extensie instellen\" reads as action, not heading"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.email.intro": {
-    "message": "Kies hoe ORE bewijs toont bij de artikelen die u leest. Een e-mailadres maakt het koppelen van titels aan DOI’s en het opzoeken van open-accessversies mogelijk; andere controles op basis van DOI werken ook zonder.",
+    "message": "Kies hoe ORE controleresultaten toont bij de artikelen die u leest. Een e-mailadres maakt het koppelen van titels aan DOI’s en het opzoeken van open-accessversies mogelijk; andere controles op basis van DOI werken ook zonder.",
     "source": "Choose how ORE shows evidence on the papers you read. Email enables title-to-DOI matching and open-access lookups; other DOI-based checks work without it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"bewijs\" for evidence; long sentence"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.email.label": {
     "message": "E-mailadres",
@@ -3255,12 +3255,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "settings.email.save": {
-    "message": "Contactadres opslaan",
+    "message": "E-mailadres opslaan",
     "source": "Save contact email",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Contactadres\" vs \"e-mailadres\" consistency"
+    "reviewReason": "Revised in AI review; please check"
   },
   "settings.email.saveShort": {
     "message": "Opslaan",
@@ -3541,12 +3541,12 @@
     "review": 1
   },
   "sites.add.placeholder": {
-    "message": "In te schakelen website, bijv. journals.example.org",
+    "message": "Website om in te schakelen, bijv. journals.example.org",
     "source": "Site to turn on, e.g. journals.example.org",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"In te schakelen website\" stiff placeholder"
+    "reviewReason": "Revised in AI review; please check"
   },
   "sites.category.count": {
     "message": "{on} van {total}",
@@ -3613,12 +3613,12 @@
     "review": 1
   },
   "sites.category.repositories": {
-    "message": "Preprints, repositories en indexen",
+    "message": "Preprints, repository’s en indexen",
     "source": "Preprints, repositories & indexes",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"repositories\" anglicism; consider \"repository's\" or alternative"
+    "reviewReason": "Revised in AI review; please check"
   },
   "sites.category.searchDiscovery": {
     "message": "Wetenschappelijk zoeken en ontdekken",
@@ -3706,12 +3706,12 @@
     "review": 1
   },
   "sites.site.aliases": {
-    "message": "{domain} + {count} meer",
+    "message": "{domain} + nog {count}",
     "source": "{domain} + {count} more",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"+ {count} meer\" unidiomatic; \"+ nog {count}\""
+    "reviewReason": "Revised in AI review; please check"
   },
   "sites.site.removeLabel": {
     "message": "{domain} verwijderen",
@@ -3909,35 +3909,35 @@
     "review": 1
   },
   "tour.pill.articleTitle": {
-    "message": "Bevindingen voor dit artikel",
+    "message": "Resultaten voor dit artikel",
     "source": "Findings for this article",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 1
   },
   "tour.pill.noPill": {
-    "message": "Een literatuurverwijzing zonder label is er een die ORE niet kon identificeren.",
+    "message": "Een literatuurverwijzing zonder label kon door ORE niet worden geïdentificeerd.",
     "source": "A reference without a pill is one ORE could not identify.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"is er een die\" literal construction"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.pill.noPillAlsoLoose": {
-    "message": "Een literatuurverwijzing zonder label is er een die ORE niet kon identificeren. ORE voegt hetzelfde label toe aan elke DOI die in de tekst wordt genoemd.",
+    "message": "Een literatuurverwijzing zonder label kon door ORE niet worden geïdentificeerd. ORE voegt hetzelfde label toe aan elke DOI die in de tekst wordt genoemd.",
     "source": "A reference without a pill is one ORE could not identify. ORE adds the same pill to each DOI mentioned in the text.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"is er een die\" literal construction"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.pill.pointAt": {
-    "message": "Wijs het aan om te zien wat ORE heeft gevonden.",
+    "message": "Houd de muisaanwijzer erop om te zien wat ORE heeft gevonden.",
     "source": "Point at it to see what ORE found.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Wijs het aan\" for hover may confuse"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.pill.recognisedTitle": {
     "message": "Een label markeert een artikel dat ORE heeft herkend",
@@ -3962,20 +3962,20 @@
     "reviewReason": "Instructions; \"dit venster\" added"
   },
   "tour.popover.title": {
-    "message": "Wijs een label aan om de details te zien",
+    "message": "Houd de muisaanwijzer op een label om de details te zien",
     "source": "Point at a pill to see the details",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Wijs ... aan\" for hover may confuse"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.search.matchedText": {
-    "message": "Dit resultaat had geen DOI, dus ORE heeft het op titel gekoppeld; controleer of het het juiste artikel is.",
+    "message": "Dit resultaat had geen DOI, dus ORE heeft het op titel gekoppeld; controleer of dit het juiste artikel is.",
     "source": "This result had no DOI, so ORE matched it by title; check that it is the right paper.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "User check instruction; \"het het\" awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "tour.search.matchedTitle": {
     "message": "Een gestippelde DOI is op titel gekoppeld",
@@ -4050,12 +4050,12 @@
     "reviewReason": "Contains formatting"
   },
   "walkthrough.article.recognised.text": {
-    "message": "Zonder label kon ORE de literatuurverwijzing niet identificeren en is er dus niets voor gecontroleerd.",
+    "message": "Geen label bij een literatuurverwijzing betekent dat ORE deze niet kon identificeren en dus ook niet heeft gecontroleerd.",
     "source": "No pill on a reference means ORE could not identify it, so nothing was checked for it.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Restructured; \"is er dus niets voor gecontroleerd\" awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.article.recognised.title": {
     "message": "Een label betekent dat ORE het artikel heeft herkend",
@@ -4209,12 +4209,12 @@
     "review": 1
   },
   "walkthrough.nav.skipToSetup": {
-    "message": "Doorgaan naar instellen",
+    "message": "Direct naar instellen",
     "source": "Skip to setup",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Doorgaan naar\" loses \"skip\" sense"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.notices.board.concern": {
     "message": "Expression of Concern",
@@ -4278,12 +4278,12 @@
     "reviewReason": "Revised after second review; please check"
   },
   "walkthrough.notices.where": {
-    "message": "Beide voegen een waarschuwing toe aan het einde van het label en verschijnen in het metarapport. Beide linken naar de melding van het tijdschrift, zodat u de reden kunt lezen. De gegevens komen van Retraction Watch.",
+    "message": "Beide voegen een waarschuwing toe aan het einde van het label en verschijnen in het metarapport. Beide bevatten een link naar de melding van het tijdschrift, zodat u de reden kunt lezen. De gegevens komen van Retraction Watch.",
     "source": "Either one adds a warning to the end of the pill and appears in the Meta Report. Both link to the journal's notice, so you can read the reason. The data comes from Retraction Watch.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Data source claim; \"linken naar\" informal"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.pageTitle": {
     "message": "FORRT ORE – Hoe het werkt",
@@ -4365,12 +4365,12 @@
     "review": 1
   },
   "walkthrough.pill.open": {
-    "message": "<strong>Wijs het label aan om het te openen.</strong> Elk onderdeel wordt een rij met een link of actie. Klik om het open te houden.",
+    "message": "<strong>Houd de muisaanwijzer op het label om het te openen.</strong> Elk onderdeel wordt een rij met een link of actie. Klik om het open te houden.",
     "source": "<strong>Point at the pill to open it.</strong> Each part becomes a row with a link or action. Click to keep it open.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"Wijs ... aan\" for hover may confuse"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.pill.parts": {
     "message": "Elk onderdeel van het label beantwoordt één vraag. Een <strong>gekleurd</strong> onderdeel betekent ja. Een <strong>vervaagd</strong> onderdeel betekent dat er nog niets is gevonden of dat de controle niet kon worden uitgevoerd; open het label om te zien welke van de twee.",
@@ -4404,12 +4404,12 @@
     "reviewReason": "Defines replication vs reproduction; counting rule"
   },
   "walkthrough.pill.reps.title": {
-    "message": "Repl: de studie is herhaald",
+    "message": "Rep.: de studie is herhaald",
     "source": "Reps — the study was repeated",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Evidence claim; \"Repl\" must match pill segment"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.pill.title": {
     "message": "Het label lezen",
@@ -4456,12 +4456,12 @@
     "review": 1
   },
   "walkthrough.ready.toolbar": {
-    "message": "De ORE-knop in de werkbalk van uw browser toont een getal wanneer er over artikelen op de pagina iets te melden is. Klik erop om ORE op een website te pauzeren of uit te schakelen.",
+    "message": "De ORE-knop in de werkbalk van uw browser toont een getal wanneer ORE iets te melden heeft over artikelen op de pagina. Klik erop om ORE op een website te pauzeren of uit te schakelen.",
     "source": "The ORE button in your browser toolbar shows a number when papers on the page have something to report. Click it to pause or turn off ORE on a site.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"er over artikelen ... iets te melden\" awkward"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.ready.tryText": {
     "message": "Bekijk ORE op een echt artikel, met een korte rondleiding.",
@@ -4471,12 +4471,12 @@
     "review": 1
   },
   "walkthrough.report.atlas.text": {
-    "message": "Een gratis database, beheerd door de FORRT-gemeenschap, van studies in de sociale en gedragswetenschappen die eerdere bevindingen probeerden te repliceren of te reproduceren, ongeacht de uitkomst, en van wat ze vonden. Elk replicatieaantal in ORE komt hieruit en linkt naar het bewijs.",
+    "message": "Een gratis database, beheerd door de FORRT-gemeenschap, met studies uit de sociale en gedragswetenschappen die eerdere bevindingen probeerden te repliceren of te reproduceren, ongeacht de uitkomst, en met hun resultaten. Elk replicatieaantal in ORE is hieruit afkomstig en verwijst naar de bijbehorende studies.",
     "source": "A free database, run by the FORRT community, of studies in the social and behavioural sciences that tried to replicate or reproduce earlier findings, whatever the outcome, and what they found. Every replication count in ORE comes from it and links to the evidence.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Describes database scope and evidence; long sentence"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.report.atlas.title": {
     "message": "Wat de <a class=\"wt-link\" href=\"https://forrt.org/flora-replication-atlas/\" target=\"_blank\" rel=\"noopener\">FLoRA Replication Atlas</a> is",
@@ -4533,12 +4533,12 @@
     "review": 1
   },
   "walkthrough.search.copy.text": {
-    "message": "Het aanhalingstekenpictogram kopieert de literatuurverwijzing in de gekozen citatiestijl, inclusief opmaak, klaar om te plakken in Word of Google Docs.",
+    "message": "Het pictogram met aanhalingstekens kopieert de literatuurverwijzing in de gekozen citatiestijl, inclusief opmaak, klaar om te plakken in Word of Google Docs.",
     "source": "The quote icon copies the reference in your chosen citation style, formatting included, ready to paste into Word or Google Docs.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"aanhalingstekenpictogram\" long compound"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.search.copy.title": {
     "message": "Een kant-en-klare literatuurverwijzing kopiëren",
@@ -4548,12 +4548,12 @@
     "review": 1
   },
   "walkthrough.search.dotted.text": {
-    "message": "Twee artikelen kunnen bijna dezelfde titel hebben. Als de koppeling niet klopt, beschrijft al het andere in het paneel het verkeerde artikel. Open de DOI één keer om te bevestigen dat het het juiste artikel is.",
+    "message": "Twee artikelen kunnen bijna dezelfde titel hebben. Als de koppeling niet klopt, beschrijft al het andere in het paneel het verkeerde artikel. Open de DOI één keer om te bevestigen dat dit het juiste artikel is.",
     "source": "Two papers can have almost the same title. If the match is wrong, everything else in the panel describes the wrong paper. Open the DOI once to confirm.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.search.dotted.title": {
     "message": "Controleer een gestippelde DOI voordat u erop vertrouwt",
@@ -4631,12 +4631,12 @@
     "review": 1
   },
   "walkthrough.setup.email.placeholder": {
-    "message": "naam@universiteit.nl",
+    "message": "naam@universiteit.org",
     "source": "you@university.edu",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Localised domain; .nl not neutral for Flanders"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.setup.email.removed": {
     "message": "E-mailadres verwijderd. Koppelen op titel en het opzoeken van open-accessversies vereisen een e-mailadres; andere controles blijven werken.",
@@ -4735,12 +4735,12 @@
     "reviewReason": "Retraction display behaviour; long sentence"
   },
   "walkthrough.sheets.tabs.text": {
-    "message": "Elk tabblad van een werkblad wordt afzonderlijk gecontroleerd. Als u de pop-up op één tabblad sluit, blijven de andere ongemoeid.",
+    "message": "Elk tabblad van een werkblad wordt afzonderlijk gecontroleerd. Als u de pop-up op één tabblad sluit, heeft dat geen invloed op de andere.",
     "source": "Each sheet tab is checked on its own. Closing the popup on one tab leaves the others alone.",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "\"ongemoeid\" register"
+    "reviewReason": "Revised in AI review; please check"
   },
   "walkthrough.sheets.tabs.title": {
     "message": "Eén tabblad tegelijk",
@@ -4893,11 +4893,11 @@
     "review": 1
   },
   "walkthrough.welcome.title": {
-    "message": "Zie wat er over een artikel bekend is terwijl u leest",
+    "message": "Zien wat er over een artikel bekend is terwijl u leest",
     "source": "See what is known about a paper while you read",
     "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
+    "by": "ai-review",
     "review": 2,
-    "reviewReason": "Imperative \"Zie\" sounds unnatural as headline"
+    "reviewReason": "Revised in AI review; please check"
   }
 }
