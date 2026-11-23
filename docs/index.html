@@ -3,12 +3,68 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FORRT ORE — Open Research Extension</title>
+    <title>FORRT ORE: Check Replications, Retractions &amp; PubPeer for Any Paper — Free Browser Extension</title>
     <meta
       name="description"
-      content="A Chrome and Edge extension from FORRT that shows replication evidence, retractions, PubPeer comments and open-access copies for the papers you read."
+      content="Free Chrome and Edge extension from FORRT. See whether a paper has been replicated or retracted, read its PubPeer comments and find a free full text — on Google Scholar, PubMed, publisher sites and Google Sheets."
     />
+    <link rel="canonical" href="https://forrt.org/chromium-extension/" />
     <link rel="icon" href="img/forrt-logo.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FORRT" />
+    <meta property="og:title" content="FORRT ORE — the Open Research Extension" />
+    <meta
+      property="og:description"
+      content="A free browser extension that shows replications, retractions, PubPeer discussion and open-access copies for every paper you read."
+    />
+    <meta property="og:url" content="https://forrt.org/chromium-extension/" />
+    <meta property="og:image" content="https://forrt.org/chromium-extension/img/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="FORRT ORE: replications, retractions and PubPeer on every paper you read"
+    />
+    <meta property="og:locale" content="en_GB" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FORRT ORE — the Open Research Extension" />
+    <meta
+      name="twitter:description"
+      content="A free browser extension that shows replications, retractions, PubPeer discussion and open-access copies for every paper you read."
+    />
+    <meta name="twitter:image" content="https://forrt.org/chromium-extension/img/og-card.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "FORRT ORE — Open Research Extension",
+        "alternateName": ["FORRT ORE", "Open Research Extension"],
+        "url": "https://forrt.org/chromium-extension/",
+        "description": "A free browser extension that shows replications and reproductions, retractions and expressions of concern, Registered Reports, PubPeer comments and open-access copies for the papers you search for and read.",
+        "applicationCategory": "BrowserApplication",
+        "applicationSubCategory": "Research tool",
+        "operatingSystem": "Chrome, Microsoft Edge",
+        "browserRequirements": "Chrome or Edge 116 or later",
+        "image": "https://forrt.org/chromium-extension/img/og-card.png",
+        "screenshot": "https://forrt.org/chromium-extension/img/pills-and-side-tab.webp",
+        "downloadUrl": "https://chromewebstore.google.com/detail/ffncppfcjjciahcjbpefhokklfcagodc",
+        "installUrl": "https://chromewebstore.google.com/detail/ffncppfcjjciahcjbpefhokklfcagodc",
+        "isAccessibleForFree": true,
+        "license": "https://github.com/forrtproject/chromium-extension/blob/main/license",
+        "codeRepository": "https://github.com/forrtproject/chromium-extension",
+        "keywords": "replication, reproducibility, retractions, Retraction Watch, PubPeer, open access, Unpaywall, Google Scholar, PubMed, Registered Reports, open science",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": {
+          "@type": "Organization",
+          "name": "FORRT — Framework for Open and Reproducible Research Training",
+          "url": "https://forrt.org/",
+          "logo": "https://forrt.org/chromium-extension/img/forrt-logo.svg"
+        },
+        "funder": { "@type": "Organization", "name": "UK Research and Innovation", "url": "https://www.ukri.org/" }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Domine:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -36,10 +92,11 @@
     <header class="hero">
       <div class="wrap hero-grid">
         <div>
-          <div class="eyebrow">A FORRT project · free and open source</div>
+          <div class="eyebrow">Free, open-source browser extension for Chrome and Edge · a FORRT project</div>
           <h1>What's known about the paper you're reading.</h1>
           <p class="lede">
-            FORRT ORE — the Open Research Extension — spots the papers on the
+            FORRT ORE — the Open Research Extension — is a free browser
+            extension that spots the papers on the
             page you are looking at and tells you what is known about them — replications and reproductions,
             retractions and expressions of concern, PubPeer discussion, and free
             full text.
@@ -51,7 +108,7 @@
         </div>
         <figure class="shot">
           <img
-            src="img/pills-and-side-tab.png"
+            src="img/pills-and-side-tab.webp" width="1220" height="786" fetchpriority="high"
             alt="A journal article page with an ORE pill next to the DOI and the ORE tab at the edge of the page"
           />
         </figure>
@@ -79,7 +136,7 @@
           </p>
           <figure class="shot plain wide">
             <img
-              src="img/pill-icons.png"
+              src="img/pill-icons.webp" width="1220" height="894" loading="lazy" decoding="async"
               alt="The indicator pill shown closed with every signal, closed with none, and open as a panel of rows"
             />
           </figure>
@@ -96,7 +153,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/retractions-and-concerns.png"
+                src="img/retractions-and-concerns.webp" width="1220" height="404" loading="lazy" decoding="async"
                 alt="An article page with ORE pills next to the title and each reference, one showing a retraction flag"
               />
             </figure>
@@ -123,7 +180,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/meta-report-panel.png"
+                src="img/meta-report-panel.webp" width="1220" height="1366" loading="lazy" decoding="async"
                 alt="The ORE Meta Report side panel listing replications with outcome badges"
               />
             </figure>
@@ -168,7 +225,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/scholar-unconfirmed-doi.png"
+                src="img/scholar-unconfirmed-doi.webp" width="1220" height="472" loading="lazy" decoding="async"
                 alt="A Google Scholar result with an ORE panel showing a DOI matched by title"
               />
               <figcaption>
@@ -192,7 +249,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/spreadsheet-detection.png"
+                src="img/spreadsheet-detection.webp" width="1220" height="1110" loading="lazy" decoding="async"
                 alt="A Google Sheet of papers with an ORE card reporting replication data for three DOIs"
               />
             </figure>
@@ -211,7 +268,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/pills-and-side-tab.png"
+                src="img/pills-and-side-tab.webp" width="1220" height="786" loading="lazy" decoding="async"
                 alt="A journal article page showing the ORE pill next to the DOI and the ORE tab"
               />
             </figure>
@@ -238,7 +295,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/popup.png"
+                src="img/popup.webp" width="600" height="938" loading="lazy" decoding="async"
                 alt="The ORE toolbar popup with options to disable on a domain, hide on the page, report an issue, or open settings"
               />
             </figure>
@@ -258,7 +315,7 @@
             </div>
             <figure class="shot">
               <img
-                src="img/settings.png"
+                src="img/settings.webp" width="1220" height="843" loading="lazy" decoding="async"
                 alt="The settings page showing the email setup card and citation style options"
               />
             </figure>
@@ -451,13 +508,13 @@
       <div class="wrap partners">
         <div class="logo-group">
           <span>In partnership with</span>
-          <a class="full-bleed" href="https://www.bbk.ac.uk/"><img src="img/partner-birkbeck.png" alt="Birkbeck, University of London" /></a>
-          <a href="https://www.uni-muenster.de/MueCOS/en/index.html"><img src="img/partner-muecos.png" alt="Münster Center for Open Science (MüCOS)" /></a>
-          <a href="https://www.uni-muenster.de/"><img src="img/partner-uni-muenster.png" alt="University of Münster" /></a>
+          <a class="full-bleed" href="https://www.bbk.ac.uk/"><img src="img/partner-birkbeck.webp" width="933" height="293" loading="lazy" decoding="async" alt="Birkbeck, University of London" /></a>
+          <a href="https://www.uni-muenster.de/MueCOS/en/index.html"><img src="img/partner-muecos.webp" width="459" height="154" loading="lazy" decoding="async" alt="Münster Center for Open Science (MüCOS)" /></a>
+          <a href="https://www.uni-muenster.de/"><img src="img/partner-uni-muenster.webp" width="1220" height="328" loading="lazy" decoding="async" alt="University of Münster" /></a>
         </div>
         <div class="logo-group">
           <span>Funded by</span>
-          <a href="https://www.ukri.org/"><img src="img/funder-ukri.png" alt="UK Research and Innovation (UKRI)" /></a>
+          <a href="https://www.ukri.org/"><img src="img/funder-ukri.png" width="1455" height="429" loading="lazy" decoding="async" alt="UK Research and Innovation (UKRI)" /></a>
         </div>
       </div>
       <div class="wrap">
