@@ -127,7 +127,7 @@ describe("catalogs", () => {
   it("each language's avoid rules catch the mistakes they describe", () => {
     const styles = readJson<Record<string, LanguageStyle>>(STYLE_FILE, {});
     const bad: Record<string, string[]> = {
-      de: ["Lade die Seite neu, damit du alles siehst.", "Bitte laden Sie die Seite neu."],
+      de: ["Lade die Seite neu, damit du alles siehst.", "Bitte laden Sie die Seite neu.", "Replikationen & Reproduktionen gefunden."],
       fr: ["Recharge ta page.", "Vraiment?", "Vraiment ?"],
       es: ["Recarga tu página.", "¿Quieres que te ayude, tú?"],
       "pt-BR": ["Recarrega a tua página.", "Abra o ficheiro."],

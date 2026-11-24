@@ -524,7 +524,16 @@ function renderGlossary(): void {
   table.append(headRow);
   for (const [term, t] of rows) {
     const row = el("tr");
-    row.append(el("td", "", term), el("td", "", t[lang] ?? "—"), el("td", "", [t.note, t[`note:${lang}`]].filter(Boolean).join(" ")));
+    const note = el("td");
+    for (const part of [t.note, t[`note:${lang}`]].filter(Boolean).join(" ").split(/(https:\/\/\S+)/)) {
+      if (!part.startsWith("https://")) { note.append(part); continue; }
+      const a = el("a", "", "example");
+      a.href = part;
+      a.target = "_blank";
+      a.rel = "noopener";
+      note.append(a);
+    }
+    row.append(el("td", "", term), el("td", "", t[lang] ?? "—"), note);
     table.append(row);
   }
   glossaryEl.querySelector(".glossary-body")!.replaceChildren(table);

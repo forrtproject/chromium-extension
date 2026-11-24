@@ -39,10 +39,8 @@
   "notice.error.openFailed": {
     "message": "No se pudo abrir el formulario de incidencias. Notifíquelo desde el menú de ORE en la barra de herramientas.",
     "source": "Couldn't open the issue form. Report it from the ORE toolbar menu.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Instruction users must follow; check menu path wording"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "notice.error.openFailedCopied": {
     "message": "No se pudo abrir el formulario de incidencias: el enlace está en su portapapeles.",
@@ -82,12 +80,11 @@
     "review": 1
   },
   "notice.feedback.message": {
-    "message": "Dedicar un minuto a contarnos qué funciona y qué no nos ayuda a mejorar ORE.",
+    "message": "Dedicar un minuto a contarnos qué funciona y qué no funciona nos ayuda a mejorar ORE.",
     "source": "A minute of feedback on what works and what doesn't helps us improve ORE.",
-    "status": "machine",
-    "by": "ai-review",
-    "review": 3,
-    "reviewReason": "Idiomatic phrasing for 'A minute of feedback'"
+    "status": "reviewed",
+    "by": "Lusnelli",
+    "note": "Reviewer suggested this wording in a note; applied as the translation."
   },
   "notice.feedback.title": {
     "message": "¿Qué tal funciona ORE?",
@@ -230,10 +227,8 @@
   "page.excel.visibleOnly": {
     "message": "Excel solo muestra las filas que están en pantalla, así que ORE verifica únicamente esas. Desplácese por la hoja para verificar el resto.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "page.list.and": {
     "message": "{first} y {last}",
@@ -352,10 +347,8 @@
   "page.panel.linkCopied": {
     "message": "Enlace al informe copiado: el propio enlace contiene el informe completo",
     "source": "Report link copied — the report travels inside the link",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "page.panel.linkCopyFailed": {
     "message": "No se pudo copiar el enlace",
@@ -656,12 +649,10 @@
     "reviewReason": "'Fase' for Stage; confirm community term"
   },
   "page.setup.body": {
-    "message": "Indique un correo electrónico para habilitar la coincidencia por título y la búsqueda de acceso abierto. Las verificaciones de replicaciones, retractaciones y PubPeer basadas en el DOI funcionan sin él. En Configuración se explica cómo reciben el correo electrónico Crossref, OpenAlex, Unpaywall y NCBI.",
+    "message": "Introduzca una dirección de correo electrónico para habilitar la búsqueda de coincidencias por título y de publicaciones de acceso abierto. Las comprobaciones de replicaciones, retractaciones y comentarios en PubPeer basadas en el DOI funcionan sin necesidad de proporcionar el correo electrónico. En Configuración se explica cómo Crossref, OpenAlex, Unpaywall y NCBI reciben esta dirección.",
     "source": "Add an email to enable title matching and open-access lookups. DOI-based replication, retraction and PubPeer checks work without it. Settings explains how Crossref, OpenAlex, Unpaywall and NCBI receive the email.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Privacy claim about email sharing with services"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "page.setup.openSettings": {
     "message": "Abrir Configuración",
@@ -861,10 +852,8 @@
   "page.unavailable.itemRetractions": {
     "message": "verificaciones de retractaciones",
     "source": "retraction checks",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "page.unavailable.oa": {
     "message": "El acceso abierto no está disponible.",
@@ -890,10 +879,8 @@
   "page.unavailable.retractions": {
     "message": "Las verificaciones de retractaciones no están disponibles.",
     "source": "Retraction checks are unavailable.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "page.unavailable.several": {
     "message": "No están disponibles: {list}.",
@@ -925,36 +912,34 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "message": "Abrir los detalles de investigación de {doi}: aún no hay alertas. Pulse Intro para ver más.",
+    "message": "Abrir los detalles de investigación abierta de {doi}: aún no hay alertas. Pulse Intro para ver más información.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "pill.aria.notice": {
-    "message": "Abrir los detalles de investigación de {doi}: {notice, select, concern {expresión de preocupación} other {retractado}}. Pulse Intro para ver más.",
+    "message": "Abrir los detalles de investigación abierta de {doi}: {notice, select, concern {expresión de preocupación} other {retractado}}. Pulse Intro para ver más.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
     "status": "machine",
     "by": "claude-opus-5.5 (Claude Code)",
-    "review": 2,
-    "reviewReason": "Screen-reader label; 'retractado' agreement in context"
+    "review": 3,
+    "reviewReason": "Aligned with the reviewer's wording of pill.aria.noFlags; please check"
   },
   "pill.aria.noticeAndStudies": {
-    "message": "Abrir los detalles de investigación de {doi}: {notice, select, concern {expresión de preocupación} other {retractado}}, {count, plural, one {# estudio de replicación o reproducción} many {# estudios de replicación o reproducción} other {# estudios de replicación o reproducción}}. Pulse Intro para ver más.",
+    "message": "Abrir los detalles de investigación abierta de {doi}: {notice, select, concern {expresión de preocupación} other {retractado}}, {count, plural, one {# estudio de replicación o reproducción} many {# estudios de replicación o reproducción} other {# estudios de replicación o reproducción}}. Pulse Intro para ver más.",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
     "by": "claude-opus-5.5 (Claude Code)",
-    "review": 2,
-    "reviewReason": "Long screen-reader label; check flow"
+    "review": 3,
+    "reviewReason": "Aligned with the reviewer's wording of pill.aria.noFlags; please check"
   },
   "pill.aria.studies": {
-    "message": "Abrir los detalles de investigación de {doi}: {count, plural, one {# estudio de replicación o reproducción} many {# estudios de replicación o reproducción} other {# estudios de replicación o reproducción}}. Pulse Intro para ver más.",
+    "message": "Abrir los detalles de investigación abierta de {doi}: {count, plural, one {# estudio de replicación o reproducción} many {# estudios de replicación o reproducción} other {# estudios de replicación o reproducción}}. Pulse Intro para ver más.",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
     "status": "machine",
     "by": "claude-opus-5.5 (Claude Code)",
-    "review": 2,
-    "reviewReason": "Screen-reader label; check flow"
+    "review": 3,
+    "reviewReason": "Aligned with the reviewer's wording of pill.aria.noFlags; please check"
   },
   "pill.cite.copiedToast": {
     "message": "Cita en formato {style} copiada",
@@ -1117,10 +1102,8 @@
   "pill.marker.empty": {
     "message": "No se encontraron datos de replicación ni comentarios en PubPeer.",
     "source": "No replication evidence or PubPeer comments found.",
-    "status": "machine",
-    "by": "ai-review",
-    "review": 3,
-    "reviewReason": "Evidence absence statement; replaced 'pruebas de replicación' (implied proof) with 'datos de replicación'"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "pill.marker.inProgress": {
     "message": "Verificaciones en curso.",
@@ -1162,18 +1145,14 @@
   "pill.notice.concernBanner": {
     "message": "Este artículo tiene una expresión de preocupación.",
     "source": "This article has an expression of concern.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Evidence statement about an article"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "pill.notice.concernLabel": {
     "message": "Preocupación",
     "source": "Concern",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Tight space; 'Preocupación' is long"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "pill.notice.concernTitle": {
     "message": "Expresión de preocupación",
@@ -1185,10 +1164,8 @@
   "pill.notice.retractedBanner": {
     "message": "Este artículo ha sido retractado.",
     "source": "This article has been retracted.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "pill.notice.retractedLabel": {
     "message": "Retractado",
@@ -1334,12 +1311,12 @@
     "review": 1
   },
   "pill.popover.label": {
-    "message": "Detalles de investigación de {doi}",
+    "message": "Detalles de investigación abierta de {doi}",
     "source": "Open research details for {doi}",
     "status": "machine",
     "by": "claude-opus-5.5 (Claude Code)",
-    "review": 2,
-    "reviewReason": "Dropped 'Open'; acceptable for accessible name"
+    "review": 3,
+    "reviewReason": "Aligned with the reviewer's wording of pill.aria.noFlags; please check"
   },
   "pill.provenance.matchedByTitle": {
     "message": "Coincidencia por título: compruebe que sea el artículo correcto",
@@ -1608,12 +1585,10 @@
     "reviewReason": "Kept English 'OA'; Spanish readers may expect 'AA'"
   },
   "pill.segment.reps": {
-    "message": "Rep.",
+    "message": "Reps.",
     "source": "Reps",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Tight space; 'Rep.' ambiguity, check fit"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "pill.stack.ariaLabel": {
     "message": "{count, plural, one {# artículo} many {# artículos} other {# artículos}} en esta referencia: {dois}. Pulse Intro para ver los detalles.",
@@ -1705,10 +1680,8 @@
   "popup.debug.hintOff": {
     "message": "Muestra el progreso de ORE en cada página e incluye un registro detallado en los informes de incidencias.",
     "source": "Shows ORE's progress on each page and adds a detailed log to issue reports.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "popup.debug.hintOn": {
     "message": "Activado. Vuelva a cargar la página para ver el progreso de ORE y guardar un registro detallado.",
@@ -1815,10 +1788,8 @@
   "popup.findings.originals": {
     "message": "Replicación de {count, plural, one {# estudio original} many {# estudios originales} other {# estudios originales}}",
     "source": "Replicates {count, plural, one {# original study} other {# original studies}}",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "popup.findings.othersConcern": {
     "message": "{count} con expresión de preocupación",
@@ -2124,12 +2095,10 @@
     "reviewReason": "Instruction; check phrasing"
   },
   "popup.status.stillBlocked": {
-    "message": "{domain} sigue desactivado por un dominio superior bloqueado o una categoría de sitios web desactivada: cambie este ajuste en Configuración",
+    "message": "{domain} sigue desactivado debido al bloqueo de un dominio superior o a la desactivación de una categoría de sitios web. Modifique este ajuste en Configuración.",
     "source": "{domain} is still turned off by a blocked parent domain or site category — edit it in Settings",
-    "status": "machine",
-    "by": "ai-review",
-    "review": 3,
-    "reviewReason": "Complex blocking instruction; clarified parent domain, category state, and 'modifíquelo'"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "popup.status.unblocked": {
     "message": "{domain} desbloqueado: vuelva a cargar la página para aplicar el cambio",
@@ -2293,18 +2262,14 @@
   "progress.tab.clearSummary": {
     "message": "{count, plural, one {Sin alertas para este artículo: se verificó # artículo y no hay retractaciones, expresiones de preocupación, replicaciones ni reproducciones.} many {Sin alertas en esta página: se verificaron # artículos y no hay retractaciones, expresiones de preocupación, replicaciones ni reproducciones.} other {Sin alertas en esta página: se verificaron # artículos y no hay retractaciones, expresiones de preocupación, replicaciones ni reproducciones.}}",
     "source": "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications or reproductions.} other {No flags on this page — Checked # papers: no retractions, concerns, replications or reproductions.}}",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "progress.tab.clearSummaryPubPeer": {
     "message": "{count, plural, one {Sin alertas para este artículo: se verificó # artículo y no hay retractaciones, expresiones de preocupación, replicaciones, reproducciones ni comentarios en PubPeer.} many {Sin alertas en esta página: se verificaron # artículos y no hay retractaciones, expresiones de preocupación, replicaciones, reproducciones ni comentarios en PubPeer.} other {Sin alertas en esta página: se verificaron # artículos y no hay retractaciones, expresiones de preocupación, replicaciones, reproducciones ni comentarios en PubPeer.}}",
     "source": "{count, plural, one {No flags for this paper — Checked # paper: no retractions, concerns, replications, reproductions or PubPeer comments.} other {No flags on this page — Checked # papers: no retractions, concerns, replications, reproductions or PubPeer comments.}}",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "progress.toast.defaultLabel": {
     "message": "ORE está buscando los artículos de esta página…",
@@ -2368,10 +2333,8 @@
   "report.colophon.caveat": {
     "message": "Los datos de replicación son un punto de partida para formarse un juicio, no un veredicto.",
     "source": "Replication evidence is a starting point for judgement, not a verdict.",
-    "status": "machine",
-    "by": "ai-review",
-    "review": 3,
-    "reviewReason": "Statement about what replication evidence means; replaced 'pruebas' with 'datos'"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "report.colophon.compiled": {
     "message": "Elaborado por <a href=\"{url}\">FORRT ORE</a> el {date} a partir de FORRT Replication Database, Retraction Watch, Unpaywall y PubPeer.",
@@ -2384,10 +2347,8 @@
   "report.notice.concern": {
     "message": "Este artículo tiene una expresión de preocupación.",
     "source": "This article has an expression of concern.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Evidence statement about an article"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "report.notice.read": {
     "message": "Leer el aviso ↗",
@@ -2399,10 +2360,8 @@
   "report.notice.retracted": {
     "message": "Este artículo ha sido retractado.",
     "source": "This article has been retracted.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "report.pdf.compiled": {
     "message": "Elaborado por FORRT ORE el {date} a partir de FORRT Replication Database, Retraction Watch, Unpaywall y PubPeer.",
@@ -2611,10 +2570,8 @@
   "search.retry.retractionChecks": {
     "message": "verificaciones de retractaciones",
     "source": "retraction checks",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Revised after second review; please check"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "search.retry.title": {
     "message": "Algunas verificaciones de ORE no se cargaron",
@@ -2773,12 +2730,10 @@
     "review": 1
   },
   "settings.cache.intro": {
-    "message": "ORE guarda los resultados de las búsquedas en este dispositivo para que las visitas repetidas carguen más rápido. Mínimo <strong>10</strong> MB; introduzca <strong>0</strong> para no establecer límite. Su configuración, el registro de diagnóstico y la lista de retractaciones no cuentan para este límite.",
+    "message": "ORE almacena los resultados de las búsquedas en este dispositivo para acelerar la carga en visitas posteriores. Mínimo <strong>10</strong> MB; introduzca <strong>0</strong> para no establecer ningún límite. La configuración, el registro de diagnóstico y la lista de retractaciones no se incluyen en este cálculo.",
     "source": "ORE keeps lookup results on this computer so repeat visits load faster. Minimum <strong>10</strong> MB; enter <strong>0</strong> for no limit. Your settings, the diagnostic log and the retraction list do not count towards it.",
-    "status": "machine",
-    "by": "claude-opus-5.5 (Claude Code)",
-    "review": 3,
-    "reviewReason": "Exact instructions on limits; data-storage claim"
+    "status": "reviewed",
+    "by": "Lusnelli"
   },
   "settings.cache.label": {
     "message": "Límite (MB)",

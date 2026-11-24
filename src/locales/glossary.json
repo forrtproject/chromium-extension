@@ -122,7 +122,7 @@
   },
   "pill": {
     "de": "Markierung",
-    "note": "The small labels ORE adds next to papers.",
+    "note": "The small labels ORE adds next to papers. Example: https://staging.forrt.org/chromium-extension/img/pills-and-side-tab.png",
     "fr": "pastille",
     "es": "etiqueta",
     "pt-BR": "etiqueta",

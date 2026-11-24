@@ -35,7 +35,8 @@
     "rules": [
       "Address: neither \"du\" nor \"Sie\". Use infinitives for instructions and buttons (\"Seite neu laden, um …\") and impersonal or passive phrasing for statements (\"Die E-Mail-Adresse wird nur … gesendet\"). Replace \"Ihre\"/\"deine\" with the article. Where a sentence seems to need direct address, restructure it as a noun phrase or passive.",
       "People: name both forms (\"Autorinnen und Autoren\") or use neutral nouns (\"Personen\"); no gender star or colon.",
-      "Typography: quotation marks „…“; a spaced en dash – for the English em dash; the ellipsis character …."
+      "Typography: quotation marks „…“; a spaced en dash – for the English em dash; the ellipsis character ….",
+      "Write \"und\", not \"&\", in running text; \"&\" reads as too informal (reviewer feedback)."
     ],
     "examples": {
       "notice.updated.message": "ORE wurde aktualisiert – diese Seite neu laden, um Prüfungen auszuführen.",
@@ -54,6 +55,11 @@
         "pattern": "(?<![.!?:]\\s|^|„)(?<!\\p{L})(Sie|Ihnen|Ihre?[mnrs]?)(?!\\p{L})",
         "flags": "u",
         "message": "Formal address (Sie/Ihr) mid-sentence: use infinitives or impersonal phrasing."
+      },
+      {
+        "pattern": " & ",
+        "flags": "u",
+        "message": "Write \"und\", not \"&\", in running text."
       }
     ]
   },

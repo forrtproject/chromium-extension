@@ -1,11 +1,9 @@
 {
   "editor.docs.refreshUnavailable": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "ORE: Aktualisierung des gesamten Dokuments nicht verfügbar. Der Bericht behält den letzten erfolgreichen Scan bei und berücksichtigt aktuelle Änderungen möglicherweise nicht. Automatischer neuer Versuch läuft.",
+    "message": "ORE: Das gesamte Dokument kann nicht aktualisiert werden. Der Bericht zeigt weiterhin die Ergebnisse der letzten erfolgreichen Prüfung; neuere Änderungen fehlen möglicherweise. Wird automatisch erneut versucht.",
     "source": "ORE: Full-document refresh unavailable. The report retains the last successful scan and may miss recent edits. Retrying automatically.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Retaining a scan sounds unnatural; clarify that previous results remain."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "editor.docs.scanUnavailable": {
     "by": "ai-review",
@@ -37,28 +35,22 @@
     "review": 1
   },
   "notice.error.openFailed": {
-    "by": "codex-review",
-    "message": "Das Meldeformular konnte nicht geöffnet werden. Der Fehler lässt sich über das ORE-Menü in der Symbolleiste melden.",
+    "message": "Das Meldeformular konnte nicht geöffnet werden. Den Fehler über das ORE-Menü in der Symbolleiste melden.",
     "source": "Couldn't open the issue form. Report it from the ORE toolbar menu.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Reporting instructions require checking the exact menu location."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "notice.error.openFailedCopied": {
-    "by": "codex-review",
-    "message": "Das Meldeformular konnte nicht geöffnet werden – der Link befindet sich in der Zwischenablage.",
+    "message": "Das Meldeformular konnte nicht geöffnet werden – der Link wurde in die Zwischenablage kopiert.",
     "source": "Couldn't open the issue form — the link is on your clipboard.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Claims the link was placed on the clipboard."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "notice.error.report": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Melden",
     "source": "Report it",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit short-label constraint requires checking UI fit."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "notice.feedback.accept": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -97,20 +89,16 @@
     "review": 1
   },
   "notice.updated.message": {
-    "by": "codex-review",
     "message": "ORE wurde aktualisiert – diese Seite neu laden, um Prüfungen auszuführen.",
     "source": "ORE was updated — reload this page to run checks.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Required reload instruction must preserve the condition for running checks."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "notice.updated.reload": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Neu laden",
     "source": "Reload",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit short-label constraint requires checking UI fit."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.comments.allHidden": {
     "by": "codex-review",
@@ -177,12 +165,10 @@
     "review": 1
   },
   "page.comments.unavailableText": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Der Diskussionsstatus konnte nicht geprüft werden. Weitere verfügbare Befunde werden oben angezeigt.",
     "source": "Discussion status could not be checked. Other available findings are shown above.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "'Befunde' may imply scientific findings rather than extension results."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.comments.unavailableTitle": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -227,12 +213,10 @@
     "review": 1
   },
   "page.excel.visibleOnly": {
-    "by": "codex-review",
-    "message": "Excel stellt nur die sichtbaren Zeilen dar, daher prüft ORE nur diese. Durch die Tabelle scrollen, um auch die übrigen Zeilen zu prüfen.",
+    "message": "Excel stellt nur die sichtbaren Zeilen dar, daher prüft ORE nur diese. Durch das Tabellenblatt scrollen, um die übrigen Zeilen zu erfassen.",
     "source": "Excel only draws the rows on screen, so ORE checks those. Scroll the sheet to cover the rest.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Scrolling instructions determine whether all rows are checked."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.list.and": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -281,28 +265,22 @@
     "reviewReason": "Check consistency and clarity of 'Bereich' for panel."
   },
   "page.panel.copyLink": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Link kopieren",
     "source": "Copy link",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit short-label constraint requires checking UI fit."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.panel.copyLinkTitle": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Link zu diesem Bericht kopieren",
     "source": "Copy a link to this report",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit short-label constraint requires checking UI fit."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.panel.download": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Herunterladen",
     "source": "Download",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit short-label constraint; check available button width."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.panel.downloadTitle": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -356,12 +334,10 @@
     "review": 1
   },
   "page.panel.linkCopied": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Link zum Bericht kopiert – der Bericht ist im Link enthalten",
+    "message": "Berichtslink kopiert – der Bericht ist im Link enthalten",
     "source": "Report link copied — the report travels inside the link",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Describes report data embedded in a shareable link."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.panel.linkCopyFailed": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -402,12 +378,10 @@
     "review": 1
   },
   "page.panel.openTab": {
-    "by": "claude-review",
-    "message": "FORRT-ORE-Bereich öffnen",
+    "message": "Panel von FORRT ORE öffnen",
     "source": "Open the FORRT ORE panel",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "FORRT ORE name altered; check Bereich for panel."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.panel.originalsHeading": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -525,12 +499,10 @@
     "reviewReason": "Adds comments explicitly; check fit and intended search meaning."
   },
   "page.progress.resolvingRefs": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Literaturangaben ohne DOI werden aufgelöst…",
+    "message": "Fehlende DOIs für Literaturangaben werden ermittelt…",
     "source": "Resolving references without a DOI…",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Literaturangaben auflösen is unclear technical wording; verify intended operation."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.progress.retractionsDois": {
     "by": "codex-review",
@@ -660,12 +632,10 @@
     "reviewReason": "Check whether untranslated Stage fits German terminology."
   },
   "page.setup.body": {
-    "by": "codex-review",
-    "message": "Mit einer E-Mail-Adresse werden der Titelabgleich und die Open-Access-Abfragen aktiviert. DOI-basierte Prüfungen auf Replikationen, Retractions und PubPeer-Kommentare funktionieren auch ohne. In den Einstellungen wird erklärt, wie Crossref, OpenAlex, Unpaywall und NCBI die E-Mail-Adresse erhalten.",
+    "message": "E-Mail-Adresse hinterlegen, um den Titelabgleich und die Suche nach Open-Access-Versionen zu aktivieren. Die DOI-basierten Prüfungen auf Replikationen, Retractions und PubPeer-Kommentare funktionieren auch ohne. In den Einstellungen wird erklärt, wie Crossref, OpenAlex, Unpaywall und NCBI die E-Mail-Adresse erhalten.",
     "source": "Add an email to enable title matching and open-access lookups. DOI-based replication, retraction and PubPeer checks work without it. Settings explains how Crossref, OpenAlex, Unpaywall and NCBI receive the email.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Email sharing and feature dependencies require careful verification."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.setup.openSettings": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -736,12 +706,10 @@
     "reviewReason": "Scientific concern status and untranslated terminology require careful review."
   },
   "page.sheets.headlineReplications": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Replikationsdaten gefunden",
     "source": "Replication data found",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Claims scientific replication data were found."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.sheets.headlineRetracted": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -766,20 +734,16 @@
     "review": 1
   },
   "page.sheets.notice": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Mitteilung ↗",
+    "message": "Verlagsmitteilung ↗",
     "source": "Notice ↗",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Notice is ambiguous; Mitteilung may obscure a formal retraction notice."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.sheets.noticesHeading": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Zurückgezogen oder angezweifelt",
     "source": "Withdrawn or questioned",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Describes scientific withdrawal or doubt; terminology needs careful review."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.sheets.replicationsLabel": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -813,20 +777,17 @@
     "reviewReason": "Has number or variant forms"
   },
   "page.sheets.summaryChecked": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Die DOIs in dieser Tabelle wurden mit der Datenbank von Retraction Watch abgeglichen.",
     "source": "Checked the DOIs in this spreadsheet against the Retraction Watch database.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Claims retraction screening coverage against a named scientific database."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.sheets.summaryFound": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Replikations- &amp; Reproduktionsdaten für <strong>{count, plural, one {# DOI} other {# DOIs}}</strong> in dieser Tabelle gefunden.",
+    "message": "{count, plural, one {Replikations- und Reproduktionsdaten für <strong>{count} DOI</strong> in dieser Tabelle gefunden.} other {Replikations- und Reproduktionsdaten für <strong>{count} DOI</strong> in dieser Tabelle gefunden.}}",
     "source": "Found replication &amp; reproduction data for <strong>{count, plural, one {# DOI} other {# DOIs}}</strong> in this spreadsheet.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Scientific data discovery claim; verify replication and reproduction terminology."
+    "status": "reviewed",
+    "by": "Alyssa Columbus",
+    "note": "In German running text, \"&\" looks too informal."
   },
   "page.sheets.unavailable": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -836,12 +797,10 @@
     "review": 1
   },
   "page.sheets.visibleOnly": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "ORE hat nur die sichtbaren Zellen geprüft",
     "source": "ORE checked only the visible cells",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Defines screening scope, affecting interpretation of scientific status checks."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "page.unavailable.itemOa": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -928,36 +887,28 @@
     "review": 1
   },
   "pill.aria.noFlags": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Details zur offenen Forschung für {doi} öffnen: noch keine Hinweise. Für mehr Eingabetaste drücken.",
+    "message": "Details zu {doi}: noch keine Hinweise. Für weitere Details die Eingabetaste drücken.",
     "source": "Open research details for {doi}: no flags yet. Press Enter for more.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Ambiguous English; translation may incorrectly turn opening details into open science."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.aria.notice": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Details zur offenen Forschung für {doi} öffnen: {notice, select, concern {Expression of Concern} other {zurückgezogen}}. Für mehr Eingabetaste drücken.",
+    "message": "{notice, select, concern {Details zu {doi}: Expression of Concern. Für weitere Details die Eingabetaste drücken.} other {Details zu {doi}: zurückgezogen. Für weitere Details die Eingabetaste drücken.}}",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}. Press Enter for more.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Retraction status, ambiguous opening phrase, and keyboard instruction require careful review."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.aria.noticeAndStudies": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Details zur offenen Forschung für {doi} öffnen: {notice, select, concern {Expression of Concern} other {zurückgezogen}}, {count, plural, one {# Replikations- oder Reproduktionsstudie} other {# Replikations- oder Reproduktionsstudien}}. Für mehr Eingabetaste drücken.",
+    "message": "{notice, select, concern {{count, plural, one {Details zu {doi}: Expression of Concern, {count} Replikations- oder Reproduktionsstudie. Für weitere Details die Eingabetaste drücken.} other {Details zu {doi}: Expression of Concern, {count} Replikations- oder Reproduktionsstudien. Für weitere Details die Eingabetaste drücken.}}} other {{count, plural, one {Details zu {doi}: zurückgezogen, {count} Replikations- oder Reproduktionsstudie. Für weitere Details die Eingabetaste drücken.} other {Details zu {doi}: zurückgezogen, {count} Replikations- oder Reproduktionsstudien. Für weitere Details die Eingabetaste drücken.}}}}",
     "source": "Open research details for {doi}: {notice, select, concern {expression of concern} other {retracted}}, {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Scientific status, ambiguous opening phrase, and keyboard instruction require careful review."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.aria.studies": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Details zur offenen Forschung für {doi} öffnen: {count, plural, one {# Replikations- oder Reproduktionsstudie} other {# Replikations- oder Reproduktionsstudien}}. Für mehr Eingabetaste drücken.",
+    "message": "{count, plural, one {Details zu {doi}: {count} Replikations- oder Reproduktionsstudie. Für weitere Details die Eingabetaste drücken.} other {Details zu {doi}: {count} Replikations- oder Reproduktionsstudien. Für weitere Details die Eingabetaste drücken.}}",
     "source": "Open research details for {doi}: {count, plural, one {# replication or reproduction study} other {# replication or reproduction studies}}. Press Enter for more.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Ambiguous opening phrase and precise keyboard instruction require careful review."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.cite.copiedToast": {
     "by": "codex-review",
@@ -1111,20 +1062,16 @@
     "reviewReason": "Has number or variant forms"
   },
   "pill.marker.concern": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Expression of Concern.",
     "source": "Expression of concern.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Formal scientific warning status requires careful terminology review."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.marker.empty": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Keine Belege für Replikationen und keine PubPeer-Kommentare gefunden.",
+    "message": "Keine Replikationsdaten und keine PubPeer-Kommentare gefunden.",
     "source": "No replication evidence or PubPeer comments found.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Scientific evidence claim; wording may confuse replication studies with supporting evidence."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.marker.inProgress": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1141,12 +1088,10 @@
     "review": 1
   },
   "pill.marker.retracted": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Zurückgezogen.",
     "source": "Retracted.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Retraction status requires careful review against English terminology policy."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.marker.someUnavailable": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1164,45 +1109,34 @@
     "reviewReason": "Check whether verknüpft naturally describes studies linked in the atlas."
   },
   "pill.notice.concernBanner": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Zu diesem Artikel liegt eine Expression of Concern vor.",
     "source": "This article has an expression of concern.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Article-level scientific warning claim requires careful terminology review."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.notice.concernLabel": {
-    "by": "codex-review",
     "message": "Bedenken",
-    "note": "„Bedenken“ ist das kurze Label für eine Expression of Concern; der vollständige Fachbegriff bleibt in den Details erhalten.",
     "source": "Concern",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Tight space; Bedenken may obscure the formal editorial warning status."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.notice.concernTitle": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Expression of Concern",
     "source": "Expression of concern",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Formal scientific warning terminology requires careful review."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.notice.retractedBanner": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Dieser Artikel wurde zurückgezogen.",
     "source": "This article has been retracted.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit retraction claim requires careful review against English terminology policy."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.notice.retractedLabel": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Zurückgezogen",
     "source": "Retracted",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Retraction status requires careful review; English terminology and tight space matter."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.notice.view": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1235,12 +1169,10 @@
     "review": 1
   },
   "pill.oa.freeShort": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Kostenlos",
+    "message": "Frei",
     "source": "Free",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit tight space constraint requires checking label fit."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.oa.location.fallback": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1257,12 +1189,10 @@
     "review": 1
   },
   "pill.oa.noEmail": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "E-Mail-Adresse in den Einstellungen hinterlegen, um Open Access zu prüfen",
     "source": "Add your email in Settings to check open access",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Instruction specifies an email prerequisite for checking open access."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.oa.notConfirmed": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1279,12 +1209,10 @@
     "review": 1
   },
   "pill.oa.notIndexedShort": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Nicht indexiert",
     "source": "Not indexed",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit tight space constraint requires checking label fit."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.oa.title": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1294,28 +1222,22 @@
     "review": 1
   },
   "pill.oa.version.accepted": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "akzeptiert",
+    "message": "angenommen",
     "source": "accepted",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Check manuscript terminology and fit under explicit shortness constraint."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.oa.version.published": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "veröffentlicht",
     "source": "published",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit shortness constraint; verify published version remains identifiable."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.oa.version.submitted": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "eingereicht",
     "source": "submitted",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit shortness constraint; verify submitted manuscript remains identifiable."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.oa.versions": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1341,20 +1263,16 @@
     "review": 1
   },
   "pill.popover.label": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Details zur offenen Forschung für {doi} öffnen",
+    "message": "Details zu {doi}",
     "source": "Open research details for {doi}",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Ambiguous English; translation assumes details concern open research specifically."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.provenance.matchedByTitle": {
-    "by": "codex-review",
-    "message": "Anhand des Titels zugeordnet – prüfen, ob es der richtige Artikel ist",
+    "message": "Über den Titel zugeordnet – prüfen, ob es der richtige Artikel ist",
     "source": "Matched by title — check it is the right paper",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Verification instruction is essential to avoiding incorrect paper attribution."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.provenance.page": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1364,12 +1282,10 @@
     "review": 1
   },
   "pill.provenance.search": {
-    "by": "codex-review",
-    "message": "Per Suche zugeordnet – anhand von Titel, Erstautorenschaft und Jahr ermittelt. Prüfen, ob es der richtige Artikel ist.",
+    "message": "Per Suche zugeordnet – anhand von Titel, Erstautorin oder Erstautor und Jahr ermittelt. Prüfen, ob es der richtige Artikel ist.",
     "source": "Matched by search — looked up by title, first author and year. Check it is the right paper.",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Verification instruction; Erstautorenschaft may obscure the author matching criterion."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.pubpeer.checkingTooltip": {
     "by": "ai-review",
@@ -1416,20 +1332,16 @@
     "review": 1
   },
   "pill.pubpeer.rateLimited": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Anfragelimit erreicht – erneuter Versuch in {seconds, plural, one {# Sekunde} other {# Sekunden}}",
+    "message": "{seconds, plural, one {Anfragelimit erreicht – in {seconds} Sekunde(n) erneut versuchen} other {Anfragelimit erreicht – in {seconds} Sekunde(n) erneut versuchen}}",
     "source": "Rate limited — try again in {seconds, plural, one {# second} other {# seconds}}",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Translation may imply automatic retry instead of instructing manual retry."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.pubpeer.rateLimitedShort": {
-    "by": "codex-review",
-    "message": "Anfragelimit",
+    "message": "Limit erreicht",
     "source": "Rate limited",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Tight space; Anfragelimit alone omits that the limit was reached."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.pubpeer.unavailableTooltip": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1446,12 +1358,10 @@
     "review": 1
   },
   "pill.reps.noneFound": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Keine Daten zu Replikationen oder Reproduktionen gefunden",
     "source": "No replication or reproduction data found",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Evidence availability statement must distinguish missing data from absent replications."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.reps.noneTitle": {
     "by": "codex-review",
@@ -1500,12 +1410,10 @@
     "review": 1
   },
   "pill.row.noneShort": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Keine",
     "source": "None",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Tight space limit; confirm fit and grammatical agreement with heading."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.row.view": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1523,12 +1431,10 @@
     "reviewReason": "Check naturalness of Registered Report listing terminology."
   },
   "pill.rr.listedShort": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Gelistet",
     "source": "Listed",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit tight space limit requires checking rendered fit."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.rr.notListed": {
     "by": "codex-review",
@@ -1554,12 +1460,10 @@
     "reviewReason": "Check stage terminology and clarity of linked publication status."
   },
   "pill.rr.stage1Short": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Stage 1",
     "source": "Stage 1",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit tight space limit; verify unchanged stage label fits."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.rr.stage2": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1578,12 +1482,10 @@
     "reviewReason": "Check stage terminology and naturalness of protocol linkage wording."
   },
   "pill.rr.stage2Short": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "Stage 2",
     "source": "Stage 2",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit tight space limit; verify unchanged stage label fits."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.rr.title": {
     "by": "anthropic/claude-sonnet-5.5",
@@ -1614,20 +1516,16 @@
     "review": 1
   },
   "pill.segment.oa": {
-    "by": "anthropic/claude-sonnet-5.5",
     "message": "OA",
     "source": "OA",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Explicit character limit requires checking pill rendering."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.segment.reps": {
-    "by": "anthropic/claude-sonnet-5.5",
-    "message": "Repl.",
+    "message": "Rep.",
     "source": "Reps",
-    "status": "machine",
-    "review": 3,
-    "reviewReason": "Tight character limit; abbreviation may obscure inclusion of reproductions."
+    "status": "reviewed",
+    "by": "Alyssa Columbus"
   },
   "pill.stack.ariaLabel": {
     "by": "codex-review",
