@@ -101,11 +101,17 @@ function cmdBuild(): number {
   }
   writeFileSync(join(ROOT, "dist/locales/available.json"), JSON.stringify(shipped));
   const styles = stylesOf();
-  const languages: Record<string, { name: string; nativeName: string; rules: string[]; avoid: LanguageStyle["avoid"]; draft: boolean }> = {};
+  const languages: Record<string, {
+    name: string; nativeName: string; rules: string[]; avoid: LanguageStyle["avoid"]; draft: boolean; reviewed: number; total: number;
+  }> = {};
   for (const [lang, style] of Object.entries(styles)) {
     const draft = existsSync(localeFile(lang));
-    if (draft) writeFileSync(join(reviewData, `${lang}.json`), `${JSON.stringify(readJson<TranslationCatalog>(localeFile(lang), {}))}\n`);
-    languages[lang] = { name: style.name, nativeName: style.nativeName, rules: style.rules, avoid: style.avoid ?? [], draft };
+    const tr = readJson<TranslationCatalog>(localeFile(lang), {});
+    if (draft) writeFileSync(join(reviewData, `${lang}.json`), `${JSON.stringify(tr)}\n`);
+    const s = status(en, tr);
+    languages[lang] = {
+      name: style.name, nativeName: style.nativeName, rules: style.rules, avoid: style.avoid ?? [], draft, reviewed: s.reviewed, total: s.total,
+    };
   }
   writeFileSync(join(reviewData, "languages.json"), `${JSON.stringify(languages)}\n`);
   return 0;

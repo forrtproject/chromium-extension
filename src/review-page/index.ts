@@ -19,7 +19,9 @@ interface TranslationEntry {
 interface LocalEntry { message: string; source: string; approved: boolean; note?: string }
 interface LocalState { reviewer: string; entries: Record<string, LocalEntry>; sent?: Record<string, string> }
 type Glossary = Record<string, Record<string, string>>;
-interface LanguageInfo { name: string; nativeName: string; rules: string[]; avoid?: StyleRule[]; draft: boolean }
+interface LanguageInfo {
+  name: string; nativeName: string; rules: string[]; avoid?: StyleRule[]; draft: boolean; reviewed?: number; total?: number;
+}
 
 const LANGUAGES: Record<string, string> = { de: "Deutsch (German)" };
 let languageInfo: Record<string, LanguageInfo> = { de: { name: "German", nativeName: "Deutsch", rules: [], draft: true } };
@@ -695,9 +697,24 @@ function showLanding(): void {
     native.dir = "auto";
     tile.append(native);
     if (info.nativeName && info.nativeName !== tileName(code)) tile.append(el("span", "lang-english", tileName(code)));
+    if (info.draft && info.total) {
+      const done = info.reviewed ?? 0;
+      const progress = el("span", "lang-progress");
+      const bar = el("span", "lang-bar");
+      const fill = el("i");
+      fill.style.width = `${Math.round((done / info.total) * 100)}%`;
+      bar.append(fill);
+      const label = done >= info.total ? "Fully reviewed ✓" : done ? `${done.toLocaleString()} of ${info.total.toLocaleString()} reviewed` : "Needs reviewers";
+      progress.append(bar, el("span", "lang-progress-text", label));
+      progress.title = `${done} of ${info.total} texts checked by a native speaker`;
+      tile.classList.toggle("is-complete", done >= info.total);
+      tile.append(progress);
+    } else if (!info.draft) {
+      tile.append(el("span", "lang-progress-text", "Style guide only"));
+    }
     const work = savedWork(code);
-    const meta = code === suggested ? "Your browser language" : work ? `Continue · ${work} change${work === 1 ? "" : "s"} saved` : info.draft ? "Draft ready for review" : "Style guide only";
-    tile.append(el("span", "lang-meta", meta));
+    const hint = code === suggested ? "Your browser language" : work ? `Continue · ${work} change${work === 1 ? "" : "s"} saved` : "";
+    if (hint) tile.append(el("span", "lang-meta", hint));
     return tile;
   });
   $<HTMLElement>("#lang-grid").replaceChildren(...tiles);
