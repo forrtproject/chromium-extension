@@ -9,7 +9,7 @@ import {
   formatMessage, formsToMessage, hasChoices, messageArguments, messageForms, styleIssues, translationIssues, type MessageForm, type StyleRule,
 } from "@shared/i18n-format";
 import { guideUnsent, startGuide } from "./guide";
-import { messageDraft, openSend } from "./relay";
+import { EMAIL, messageDraft, openSend, rememberEmail, savedEmail } from "./relay";
 
 interface SourceEntry { message: string; context?: string; where: string[]; html?: boolean }
 interface TranslationEntry {
@@ -30,6 +30,7 @@ const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel)
 const listEl = $<HTMLElement>("#list");
 const progressEl = $<HTMLElement>("#progress");
 const reviewerInput = $<HTMLInputElement>("#reviewer");
+const reviewerEmailInput = $<HTMLInputElement>("#reviewer-email");
 const langSelect = $<HTMLSelectElement>("#lang");
 const filterSelect = $<HTMLSelectElement>("#filter");
 const areaSelect = $<HTMLSelectElement>("#area");
@@ -55,14 +56,33 @@ function rememberName(name: string): void {
 
 function showReviewer(): void {
   const name = state.reviewer.trim();
-  $<HTMLElement>("#reviewer-text").textContent = name ? `Reviewing as ${name}` : "Reviewing without a name: add one to be credited";
+  const email = savedEmail();
+  $<HTMLElement>("#reviewer-text").textContent = name
+    ? `Reviewing as ${name}${email ? ` (${email})` : ""}`
+    : "Reviewing without a name: add one to be credited";
   $<HTMLButtonElement>("#reviewer-change").textContent = name ? "Change" : "Add your name";
 }
 
 function askName(): void {
   reviewerInput.value = state.reviewer;
+  reviewerEmailInput.value = savedEmail();
+  $<HTMLElement>("#name-error").hidden = true;
   $<HTMLDialogElement>("#name-dialog").showModal();
-  reviewerInput.focus();
+  (reviewerInput.value ? reviewerEmailInput : reviewerInput).focus();
+}
+
+function saveReviewer(event: SubmitEvent): void {
+  const email = reviewerEmailInput.value.trim();
+  if (email && !EMAIL.test(email)) {
+    event.preventDefault();
+    const error = $<HTMLElement>("#name-error");
+    error.textContent = "Please check the email address, or leave it empty for now.";
+    error.hidden = false;
+    reviewerEmailInput.focus();
+    return;
+  }
+  rememberEmail(email);
+  rememberName(reviewerInput.value.trim());
 }
 let en: Record<string, SourceEntry> = {};
 let tr: Record<string, TranslationEntry> = {};
@@ -782,7 +802,7 @@ async function start(): Promise<void> {
   updateProgress();
 }
 
-$<HTMLFormElement>("#name-form").addEventListener("submit", () => rememberName(reviewerInput.value.trim()));
+$<HTMLFormElement>("#name-form").addEventListener("submit", saveReviewer);
 $<HTMLButtonElement>("#name-skip").addEventListener("click", () => {
   try { sessionStorage.setItem(NAME_SKIPPED_KEY, "1"); } catch { /* ask again next visit */ }
   $<HTMLDialogElement>("#name-dialog").close();

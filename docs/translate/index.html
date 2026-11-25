@@ -137,11 +137,15 @@
     </main>
 
     <dialog id="name-dialog" aria-labelledby="name-title">
-      <form id="name-form" method="dialog">
+      <form id="name-form" method="dialog" novalidate>
         <h2 id="name-title">Before you start</h2>
-        <p class="note">What name should we credit you under? It appears in ORE's acknowledgements and next to your review on GitHub. You can change it later.</p>
+        <p class="note">Who should we credit? Your name appears in ORE's acknowledgements and next to your review on GitHub. You can change both later.</p>
         <label for="reviewer">Your name</label>
         <input id="reviewer" type="text" autocomplete="name" maxlength="80" />
+        <label for="reviewer-email">Your email <span class="optional">(private)</span></label>
+        <input id="reviewer-email" type="email" autocomplete="email" maxlength="254" />
+        <p class="note small">Only the FORRT team sees your email, to credit you and to ask about your review; it is never shown publicly. Both are remembered in this browser only, so you don't have to type them again.</p>
+        <p class="send-error" id="name-error" role="alert" hidden></p>
         <div class="send-actions">
           <button type="button" class="btn btn-ghost" id="name-skip">Skip for now</button>
           <button type="submit" class="btn btn-primary" id="name-start">Start reviewing</button>

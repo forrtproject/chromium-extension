@@ -1,6 +1,17 @@
 export const RELAY = "https://ore-translation-feedback.translation-feedback-worker.workers.dev";
 const TURNSTILE_SITEKEY = "0x4AAAAAAGHA58g-Hyf0_z7d";
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_KEY = "ore-translation-reviewer-email";
+
+export function savedEmail(): string {
+  try { return localStorage.getItem(EMAIL_KEY) ?? ""; } catch { return ""; }
+}
+
+export function rememberEmail(email: string): void {
+  try {
+    if (email) localStorage.setItem(EMAIL_KEY, email); else localStorage.removeItem(EMAIL_KEY);
+  } catch { /* the email still applies for this visit */ }
+}
 
 interface Turnstile {
   render(el: string | HTMLElement, options: Record<string, unknown>): string;
@@ -53,11 +64,13 @@ export async function openSend(options: SendOptions): Promise<void> {
   $("send-optional").hidden = options.messageRequired;
   const name = $<HTMLInputElement>("send-name");
   if (!name.value) name.value = options.defaultName;
+  const emailInput = $<HTMLInputElement>("send-email");
+  if (!emailInput.value) emailInput.value = savedEmail();
   $<HTMLFormElement>("send-form").hidden = false;
   $("send-done").hidden = true;
   showError("");
   $<HTMLDialogElement>("send-dialog").showModal();
-  (name.value ? $<HTMLInputElement>("send-email") : name).focus();
+  (!name.value ? name : !emailInput.value ? emailInput : $<HTMLTextAreaElement>("send-message")).focus();
   try {
     await loadTurnstile();
     widget ??= window.turnstile!.render("#send-turnstile", {
@@ -96,6 +109,7 @@ async function submit(event: SubmitEvent): Promise<void> {
     $<HTMLFormElement>("send-form").hidden = true;
     $("send-done").hidden = false;
     $("send-close").focus();
+    rememberEmail(email);
     current.onSent(name);
   } catch (err) {
     showError((err as Error).message || "This could not be sent. Please try again.");
