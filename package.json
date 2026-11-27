@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsx esbuild.config.ts",
     "build:release": "tsx esbuild.config.ts --release",
+    "build:firefox": "tsx esbuild.config.ts && tsx scripts/assemble-firefox.ts",
     "watch": "tsx esbuild.config.ts --watch",
     "test": "vitest run",
     "test:watch": "vitest",

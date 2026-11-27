@@ -25,6 +25,11 @@ function writtenAt(value: unknown): number {
   return timestamps.length ? Math.max(...timestamps) : 0;
 }
 
+// Firefox has no storage.local.getBytesInUse, so sizes are estimated from a full read instead.
+function hasNativeBytesInUse(): boolean {
+  return typeof chrome.storage.local.getBytesInUse === "function";
+}
+
 /** Enforce the shared soft budget with batched storage reads/removals. */
 export async function enforceCacheBudget(bytes: number): Promise<void> {
   if (!Number.isFinite(bytes) || bytes <= 0) return;
@@ -33,13 +38,21 @@ export async function enforceCacheBudget(bytes: number): Promise<void> {
   // deserialising the stored values. The map is measured before the total, so a
   // map that grows between the two reads can only overestimate provider usage
   // and fall through to the full read — never skip a sweep that is due.
-  const mapBytes = await chrome.storage.local.getBytesInUse(RET_MAP_KEY);
-  const total = await chrome.storage.local.getBytesInUse(null);
-  if (total - mapBytes <= bytes) return;
-  const all = await chrome.storage.local.get(null);
+  const local = chrome.storage.local;
+  const native = hasNativeBytesInUse();
+  if (native) {
+    const mapBytes = await local.getBytesInUse(RET_MAP_KEY);
+    const total = await local.getBytesInUse(null);
+    if (total - mapBytes <= bytes) return;
+  }
+  const all = await local.get(null);
   const keys = Object.keys(all).filter(isProviderCacheKey);
   if (!keys.length) return;
-  let used = await chrome.storage.local.getBytesInUse(keys);
+  const encoder = new TextEncoder();
+  const serializedBytes = (key: string) => encoder.encode(key + JSON.stringify(all[key])).length;
+  const measure = async (subset: string[]) =>
+    native ? local.getBytesInUse(subset) : subset.reduce((sum, key) => sum + serializedBytes(key), 0);
+  let used = await measure(keys);
   if (used <= bytes) return;
   const now = Date.now();
   const expired = (key: string) => {
@@ -47,7 +60,6 @@ export async function enforceCacheBudget(bytes: number): Promise<void> {
     return typeof entry?.expiresAt === "number" && entry.expiresAt <= now;
   };
   const ordered = keys.sort((a, b) => Number(expired(b)) - Number(expired(a)) || writtenAt(all[a]) - writtenAt(all[b]));
-  const encoder = new TextEncoder();
   let cursor = 0;
   while (used > bytes && cursor < ordered.length) {
     const remove: string[] = [];
@@ -56,11 +68,11 @@ export async function enforceCacheBudget(bytes: number): Promise<void> {
     while (cursor < ordered.length && estimatedFreed < target) {
       const key = ordered[cursor++];
       remove.push(key);
-      estimatedFreed += encoder.encode(key + JSON.stringify(all[key])).length;
+      estimatedFreed += serializedBytes(key);
     }
     await chrome.storage.local.remove(remove);
     // Check the actual storage accounting, rather than relying on estimates.
-    used = cursor < ordered.length ? await chrome.storage.local.getBytesInUse(ordered.slice(cursor)) : 0;
+    used = cursor < ordered.length ? await measure(ordered.slice(cursor)) : 0;
   }
 }
 
@@ -78,7 +90,7 @@ export function installCacheBudget(): void {
         .then(getSettings)
         .then(settings => enforceCacheBudget(effectiveCacheQuotaMb(settings.cacheQuotaMb) * 1024 * 1024))
         .catch(err => debugWarn("Provider cache budget: sweep failed —", err));
-    }, 1000);
+    }, hasNativeBytesInUse() ? 1000 : 30_000);
   };
   chrome.storage.onChanged.addListener((changes, area) => {
     // Only new data can push usage over budget, so a sweep never reschedules

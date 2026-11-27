@@ -8,7 +8,7 @@ const sharedOptions: esbuild.BuildOptions = {
   bundle: true,
   minify: !isWatch,
   sourcemap: isWatch ? "inline" : false,
-  target: "chrome116",
+  target: ["chrome116", "firefox140"],
   logLevel: "info",
   loader: { ".css": "text" },
   // Testing builds store every log line and show a testing banner; release builds store only warnings and errors.

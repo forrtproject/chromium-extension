@@ -19,6 +19,8 @@ When you visit an article page (PubMed, journal websites, preprint servers, etc.
 
 **[Install FORRT ORE from the Chrome Web Store](https://chromewebstore.google.com/detail/ffncppfcjjciahcjbpefhokklfcagodc)** — works in Chrome and Edge.
 
+**Firefox (140 or later):** open **[the latest flora-extension-firefox.xpi](https://github.com/forrtproject/chromium-extension/releases/latest/download/flora-extension-firefox.xpi)** in Firefox and confirm the install. Firefox keeps it up to date automatically.
+
 ### Manual install (developer mode)
 
 To run the latest build before it reaches the store, load it manually:

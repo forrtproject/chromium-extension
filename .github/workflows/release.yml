@@ -42,6 +42,7 @@ jobs:
                 echo "branch=testing"
                 echo "build_script=build"
                 echo "zip=flora-extension-testing.zip"
+                echo "firefox_zip=flora-extension-firefox-testing.zip"
                 echo "draft_tag=draft-testing"
               } >> "$GITHUB_OUTPUT"
               ;;
@@ -51,6 +52,7 @@ jobs:
                 echo "branch=main"
                 echo "build_script=build:release"
                 echo "zip=flora-extension.zip"
+                echo "firefox_zip=flora-extension-firefox.zip"
                 echo "draft_tag=draft"
               } >> "$GITHUB_OUTPUT"
               ;;
@@ -76,9 +78,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run ${{ steps.channel.outputs.build_script }}
-      - name: Create zip
+      - name: Create zips
         env:
           ZIP_NAME: ${{ steps.channel.outputs.zip }}
+          FIREFOX_ZIP_NAME: ${{ steps.channel.outputs.firefox_zip }}
           CHANNEL: ${{ steps.channel.outputs.name }}
         run: |
           mkdir -p flora-extension
@@ -88,6 +91,27 @@ jobs:
             npx tsx scripts/stamp-testing-manifest.ts flora-extension/manifest.json
           fi
           zip -r "$ZIP_NAME" flora-extension
+          cp -r flora-extension flora-extension-firefox
+          firefox_channel=""
+          if [ "$CHANNEL" = "testing" ]; then firefox_channel="--testing"; fi
+          npx tsx scripts/firefox-manifest.ts flora-extension-firefox/manifest.json $firefox_channel
+          (cd flora-extension-firefox && zip -r "../$FIREFOX_ZIP_NAME" .)
+      - name: Sign the Firefox add-on for self-distribution
+        if: github.ref_type == 'tag' && steps.channel.outputs.name == 'stable'
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          if [ -z "$AMO_JWT_ISSUER" ] || [ -z "$AMO_JWT_SECRET" ]; then
+            echo "::warning::AMO_JWT_ISSUER/AMO_JWT_SECRET are not set: attach a signed flora-extension-firefox.xpi and updates.json to this release by hand, or Firefox users get no update."
+            exit 0
+          fi
+          git archive --format=zip -o firefox-source.zip HEAD
+          npx --yes web-ext@8 sign --source-dir flora-extension-firefox --channel unlisted \
+            --upload-source-code firefox-source.zip --artifacts-dir web-ext-artifacts \
+            --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
+          mv web-ext-artifacts/*.xpi flora-extension-firefox.xpi
+          npx tsx scripts/firefox-update-manifest.ts flora-extension-firefox.xpi updates.json
 
       # see customization options at:
       # https://github.com/marketplace/actions/gh-release#-customizing
@@ -97,14 +121,20 @@ jobs:
         with:
           tag_name: ${{ steps.channel.outputs.draft_tag }}
           target_commitish: ${{ github.sha }}
-          files: ${{ steps.channel.outputs.zip }}
+          files: |
+            ${{ steps.channel.outputs.zip }}
+            ${{ steps.channel.outputs.firefox_zip }}
           draft: true
           prerelease: ${{ steps.channel.outputs.name == 'testing' }}
       - name: Release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          files: ${{ steps.channel.outputs.zip }}
+          files: |
+            ${{ steps.channel.outputs.zip }}
+            ${{ steps.channel.outputs.firefox_zip }}
+            flora-extension-firefox.xpi
+            updates.json
           generate_release_notes: true
           prerelease: ${{ steps.channel.outputs.name == 'testing' }}
           make_latest: ${{ steps.channel.outputs.name == 'stable' }}

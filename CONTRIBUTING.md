@@ -23,6 +23,8 @@ npm run build
 
 In `chrome://extensions` or `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the repository root. After editing, rebuild and reload the extension. Use a separate browser profile for development. See the [README](README.md#development) for the architecture and site-adapter conventions.
 
+For Firefox (140 or later), run `npm run build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `build/firefox/manifest.json`. Rerun the build and click **Reload** after editing.
+
 ## Check your change
 
 Run the same core checks as pull-request CI:
@@ -45,3 +47,5 @@ Target `main`, keep the change focused, and link the issue where applicable. Exp
 Changes to visual fixtures, screenshots, or capture setup (including `package.json` or `manifest.json`) need visual approval. After the Visual evidence bot posts, ask a maintainer with write access to comment `visuals ok`; a fork author’s comment cannot approve the visuals. For a fork PR with changed screenshots, a maintainer must also move the branch into this repository so the workflow can commit baselines.
 
 Maintainers review scientific interpretation, privacy, compatibility, and test results before merging. Release creation and store publication are maintainer responsibilities; contributors do not need release credentials or production access.
+
+Firefox builds are self-distributed. A stable `v*` tag signs the add-on through AMO's unlisted channel when the `AMO_JWT_ISSUER` and `AMO_JWT_SECRET` repository secrets hold an AMO API key, then attaches `flora-extension-firefox.xpi` and `updates.json` to the release. Installed copies poll `releases/latest/download/updates.json`, so every stable release must carry both files. Without the secrets, upload `flora-extension-firefox.zip` to the Developer Hub as an unlisted version, download the signed `.xpi` as `flora-extension-firefox.xpi`, run `npx tsx scripts/firefox-update-manifest.ts flora-extension-firefox.xpi`, and attach both files to the release.

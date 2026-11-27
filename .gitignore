@@ -1,5 +1,6 @@
 /node_modules
 /dist
+/build
 /tests/visual/output
 /tests/live/output*/
 /tests/live/.profile

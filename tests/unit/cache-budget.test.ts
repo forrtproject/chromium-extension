@@ -67,6 +67,19 @@ describe("shared provider cache budget", () => {
     expect(chrome.storage.local.remove).not.toHaveBeenCalled();
   });
 
+  it("estimates usage from stored values where getBytesInUse is missing, as in Firefox", async () => {
+    (chrome.storage.local as unknown as Record<string, unknown>).getBytesInUse = undefined;
+    store = {
+      "flora:old": {data: "x".repeat(200), createdAt: 1, expiresAt: null},
+      "flora:new": {data: "x".repeat(200), createdAt: 2, expiresAt: null},
+      RetractionLookupLocal: {retractions: {doi: "x".repeat(5000)}, concerns: {}},
+    };
+    await enforceCacheBudget(300);
+    expect(store["flora:old"]).toBeUndefined();
+    expect(store["flora:new"]).toBeDefined();
+    expect(store.RetractionLookupLocal).toBeDefined();
+  });
+
   it("raises a non-zero quota below the floor and leaves 0 unlimited", () => {
     expect(effectiveCacheQuotaMb(1)).toBe(MIN_CACHE_QUOTA_MB);
     expect(effectiveCacheQuotaMb(9)).toBe(MIN_CACHE_QUOTA_MB);
